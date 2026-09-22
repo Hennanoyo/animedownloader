@@ -84,7 +84,6 @@ services:
         taskiq worker animedownloader_worker.broker:broker
     volumes:
       - .:/app
-      - server-venv:/app/server/.venv
       - downloads:/data/downloads
       - media:/data/media
     environment:

@@ -92,7 +92,8 @@ class AnimeService:
         data: EpisodeCreateData,
     ) -> Episode:
         async with self.session.begin():
-            if await self.animes.get(anime_id) is None:
+            anime = await self.animes.get(anime_id)
+            if anime is None:
                 raise AnimeNotFoundError(anime_id)
 
             if await self.episodes.exists_number(anime_id, data.episode_number):

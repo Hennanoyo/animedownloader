@@ -2,7 +2,6 @@ from types import TracebackType
 from typing import Self
 
 import httpx
-
 from animedownloader_releases import Release
 from defusedxml import ElementTree
 

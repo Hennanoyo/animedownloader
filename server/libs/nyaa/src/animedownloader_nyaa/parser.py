@@ -85,5 +85,5 @@ def _parse_date(value: str | None) -> datetime | None:
 
     try:
         return parsedate_to_datetime(value)
-    except (TypeError, ValueError, IndexError):
+    except TypeError, ValueError, IndexError:
         return None

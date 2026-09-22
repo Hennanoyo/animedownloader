@@ -2,7 +2,6 @@ from pathlib import Path
 
 import httpx
 import pytest
-
 from animedownloader_nyaa import NyaaClient
 from animedownloader_nyaa.parser import parse_rss_feed
 

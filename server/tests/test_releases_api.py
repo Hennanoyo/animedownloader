@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 
 import httpx
 import pytest
-
 from animedownloader_api.app import create_app
 from animedownloader_api.dependencies import get_nyaa_client
 from animedownloader_releases import Release

@@ -1,0 +1,45 @@
+name: Generate Lockfiles
+
+on:
+  push:
+    branches:
+      - "feature/bootstrap"
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    name: Generate lockfiles
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@v3
+        with:
+          version: 11.26.0
+          runtime: node@24.21.0
+          working-directory: web
+          install: false
+          cache: false
+
+      - name: Generate pnpm lockfile
+        working-directory: web
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v10.2.0
+
+      - name: Generate uv lockfile
+        working-directory: server
+        run: uv lock
+
+      - name: Upload lockfiles
+        uses: actions/upload-artifact@v4
+        with:
+          name: animedownloader-lockfiles
+          path: |
+            web/pnpm-lock.yaml
+            server/uv.lock

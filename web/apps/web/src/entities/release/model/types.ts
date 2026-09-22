@@ -4,7 +4,7 @@ export interface Release {
   title: string;
   page_url: string;
   torrent_url: string;
-  published_at: string | null;
+  published_at: Date | null;
   size: string | null;
   seeders: number | null;
   leechers: number | null;

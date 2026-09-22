@@ -1,5 +1,5 @@
-import { Button, Form, Input, Label, Text, TextField } from "react-aria-components";
 import { useForm } from "@tanstack/react-form";
+import { Button, Form, Input, Label, Text, TextField } from "react-aria-components";
 import { z } from "zod";
 import styles from "./ReleaseSearchForm.module.scss";
 
@@ -14,11 +14,13 @@ const searchFormSchema = z.object({
 interface ReleaseSearchFormProps {
   initialQuery: string;
   onSearch: (query: string) => void;
+  embedded?: boolean;
 }
 
 export default function ReleaseSearchForm({
   initialQuery,
   onSearch,
+  embedded = false,
 }: ReleaseSearchFormProps) {
   const form = useForm({
     defaultValues: {
@@ -32,14 +34,8 @@ export default function ReleaseSearchForm({
     },
   });
 
-  return (
-    <Form
-      className={styles.form}
-      onSubmit={(event) => {
-        event.preventDefault();
-        void form.handleSubmit();
-      }}
-    >
+  const content = (
+    <>
       <form.Field name="query">
         {(field) => {
           const hasError = field.state.meta.errors.length > 0;
@@ -74,11 +70,28 @@ export default function ReleaseSearchForm({
       </form.Field>
       <Button
         className={styles.button}
-        type="submit"
+        type={embedded ? "button" : "submit"}
+        onPress={embedded ? () => void form.handleSubmit() : undefined}
         isDisabled={form.state.isSubmitting}
       >
         {form.state.isSubmitting ? "Searching..." : "Search"}
       </Button>
+    </>
+  );
+
+  if (embedded) {
+    return <div className={styles.form}>{content}</div>;
+  }
+
+  return (
+    <Form
+      className={styles.form}
+      onSubmit={(event) => {
+        event.preventDefault();
+        void form.handleSubmit();
+      }}
+    >
+      {content}
     </Form>
   );
 }

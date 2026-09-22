@@ -4,14 +4,19 @@ version = "0.1.0"
 description = "AnimeDownloader FastAPI application"
 requires-python = ">=3.14"
 dependencies = [
+    "alembic>=1.17,<2",
+    "animedownloader-anime",
     "animedownloader-config",
+    "animedownloader-database",
     "animedownloader-nyaa",
     "animedownloader-releases",
     "fastapi[standard]>=0.141,<0.142",
 ]
 
 [tool.uv.sources]
+animedownloader-anime = { workspace = true }
 animedownloader-config = { workspace = true }
+animedownloader-database = { workspace = true }
 animedownloader-nyaa = { workspace = true }
 animedownloader-releases = { workspace = true }
 

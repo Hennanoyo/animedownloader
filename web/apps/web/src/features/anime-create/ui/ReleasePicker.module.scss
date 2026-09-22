@@ -1,0 +1,46 @@
+.picker {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.selected,
+.result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #26324a;
+  border-radius: 0.75rem;
+  background: #0b1222;
+}
+
+.selected > div,
+.result > div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.selected span,
+.result span {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.changeButton,
+.selectButton {
+  flex: 0 0 auto;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  background: #111827;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.results {
+  display: grid;
+  gap: 0.6rem;
+}

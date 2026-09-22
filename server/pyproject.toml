@@ -24,13 +24,23 @@ members = [
 ]
 
 [tool.pyright]
-include = ["apps", "libs", "tests"]
+include = ["apps", "domains", "libs", "tests"]
 exclude = [
     "**/__pycache__",
     ".venv",
 ]
 pythonVersion = "3.14"
 typeCheckingMode = "strict"
+executionEnvironments = [
+    { root = ".", extraPaths = [
+        "apps/api/src",
+        "domains/anime/src",
+        "domains/releases/src",
+        "libs/config/src",
+        "libs/database/src",
+        "libs/nyaa/src",
+    ] },
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

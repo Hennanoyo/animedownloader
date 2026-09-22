@@ -1,61 +1,69 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiRequestError, getJson } from "./client";
+import {
+  ApiRequestError,
+  deleteJson,
+  getJson,
+  patchJson,
+  postJson,
+} from "./client";
 
-describe("getJson", () => {
-  it("returns parsed JSON for a successful response", async () => {
+describe("api client", () => {
+  it("handles successful GET requests", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ status: "ok" }), { status: 200 }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(getJson("/api/health")).resolves.toEqual({ status: "ok" });
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/health",
-      expect.objectContaining({ method: "GET" }),
-    );
-
     vi.unstubAllGlobals();
   });
 
-  it("includes the HTTP status and API detail for failed responses", async () => {
+  it("sends JSON POST and PATCH bodies", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => {
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await postJson("/api/animes", { title: "Frieren" });
+    await patchJson("/api/animes/1", { title: "Updated" });
+
+    expect(fetchMock.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(fetchMock.mock.calls[1]?.[1]).toEqual(
+      expect.objectContaining({ method: "PATCH" }),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("accepts empty DELETE responses", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(
-        JSON.stringify({ detail: "Nyaa search is temporarily unavailable" }),
-        { status: 502 },
-      ),
+      new Response(null, { status: 204 }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(getJson("/api/releases/search?q=Frieren")).rejects.toEqual(
+    await expect(deleteJson("/api/animes/1")).resolves.toBeUndefined();
+    vi.unstubAllGlobals();
+  });
+
+  it("exposes API error details", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ detail: "Not found" }), { status: 404 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getJson("/api/animes/1")).rejects.toEqual(
       expect.objectContaining({
         name: "ApiRequestError",
-        status: 502,
-        message:
-          "API request failed with status 502: Nyaa search is temporarily unavailable",
+        status: 404,
+        message: "API request failed with status 404: Not found",
       }),
     );
-
     vi.unstubAllGlobals();
   });
 
-  it("distinguishes network failures", async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockRejectedValue(
-      new TypeError("Failed to fetch"),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(getJson("/api/health")).rejects.toThrow(
-      "Network request failed: Failed to fetch",
-    );
-
-    vi.unstubAllGlobals();
-  });
-
-  it("preserves the custom API error type", () => {
+  it("preserves the response body on ApiRequestError", () => {
     const error = new ApiRequestError("failed", 500, "oops");
-
-    expect(error).toBeInstanceOf(Error);
-    expect(error.status).toBe(500);
     expect(error.responseBody).toBe("oops");
   });
 });

@@ -1,0 +1,50 @@
+name: Generate lockfiles
+
+on:
+  push:
+    branches:
+      - "feature/release-catalog"
+
+permissions:
+  contents: write
+
+jobs:
+  lockfiles:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@v3
+        with:
+          version: 11.26.0
+          runtime: node@24.21.0
+          working-directory: web
+          install: false
+          cache: false
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: false
+
+      - name: Update lockfiles
+        run: |
+          cd web
+          pnpm install --lockfile-only
+          cd ../server
+          uv lock
+
+      - name: Commit lockfiles
+        run: |
+          if git diff --quiet -- web/pnpm-lock.yaml server/uv.lock; then
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/pnpm-lock.yaml server/uv.lock
+          git commit -m "chore: update workspace lockfiles"
+          git push

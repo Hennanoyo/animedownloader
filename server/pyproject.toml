@@ -32,7 +32,7 @@ exclude = [
 pythonVersion = "3.14"
 typeCheckingMode = "strict"
 executionEnvironments = [
-    { root = "apps", extraPaths = [
+    { root = ".", extraPaths = [
         "apps/api/src",
         "domains/anime/src",
         "domains/releases/src",

@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from animedownloader_anime import (
@@ -20,7 +20,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     database = create_database(app_settings.database_url)
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
         yield
         await database.dispose()
 
@@ -54,14 +54,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
 async def _not_found_handler(
     _: Request,
-    exc: AnimeNotFoundError | EpisodeNotFoundError,
+    exc: Exception,
 ) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 
 async def _duplicate_episode_handler(
     _: Request,
-    exc: DuplicateEpisodeError,
+    exc: Exception,
 ) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 

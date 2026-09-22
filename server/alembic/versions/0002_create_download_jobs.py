@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "0002_create_download_jobs"
-down_revision = "0001_create_anime_and_episode"
+down_revision = "0001_create_anime_episode"
 branch_labels = None
 depends_on = None
 

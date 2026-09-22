@@ -35,8 +35,10 @@ async def test_nyaa_client_search_uses_rss_query() -> None:
         return httpx.Response(200, text=fixture)
 
     transport = httpx.MockTransport(handler)
-    async with httpx.AsyncClient(base_url="https://nyaa.si", transport=transport) as http_client:
-        async with NyaaClient(http_client=http_client) as client:
-            releases = await client.search("Frieren")
+    async with (
+        httpx.AsyncClient(base_url="https://nyaa.si", transport=transport) as http_client,
+        NyaaClient(http_client=http_client) as client,
+    ):
+        releases = await client.search("Frieren")
 
     assert len(releases) == 2

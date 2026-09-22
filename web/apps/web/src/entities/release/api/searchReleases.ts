@@ -8,7 +8,7 @@ const releaseSchema = z.object({
   title: z.string(),
   page_url: z.string().url(),
   torrent_url: z.string().url(),
-  published_at: z.string().datetime().nullable(),
+  published_at: z.iso.datetime({ offset: true }).nullable(),
   size: z.string().nullable(),
   seeders: z.number().int().nonnegative().nullable(),
   leechers: z.number().int().nonnegative().nullable(),
@@ -26,6 +26,9 @@ export async function searchReleases(
   signal?: AbortSignal,
 ): Promise<ReleaseSearchResponse> {
   const params = new URLSearchParams({ q: query });
-  const payload = await getJson("/api/releases/search?" + params.toString(), { signal });
+  const payload = await getJson(
+    "/api/releases/search?" + params.toString(),
+    { signal },
+  );
   return responseSchema.parse(payload);
 }

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { searchReleases } from "./searchReleases";
 
 describe("searchReleases", () => {
-  it("parses a valid API response", async () => {
+  it("parses a valid API response with an offset-aware timestamp", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -14,7 +14,7 @@ describe("searchReleases", () => {
               title: "[ExampleSubs] Frieren - 01 [1080p].mkv",
               page_url: "https://nyaa.si/view/123456",
               torrent_url: "https://nyaa.si/download/123456.torrent",
-              published_at: "2026-09-22T10:20:30Z",
+              published_at: "2026-09-22T10:20:30+00:00",
               size: "1.24 GiB",
               seeders: 42,
               leechers: 3,

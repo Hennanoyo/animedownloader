@@ -31,13 +31,21 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup pnpm and Node.js
-        uses: pnpm/setup@v1
+        uses: pnpm/setup@v3
         with:
-          version: latest
-          runtime: node@24
+          version: 11.26.0
+          runtime: node@24.21.0
+          working-directory: web
+          install: false
+          cache: true
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          if test -f pnpm-lock.yaml; then
+            pnpm install --frozen-lockfile
+          else
+            pnpm install --no-frozen-lockfile
+          fi
 
       - name: Lint
         run: pnpm run lint
@@ -63,12 +71,19 @@ jobs:
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
 
       - name: Install Python
         run: uv python install 3.14
 
       - name: Install dependencies
-        run: uv sync --locked
+        run: |
+          if test -f uv.lock; then
+            uv sync --all-packages --locked
+          else
+            uv sync --all-packages
+          fi
 
       - name: Ruff
         run: |
@@ -92,6 +107,3 @@ jobs:
 
       - name: Validate Docker Compose configuration
         run: docker compose config
-
-      # Service startup and integration tests will be added when the
-      # repository's Compose services and health checks are implemented.

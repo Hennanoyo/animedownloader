@@ -107,3 +107,6 @@ jobs:
 
       - name: Validate Dev Container Compose configuration
         run: docker compose -f compose.yaml -f .devcontainer/docker-compose.devcontainer.yml config
+
+      - name: Build Dev Container
+        run: docker compose -f compose.yaml -f .devcontainer/docker-compose.devcontainer.yml build dev

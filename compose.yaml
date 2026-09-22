@@ -50,8 +50,8 @@ services:
         exec pnpm --filter "@animedownloader/web" dev --host 0.0.0.0
     volumes:
       - .:/app
-      - web-node-modules:/app/web/node_modules
-      - web-app-node-modules:/app/web/apps/web/node_modules
+      - web-node-modules-node:/app/web/node_modules
+      - web-app-node-modules-node:/app/web/apps/web/node_modules
     environment:
       VITE_API_URL: http://localhost:8000
     ports:
@@ -147,5 +147,5 @@ volumes:
   seaweedfs-data:
   downloads:
   media:
-  web-node-modules:
-  web-app-node-modules:
+  web-node-modules-node:
+  web-app-node-modules-node:

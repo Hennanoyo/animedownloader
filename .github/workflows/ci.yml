@@ -101,6 +101,13 @@ jobs:
       - name: Build Dev Container
         run: docker compose -f compose.yaml -f .devcontainer/docker-compose.devcontainer.yml build dev
 
+      - name: Verify Dev Container workspace dependencies
+        run: >-
+          docker compose -f compose.yaml
+          -f .devcontainer/docker-compose.devcontainer.yml
+          run --rm --no-deps dev
+          sh -c 'cd /app/web && pnpm install --frozen-lockfile'
+
       - name: Start runtime stack
         run: docker compose up -d --build
 

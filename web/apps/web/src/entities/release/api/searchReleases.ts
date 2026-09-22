@@ -8,7 +8,7 @@ const releaseSchema = z.object({
   title: z.string(),
   page_url: z.string().url(),
   torrent_url: z.string().url(),
-  published_at: z.iso.datetime({ offset: true }).nullable(),
+  published_at: z.coerce.date().nullable(),
   size: z.string().nullable(),
   seeders: z.number().int().nonnegative().nullable(),
   leechers: z.number().int().nonnegative().nullable(),

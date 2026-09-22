@@ -23,7 +23,7 @@ code .
 
 Then use **Dev Containers: Reopen in Container**.
 
-The Dev Container attaches to the `api` service and starts the full Compose stack automatically.
+The Dev Container attaches to the `dev` service and starts the full Compose stack automatically.
 
 See [`docs/development.md`](docs/development.md) for first-time setup, environment variables, branch usage, and service URLs.
 

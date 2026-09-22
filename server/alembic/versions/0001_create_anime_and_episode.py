@@ -5,9 +5,8 @@ Revises:
 Create Date: 2026-09-23
 """
 
-import sqlalchemy as sa
-
 from alembic import op
+import sqlalchemy as sa
 
 
 revision = "0001_create_anime_episode"

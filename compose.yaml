@@ -42,12 +42,11 @@ services:
       dockerfile: web/Dockerfile
     working_dir: /app/web
     command:
-      - pnpm
-      - --filter
-      - "@animedownloader/web"
-      - dev
-      - --host
-      - 0.0.0.0
+      - sh
+      - -c
+      - >-
+        pnpm install --frozen-lockfile --config.confirmModulesPurge=false &&
+        exec pnpm --filter "@animedownloader/web" dev --host 0.0.0.0
     volumes:
       - .:/app
       - web-node-modules:/app/web/node_modules

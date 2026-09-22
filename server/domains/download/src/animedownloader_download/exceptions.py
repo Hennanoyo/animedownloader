@@ -15,8 +15,6 @@ class InvalidDownloadJobTransitionError(Exception):
         current: DownloadJobStatus,
         target: DownloadJobStatus,
     ) -> None:
-        super().__init__(
-            f"Invalid download job transition: {current.value} -> {target.value}"
-        )
+        super().__init__(f"Invalid download job transition: {current.value} -> {target.value}")
         self.current = current
         self.target = target

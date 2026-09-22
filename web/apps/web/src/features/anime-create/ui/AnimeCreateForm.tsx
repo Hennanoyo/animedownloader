@@ -281,7 +281,7 @@ export default function AnimeCreateForm() {
         <div className={styles.sectionHeader}>
           <div>
             <h2>Episodes</h2>
-            <p>Select a Nyaa release for each episode, then clean up the title.</p>
+            <p>Select a Nyaa release for each episode, then clean up the episode title.</p>
           </div>
           <Button
             type="button"
@@ -339,7 +339,7 @@ export default function AnimeCreateForm() {
 
             <ReleasePicker
               release={episode.release}
-              onSelect={(release: Release) => {
+              onSelect={(release) => {
                 updateEpisode(index, {
                   release,
                   title: episode.title.trim() ? episode.title : release.title,

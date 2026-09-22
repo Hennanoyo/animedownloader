@@ -2,6 +2,7 @@ import asyncio
 from logging.config import fileConfig
 
 import animedownloader_anime.models  # noqa: F401
+import animedownloader_download.models  # noqa: F401
 from animedownloader_config import Settings
 from animedownloader_database import Base
 from sqlalchemy import pool

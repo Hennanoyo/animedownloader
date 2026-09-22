@@ -6,7 +6,16 @@ from uuid import UUID
 
 from animedownloader_anime import Episode
 from animedownloader_database import Base
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .enums import DownloadJobStatus
@@ -15,6 +24,20 @@ from .exceptions import InvalidDownloadJobTransitionError
 
 class DownloadJob(Base):
     __tablename__ = "download_jobs"
+    __table_args__ = (
+        CheckConstraint(
+            "downloaded_bytes >= 0",
+            name="ck_download_jobs_downloaded_bytes_nonnegative",
+        ),
+        CheckConstraint(
+            "total_bytes IS NULL OR total_bytes >= 0",
+            name="ck_download_jobs_total_bytes_nonnegative",
+        ),
+        CheckConstraint(
+            "attempt_count >= 0",
+            name="ck_download_jobs_attempt_count_nonnegative",
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     episode_id: Mapped[UUID] = mapped_column(
@@ -95,6 +118,7 @@ class DownloadJob(Base):
         if target is DownloadJobStatus.DOWNLOADING:
             self.started_at = now
             self.attempt_count += 1
+            self.error_message = None
 
         if target is DownloadJobStatus.FAILED:
             self.error_message = error_message or "Download failed."
@@ -102,8 +126,6 @@ class DownloadJob(Base):
         if target is DownloadJobStatus.COMPLETED:
             self.completed_at = now
             self.error_message = None
-            if total_bytes is not None:
-                self.total_bytes = total_bytes
 
         if target is DownloadJobStatus.CANCELLED:
             self.completed_at = now

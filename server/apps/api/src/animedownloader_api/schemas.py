@@ -85,6 +85,10 @@ class EpisodeResponse(BaseModel):
     updated_at: datetime
 
 
+def _empty_episodes() -> list[EpisodeCreate]:
+    return []
+
+
 class AnimeCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     year: int = Field(ge=1900, le=2100)
@@ -92,7 +96,7 @@ class AnimeCreate(BaseModel):
     weekday: Weekday
     air_time: time | None = None
     timezone: str = Field(default="Asia/Tokyo", min_length=1, max_length=64)
-    episodes: list[EpisodeCreate] = Field(default_factory=list)
+    episodes: list[EpisodeCreate] = Field(default_factory=_empty_episodes)
 
 
 class AnimeUpdate(BaseModel):

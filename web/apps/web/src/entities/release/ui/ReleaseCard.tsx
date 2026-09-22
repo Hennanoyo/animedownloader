@@ -5,7 +5,7 @@ interface ReleaseCardProps {
   release: Release;
 }
 
-function formatDate(value: string | null): string {
+function formatDate(value: Date | null): string {
   if (!value) {
     return "Unknown date";
   }
@@ -13,7 +13,7 @@ function formatDate(value: string | null): string {
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  }).format(value);
 }
 
 export default function ReleaseCard({ release }: ReleaseCardProps) {

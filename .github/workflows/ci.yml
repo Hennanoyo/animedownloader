@@ -137,7 +137,7 @@ jobs:
 
       - name: Verify Anime CRUD against PostgreSQL
         run: |
-          docker compose exec -T api python3 - <<'PY'
+          docker compose exec -T api uv run --package animedownloader-api python3 - <<'PY'
           import uuid
 
           import httpx

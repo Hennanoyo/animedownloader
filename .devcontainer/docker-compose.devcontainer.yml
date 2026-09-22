@@ -7,8 +7,8 @@ services:
     command: ["sleep", "infinity"]
     volumes:
       - .:/app
-      - web-node-modules-node:/app/web/node_modules
-      - web-app-node-modules-node:/app/web/apps/web/node_modules
+      - dev-web-node-modules:/app/web/node_modules
+      - dev-web-app-node-modules:/app/web/apps/web/node_modules
     environment:
       ENVIRONMENT: development
       DATABASE_URL: postgresql+asyncpg://animedownloader:animedownloader@db:5432/animedownloader

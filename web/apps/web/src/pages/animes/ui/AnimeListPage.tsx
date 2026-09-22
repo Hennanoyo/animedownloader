@@ -29,7 +29,7 @@ export default function AnimeListPage() {
       ) : null}
 
       <div className={styles.list}>
-        {query.data.map((anime) => (
+        {query.data?.map((anime) => (
           <article className={styles.card} key={anime.id}>
             <div className={styles.cardHeader}>
               <div>

@@ -87,7 +87,7 @@ class DownloadJob(Base):
         total_bytes: int | None = None,
     ) -> None:
         current = self.job_status
-        allowed = {
+        allowed: dict[DownloadJobStatus, set[DownloadJobStatus]] = {
             DownloadJobStatus.PENDING: {
                 DownloadJobStatus.DOWNLOADING,
                 DownloadJobStatus.FAILED,

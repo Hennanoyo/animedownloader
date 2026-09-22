@@ -1,13 +1,14 @@
 import asyncio
 from logging.config import fileConfig
 
-import animedownloader_anime.models  # noqa: F401
 from alembic import context
-from animedownloader_config import Settings
-from animedownloader_database import Base
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+
+import animedownloader_anime.models  # noqa: F401
+from animedownloader_config import Settings
+from animedownloader_database import Base
 
 config = context.config
 settings = Settings()
@@ -38,6 +39,7 @@ def do_run_migrations(connection: Connection) -> None:
         target_metadata=target_metadata,
         compare_type=True,
     )
+
     with context.begin_transaction():
         context.run_migrations()
 
@@ -48,8 +50,10 @@ async def run_migrations_online() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
+
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
+
     await connectable.dispose()
 
 

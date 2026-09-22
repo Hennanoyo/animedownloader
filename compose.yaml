@@ -10,7 +10,7 @@ services:
       - sh
       - -c
       - >-
-        uv sync --all-packages &&
+        uv sync --all-packages --locked &&
         uv run --package animedownloader-api
         uvicorn animedownloader_api.app:app --host 0.0.0.0 --port 8000 --reload
     volumes:
@@ -56,6 +56,18 @@ services:
       VITE_API_URL: http://localhost:8000
     ports:
       - "5173:5173"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch("http://127.0.0.1:5173")
+          .then(response => process.exit(response.ok ? 0 : 1))
+          .catch(() => process.exit(1))
+      interval: 5s
+      timeout: 3s
+      retries: 20
     depends_on:
       - api
 

@@ -1,0 +1,15 @@
+[project]
+name = "animedownloader-anime"
+version = "0.1.0"
+description = "Anime and episode domain"
+requires-python = ">=3.14"
+dependencies = [
+    "animedownloader-database",
+]
+
+[tool.uv.sources]
+animedownloader-database = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.12.17,<0.13"]
+build-backend = "uv_build"

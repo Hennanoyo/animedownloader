@@ -1,9 +1,4 @@
-import {
-  Outlet,
-  createRootRoute,
-  createRoute,
-  createRouter,
-} from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import { z } from "zod";
 import ReleaseSearchPage from "../pages/release-search/ui/ReleaseSearchPage";
 import App from "./App";
@@ -16,14 +11,9 @@ const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   validateSearch: z.object({
-    q: z.string().max(200).catch(""),
+    q: z.string().trim().max(200).catch(""),
   }),
-  component: () => (
-    <>
-      <Outlet />
-      <ReleaseSearchPage />
-    </>
-  ),
+  component: ReleaseSearchPage,
 });
 
 const routeTree = rootRoute.addChildren([indexRoute]);

@@ -1,12 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getApiBaseUrl } from "../shared/config/env";
-import { searchReleases } from "../entities/release/api/searchReleases";
-
-describe("getApiBaseUrl", () => {
-  it("removes a trailing slash", () => {
-    expect(getApiBaseUrl("http://localhost:8000/")).toBe("http://localhost:8000");
-  });
-});
+import { searchReleases } from "./searchReleases";
 
 describe("searchReleases", () => {
   it("parses a valid API response", async () => {

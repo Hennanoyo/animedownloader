@@ -1,7 +1,6 @@
+from animedownloader_config import Settings
 from taskiq import AsyncBroker
 from taskiq_redis import RedisStreamBroker
-
-from animedownloader_config import Settings
 
 settings = Settings()
 

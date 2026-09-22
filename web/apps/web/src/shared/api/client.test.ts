@@ -19,9 +19,9 @@ describe("api client", () => {
   });
 
   it("sends JSON POST and PATCH bodies", async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(JSON.stringify({ ok: true }), { status: 200 }),
-    );
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => {
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    });
     vi.stubGlobal("fetch", fetchMock);
 
     await postJson("/api/animes", { title: "Frieren" });

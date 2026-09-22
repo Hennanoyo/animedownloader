@@ -36,7 +36,7 @@ jobs:
           runtime: node@24.21.0
           working-directory: web
           install: false
-          cache: true
+          cache: false
 
       - name: Install dependencies
         run: |

@@ -15,7 +15,6 @@ services:
         uvicorn animedownloader_api.app:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - .:/app
-      - server-venv:/app/server/.venv
       - downloads:/data/downloads
       - media:/data/media
     environment:
@@ -80,7 +79,7 @@ services:
       - sh
       - -c
       - >-
-        uv sync --all-packages &&
+        uv sync --all-packages --locked &&
         uv run --package animedownloader-worker
         taskiq worker animedownloader_worker.broker:broker
     volumes:
@@ -149,5 +148,4 @@ volumes:
   seaweedfs-data:
   downloads:
   media:
-  server-venv:
   web-node-modules:

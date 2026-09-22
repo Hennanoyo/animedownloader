@@ -74,12 +74,20 @@ A change is complete only after relevant local checks and applicable GitHub Acti
 
 ## Working Method
 
+When starting a task:
+
+1. Read `docs/project-status.md` when it exists.
+2. Read the relevant architecture and decision documents under `docs/`.
+3. Inspect the current branch, relevant open pull request, and recent commits.
+4. Verify documented status against the actual code before making changes.
+
 When a task requires code changes:
 
-1. Inspect existing code and relevant documentation first.
-2. Make the smallest coherent change.
-3. Run focused tests/checks.
-4. Commit and push the change through the normal Git workflow.
-5. Inspect GitHub Actions results when available.
-6. Fix CI failures rather than ignoring them.
-7. Update documentation when architecture or externally visible behavior changes.
+1. Make the smallest coherent change.
+2. Run focused tests/checks.
+3. Commit and push the change through the normal Git workflow.
+4. Inspect GitHub Actions results when available.
+5. Fix CI failures rather than ignoring them.
+6. Update documentation when architecture or externally visible behavior changes.
+
+When completing a feature or PR, update `docs/project-status.md` when the current phase, completed work, or next planned work changes.

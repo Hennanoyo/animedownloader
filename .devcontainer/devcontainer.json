@@ -1,8 +1,12 @@
 {
   "name": "AnimeDownloader",
-  "dockerComposeFile": "../compose.yaml",
-  "service": "api",
+  "dockerComposeFile": [
+    "../compose.yaml",
+    "docker-compose.devcontainer.yml"
+  ],
+  "service": "dev",
   "runServices": [
+    "dev",
     "api",
     "web",
     "worker",
@@ -13,6 +17,7 @@
   "workspaceFolder": "/app",
   "shutdownAction": "stopCompose",
   "forwardPorts": [5173, 8000, 5432, 6379, 8888],
+  "postCreateCommand": "uv sync --all-packages --project /app/server && cd /app/web && pnpm install",
   "customizations": {
     "vscode": {
       "extensions": [

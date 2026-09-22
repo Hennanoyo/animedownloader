@@ -5,7 +5,6 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
 import animedownloader_anime.models  # noqa: F401
 from animedownloader_config import Settings
 from animedownloader_database import Base

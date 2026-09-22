@@ -44,8 +44,7 @@ class AnimeService:
                 timezone=data.timezone.strip(),
             )
             anime.episodes = [
-                self._build_episode(anime, episode_data)
-                for episode_data in data.episodes
+                self._build_episode(anime, episode_data) for episode_data in data.episodes
             ]
             await self.animes.add(anime)
 

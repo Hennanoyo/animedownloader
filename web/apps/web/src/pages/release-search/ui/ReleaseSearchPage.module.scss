@@ -1,0 +1,71 @@
+.page {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+}
+
+.hero {
+  max-width: 60rem;
+}
+
+.kicker {
+  margin: 0 0 0.6rem;
+  color: #60a5fa;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.heading {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  line-height: 1.05;
+}
+
+.description {
+  max-width: 55ch;
+  margin: 1rem 0 0;
+  color: #94a3b8;
+  line-height: 1.7;
+}
+
+.searchPanel {
+  max-width: 52rem;
+  margin-top: 2rem;
+  padding: 1.3rem;
+  border: 1px solid #243047;
+  border-radius: 1rem;
+  background: #0f172a;
+}
+
+.resultsHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+
+.resultsTitle {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.count {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.state {
+  margin-top: 1.5rem;
+  padding: 1rem 1.1rem;
+  border: 1px dashed #334155;
+  border-radius: 0.8rem;
+  color: #94a3b8;
+}
+
+.errorState {
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}

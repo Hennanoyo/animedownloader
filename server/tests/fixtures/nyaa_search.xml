@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:nyaa="https://nyaa.si/xmlns/nyaa">
+  <channel>
+    <title>Nyaa</title>
+    <item>
+      <title>[ExampleSubs] Frieren - 01 [1080p].mkv</title>
+      <link>https://nyaa.si/download/123456.torrent</link>
+      <guid>https://nyaa.si/view/123456</guid>
+      <pubDate>Tue, 22 Sep 2026 10:20:30 +0000</pubDate>
+      <nyaa:size>1.24 GiB</nyaa:size>
+      <nyaa:seeders>42</nyaa:seeders>
+      <nyaa:leechers>3</nyaa:leechers>
+      <nyaa:downloads>120</nyaa:downloads>
+      <nyaa:infoHash>0123456789abcdef0123456789abcdef01234567</nyaa:infoHash>
+    </item>
+    <item>
+      <title>[ExampleSubs] Frieren - 02 [1080p].mkv</title>
+      <link>https://nyaa.si/download/123457.torrent</link>
+      <guid>https://nyaa.si/view/123457</guid>
+      <pubDate>Tue, 22 Sep 2026 11:20:30 +0000</pubDate>
+      <nyaa:size>1.30 GiB</nyaa:size>
+      <nyaa:seeders>18</nyaa:seeders>
+      <nyaa:leechers>1</nyaa:leechers>
+      <nyaa:downloads>61</nyaa:downloads>
+      <nyaa:infoHash>89abcdef0123456789abcdef0123456789abcdef</nyaa:infoHash>
+    </item>
+  </channel>
+</rss>

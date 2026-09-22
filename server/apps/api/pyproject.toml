@@ -5,11 +5,15 @@ description = "AnimeDownloader FastAPI application"
 requires-python = ">=3.14"
 dependencies = [
     "animedownloader-config",
+    "animedownloader-nyaa",
+    "animedownloader-releases",
     "fastapi[standard]>=0.141,<0.142",
 ]
 
 [tool.uv.sources]
 animedownloader-config = { workspace = true }
+animedownloader-nyaa = { workspace = true }
+animedownloader-releases = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.12.17,<0.13"]

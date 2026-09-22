@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from animedownloader_nyaa import NyaaError, NyaaClient
+from animedownloader_nyaa import NyaaClient, NyaaError
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from animedownloader_api.dependencies import get_nyaa_client
@@ -21,6 +21,9 @@ async def search_releases(
     try:
         releases = await client.search(normalized_query)
     except NyaaError as exc:
-        raise HTTPException(status_code=502, detail="Nyaa search is temporarily unavailable") from exc
+        raise HTTPException(
+            status_code=502,
+            detail="Nyaa search is temporarily unavailable",
+        ) from exc
 
     return ReleaseSearchResponse(query=normalized_query, items=releases)

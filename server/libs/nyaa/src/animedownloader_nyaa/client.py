@@ -1,4 +1,3 @@
-from collections.abc import AsyncIterator
 from types import TracebackType
 from typing import Self
 
@@ -43,7 +42,10 @@ class NyaaClient:
                 base_url=self._base_url,
                 timeout=httpx.Timeout(self._timeout, connect=5.0),
                 follow_redirects=True,
-                headers={"User-Agent": USER_AGENT, "Accept": "application/rss+xml, application/xml"},
+                headers={
+                    "User-Agent": USER_AGENT,
+                    "Accept": "application/rss+xml, application/xml",
+                },
             )
         return self
 
@@ -74,8 +76,3 @@ class NyaaClient:
             return parse_rss_feed(response.text)
         except (ElementTree.ParseError, ValueError) as exc:
             raise NyaaParseError("Nyaa RSS response is invalid") from exc
-
-
-async def stream_search(client: NyaaClient, query: str) -> AsyncIterator[Release]:
-    for release in await client.search(query):
-        yield release

@@ -135,6 +135,103 @@ jobs:
           docker compose logs --no-color --tail=100 web
           exit 1
 
+      - name: Verify Anime CRUD against PostgreSQL
+        run: |
+          docker compose exec -T api python3 - <<'PY'
+          import uuid
+
+          import httpx
+
+          payload = {
+              "title": "CI Anime " + uuid.uuid4().hex[:8],
+              "year": 2026,
+              "season": "fall",
+              "weekday": "friday",
+              "air_time": "23:00:00",
+              "timezone": "Asia/Tokyo",
+              "episodes": [
+                  {
+                      "episode_number": 1,
+                      "title": "Episode One",
+                      "source": "nyaa",
+                      "source_id": "ci-1",
+                      "source_title": "[CI] Episode One",
+                      "source_url": "https://nyaa.si/view/ci-1",
+                      "torrent_url": "https://nyaa.si/download/ci-1.torrent",
+                      "size": "1 GiB",
+                      "seeders": 10,
+                      "leechers": 2,
+                      "downloads": 30,
+                      "info_hash": "0123456789abcdef0123456789abcdef01234567",
+                  },
+                  {
+                      "episode_number": 2,
+                      "title": "Episode Two",
+                      "source": "nyaa",
+                      "source_id": "ci-2",
+                      "source_title": "[CI] Episode Two",
+                      "source_url": "https://nyaa.si/view/ci-2",
+                      "torrent_url": "https://nyaa.si/download/ci-2.torrent",
+                      "size": "1.1 GiB",
+                      "seeders": 8,
+                      "leechers": 1,
+                      "downloads": 20,
+                      "info_hash": "89abcdef0123456789abcdef0123456789abcdef",
+                  },
+              ],
+          }
+
+          with httpx.Client(base_url="http://localhost:8000", timeout=20.0) as client:
+              created = client.post("/api/animes", json=payload)
+              assert created.status_code == 201, created.text
+              anime = created.json()
+              anime_id = anime["id"]
+              episode_ids = [episode["id"] for episode in anime["episodes"]]
+              assert len(episode_ids) == 2
+
+              listed = client.get("/api/animes")
+              assert listed.status_code == 200, listed.text
+              assert any(item["id"] == anime_id for item in listed.json())
+
+              detail = client.get("/api/animes/" + anime_id)
+              assert detail.status_code == 200, detail.text
+              assert len(detail.json()["episodes"]) == 2
+
+              updated = client.patch(
+                  "/api/animes/" + anime_id,
+                  json={"title": "Updated CI Anime"},
+              )
+              assert updated.status_code == 200, updated.text
+              assert updated.json()["title"] == "Updated CI Anime"
+
+              episodes = client.get("/api/animes/" + anime_id + "/episodes")
+              assert episodes.status_code == 200, episodes.text
+              assert len(episodes.json()) == 2
+
+              updated_episode = client.patch(
+                  "/api/episodes/" + episode_ids[0],
+                  json={
+                      "title": "Updated Episode",
+                      "download_status": "completed",
+                      "conversion_status": "converting",
+                  },
+              )
+              assert updated_episode.status_code == 200, updated_episode.text
+              assert updated_episode.json()["download_status"] == "completed"
+              assert updated_episode.json()["conversion_status"] == "converting"
+
+              assert client.delete(
+                  "/api/episodes/" + episode_ids[1]
+              ).status_code == 204
+              assert client.get(
+                  "/api/episodes/" + episode_ids[1]
+              ).status_code == 404
+
+              assert client.delete("/api/animes/" + anime_id).status_code == 204
+              assert client.get("/api/animes/" + anime_id).status_code == 404
+              assert client.get("/api/episodes/" + episode_ids[0]).status_code == 404
+          PY
+
       - name: Verify runtime services
         run: docker compose ps
 

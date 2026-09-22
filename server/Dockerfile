@@ -17,8 +17,10 @@ COPY server/pyproject.toml server/uv.lock ./
 COPY server/apps/api/pyproject.toml apps/api/pyproject.toml
 COPY server/apps/worker/pyproject.toml apps/worker/pyproject.toml
 COPY server/domains/releases/pyproject.toml domains/releases/pyproject.toml
+COPY server/domains/anime/pyproject.toml domains/anime/pyproject.toml
 COPY server/libs/config/pyproject.toml libs/config/pyproject.toml
 COPY server/libs/nyaa/pyproject.toml libs/nyaa/pyproject.toml
+COPY server/libs/database/pyproject.toml libs/database/pyproject.toml
 
 RUN uv sync --all-packages --locked --no-install-workspace
 
@@ -26,6 +28,8 @@ COPY server/apps ./apps
 COPY server/domains ./domains
 COPY server/libs ./libs
 COPY server/tests ./tests
+COPY server/alembic.ini ./alembic.ini
+COPY server/alembic ./alembic
 
 RUN uv sync --all-packages --locked
 

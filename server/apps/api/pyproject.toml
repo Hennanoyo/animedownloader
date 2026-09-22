@@ -8,6 +8,7 @@ dependencies = [
     "animedownloader-anime",
     "animedownloader-config",
     "animedownloader-database",
+    "animedownloader-download",
     "animedownloader-nyaa",
     "animedownloader-releases",
     "fastapi[standard]>=0.141,<0.142",
@@ -17,6 +18,7 @@ dependencies = [
 animedownloader-anime = { workspace = true }
 animedownloader-config = { workspace = true }
 animedownloader-database = { workspace = true }
+animedownloader-download = { workspace = true }
 animedownloader-nyaa = { workspace = true }
 animedownloader-releases = { workspace = true }
 

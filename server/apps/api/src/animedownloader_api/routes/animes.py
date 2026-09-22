@@ -105,10 +105,7 @@ def _to_anime_create_data(payload: AnimeCreate) -> AnimeCreateData:
         weekday=payload.weekday,
         air_time=payload.air_time,
         timezone=payload.timezone,
-        episodes=tuple(
-            _to_episode_create_data(episode)
-            for episode in payload.episodes
-        ),
+        episodes=tuple(_to_episode_create_data(episode) for episode in payload.episodes),
     )
 
 

@@ -41,6 +41,7 @@ services:
       context: .
       dockerfile: web/Dockerfile
     working_dir: /app/web
+    user: node
     command:
       - sh
       - -c
@@ -50,6 +51,7 @@ services:
     volumes:
       - .:/app
       - web-node-modules:/app/web/node_modules
+      - web-app-node-modules:/app/web/apps/web/node_modules
     environment:
       VITE_API_URL: http://localhost:8000
     ports:
@@ -91,7 +93,6 @@ services:
       REDIS_URL: redis://redis:6379/0
       STORAGE_INTERNAL_URL: http://storage:8888
       STORAGE_PUBLIC_URL: http://localhost:8888
-      CORS_ORIGINS_RAW: http://localhost:5173
       DOWNLOAD_ROOT: /data/downloads
       MEDIA_ROOT: /data/media
     depends_on:
@@ -147,3 +148,4 @@ volumes:
   downloads:
   media:
   web-node-modules:
+  web-app-node-modules:

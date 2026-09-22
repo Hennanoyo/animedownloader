@@ -1,6 +1,6 @@
 FROM ghcr.io/astral-sh/uv:0.12.17 AS uv
 
-FROM mcr.microsoft.com/devcontainers/javascript-node:1-24-bookworm
+FROM mcr.microsoft.com/devcontainers/javascript-node:24-bookworm
 
 COPY --from=uv /uv /uvx /usr/local/bin/
 

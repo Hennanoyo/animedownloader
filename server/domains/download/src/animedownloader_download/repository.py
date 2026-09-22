@@ -34,4 +34,3 @@ class DownloadJobRepository:
         self.session.add(job)
         await self.session.flush()
         return job
-

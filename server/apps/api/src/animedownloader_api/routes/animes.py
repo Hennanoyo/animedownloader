@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from animedownloader_anime import (
@@ -7,8 +8,6 @@ from animedownloader_anime import (
     AnimeUpdateData,
     Episode,
     EpisodeCreateData,
-    Season,
-    Weekday,
 )
 from fastapi import APIRouter, Depends, Response, status
 
@@ -18,23 +17,21 @@ from animedownloader_api.schemas import (
     AnimeResponse,
     AnimeUpdate,
     EpisodeCreate,
-    EpisodeResponse,
 )
 
 router = APIRouter(prefix="/api/animes", tags=["animes"])
+AnimeServiceDependency = Annotated[AnimeService, Depends(get_anime_service)]
 
 
 @router.get("", response_model=list[AnimeResponse])
-async def list_animes(
-    service: AnimeService = Depends(get_anime_service),
-) -> list[Anime]:
+async def list_animes(service: AnimeServiceDependency) -> list[Anime]:
     return await service.list_animes()
 
 
 @router.post("", response_model=AnimeResponse, status_code=status.HTTP_201_CREATED)
 async def create_anime(
     payload: AnimeCreate,
-    service: AnimeService = Depends(get_anime_service),
+    service: AnimeServiceDependency,
 ) -> Anime:
     return await service.create_anime(_to_anime_create_data(payload))
 
@@ -42,7 +39,7 @@ async def create_anime(
 @router.get("/{anime_id}", response_model=AnimeResponse)
 async def get_anime(
     anime_id: UUID,
-    service: AnimeService = Depends(get_anime_service),
+    service: AnimeServiceDependency,
 ) -> Anime:
     return await service.get_anime(anime_id)
 
@@ -51,7 +48,7 @@ async def get_anime(
 async def update_anime(
     anime_id: UUID,
     payload: AnimeUpdate,
-    service: AnimeService = Depends(get_anime_service),
+    service: AnimeServiceDependency,
 ) -> Anime:
     return await service.update_anime(
         anime_id,
@@ -69,7 +66,7 @@ async def update_anime(
 @router.delete("/{anime_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_anime(
     anime_id: UUID,
-    service: AnimeService = Depends(get_anime_service),
+    service: AnimeServiceDependency,
 ) -> Response:
     await service.delete_anime(anime_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -78,7 +75,7 @@ async def delete_anime(
 @router.get("/{anime_id}/episodes", response_model=list[EpisodeResponse])
 async def list_episodes(
     anime_id: UUID,
-    service: AnimeService = Depends(get_anime_service),
+    service: AnimeServiceDependency,
 ) -> list[Episode]:
     return await service.list_episodes(anime_id)
 
@@ -91,7 +88,7 @@ async def list_episodes(
 async def create_episode(
     anime_id: UUID,
     payload: EpisodeCreate,
-    service: AnimeService = Depends(get_anime_service),
+    service: AnimeServiceDependency,
 ) -> Episode:
     return await service.create_episode(
         anime_id,
@@ -107,7 +104,10 @@ def _to_anime_create_data(payload: AnimeCreate) -> AnimeCreateData:
         weekday=payload.weekday,
         air_time=payload.air_time,
         timezone=payload.timezone,
-        episodes=tuple(_to_episode_create_data(episode) for episode in payload.episodes),
+        episodes=tuple(
+            _to_episode_create_data(episode)
+            for episode in payload.episodes
+        ),
     )
 
 

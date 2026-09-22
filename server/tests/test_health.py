@@ -1,5 +1,5 @@
-import pytest
 import httpx
+import pytest
 
 from animedownloader_api.app import create_app
 

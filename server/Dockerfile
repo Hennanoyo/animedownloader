@@ -18,6 +18,7 @@ COPY server/apps/api/pyproject.toml apps/api/pyproject.toml
 COPY server/apps/worker/pyproject.toml apps/worker/pyproject.toml
 COPY server/domains/releases/pyproject.toml domains/releases/pyproject.toml
 COPY server/domains/anime/pyproject.toml domains/anime/pyproject.toml
+COPY server/domains/download/pyproject.toml domains/download/pyproject.toml
 COPY server/libs/config/pyproject.toml libs/config/pyproject.toml
 COPY server/libs/nyaa/pyproject.toml libs/nyaa/pyproject.toml
 COPY server/libs/database/pyproject.toml libs/database/pyproject.toml

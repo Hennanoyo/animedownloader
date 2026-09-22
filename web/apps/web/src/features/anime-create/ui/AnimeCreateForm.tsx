@@ -9,6 +9,7 @@ import {
   Popover,
   Select,
   SelectValue,
+  Text,
   TextField,
 } from "react-aria-components";
 import { useForm } from "@tanstack/react-form";
@@ -97,6 +98,33 @@ function duplicateNumbers(episodes: AnimeEpisodeDraft[]): number[] {
     .sort((a, b) => a - b);
 }
 
+function getSubmitErrors(
+  errorMap: unknown,
+): string[] {
+  if (errorMap === null || typeof errorMap !== "object") {
+    return [];
+  }
+
+  return Object.values(errorMap)
+    .flatMap((issues) => (Array.isArray(issues) ? issues : [issues]))
+    .flatMap((issue) => {
+      if (
+        issue !== null &&
+        typeof issue === "object" &&
+        "message" in issue &&
+        typeof issue.message === "string"
+      ) {
+        return [issue.message];
+      }
+
+      if (typeof issue === "string") {
+        return [issue];
+      }
+
+      return [];
+    });
+}
+
 export default function AnimeCreateForm() {
   const navigate = useNavigate();
   const mutation = useCreateAnime();
@@ -104,16 +132,18 @@ export default function AnimeCreateForm() {
     emptyEpisode(1),
   ]);
 
+  const defaultValues: AnimeCreateFormValues = {
+    title: "",
+    year: new Date().getFullYear(),
+    season: "fall",
+    weekday: "friday",
+    air_time: "",
+    timezone: "Asia/Tokyo",
+    episodes,
+  };
+
   const form = useForm({
-    defaultValues: {
-      title: "",
-      year: new Date().getFullYear(),
-      season: "fall",
-      weekday: "friday",
-      air_time: "",
-      timezone: "Asia/Tokyo",
-      episodes,
-    },
+    defaultValues,
     validators: {
       onSubmit: animeCreateFormSchema,
     },
@@ -154,6 +184,7 @@ export default function AnimeCreateForm() {
   }
 
   const duplicates = duplicateNumbers(episodes);
+  const submitErrors = getSubmitErrors(form.state.errorMap.onSubmit);
 
   return (
     <Form
@@ -166,7 +197,12 @@ export default function AnimeCreateForm() {
       <div className={styles.grid}>
         <form.Field name="title">
           {(field) => (
-            <TextField className={styles.field} isRequired>
+            <TextField
+              className={styles.field}
+              isRequired
+              isInvalid={!field.state.meta.isValid}
+              validationBehavior="aria"
+            >
               <Label>Title</Label>
               <Input
                 value={field.state.value}
@@ -174,13 +210,23 @@ export default function AnimeCreateForm() {
                 onChange={(event) => field.handleChange(event.target.value)}
                 placeholder="Frieren: Beyond Journey's End"
               />
+              {!field.state.meta.isValid ? (
+                <Text slot="errorMessage" className={styles.fieldError}>
+                  {field.state.meta.errors.map(String).join(", ")}
+                </Text>
+              ) : null}
             </TextField>
           )}
         </form.Field>
 
         <form.Field name="year">
           {(field) => (
-            <TextField className={styles.field} isRequired>
+            <TextField
+              className={styles.field}
+              isRequired
+              isInvalid={!field.state.meta.isValid}
+              validationBehavior="aria"
+            >
               <Label>Year</Label>
               <Input
                 type="number"
@@ -191,6 +237,11 @@ export default function AnimeCreateForm() {
                   field.handleChange(Number(event.target.value))
                 }
               />
+              {!field.state.meta.isValid ? (
+                <Text slot="errorMessage" className={styles.fieldError}>
+                  {field.state.meta.errors.map(String).join(", ")}
+                </Text>
+              ) : null}
             </TextField>
           )}
         </form.Field>
@@ -249,7 +300,11 @@ export default function AnimeCreateForm() {
 
         <form.Field name="air_time">
           {(field) => (
-            <TextField className={styles.field}>
+            <TextField
+              className={styles.field}
+              isInvalid={!field.state.meta.isValid}
+              validationBehavior="aria"
+            >
               <Label>Air time</Label>
               <Input
                 type="time"
@@ -257,19 +312,33 @@ export default function AnimeCreateForm() {
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value)}
               />
+              {!field.state.meta.isValid ? (
+                <Text slot="errorMessage" className={styles.fieldError}>
+                  {field.state.meta.errors.map(String).join(", ")}
+                </Text>
+              ) : null}
             </TextField>
           )}
         </form.Field>
 
         <form.Field name="timezone">
           {(field) => (
-            <TextField className={styles.field}>
+            <TextField
+              className={styles.field}
+              isInvalid={!field.state.meta.isValid}
+              validationBehavior="aria"
+            >
               <Label>Timezone</Label>
               <Input
                 value={field.state.value}
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value)}
               />
+              {!field.state.meta.isValid ? (
+                <Text slot="errorMessage" className={styles.fieldError}>
+                  {field.state.meta.errors.map(String).join(", ")}
+                </Text>
+              ) : null}
             </TextField>
           )}
         </form.Field>
@@ -279,7 +348,10 @@ export default function AnimeCreateForm() {
         <div className={styles.sectionHeader}>
           <div>
             <h2>Episodes</h2>
-            <p>Select a Nyaa release for each episode, then clean up the episode title.</p>
+            <p>
+              Select a Nyaa release for each episode, then clean up the episode
+              title.
+            </p>
           </div>
           <Button
             type="button"
@@ -296,6 +368,17 @@ export default function AnimeCreateForm() {
           </p>
         ) : null}
 
+        {submitErrors.length > 0 ? (
+          <div className={styles.formError} role="alert" aria-live="polite">
+            <strong>Check the form before creating the anime.</strong>
+            <ul className={styles.errorList}>
+              {Array.from(new Set(submitErrors)).map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         {episodes.map((episode, index) => (
           <article className={styles.episode} key={index}>
             <div className={styles.episodeHeader}>
@@ -310,7 +393,38 @@ export default function AnimeCreateForm() {
               </Button>
             </div>
 
-            <TextField className={styles.field} isRequired>
+            <TextField
+              className={styles.field}
+              isRequired
+              isInvalid={episode.title.trim().length === 0}
+              validationBehavior="aria"
+            >
+              <Label>Episode title</Label>
+              <Input
+                value={episode.title}
+                onChange={(event) =>
+                  updateEpisode(index, { title: event.target.value })
+                }
+                placeholder="Frieren - 01"
+              />
+              {episode.title.trim().length === 0 ? (
+                <Text slot="errorMessage" className={styles.fieldError}>
+                  Enter an episode title.
+                </Text>
+              ) : null}
+            </TextField>
+
+            <TextField
+              className={styles.field}
+              isRequired
+              isInvalid={
+                !Number.isInteger(episode.episode_number) ||
+                episode.episode_number < 1 ||
+                episode.episode_number > 9999 ||
+                duplicates.includes(episode.episode_number)
+              }
+              validationBehavior="aria"
+            >
               <Label>Episode number</Label>
               <Input
                 type="number"
@@ -322,17 +436,11 @@ export default function AnimeCreateForm() {
                   })
                 }
               />
-            </TextField>
-
-            <TextField className={styles.field} isRequired>
-              <Label>Episode title</Label>
-              <Input
-                value={episode.title}
-                onChange={(event) =>
-                  updateEpisode(index, { title: event.target.value })
-                }
-                placeholder="Frieren - 01"
-              />
+              {duplicates.includes(episode.episode_number) ? (
+                <Text slot="errorMessage" className={styles.fieldError}>
+                  Episode number must be unique.
+                </Text>
+              ) : null}
             </TextField>
 
             <ReleasePicker

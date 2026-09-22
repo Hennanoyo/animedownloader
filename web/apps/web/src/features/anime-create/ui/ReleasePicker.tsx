@@ -40,6 +40,7 @@ export default function ReleasePicker({
       ) : (
         <>
           <ReleaseSearchForm
+            embedded
             initialQuery={query}
             onSearch={(value) => setQuery(value)}
           />

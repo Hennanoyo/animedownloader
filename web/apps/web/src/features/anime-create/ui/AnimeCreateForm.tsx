@@ -104,7 +104,7 @@ export default function AnimeCreateForm() {
     emptyEpisode(1),
   ]);
 
-  const form = useForm<AnimeCreateFormValues>({
+  const form = useForm({
     defaultValues: {
       title: "",
       year: new Date().getFullYear(),

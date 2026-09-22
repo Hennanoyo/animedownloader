@@ -8,11 +8,17 @@ from animedownloader_anime import (
 )
 from animedownloader_config import Settings
 from animedownloader_database import create_database
+from animedownloader_download import DownloadJobNotFoundError
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from animedownloader_api.routes import animes_router, episodes_router, releases_router
+from animedownloader_api.routes import (
+    animes_router,
+    download_jobs_router,
+    episodes_router,
+    releases_router,
+)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -40,9 +46,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.add_exception_handler(AnimeNotFoundError, _not_found_handler)
     app.add_exception_handler(EpisodeNotFoundError, _not_found_handler)
+    app.add_exception_handler(DownloadJobNotFoundError, _not_found_handler)
     app.add_exception_handler(DuplicateEpisodeError, _duplicate_episode_handler)
     app.include_router(animes_router)
     app.include_router(episodes_router)
+    app.include_router(download_jobs_router)
     app.include_router(releases_router)
 
     @app.get("/api/health")

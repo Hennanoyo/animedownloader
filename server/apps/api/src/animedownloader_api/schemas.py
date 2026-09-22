@@ -2,6 +2,7 @@ from datetime import datetime, time
 from uuid import UUID
 
 from animedownloader_anime import ConversionStatus, DownloadStatus, Season, Weekday
+from animedownloader_download import DownloadJobStatus
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 
@@ -123,3 +124,19 @@ class AnimeResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     episodes: list[EpisodeResponse]
+
+
+class DownloadJobResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    episode_id: UUID
+    status: DownloadJobStatus
+    downloaded_bytes: int
+    total_bytes: int | None
+    attempt_count: int
+    error_message: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime

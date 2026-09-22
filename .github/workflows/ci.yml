@@ -137,6 +137,7 @@ jobs:
 
       - name: Verify Anime CRUD against PostgreSQL
         run: |
+          set +e
           docker compose exec -T api uv run --package animedownloader-api python3 - <<'PY'
           import uuid
 
@@ -231,6 +232,13 @@ jobs:
               assert client.get("/api/animes/" + anime_id).status_code == 404
               assert client.get("/api/episodes/" + episode_ids[0]).status_code == 404
           PY
+          exit_code=$?
+          if [ "$exit_code" -ne 0 ]; then
+            echo "::group::API logs after Anime CRUD failure"
+            docker compose logs --no-color --tail=200 api
+            echo "::endgroup::"
+          fi
+          exit "$exit_code"
 
       - name: Verify runtime services
         run: docker compose ps

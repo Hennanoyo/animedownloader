@@ -41,6 +41,7 @@ services:
       context: .
       dockerfile: web/Dockerfile
     working_dir: /app/web
+    user: node
     command:
       - sh
       - -c
@@ -49,7 +50,8 @@ services:
         exec pnpm --filter "@animedownloader/web" dev --host 0.0.0.0
     volumes:
       - .:/app
-      - web-node-modules:/app/web/node_modules
+      - web-node-modules-node:/app/web/node_modules
+      - web-app-node-modules-node:/app/web/apps/web/node_modules
     environment:
       VITE_API_URL: http://localhost:8000
     ports:
@@ -91,7 +93,6 @@ services:
       REDIS_URL: redis://redis:6379/0
       STORAGE_INTERNAL_URL: http://storage:8888
       STORAGE_PUBLIC_URL: http://localhost:8888
-      CORS_ORIGINS_RAW: http://localhost:5173
       DOWNLOAD_ROOT: /data/downloads
       MEDIA_ROOT: /data/media
     depends_on:
@@ -146,4 +147,7 @@ volumes:
   seaweedfs-data:
   downloads:
   media:
-  web-node-modules:
+  web-node-modules-node:
+  web-app-node-modules-node:
+  dev-web-node-modules:
+  dev-web-app-node-modules:

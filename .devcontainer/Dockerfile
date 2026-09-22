@@ -7,6 +7,7 @@ COPY --from=uv /uv /uvx /usr/local/bin/
 USER root
 
 RUN corepack enable
+RUN mkdir -p /app/web/node_modules /app/web/apps/web/node_modules && chown -R node:node /app/web
 
 USER node
 

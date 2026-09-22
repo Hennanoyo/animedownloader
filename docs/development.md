@@ -39,25 +39,25 @@ VSCode attaches to the `dev` container. The full Compose stack is started automa
 
 The repository is mounted at `/app`.
 
-To work on the current bootstrap PR before it is merged:
+Normally, work starts from the default `main` branch:
 
 ```bash
 git fetch origin
-git switch feature/bootstrap
+git switch main
 ```
 
-Normally, after the bootstrap is merged, use the default `main` branch.
+Feature work should use focused branches such as `feature/release-catalog`.
 
 ## First Setup
 
-The Dev Container runs the initial dependency setup automatically with locked dependency resolution:
+The Dev Container runs dependency setup automatically with locked dependency resolution:
 
 - `uv sync --all-packages --locked --project /app/server`
 - `pnpm install --frozen-lockfile` in `/app/web`
 
 The Dev Container keeps the Python environment under `/home/node/.venvs/animedownloader-server` and the pnpm store under `/home/node/.cache/pnpm/store`. These paths are outside the repository, so opening the container does not modify dependency caches in the working tree.
 
-When dependencies change, update the corresponding lockfile as part of the dependency change and then rebuild/reopen the Dev Container.
+When dependencies change, regenerate and commit the corresponding lockfile, then rebuild/reopen the Dev Container.
 
 The runtime `api` and `worker` services also use locked uv installs. This prevents their bind-mounted workspace from rewriting `server/uv.lock` during startup.
 
@@ -68,6 +68,20 @@ cp /app/server/.env.example /app/server/.env
 ```
 
 Do not commit `server/.env`.
+
+## Frontend Conventions
+
+The frontend follows the conventions in `web/AGENTS.md` and `docs/decisions/0003-frontend-architecture.md`:
+
+- SCSS Modules for component and page styles
+- React Aria Components for accessible UI primitives
+- React Aria / React Stately for lower-level interaction behavior when needed
+- Feature-Sliced Design for application structure
+- TanStack Router v1 for routing and URL state
+- TanStack Query v5 for server state
+- TanStack Form v1 + Zod for non-trivial forms and validation
+
+The first feature slice exposes Nyaa RSS release search through the API and URL-addressable search state.
 
 ## Local URLs
 
@@ -105,9 +119,11 @@ The backend workspace currently contains:
 
 - `server/apps/api`
 - `server/apps/worker`
+- `server/domains/releases`
 - `server/libs/config`
+- `server/libs/nyaa`
 
-The `server/domains` layer is reserved for domain packages introduced as features are implemented.
+The `domains` layer contains business/domain behavior, while `libs` contains reusable technical adapters.
 
 ## Lockfiles
 
@@ -118,7 +134,7 @@ When dependencies are added or changed, regenerate the appropriate workspace loc
 - `web/pnpm-lock.yaml`
 - `server/uv.lock`
 
-The initial CI workflow temporarily falls back to non-frozen dependency resolution when a lockfile does not yet exist. Once the initial lockfiles are committed, CI should use locked installs exclusively.
+CI and the runtime containers use locked installs.
 
 ## CI Philosophy
 
@@ -129,7 +145,7 @@ AI-assisted development should follow:
 1. Inspect the repository and relevant documentation.
 2. Implement a focused change.
 3. Run focused local checks.
-4. Commit/push through the normal branch workflow.
+4. Commit and push through the normal branch workflow.
 5. Let GitHub Actions run the applicable checks.
 6. Inspect failed job logs.
 7. Fix the root cause.

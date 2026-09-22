@@ -16,7 +16,9 @@ WORKDIR /app/server
 COPY server/pyproject.toml server/uv.lock ./
 COPY server/apps/api/pyproject.toml apps/api/pyproject.toml
 COPY server/apps/worker/pyproject.toml apps/worker/pyproject.toml
+COPY server/domains/releases/pyproject.toml domains/releases/pyproject.toml
 COPY server/libs/config/pyproject.toml libs/config/pyproject.toml
+COPY server/libs/nyaa/pyproject.toml libs/nyaa/pyproject.toml
 
 RUN uv sync --all-packages --locked --no-install-workspace
 

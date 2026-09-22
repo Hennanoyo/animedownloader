@@ -1,0 +1,51 @@
+import { z } from "zod";
+import { getJson } from "../../../shared/api/client";
+import type { ReleaseSearchResponse } from "../model/types";
+
+const releaseSchema = z.object({
+  source: z.string(),
+  id: z.string(),
+  title: z.string(),
+  page_url: z.string().url(),
+  torrent_url: z.string().url(),
+  published_at: z.coerce.date().nullable(),
+  size: z.string().nullable(),
+  seeders: z.number().int().nonnegative().nullable(),
+  leechers: z.number().int().nonnegative().nullable(),
+  downloads: z.number().int().nonnegative().nullable(),
+  info_hash: z.string().nullable(),
+});
+
+const responseSchema = z.object({
+  query: z.string(),
+  items: z.array(releaseSchema),
+});
+
+export class ReleaseSearchResponseError extends Error {
+  constructor(readonly issues: z.core.$ZodIssue[]) {
+    super(
+      `Invalid release search response: ${issues
+        .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+        .join("; ")}`,
+    );
+    this.name = "ReleaseSearchResponseError";
+  }
+}
+
+export async function searchReleases(
+  query: string,
+  signal?: AbortSignal,
+): Promise<ReleaseSearchResponse> {
+  const params = new URLSearchParams({ q: query });
+  const payload = await getJson(
+    "/api/releases/search?" + params.toString(),
+    { signal },
+  );
+
+  const result = responseSchema.safeParse(payload);
+  if (!result.success) {
+    throw new ReleaseSearchResponseError(result.error.issues);
+  }
+
+  return result.data;
+}

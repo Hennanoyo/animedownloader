@@ -2,6 +2,8 @@ from animedownloader_config import Settings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from animedownloader_api.routes import releases_router
+
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     app_settings = settings or Settings()
@@ -18,6 +20,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.include_router(releases_router)
 
     @app.get("/api/health")
     async def health() -> dict[str, str]:

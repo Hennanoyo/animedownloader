@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime, time
 from uuid import UUID
@@ -27,7 +29,7 @@ class Anime(Base):
         onupdate=func.now(),
     )
 
-    episodes: Mapped[list["Episode"]] = relationship(
+    episodes: Mapped[list[Episode]] = relationship(
         back_populates="anime",
         cascade="all, delete-orphan",
         lazy="selectin",

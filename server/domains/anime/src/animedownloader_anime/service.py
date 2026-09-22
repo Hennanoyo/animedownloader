@@ -43,10 +43,11 @@ class AnimeService:
                 air_time=data.air_time,
                 timezone=data.timezone.strip(),
             )
+            anime.episodes = [
+                self._build_episode(anime, episode_data)
+                for episode_data in data.episodes
+            ]
             await self.animes.add(anime)
-
-            for episode_data in data.episodes:
-                anime.episodes.append(self._build_episode(anime.id, episode_data))
 
         await self.session.refresh(anime)
         return anime
@@ -97,7 +98,7 @@ class AnimeService:
             if await self.episodes.exists_number(anime_id, data.episode_number):
                 raise DuplicateEpisodeError(data.episode_number)
 
-            episode = self._build_episode(anime_id, data)
+            episode = self._build_episode(anime, data)
             await self.episodes.add(episode)
 
         await self.session.refresh(episode)
@@ -151,9 +152,9 @@ class AnimeService:
             await self.episodes.delete(episode)
 
     @staticmethod
-    def _build_episode(anime_id: UUID, data: EpisodeCreateData) -> Episode:
+    def _build_episode(anime: Anime, data: EpisodeCreateData) -> Episode:
         return Episode(
-            anime_id=anime_id,
+            anime=anime,
             episode_number=data.episode_number,
             title=data.title.strip(),
             source=data.source,

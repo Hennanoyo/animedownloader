@@ -11,5 +11,7 @@ RUN corepack enable
 USER node
 
 RUN uv python install 3.14.7
+RUN pnpm config set store-dir /home/node/.cache/pnpm/store --global
 
-ENV PATH="/home/node/.local/bin:$PATH"
+ENV PATH="/home/node/.local/bin:$PATH" \
+    UV_PROJECT_ENVIRONMENT="/home/node/.venvs/animedownloader-server"

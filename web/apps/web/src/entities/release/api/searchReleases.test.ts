@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ReleaseSearchResponseError, searchReleases } from "./searchReleases";
+import { searchReleases } from "./searchReleases";
 
 const validRelease = {
   source: "nyaa",

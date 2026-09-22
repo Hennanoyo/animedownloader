@@ -33,6 +33,7 @@ describe("searchReleases", () => {
     expect(result.query).toBe("Frieren");
     expect(result.items).toHaveLength(1);
     expect(result.items[0].seeders).toBe(42);
+    expect(result.items[0].published_at).toEqual(new Date("2026-09-22T10:20:30+00:00"));
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8000/api/releases/search?q=Frieren",
       expect.objectContaining({ method: "GET" }),

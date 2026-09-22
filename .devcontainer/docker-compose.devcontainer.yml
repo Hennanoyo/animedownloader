@@ -1,12 +1,12 @@
 services:
   dev:
     build:
-      context: ..
+      context: .
       dockerfile: .devcontainer/Dockerfile
     working_dir: /app
     command: ["sleep", "infinity"]
     volumes:
-      - ..:/app
+      - .:/app
       - server-venv:/app/server/.venv
       - web-node-modules:/app/web/node_modules
     environment:

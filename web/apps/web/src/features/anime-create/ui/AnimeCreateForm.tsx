@@ -13,7 +13,6 @@ import {
 } from "react-aria-components";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
-import type { Release } from "../../../entities/release/model/types";
 import type {
   CreateAnimeInput,
   Season,

@@ -1,6 +1,5 @@
-from fastapi.testclient import TestClient
-
 from animedownloader_api.app import create_app
+from fastapi.testclient import TestClient
 
 
 def test_health() -> None:

@@ -1,0 +1,141 @@
+name: animedownloader
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    working_dir: /app/server
+    command:
+      - sh
+      - -c
+      - >-
+        uv sync --all-packages &&
+        uv run --package animedownloader-api
+        uvicorn animedownloader_api.app:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+      - server-venv:/app/server/.venv
+      - downloads:/data/downloads
+      - media:/data/media
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://animedownloader:animedownloader@db:5432/animedownloader
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_INTERNAL_URL: http://storage:8888
+      STORAGE_PUBLIC_URL: http://localhost:8888
+      CORS_ORIGINS_RAW: http://localhost:5173
+      DOWNLOAD_ROOT: /data/downloads
+      MEDIA_ROOT: /data/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      storage:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    working_dir: /app/web
+    command:
+      - pnpm
+      - --filter
+      - "@animedownloader/web"
+      - dev
+      - --host
+      - 0.0.0.0
+    volumes:
+      - .:/app
+      - web-node-modules:/app/web/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+  worker:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    working_dir: /app/server
+    command:
+      - sh
+      - -c
+      - >-
+        uv sync --all-packages &&
+        uv run --package animedownloader-worker
+        taskiq worker animedownloader_worker.broker:broker
+    volumes:
+      - .:/app
+      - server-venv:/app/server/.venv
+      - downloads:/data/downloads
+      - media:/data/media
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://animedownloader:animedownloader@db:5432/animedownloader
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_INTERNAL_URL: http://storage:8888
+      STORAGE_PUBLIC_URL: http://localhost:8888
+      CORS_ORIGINS_RAW: http://localhost:5173
+      DOWNLOAD_ROOT: /data/downloads
+      MEDIA_ROOT: /data/media
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      storage:
+        condition: service_started
+
+  redis:
+    image: redis:8.10.1-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  db:
+    image: postgres:18.6
+    environment:
+      POSTGRES_DB: animedownloader
+      POSTGRES_USER: animedownloader
+      POSTGRES_PASSWORD: animedownloader
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U animedownloader -d animedownloader"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  storage:
+    image: chrislusf/seaweedfs:4.47
+    command: ["server", "-dir=/data", "-filer"]
+    volumes:
+      - seaweedfs-data:/data
+    ports:
+      - "8888:8888"
+      - "9333:9333"
+
+volumes:
+  postgres-data:
+  redis-data:
+  seaweedfs-data:
+  downloads:
+  media:
+  server-venv:
+  web-node-modules:

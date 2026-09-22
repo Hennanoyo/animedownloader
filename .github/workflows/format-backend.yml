@@ -1,0 +1,39 @@
+name: Format backend
+
+on:
+  push:
+    branches:
+      - "feature/release-catalog"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: false
+      - name: Install dependencies
+        run: uv sync --all-packages --locked
+      - name: Fix Ruff issues
+        run: |
+          uv run ruff check . --fix
+          uv run ruff format .
+      - name: Commit fixes
+        run: |
+          if git diff --quiet -- server; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server
+          git commit -m "style: apply ruff formatting"
+          git push

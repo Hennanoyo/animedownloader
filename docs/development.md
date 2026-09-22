@@ -2,12 +2,97 @@
 
 ## Environment
 
+The supported development environment is:
+
 - Windows host
 - WSL2 Ubuntu
-- VSCode Dev Containers
+- Docker Desktop with WSL integration
+- VSCode
+- VSCode Dev Containers extension
 - Docker Compose
 
-The application is developed and tested inside the containerized development environment.
+Development and application processes are intended to run inside the Dev Container/Compose environment.
+
+## Clone and Open
+
+Clone the repository from WSL2 Ubuntu:
+
+```bash
+git clone https://github.com/Hennanoyo/animedownloader.git
+cd animedownloader
+code .
+```
+
+In VSCode, run **Dev Containers: Reopen in Container**.
+
+The repository's `.devcontainer/devcontainer.json` attaches VSCode to the `api` service and starts the complete Compose stack:
+
+- `api`
+- `web`
+- `worker`
+- `db`
+- `redis`
+- `storage`
+
+The repository is mounted at `/app` inside the container.
+
+To work on the current bootstrap PR before it is merged:
+
+```bash
+git fetch origin
+git switch feature/bootstrap
+```
+
+Normally, after the bootstrap is merged, use the default `main` branch.
+
+## First Setup
+
+Open a terminal in the Dev Container.
+
+Frontend dependencies:
+
+```bash
+cd /app/web
+pnpm install
+```
+
+Backend dependencies:
+
+```bash
+cd /app/server
+uv sync --all-packages
+```
+
+Copy backend environment defaults when local overrides are needed:
+
+```bash
+cp /app/server/.env.example /app/server/.env
+```
+
+The default Compose environment values are already supplied by `compose.yaml`.
+
+Do not commit `server/.env`.
+
+## Local URLs
+
+- Frontend: `http://localhost:5173`
+- API: `http://localhost:8000`
+- API health: `http://localhost:8000/api/health`
+- SeaweedFS Filer: `http://localhost:8888`
+- PostgreSQL: `localhost:5432`
+- Redis: `localhost:6379`
+
+## Daily Development
+
+The root `justfile` provides common repository checks:
+
+```bash
+just check
+```
+
+Because Docker Compose is managed by the Dev Containers extension in the supported workflow, use the VSCode/Dev Containers commands to start and stop the stack rather than assuming Docker CLI access inside the application container.
+
+Service logs can be viewed from Docker Desktop or the Dev Containers/Compose output.
 
 ## Monorepo
 
@@ -15,10 +100,6 @@ The repository contains two package-management domains:
 
 - `web/`: pnpm workspace
 - `server/`: uv workspace
-
-Use the root `justfile` as the preferred interface for common operations.
-
-## Initial Workspace
 
 The frontend application currently lives at `web/apps/web`.
 
@@ -28,42 +109,7 @@ The backend workspace currently contains:
 - `server/apps/worker`
 - `server/libs/config`
 
-The `server/domains` layer is reserved for domain packages that will be introduced as features are implemented.
-
-## Local Stack
-
-`compose.yaml` provides:
-
-- `web`: Vite development server
-- `api`: FastAPI development server
-- `worker`: Taskiq worker backed by Redis
-- `db`: PostgreSQL 18.6
-- `redis`: Redis 8
-- `storage`: single-node SeaweedFS with Filer
-
-The development containers mount the repository at `/app`. Backend settings load `/app/server/.env` when the file exists.
-
-Copy `server/.env.example` to `server/.env` when local overrides are required.
-
-## Commands
-
-Start the stack:
-
-```bash
-just up
-```
-
-Stop it:
-
-```bash
-just down
-```
-
-Run repository checks:
-
-```bash
-just check
-```
+The `server/domains` layer is reserved for domain packages introduced as features are implemented.
 
 ## Lockfiles
 

@@ -9,7 +9,6 @@ import {
   Popover,
   Select,
   SelectValue,
-  Text,
   TextField,
 } from "react-aria-components";
 import { useForm } from "@tanstack/react-form";

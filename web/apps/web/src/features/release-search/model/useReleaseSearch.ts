@@ -9,6 +9,7 @@ export function releaseSearchQueryOptions(query: string) {
     queryKey: ["releases", "search", query] as const,
     queryFn: ({ signal }) => searchReleases(query, signal),
     enabled: query.length > 0,
+    retry: false,
   });
 }
 

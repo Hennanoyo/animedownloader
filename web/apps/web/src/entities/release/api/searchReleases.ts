@@ -21,6 +21,17 @@ const responseSchema = z.object({
   items: z.array(releaseSchema),
 });
 
+export class ReleaseSearchResponseError extends Error {
+  constructor(readonly issues: z.core.$ZodIssue[]) {
+    super(
+      `Invalid release search response: ${issues
+        .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+        .join("; ")}`,
+    );
+    this.name = "ReleaseSearchResponseError";
+  }
+}
+
 export async function searchReleases(
   query: string,
   signal?: AbortSignal,
@@ -30,5 +41,11 @@ export async function searchReleases(
     "/api/releases/search?" + params.toString(),
     { signal },
   );
-  return responseSchema.parse(payload);
+
+  const result = responseSchema.safeParse(payload);
+  if (!result.success) {
+    throw new ReleaseSearchResponseError(result.error.issues);
+  }
+
+  return result.data;
 }

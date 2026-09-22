@@ -1,8 +1,28 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import { ApiRequestError } from "../../../shared/api/client";
+import {
+  ReleaseSearchResponseError,
+} from "../../../entities/release/api/searchReleases";
 import ReleaseList from "../../../entities/release/ui/ReleaseList";
 import { useReleaseSearch } from "../../../features/release-search/model/useReleaseSearch";
 import ReleaseSearchForm from "../../../features/release-search/ui/ReleaseSearchForm";
 import styles from "./ReleaseSearchPage.module.scss";
+
+function getSearchErrorMessage(error: unknown): string {
+  if (error instanceof ReleaseSearchResponseError) {
+    return error.message;
+  }
+
+  if (error instanceof ApiRequestError) {
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Unknown error";
+}
 
 export default function ReleaseSearchPage() {
   const { q } = useSearch({ from: "/" });
@@ -47,7 +67,7 @@ export default function ReleaseSearchPage() {
 
           {search.isError ? (
             <p className={[styles.state, styles.errorState].join(" ")}>
-              Search failed. The Nyaa service may be temporarily unavailable.
+              Search failed: {getSearchErrorMessage(search.error)}
             </p>
           ) : null}
 

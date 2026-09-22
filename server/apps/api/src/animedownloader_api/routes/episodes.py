@@ -34,11 +34,7 @@ async def update_episode(
             source_id=payload.source_id,
             source_title=payload.source_title,
             source_url=str(payload.source_url) if payload.source_url is not None else None,
-            torrent_url=(
-                str(payload.torrent_url)
-                if payload.torrent_url is not None
-                else None
-            ),
+            torrent_url=(str(payload.torrent_url) if payload.torrent_url is not None else None),
             size=payload.size,
             seeders=payload.seeders,
             leechers=payload.leechers,

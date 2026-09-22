@@ -2,6 +2,14 @@
   "name": "AnimeDownloader",
   "dockerComposeFile": "../compose.yaml",
   "service": "api",
+  "runServices": [
+    "api",
+    "web",
+    "worker",
+    "db",
+    "redis",
+    "storage"
+  ],
   "workspaceFolder": "/app",
   "shutdownAction": "stopCompose",
   "forwardPorts": [5173, 8000, 5432, 6379, 8888],

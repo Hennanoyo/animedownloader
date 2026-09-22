@@ -60,7 +60,7 @@ def _text(element: Element, name: str) -> str | None:
 def _custom_text(element: Element, local_name: str) -> str | None:
     for child in element:
         tag = child.tag
-        if isinstance(tag, str) and tag.rsplit("}", maxsplit=1)[-1] == local_name:
+        if tag.rsplit("}", maxsplit=1)[-1] == local_name:
             if child.text is None:
                 return None
             value = child.text.strip()

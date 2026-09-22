@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getJson } from "../../shared/api/client";
+import { getJson } from "../../../shared/api/client";
 import type { ReleaseSearchResponse } from "../model/types";
 
 const releaseSchema = z.object({

@@ -4,7 +4,7 @@ from animedownloader_nyaa import NyaaClient, NyaaError
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from animedownloader_api.dependencies import get_nyaa_client
-from animedownloader_api.schemas import ReleaseSearchResponse
+from animedownloader_api.schemas import ReleaseResponse, ReleaseSearchResponse
 
 router = APIRouter(prefix="/api/releases", tags=["releases"])
 
@@ -26,4 +26,7 @@ async def search_releases(
             detail="Nyaa search is temporarily unavailable",
         ) from exc
 
-    return ReleaseSearchResponse(query=normalized_query, items=releases)
+    return ReleaseSearchResponse(
+        query=normalized_query,
+        items=[ReleaseResponse.model_validate(release) for release in releases],
+    )

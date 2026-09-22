@@ -4,6 +4,8 @@ from uuid import uuid7
 
 import httpx
 import pytest
+from animedownloader_api.app import create_app
+from animedownloader_api.dependencies import get_download_job_service
 from animedownloader_download import (
     DownloadJob,
     DownloadJobNotFoundError,
@@ -11,8 +13,6 @@ from animedownloader_download import (
     DownloadJobStatus,
     InvalidDownloadJobTransitionError,
 )
-from animedownloader_api.app import create_app
-from animedownloader_api.dependencies import get_download_job_service
 
 
 def make_job(status: DownloadJobStatus = DownloadJobStatus.PENDING) -> DownloadJob:

@@ -1,7 +1,6 @@
+from animedownloader_config import Settings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from animedownloader_config import Settings
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

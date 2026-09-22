@@ -17,6 +17,7 @@ from animedownloader_api.schemas import (
     AnimeResponse,
     AnimeUpdate,
     EpisodeCreate,
+    EpisodeResponse,
 )
 
 router = APIRouter(prefix="/api/animes", tags=["animes"])

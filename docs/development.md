@@ -1,6 +1,6 @@
 # Development
 
-## Environment
+## Supported Environment
 
 The supported development environment is:
 
@@ -11,7 +11,7 @@ The supported development environment is:
 - VSCode Dev Containers extension
 - Docker Compose
 
-Development and application processes are intended to run inside the Dev Container/Compose environment.
+The repository uses a dedicated development container containing both Node.js/pnpm and Python/uv. Runtime services remain separate Compose containers.
 
 ## Clone and Open
 
@@ -25,16 +25,19 @@ code .
 
 In VSCode, run **Dev Containers: Reopen in Container**.
 
-The repository's `.devcontainer/devcontainer.json` attaches VSCode to the `api` service and starts the complete Compose stack:
+The Dev Container configuration uses:
 
-- `api`
-- `web`
-- `worker`
-- `db`
-- `redis`
-- `storage`
+- `dev`: development shell with Node.js 24, pnpm, Python 3.14, and uv
+- `api`: FastAPI runtime/development service
+- `web`: Vite development server
+- `worker`: Taskiq worker
+- `db`: PostgreSQL
+- `redis`: Redis
+- `storage`: SeaweedFS Filer
 
-The repository is mounted at `/app` inside the container.
+VSCode attaches to the `dev` container. The full Compose stack is started automatically.
+
+The repository is mounted at `/app`.
 
 To work on the current bootstrap PR before it is merged:
 
@@ -47,29 +50,18 @@ Normally, after the bootstrap is merged, use the default `main` branch.
 
 ## First Setup
 
-Open a terminal in the Dev Container.
+The Dev Container runs the initial dependency setup automatically:
 
-Frontend dependencies:
+- `uv sync --all-packages --project /app/server`
+- `pnpm install` in `/app/web`
 
-```bash
-cd /app/web
-pnpm install
-```
+You can repeat either command manually when dependencies change.
 
-Backend dependencies:
-
-```bash
-cd /app/server
-uv sync --all-packages
-```
-
-Copy backend environment defaults when local overrides are needed:
+Backend environment overrides are optional. When needed:
 
 ```bash
 cp /app/server/.env.example /app/server/.env
 ```
-
-The default Compose environment values are already supplied by `compose.yaml`.
 
 Do not commit `server/.env`.
 
@@ -82,17 +74,19 @@ Do not commit `server/.env`.
 - PostgreSQL: `localhost:5432`
 - Redis: `localhost:6379`
 
-## Daily Development
+## Running and Debugging
 
-The root `justfile` provides common repository checks:
+The `api`, `web`, and `worker` processes are started by Docker Compose.
+
+Use the integrated VSCode terminal in the `dev` container for repository commands:
 
 ```bash
 just check
 ```
 
-Because Docker Compose is managed by the Dev Containers extension in the supported workflow, use the VSCode/Dev Containers commands to start and stop the stack rather than assuming Docker CLI access inside the application container.
+Use Docker Desktop or the Compose output panel to inspect service logs.
 
-Service logs can be viewed from Docker Desktop or the Dev Containers/Compose output.
+Because Docker Compose is managed by the Dev Containers extension in the supported workflow, do not assume the `dev` container needs access to the host Docker socket.
 
 ## Monorepo
 

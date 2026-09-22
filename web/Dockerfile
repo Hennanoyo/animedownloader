@@ -4,10 +4,10 @@ WORKDIR /app/web
 
 RUN corepack enable
 
-COPY web/package.json web/pnpm-workspace.yaml ./
+COPY web/package.json web/pnpm-workspace.yaml web/pnpm-lock.yaml ./
 COPY web/apps/web/package.json apps/web/package.json
 
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 COPY web/apps ./apps
 COPY web/libs ./libs

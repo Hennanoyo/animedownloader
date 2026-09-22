@@ -19,7 +19,6 @@ concurrency:
 jobs:
   frontend:
     name: Frontend
-    if: ${{ hashFiles('web/package.json') != '' }}
     runs-on: ubuntu-latest
 
     defaults:
@@ -58,7 +57,6 @@ jobs:
 
   backend:
     name: Backend
-    if: ${{ hashFiles('server/**/pyproject.toml') != '' }}
     runs-on: ubuntu-latest
 
     defaults:
@@ -98,7 +96,6 @@ jobs:
 
   integration:
     name: Integration
-    if: ${{ hashFiles('compose.yaml') != '' || hashFiles('docker-compose.yml') != '' || hashFiles('docker-compose.yaml') != '' }}
     runs-on: ubuntu-latest
 
     steps:

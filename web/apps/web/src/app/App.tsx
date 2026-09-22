@@ -13,6 +13,7 @@ export default function App() {
           <Link
             className={styles.navLink}
             activeProps={{ className: styles.navLinkActive }}
+            search={{ q: "" }}
             to="/"
           >
             Release search

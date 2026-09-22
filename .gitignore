@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+.pyright/
+.ruff_cache/
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+.pnpm-store/
+dist/
+.vite/
+coverage/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Runtime data
+.data/
+downloads/
+media/
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

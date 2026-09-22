@@ -1,0 +1,31 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    working_dir: /app
+    command: ["sleep", "infinity"]
+    volumes:
+      - .:/app
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://animedownloader:animedownloader@db:5432/animedownloader
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_INTERNAL_URL: http://storage:8888
+      STORAGE_PUBLIC_URL: http://localhost:8888
+      CORS_ORIGINS_RAW: http://localhost:5173
+      DOWNLOAD_ROOT: /data/downloads
+      MEDIA_ROOT: /data/media
+    depends_on:
+      api:
+        condition: service_started
+      web:
+        condition: service_started
+      worker:
+        condition: service_started
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      storage:
+        condition: service_started

@@ -11,17 +11,21 @@ AnimeDownloader is a pnpm + uv monorepo for downloading anime releases and prepa
 
 ## Development
 
-The intended environment is WSL2 Ubuntu with VSCode Dev Containers and Docker Compose.
+The supported environment is WSL2 Ubuntu + Docker Desktop + VSCode Dev Containers.
 
-Start the stack:
+Clone the repository from WSL2:
 
 ```bash
-just up
+git clone https://github.com/Hennanoyo/animedownloader.git
+cd animedownloader
+code .
 ```
 
-The frontend is available at `http://localhost:5173` and the API at `http://localhost:8000/api/health`.
+Then use **Dev Containers: Reopen in Container**.
 
-The first dependency install may create workspace lockfiles. Commit those lockfiles once generated.
+The Dev Container attaches to the `dev` service and starts the full Compose stack automatically.
+
+See [`docs/development.md`](docs/development.md) for first-time setup, environment variables, branch usage, and service URLs.
 
 ## Checks
 
@@ -29,7 +33,7 @@ The first dependency install may create workspace lockfiles. Commit those lockfi
 just check
 ```
 
-GitHub Actions runs the same project-level quality checks and validates the Compose configuration.
+GitHub Actions runs the project quality checks and validates the Compose configuration.
 
 ## Architecture
 
@@ -48,7 +52,7 @@ The project targets HEVC as its primary video codec, reuses shared CMAF/fMP4 ass
 
 ## Initial Scope
 
-The current repository contains only the development foundation. Feature work will be implemented incrementally:
+Feature work is implemented incrementally:
 
 1. Nyaa RSS search
 2. Download job and progress model

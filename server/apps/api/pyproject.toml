@@ -1,0 +1,16 @@
+[project]
+name = "animedownloader-api"
+version = "0.1.0"
+description = "AnimeDownloader FastAPI application"
+requires-python = ">=3.14"
+dependencies = [
+    "animedownloader-config",
+    "fastapi[standard]>=0.141,<0.142",
+]
+
+[tool.uv.sources]
+animedownloader-config = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.12.17,<0.13"]
+build-backend = "uv_build"

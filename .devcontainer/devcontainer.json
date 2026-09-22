@@ -1,0 +1,35 @@
+{
+  "name": "AnimeDownloader",
+  "dockerComposeFile": [
+    "../compose.yaml",
+    "docker-compose.devcontainer.yml"
+  ],
+  "service": "dev",
+  "runServices": [
+    "dev",
+    "api",
+    "web",
+    "worker",
+    "db",
+    "redis",
+    "storage"
+  ],
+  "workspaceFolder": "/app",
+  "remoteUser": "node",
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [5173, 8000, 5432, 6379, 8888],
+  "postCreateCommand": "uv sync --all-packages --locked --project /app/server && cd /app/web && pnpm install --frozen-lockfile",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "dbaeumer.vscode-eslint"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/home/node/.venvs/animedownloader-server/bin/python"
+      }
+    }
+  }
+}

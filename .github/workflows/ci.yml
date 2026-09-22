@@ -19,7 +19,6 @@ concurrency:
 jobs:
   frontend:
     name: Frontend
-    if: ${{ hashFiles('web/package.json') != '' }}
     runs-on: ubuntu-latest
 
     defaults:
@@ -31,10 +30,13 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup pnpm and Node.js
-        uses: pnpm/setup@v1
+        uses: pnpm/setup@v3
         with:
-          version: latest
-          runtime: node@24
+          version: 11.26.0
+          runtime: node@24.21.0
+          working-directory: web
+          install: false
+          cache: false
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -50,7 +52,6 @@ jobs:
 
   backend:
     name: Backend
-    if: ${{ hashFiles('server/**/pyproject.toml') != '' }}
     runs-on: ubuntu-latest
 
     defaults:
@@ -62,13 +63,15 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@v10
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
 
       - name: Install Python
         run: uv python install 3.14
 
       - name: Install dependencies
-        run: uv sync --locked
+        run: uv sync --all-packages --locked
 
       - name: Ruff
         run: |
@@ -83,7 +86,6 @@ jobs:
 
   integration:
     name: Integration
-    if: ${{ hashFiles('compose.yaml') != '' || hashFiles('docker-compose.yml') != '' || hashFiles('docker-compose.yaml') != '' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -93,5 +95,42 @@ jobs:
       - name: Validate Docker Compose configuration
         run: docker compose config
 
-      # Service startup and integration tests will be added when the
-      # repository's Compose services and health checks are implemented.
+      - name: Validate Dev Container Compose configuration
+        run: docker compose -f compose.yaml -f .devcontainer/docker-compose.devcontainer.yml config
+
+      - name: Build Dev Container
+        run: docker compose -f compose.yaml -f .devcontainer/docker-compose.devcontainer.yml build dev
+
+      - name: Start runtime stack
+        run: docker compose up -d --build
+
+      - name: Wait for API
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:8000/api/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps
+          docker compose logs --no-color --tail=100 api
+          exit 1
+
+      - name: Wait for frontend
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:5173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps
+          docker compose logs --no-color --tail=100 web
+          exit 1
+
+      - name: Verify runtime services
+        run: docker compose ps
+
+      - name: Stop runtime stack
+        if: always()
+        run: docker compose down --volumes

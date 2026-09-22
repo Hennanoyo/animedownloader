@@ -3,6 +3,7 @@ from typing import Annotated
 
 from animedownloader_anime import AnimeService
 from animedownloader_database import Database
+from animedownloader_download import DownloadJobService
 from animedownloader_nyaa import NyaaClient
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +21,11 @@ def get_anime_service(
     return AnimeService(session)
 
 
+def get_download_job_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> DownloadJobService:
+    return DownloadJobService(session)
+
+
 async def get_nyaa_client() -> AsyncIterator[NyaaClient]:
-    async with NyaaClient() as client:
-        yield client
+    yield NyaaClient()

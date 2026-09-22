@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "pnpm --filter @animedownloader/web dev",
     "build": "pnpm --filter @animedownloader/web build",
-    "lint": "eslint apps libs",
+    "lint": "eslint .",
     "typecheck": "tsc -b",
     "test": "pnpm --filter @animedownloader/web test"
   },

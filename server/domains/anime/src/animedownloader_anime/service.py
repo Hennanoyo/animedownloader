@@ -106,13 +106,10 @@ class AnimeService:
     async def update_episode(self, episode_id: UUID, data: EpisodeUpdateData) -> Episode:
         async with self.session.begin():
             episode = await self.get_episode(episode_id)
-            if (
-                data.episode_number is not None
-                and await self.episodes.exists_number(
-                    episode.anime_id,
-                    data.episode_number,
-                    exclude_episode_id=episode_id,
-                )
+            if data.episode_number is not None and await self.episodes.exists_number(
+                episode.anime_id,
+                data.episode_number,
+                exclude_episode_id=episode_id,
             ):
                 raise DuplicateEpisodeError(data.episode_number)
 

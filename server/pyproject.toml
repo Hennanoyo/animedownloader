@@ -35,6 +35,7 @@ executionEnvironments = [
     { root = ".", extraPaths = [
         "apps/api/src",
         "domains/anime/src",
+        "domains/download/src",
         "domains/releases/src",
         "libs/config/src",
         "libs/database/src",

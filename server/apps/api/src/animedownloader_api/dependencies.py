@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from typing import Annotated
 
 from animedownloader_anime import AnimeService
 from animedownloader_database import Database
@@ -14,7 +15,7 @@ async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:
 
 
 def get_anime_service(
-    session: AsyncSession = Depends(get_db_session),
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> AnimeService:
     return AnimeService(session)
 

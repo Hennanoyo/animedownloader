@@ -57,6 +57,8 @@ The Dev Container runs the initial dependency setup automatically:
 
 You can repeat either command manually when dependencies change.
 
+The Dev Container uses dedicated dependency volumes (`dev-server-venv` and `dev-web-node-modules`). They are intentionally separate from the runtime dependency volumes used by the `api`, `web`, and `worker` services, so the non-root Dev Container user does not depend on runtime volume ownership.
+
 Backend environment overrides are optional. When needed:
 
 ```bash

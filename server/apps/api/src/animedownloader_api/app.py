@@ -20,7 +20,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     database = create_database(app_settings.database_url)
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
+    async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
         yield
         await database.dispose()
 

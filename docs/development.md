@@ -50,14 +50,16 @@ Normally, after the bootstrap is merged, use the default `main` branch.
 
 ## First Setup
 
-The Dev Container runs the initial dependency setup automatically:
+The Dev Container runs the initial dependency setup automatically with locked dependency resolution:
 
-- `uv sync --all-packages --project /app/server`
-- `pnpm install` in `/app/web`
+- `uv sync --all-packages --locked --project /app/server`
+- `pnpm install --frozen-lockfile` in `/app/web`
 
-You can repeat either command manually when dependencies change.
+The Dev Container keeps the Python environment under `/home/node/.venvs/animedownloader-server` and the pnpm store under `/home/node/.cache/pnpm/store`. These paths are outside the repository, so opening the container does not modify dependency caches in the working tree.
 
-The Dev Container uses dedicated dependency volumes (`dev-server-venv` and `dev-web-node-modules`). They are intentionally separate from the runtime dependency volumes used by the `api`, `web`, and `worker` services, so the non-root Dev Container user does not depend on runtime volume ownership.
+When dependencies change, update the corresponding lockfile as part of the dependency change and then rebuild/reopen the Dev Container.
+
+The runtime `api` and `worker` services also use locked uv installs. This prevents their bind-mounted workspace from rewriting `server/uv.lock` during startup.
 
 Backend environment overrides are optional. When needed:
 
@@ -69,7 +71,7 @@ Do not commit `server/.env`.
 
 ## Local URLs
 
-- Frontend: `http://localhost:5173`
+- Frontend: `http://localhost:5173` (Vite)
 - API: `http://localhost:8000`
 - API health: `http://localhost:8000/api/health`
 - SeaweedFS Filer: `http://localhost:8888`

@@ -7,7 +7,7 @@ from animedownloader_anime import (
     EpisodeNotFoundError,
 )
 from animedownloader_config import Settings
-from animedownloader_database import Database, create_database
+from animedownloader_database import create_database
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse

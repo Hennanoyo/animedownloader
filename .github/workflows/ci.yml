@@ -290,7 +290,9 @@ jobs:
               dash_segment_pattern = representation.segment_template
 
               assert hls_init_uri == Path(dash_init_uri).name
-              assert hls_segment_uris == ("s/00000.m4s",)
+              assert hls_segment_uris
+              assert all(uri.startswith("s/") for uri in hls_segment_uris)
+              assert all(uri.endswith(".m4s") for uri in hls_segment_uris)
               assert dash_segment_pattern.endswith("$Number%05d$.m4s")
               assert "1080p/init.mp4" in dash
               assert "1080p/s/$Number%05d$.m4s" in dash

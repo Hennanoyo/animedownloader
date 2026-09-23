@@ -259,6 +259,7 @@ async def test_manual_media_processing_requeues_completed_job_when_asset_metadat
     stale_asset.chapters_ready = True
     stale_asset.attachments_ready = True
     stale_asset.attachment_processing_ready = True
+    stale_asset.thumbnail_ready = False
     download_service.get_job = AsyncMock(return_value=download_job)
     service.create_for_download_job = AsyncMock(return_value=job)
     media_asset_service.get_for_episode = AsyncMock(return_value=stale_asset)

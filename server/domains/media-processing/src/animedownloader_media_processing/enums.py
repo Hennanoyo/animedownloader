@@ -24,8 +24,11 @@ class MediaTranscodingOperation(StrEnum):
     TRANSCODE = "transcode"
 
 
-class MediaTranscodingJobStatus(StrEnum):
+class MediaPreparationJobStatus(StrEnum):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+MediaTranscodingJobStatus = MediaPreparationJobStatus

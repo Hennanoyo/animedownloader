@@ -10,6 +10,7 @@ dependencies = [
     "animedownloader-media-asset",
     "animedownloader-media-processing",
     "animedownloader-qbittorrent",
+    "animedownloader-storage",
     "animedownloader-torrent",
     "taskiq>=0.12,<0.13",
     "taskiq-redis>=1.2,<1.3",
@@ -22,6 +23,7 @@ animedownloader-media = { workspace = true }
 animedownloader-media-asset = { workspace = true }
 animedownloader-media-processing = { workspace = true }
 animedownloader-qbittorrent = { workspace = true }
+animedownloader-storage = { workspace = true }
 animedownloader-torrent = { workspace = true }
 
 [build-system]

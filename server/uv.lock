@@ -263,6 +263,11 @@ dev = [
 ]
 
 [[package]]
+name = "animedownloader-torrent"
+version = "0.1.0"
+source = { editable = "libs/torrent" }
+
+[[package]]
 name = "animedownloader-worker"
 version = "0.1.0"
 source = { editable = "apps/worker" }

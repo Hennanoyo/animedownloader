@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
@@ -13,7 +14,7 @@ class FakeRunner:
     def __init__(self) -> None:
         self.calls: list[tuple[str, ...]] = []
 
-    async def run(self, args: tuple[str, ...]) -> FFmpegCommandResult:
+    async def run(self, args: Sequence[str]) -> FFmpegCommandResult:
         self.calls.append(args)
         playable_path = Path(args[-8])
         sprite_path = Path(args[-1])

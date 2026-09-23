@@ -1,4 +1,4 @@
-from .constants import MEDIA_PROCESSING_TASK_NAME
+from .constants import MEDIA_PREPARATION_TASK_NAME, MEDIA_PROCESSING_TASK_NAME
 from .enums import (
     MediaPreparationJobStatus,
     MediaProcessingJobStatus,
@@ -20,8 +20,6 @@ from .preparation_service import MediaPreparationJobService
 from .service import MediaProcessingJobService
 from .transcoding_service import MediaTranscodingJobService
 from .variant_service import MediaVariantService
-
-MEDIA_PREPARATION_TASK_NAME = "animedownloader.process-media-preparation"
 
 __all__ = [
     "InvalidMediaPreparationJobTransitionError",

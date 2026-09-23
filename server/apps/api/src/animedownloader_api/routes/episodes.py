@@ -4,7 +4,14 @@ from uuid import UUID
 from animedownloader_anime import AnimeService, Episode, EpisodeUpdateData
 from animedownloader_download import ActiveDownloadJobError, DownloadJob, DownloadJobService
 from animedownloader_media_asset import MediaAsset, MediaAssetService
-from animedownloader_media_processing import MediaProcessingJob, MediaProcessingJobService
+from animedownloader_media_processing import (
+    MediaProcessingJob,
+    MediaProcessingJobService,
+    MediaTranscodingJob,
+    MediaTranscodingJobService,
+    MediaVariant,
+    MediaVariantService,
+)
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from animedownloader_api.dependencies import (
@@ -13,6 +20,8 @@ from animedownloader_api.dependencies import (
     get_download_task_dispatcher,
     get_media_asset_service,
     get_media_processing_job_service,
+    get_media_transcoding_job_service,
+    get_media_variant_service,
 )
 from animedownloader_api.schemas import (
     DownloadJobResponse,
@@ -20,6 +29,8 @@ from animedownloader_api.schemas import (
     EpisodeUpdate,
     MediaAssetResponse,
     MediaProcessingJobResponse,
+    MediaTranscodingJobResponse,
+    MediaVariantResponse,
 )
 from animedownloader_api.task_queue import DownloadTaskDispatcher
 
@@ -40,6 +51,14 @@ MediaAssetServiceDependency = Annotated[
 MediaProcessingJobServiceDependency = Annotated[
     MediaProcessingJobService,
     Depends(get_media_processing_job_service),
+]
+MediaTranscodingJobServiceDependency = Annotated[
+    MediaTranscodingJobService,
+    Depends(get_media_transcoding_job_service),
+]
+MediaVariantServiceDependency = Annotated[
+    MediaVariantService,
+    Depends(get_media_variant_service),
 ]
 
 
@@ -84,6 +103,50 @@ async def get_latest_episode_media_processing_job(
     service: MediaProcessingJobServiceDependency,
 ) -> MediaProcessingJob | None:
     return await service.get_latest_job(episode_id)
+
+
+@router.get(
+    "/{episode_id}/playable-media",
+    response_model=MediaVariantResponse | None,
+)
+async def get_episode_playable_media(
+    episode_id: UUID,
+    anime_service: AnimeServiceDependency,
+    media_service: MediaAssetServiceDependency,
+    variant_service: MediaVariantServiceDependency,
+) -> MediaVariantResponse | None:
+    await anime_service.get_episode(episode_id)
+    asset = await media_service.get_for_episode(episode_id)
+    if asset is None or asset.metadata_updated_at is None:
+        return None
+
+    variant = await variant_service.get_playable_variant(asset.id)
+    if variant is None:
+        return None
+
+    response = MediaVariantResponse.model_validate(variant)
+    response.current = variant.is_current(
+        source_path=asset.path,
+        source_metadata_updated_at=asset.metadata_updated_at,
+    )
+    return response
+
+
+@router.get(
+    "/{episode_id}/playable-media-transcoding-jobs/latest",
+    response_model=MediaTranscodingJobResponse | None,
+)
+async def get_latest_episode_playable_media_transcoding_job(
+    episode_id: UUID,
+    anime_service: AnimeServiceDependency,
+    media_service: MediaAssetServiceDependency,
+    service: MediaTranscodingJobServiceDependency,
+) -> MediaTranscodingJob | None:
+    await anime_service.get_episode(episode_id)
+    asset = await media_service.get_for_episode(episode_id)
+    if asset is None:
+        return None
+    return await service.get_latest_transcoding_job(asset.id)
 
 
 @router.patch("/{episode_id}", response_model=EpisodeResponse)

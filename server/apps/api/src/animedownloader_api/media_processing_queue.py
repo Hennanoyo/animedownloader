@@ -1,6 +1,9 @@
 from uuid import UUID
 
-from animedownloader_media_processing import MEDIA_PROCESSING_TASK_NAME
+from animedownloader_media_processing import (
+    MEDIA_PROCESSING_TASK_NAME,
+    MEDIA_TRANSCODING_TASK_NAME,
+)
 from taskiq import AsyncBroker
 
 
@@ -16,6 +19,13 @@ class MediaProcessingTaskDispatcher:
             _media_processing_task_placeholder,
             task_name=MEDIA_PROCESSING_TASK_NAME,
         )
+        self._transcoding_task = broker.register_task(
+            _media_processing_task_placeholder,
+            task_name=MEDIA_TRANSCODING_TASK_NAME,
+        )
 
     async def enqueue(self, job_id: UUID) -> None:
         await self._task.kiq(str(job_id))
+
+    async def enqueue_transcoding(self, job_id: UUID) -> None:
+        await self._transcoding_task.kiq(str(job_id))

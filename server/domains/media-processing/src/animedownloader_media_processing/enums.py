@@ -30,5 +30,3 @@ class MediaPreparationJobStatus(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
 
-
-MediaTranscodingJobStatus = MediaPreparationJobStatus

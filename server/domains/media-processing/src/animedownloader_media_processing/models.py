@@ -23,14 +23,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .enums import (
     MediaProcessingJobStatus,
-    MediaTranscodingJobStatus,
+    MediaPreparationJobStatus,
     MediaTranscodingOperation,
     MediaVariantKind,
     MediaVariantStatus,
 )
 from .exceptions import (
     InvalidMediaProcessingJobTransitionError,
-    InvalidMediaTranscodingJobTransitionError,
+    InvalidMediaPreparationJobTransitionError,
 )
 
 
@@ -240,8 +240,8 @@ class MediaVariant(Base):
         self.error_message = error_message[:2000]
 
 
-class MediaTranscodingJob(Base):
-    __tablename__ = "media_transcoding_jobs"
+class MediaPreparationJob(Base):
+    __tablename__ = "media_preparation_jobs"
     __table_args__ = (
         Index("ix_media_transcoding_jobs_media_asset_id", "media_asset_id"),
         Index("ix_media_transcoding_jobs_variant_id", "variant_id"),
@@ -284,8 +284,8 @@ class MediaTranscodingJob(Base):
     )
 
     @property
-    def job_status(self) -> MediaTranscodingJobStatus:
-        return MediaTranscodingJobStatus(self.status)
+    def job_status(self) -> MediaPreparationJobStatus:
+        return MediaPreparationJobStatus(self.status)
 
     @property
     def transcoding_operation(self) -> MediaTranscodingOperation | None:
@@ -296,38 +296,40 @@ class MediaTranscodingJob(Base):
     def transition_to(self, target: MediaTranscodingJobStatus) -> None:
         current = self.job_status
         allowed: dict[
-            MediaTranscodingJobStatus,
+            MediaPreparationJobStatus,
             set[MediaTranscodingJobStatus],
         ] = {
-            MediaTranscodingJobStatus.PENDING: {
-                MediaTranscodingJobStatus.PROCESSING,
+            MediaPreparationJobStatus.PENDING: {
+                MediaPreparationJobStatus.PROCESSING,
+                MediaPreparationJobStatus.FAILED,
+            },
+            MediaPreparationJobStatus.PROCESSING: {
+                MediaPreparationJobStatus.COMPLETED,
                 MediaTranscodingJobStatus.FAILED,
             },
-            MediaTranscodingJobStatus.PROCESSING: {
-                MediaTranscodingJobStatus.COMPLETED,
-                MediaTranscodingJobStatus.FAILED,
-            },
-            MediaTranscodingJobStatus.COMPLETED: set(),
-            MediaTranscodingJobStatus.FAILED: set(),
+            MediaPreparationJobStatus.COMPLETED: set(),
+            MediaPreparationJobStatus.FAILED: set(),
         }
 
         if target is current:
             return
         if target not in allowed[current]:
-            raise InvalidMediaTranscodingJobTransitionError(current, target)
+            raise InvalidMediaPreparationJobTransitionError(current, target)
 
         now = datetime.now(UTC)
         self.status = target.value
 
-        if target is MediaTranscodingJobStatus.PROCESSING:
+        if target is MediaPreparationJobStatus.PROCESSING:
             self.attempt_count += 1
             if self.started_at is None:
                 self.started_at = now
             self.error_message = None
 
-        if target is MediaTranscodingJobStatus.COMPLETED:
+        if target is MediaPreparationJobStatus.COMPLETED:
             self.completed_at = now
             self.error_message = None
 
-        if target is MediaTranscodingJobStatus.FAILED:
-            self.error_message = "Media transcoding failed."
+        if target is MediaPreparationJobStatus.FAILED:
+            self.error_message = "Media preparation failed."
+
+MediaTranscodingJob = MediaPreparationJob

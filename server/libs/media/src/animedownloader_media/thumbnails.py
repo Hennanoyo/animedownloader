@@ -33,6 +33,15 @@ class FFmpegThumbnailSpriteProcessor:
         columns: int = 15,
         rows: int = 12,
     ) -> None:
+        if min_interval_seconds <= 0:
+            raise ValueError("min_interval_seconds must be positive")
+        if max_frames <= 0:
+            raise ValueError("max_frames must be positive")
+        if width <= 0 or height <= 0:
+            raise ValueError("Thumbnail dimensions must be positive")
+        if columns <= 0 or rows <= 0:
+            raise ValueError("Sprite grid dimensions must be positive")
+
         self._executable = executable
         self._runner = runner or SubprocessFFmpegRunner()
         self._min_interval_seconds = min_interval_seconds

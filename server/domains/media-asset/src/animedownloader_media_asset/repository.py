@@ -33,7 +33,10 @@ class MediaAssetRepository:
             .where(MediaAsset.episode_id == episode_id),
         )
 
-    async def get_for_processing_job(self, processing_job_id: UUID) -> MediaAsset | None:
+    async def get_for_processing_job(
+        self,
+        processing_job_id: UUID,
+    ) -> MediaAsset | None:
         return await self.session.scalar(
             select(MediaAsset)
             .options(

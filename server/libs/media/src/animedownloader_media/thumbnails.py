@@ -85,7 +85,7 @@ class FFmpegThumbnailSpriteProcessor:
             frame_dir = Path(temporary_dir)
             frame_pattern = frame_dir / "frame-%05d.jpg"
             scale_filter = (
-                f"fps={1 / interval:.12g},"
+                f"fps={1 / interval:.12g}:round=up,"
                 f"scale={self._width}:{self._height}:force_original_aspect_ratio=decrease,"
                 f"pad={self._width}:{self._height}:(ow-iw)/2:(oh-ih)/2,"
                 "setsar=1"

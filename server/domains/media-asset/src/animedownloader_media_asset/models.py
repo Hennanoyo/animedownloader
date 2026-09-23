@@ -7,6 +7,7 @@ from uuid import UUID
 from animedownloader_database import Base
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     DateTime,
     Float,
     ForeignKey,
@@ -15,9 +16,9 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .metadata import MediaAssetMetadata
+from .metadata import MediaAssetMetadata, SubtitleTrackMetadata
 
 
 class MediaAsset(Base):
@@ -50,6 +51,9 @@ class MediaAsset(Base):
     metadata_updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
     )
+    subtitle_tracks_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -60,9 +64,19 @@ class MediaAsset(Base):
         onupdate=func.now(),
     )
 
+    subtitle_tracks: Mapped[list[SubtitleTrack]] = relationship(
+        back_populates="media_asset",
+        cascade="all, delete-orphan",
+        order_by="SubtitleTrack.stream_index",
+    )
+
     @property
     def metadata_ready(self) -> bool:
         return self.metadata_updated_at is not None
+
+    @property
+    def subtitle_tracks_ready(self) -> bool:
+        return self.subtitle_tracks_updated_at is not None
 
     def update_metadata(self, metadata: MediaAssetMetadata) -> None:
         self.format_name = metadata.format_name
@@ -74,3 +88,66 @@ class MediaAsset(Base):
         self.height = metadata.height
         self.frame_rate = metadata.frame_rate
         self.metadata_updated_at = datetime.now(UTC)
+
+    def update_subtitle_tracks(
+        self,
+        tracks: tuple[SubtitleTrackMetadata, ...],
+    ) -> None:
+        self.subtitle_tracks = [
+            SubtitleTrack(
+                stream_index=track.stream_index,
+                language=track.language,
+                title=track.title,
+                codec_name=track.codec_name,
+                source_path=track.source_path,
+                is_default=track.is_default,
+                is_forced=track.is_forced,
+            )
+            for track in tracks
+        ]
+        self.subtitle_tracks_updated_at = datetime.now(UTC)
+
+
+class SubtitleTrack(Base):
+    __tablename__ = "subtitle_tracks"
+    __table_args__ = (
+        UniqueConstraint(
+            "media_asset_id",
+            "stream_index",
+            name="uq_subtitle_tracks_asset_stream",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    media_asset_id: Mapped[UUID] = mapped_column(
+        ForeignKey("media_assets.id", ondelete="CASCADE"),
+        index=True,
+    )
+    stream_index: Mapped[int | None] = mapped_column(Integer)
+    language: Mapped[str | None] = mapped_column(String(32))
+    title: Mapped[str | None] = mapped_column(String(500))
+    codec_name: Mapped[str | None] = mapped_column(String(64))
+    source_path: Mapped[str | None] = mapped_column(String(2000))
+    is_default: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default="false",
+    )
+    is_forced: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default="false",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    media_asset: Mapped[MediaAsset] = relationship(
+        back_populates="subtitle_tracks",
+    )

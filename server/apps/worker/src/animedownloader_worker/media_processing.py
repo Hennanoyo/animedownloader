@@ -94,19 +94,18 @@ class MediaProcessingState:
         media_path: str,
         probe: MediaProbe,
     ) -> None:
-        async with self._session_factory() as session:
-            async with session.begin():
-                processing_service = MediaProcessingJobService(session)
-                job = await processing_service.get_job(job_id)
-                await MediaAssetService(session).upsert_from_probe(
+        async with self._session_factory() as session, session.begin():
+            processing_service = MediaProcessingJobService(session)
+            job = await processing_service.get_job(job_id)
+            await MediaAssetService(session).upsert_from_probe(
                     episode_id=job.episode_id,
                     processing_job_id=job.id,
                     media_path=media_path,
                     probe=probe,
-                )
-                job.media_path = media_path
-                job.probe_metadata = _serialize_probe(probe)
-                job.transition_to(MediaProcessingJobStatus.COMPLETED)
+            )
+            job.media_path = media_path
+            job.probe_metadata = _serialize_probe(probe)
+            job.transition_to(MediaProcessingJobStatus.COMPLETED)
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
         async with self._session_factory() as session:

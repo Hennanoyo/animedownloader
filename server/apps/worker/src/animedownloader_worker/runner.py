@@ -117,6 +117,7 @@ class DownloadRunner:
         state: DownloadState,
         torrent_client: TorrentClient,
         download_root: Path,
+        on_completed: Callable[[UUID], Awaitable[None]] | None = None,
         poll_interval: float = 3.0,
         discovery_timeout: float = 60.0,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
@@ -124,6 +125,7 @@ class DownloadRunner:
         self._state = state
         self._torrent_client = torrent_client
         self._download_root = download_root
+        self._on_completed = on_completed
         self._poll_interval = poll_interval
         self._discovery_timeout = discovery_timeout
         self._sleep = sleep
@@ -224,6 +226,15 @@ class DownloadRunner:
                             "Failed to remove completed qBittorrent torrent %s",
                             info.id,
                         )
+
+                    if self._on_completed is not None:
+                        try:
+                            await self._on_completed(job_id)
+                        except Exception:
+                            logger.exception(
+                                "Failed to enqueue media processing job for download %s",
+                                job_id,
+                            )
                     return
 
                 await self._sleep(self._poll_interval)

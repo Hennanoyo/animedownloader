@@ -1,8 +1,13 @@
+import { useState } from "react";
 import { Button } from "react-aria-components";
 import { ApiRequestError } from "../../../shared/api/client";
 import {
+  useCancelDownloadJob,
   useCreateEpisodeDownloadJob,
+  useDeleteDownloadJob,
   useEpisodeDownload,
+  usePauseDownloadJob,
+  useResumeDownloadJob,
 } from "../model/useEpisodeDownload";
 import styles from "./EpisodeDownloadControl.module.scss";
 
@@ -12,7 +17,12 @@ interface Props {
 
 export default function EpisodeDownloadControl({ episodeId }: Props) {
   const query = useEpisodeDownload(episodeId);
-  const mutation = useCreateEpisodeDownloadJob(episodeId);
+  const createMutation = useCreateEpisodeDownloadJob(episodeId);
+  const pauseMutation = usePauseDownloadJob(episodeId);
+  const resumeMutation = useResumeDownloadJob(episodeId);
+  const cancelMutation = useCancelDownloadJob(episodeId);
+  const deleteMutation = useDeleteDownloadJob(episodeId);
+  const [confirm, setConfirm] = useState<"cancel" | "delete" | null>(null);
 
   if (query.isPending) {
     return <span className={styles.message}>Checking...</span>;
@@ -35,6 +45,8 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
   const job = query.data;
 
   if (job?.status === "pending" || job?.status === "downloading") {
+    const pending = pauseMutation.isPending || cancelMutation.isPending;
+
     return (
       <div className={styles.control}>
         <span className={styles.status}>
@@ -46,65 +58,164 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
             style={{
               width:
                 job.total_bytes && job.total_bytes > 0
-                  ? `${Math.min(
+                  ? Math.min(
                       (job.downloaded_bytes / job.total_bytes) * 100,
                       100,
-                    )}%`
+                    ) + "%"
                   : "0%",
             }}
           />
         </div>
         <span className={styles.progressLabel}>{formatProgress(job)}</span>
+        {confirm === "cancel" ? (
+          <div className={styles.confirm} role="alertdialog">
+            <span>Cancel this download and remove partial data?</span>
+            <div className={styles.buttons}>
+              <Button
+                className={styles.secondaryButton}
+                onPress={() => setConfirm(null)}
+                isDisabled={cancelMutation.isPending}
+              >
+                Keep downloading
+              </Button>
+              <Button
+                className={styles.dangerButton}
+                onPress={() => {
+                  setConfirm(null);
+                  cancelMutation.mutate(job.id);
+                }}
+                isDisabled={pending}
+              >
+                {cancelMutation.isPending ? "Cancelling..." : "Cancel download"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className={styles.buttons}>
+            <Button
+              className={styles.secondaryButton}
+              onPress={() => pauseMutation.mutate(job.id)}
+              isDisabled={pending}
+            >
+              {pauseMutation.isPending ? "Pausing..." : "Pause"}
+            </Button>
+            <Button
+              className={styles.dangerButton}
+              onPress={() => setConfirm("cancel")}
+              isDisabled={pending}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
+        {pauseMutation.isError ? (
+          <span className={styles.error}>{pauseMutation.error.message}</span>
+        ) : null}
+        {cancelMutation.isError ? (
+          <span className={styles.error}>{cancelMutation.error.message}</span>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (job?.status === "paused") {
+    const pending = resumeMutation.isPending || cancelMutation.isPending;
+
+    return (
+      <div className={styles.control}>
+        <span className={styles.status}>Paused</span>
+        <span className={styles.progressLabel}>{formatProgress(job)}</span>
+        {confirm === "cancel" ? (
+          <div className={styles.confirm} role="alertdialog">
+            <span>Cancel this download and remove partial data?</span>
+            <div className={styles.buttons}>
+              <Button
+                className={styles.secondaryButton}
+                onPress={() => setConfirm(null)}
+                isDisabled={pending}
+              >
+                Keep paused
+              </Button>
+              <Button
+                className={styles.dangerButton}
+                onPress={() => {
+                  setConfirm(null);
+                  cancelMutation.mutate(job.id);
+                }}
+                isDisabled={pending}
+              >
+                {cancelMutation.isPending ? "Cancelling..." : "Cancel download"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className={styles.buttons}>
+            <Button
+              className={styles.primaryButton}
+              onPress={() => resumeMutation.mutate(job.id)}
+              isDisabled={pending}
+            >
+              {resumeMutation.isPending ? "Resuming..." : "Resume"}
+            </Button>
+            <Button
+              className={styles.dangerButton}
+              onPress={() => setConfirm("cancel")}
+              isDisabled={pending}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
+        {resumeMutation.isError ? (
+          <span className={styles.error}>{resumeMutation.error.message}</span>
+        ) : null}
+        {cancelMutation.isError ? (
+          <span className={styles.error}>{cancelMutation.error.message}</span>
+        ) : null}
       </div>
     );
   }
 
   if (job?.status === "completed") {
     return (
-      <div className={styles.control}>
-        <span className={styles.completed}>Completed</span>
-        <span className={styles.progressLabel}>{formatProgress(job)}</span>
-        <Button
-          className={styles.secondaryButton}
-          onPress={() => mutation.mutate()}
-          isDisabled={mutation.isPending}
-        >
-          {mutation.isPending ? "Starting..." : "Redownload"}
-        </Button>
-      </div>
+      <TerminalDownloadControl
+        job={job}
+        onDownload={() => createMutation.mutate()}
+        onDelete={() => setConfirm("delete")}
+        deleteMutation={deleteMutation}
+        createMutation={createMutation}
+        confirm={confirm}
+        onCancelConfirm={() => setConfirm(null)}
+      />
     );
   }
 
   if (job?.status === "failed") {
     return (
-      <div className={styles.control}>
-        <span className={styles.error}>Failed</span>
-        {job.error_message ? (
-          <span className={styles.errorDetail}>{job.error_message}</span>
-        ) : null}
-        <Button
-          className={styles.secondaryButton}
-          onPress={() => mutation.mutate()}
-          isDisabled={mutation.isPending}
-        >
-          {mutation.isPending ? "Retrying..." : "Retry"}
-        </Button>
-      </div>
+      <TerminalDownloadControl
+        job={job}
+        onDownload={() => createMutation.mutate()}
+        onDelete={() => setConfirm("delete")}
+        deleteMutation={deleteMutation}
+        createMutation={createMutation}
+        confirm={confirm}
+        onCancelConfirm={() => setConfirm(null)}
+        showError
+      />
     );
   }
 
   if (job?.status === "cancelled") {
     return (
-      <div className={styles.control}>
-        <span className={styles.message}>Cancelled</span>
-        <Button
-          className={styles.secondaryButton}
-          onPress={() => mutation.mutate()}
-          isDisabled={mutation.isPending}
-        >
-          {mutation.isPending ? "Starting..." : "Download again"}
-        </Button>
-      </div>
+      <TerminalDownloadControl
+        job={job}
+        onDownload={() => createMutation.mutate()}
+        onDelete={() => setConfirm("delete")}
+        deleteMutation={deleteMutation}
+        createMutation={createMutation}
+        confirm={confirm}
+        onCancelConfirm={() => setConfirm(null)}
+      />
     );
   }
 
@@ -112,17 +223,102 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
     <div className={styles.control}>
       <Button
         className={styles.primaryButton}
-        onPress={() => mutation.mutate()}
-        isDisabled={mutation.isPending}
+        onPress={() => createMutation.mutate()}
+        isDisabled={createMutation.isPending}
       >
-        {mutation.isPending ? "Starting..." : "Download"}
+        {createMutation.isPending ? "Starting..." : "Download"}
       </Button>
-      {mutation.isError ? (
+      {createMutation.isError ? (
         <span className={styles.error}>
-          {mutation.error instanceof ApiRequestError
-            ? mutation.error.message
+          {createMutation.error instanceof ApiRequestError
+            ? createMutation.error.message
             : "Failed to start download."}
         </span>
+      ) : null}
+    </div>
+  );
+}
+
+interface TerminalDownloadControlProps {
+  job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
+  onDownload: () => void;
+  onDelete: () => void;
+  deleteMutation: ReturnType<typeof useDeleteDownloadJob>;
+  createMutation: ReturnType<typeof useCreateEpisodeDownloadJob>;
+  confirm: "cancel" | "delete" | null;
+  onCancelConfirm: () => void;
+  showError?: boolean;
+}
+
+function TerminalDownloadControl({
+  job,
+  onDownload,
+  onDelete,
+  deleteMutation,
+  createMutation,
+  confirm,
+  onCancelConfirm,
+  showError = false,
+}: TerminalDownloadControlProps) {
+  return (
+    <div className={styles.control}>
+      <span className={job.status === "failed" ? styles.error : styles.message}>
+        {job.status === "completed"
+          ? "Completed"
+          : job.status === "failed"
+            ? "Failed"
+            : "Cancelled"}
+      </span>
+      {job.status === "failed" && job.error_message ? (
+        <span className={styles.errorDetail}>{job.error_message}</span>
+      ) : null}
+      <span className={styles.progressLabel}>{formatProgress(job)}</span>
+      <div className={styles.buttons}>
+        <Button
+          className={styles.secondaryButton}
+          onPress={onDownload}
+          isDisabled={createMutation.isPending || deleteMutation.isPending}
+        >
+          {createMutation.isPending ? "Starting..." : job.status === "failed" ? "Retry" : "Download again"}
+        </Button>
+        <Button
+          className={styles.dangerButton}
+          onPress={onDelete}
+          isDisabled={createMutation.isPending || deleteMutation.isPending}
+        >
+          Delete record
+        </Button>
+      </div>
+      {confirm === "delete" ? (
+        <div className={styles.confirm} role="alertdialog">
+          <span>
+            {showError
+              ? "Delete this failed download record? Its partial files will be kept."
+              : "Delete this download record? Downloaded files will be kept."}
+          </span>
+          <div className={styles.buttons}>
+            <Button
+              className={styles.secondaryButton}
+              onPress={onCancelConfirm}
+              isDisabled={deleteMutation.isPending}
+            >
+              Keep record
+            </Button>
+            <Button
+              className={styles.dangerButton}
+              onPress={() => {
+                onCancelConfirm();
+                deleteMutation.mutate(job.id);
+              }}
+              isDisabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete record"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+      {deleteMutation.isError ? (
+        <span className={styles.error}>{deleteMutation.error.message}</span>
       ) : null}
     </div>
   );

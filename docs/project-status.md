@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The project is in the Anime / Episode management phase. The download workflow and media inspection foundation are complete; the next slice is Episode add/edit/delete in the Anime management UI.
+The project is in the Download Job control phase. Anime/Episode management, torrent download execution, and media inspection infrastructure are complete; the current slice adds pause/resume, cancel, and download-record deletion.
 
 ## Completed
 
@@ -138,30 +138,30 @@ Browser
   → Browser polls persistent DownloadJob state
 ```
 
-## Current Phase — Anime / Episode Management
+## Current Phase — Download Job Control
 
-The next PR extends the existing Anime edit experience so an Anime's Episodes can be managed without leaving the management screen.
+The next PR extends the existing Episode download UI and persistent DownloadJob workflow with explicit user controls.
 
 ### Next PR Scope
 
-- Add an Episode from a Nyaa release
-- Edit Episode number and title
-- Replace the Episode's selected release and provenance metadata
-- Delete an Episode with explicit confirmation
-- Preserve the existing DownloadJob workflow
-- Update the Anime detail query cache after Episode mutations
+- Pause and resume a pending/downloading Episode job
+- Cancel an active job and remove its partial torrent data
+- Delete terminal DownloadJob records without deleting completed media files
+- Keep PostgreSQL as the persistent state source of truth
+- Keep qBittorrent behind the TorrentClient adapter
+- Preserve retry/redownload behavior
 - Keep media inspection and later media pipeline stages out of scope
 
-### Episode Management Rules
+### Download Control Rules
 
-- Episode numbers must remain unique within an Anime
-- New Episodes require a selected Nyaa release
-- Editing an Episode does not change its DownloadJob state unless the release metadata is explicitly replaced
-- Deleting an Episode removes only that Episode; Anime remains intact
+- Paused jobs remain active and prevent another job from being created for the same Episode
+- Resume does not increment the DownloadJob attempt count
+- Cancel is terminal and removes the associated qBittorrent torrent and partial download data
+- Terminal job deletion removes the Job history; completed media files are retained
 
 ## Planned Follow-up
 
-After Episode management, continue the media pipeline as separate focused phases:
+After download controls, continue the media pipeline as separate focused phases:
 
 - persist media-processing job state and trigger inspection after download
 - subtitle normalization

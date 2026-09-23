@@ -90,3 +90,26 @@ def test_invalid_download_job_transition() -> None:
 
     with pytest.raises(InvalidDownloadJobTransitionError):
         job.transition_to(DownloadJobStatus.DOWNLOADING)
+
+
+def test_pause_resume_keeps_attempt_count() -> None:
+    job = make_job()
+
+    job.transition_to(DownloadJobStatus.DOWNLOADING)
+    job.transition_to(DownloadJobStatus.PAUSED)
+    job.transition_to(DownloadJobStatus.DOWNLOADING)
+
+    assert job.job_status is DownloadJobStatus.DOWNLOADING
+    assert job.attempt_count == 1
+
+
+def test_pause_before_start_counts_first_attempt_on_resume() -> None:
+    job = make_job()
+
+    job.transition_to(DownloadJobStatus.PAUSED)
+    assert job.attempt_count == 0
+    assert job.started_at is None
+
+    job.transition_to(DownloadJobStatus.DOWNLOADING)
+    assert job.attempt_count == 1
+    assert job.started_at is not None

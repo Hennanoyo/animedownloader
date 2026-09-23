@@ -89,13 +89,19 @@ class DownloadJob(Base):
         current = self.job_status
         allowed: dict[DownloadJobStatus, set[DownloadJobStatus]] = {
             DownloadJobStatus.PENDING: {
+                DownloadJobStatus.PAUSED,
                 DownloadJobStatus.DOWNLOADING,
                 DownloadJobStatus.FAILED,
                 DownloadJobStatus.CANCELLED,
             },
             DownloadJobStatus.DOWNLOADING: {
+                DownloadJobStatus.PAUSED,
                 DownloadJobStatus.COMPLETED,
                 DownloadJobStatus.FAILED,
+                DownloadJobStatus.CANCELLED,
+            },
+            DownloadJobStatus.PAUSED: {
+                DownloadJobStatus.DOWNLOADING,
                 DownloadJobStatus.CANCELLED,
             },
             DownloadJobStatus.COMPLETED: set(),
@@ -124,8 +130,9 @@ class DownloadJob(Base):
             self.total_bytes = total_bytes
 
         if target is DownloadJobStatus.DOWNLOADING:
-            self.started_at = now
-            self.attempt_count += 1
+            if self.started_at is None:
+                self.started_at = now
+                self.attempt_count += 1
             self.error_message = None
 
         if target is DownloadJobStatus.FAILED:

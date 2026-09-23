@@ -2,9 +2,11 @@ from collections.abc import AsyncIterator
 from typing import Annotated
 
 from animedownloader_anime import AnimeService
+from animedownloader_config import Settings
 from animedownloader_database import Database
 from animedownloader_download import DownloadJobService
 from animedownloader_nyaa import NyaaClient
+from animedownloader_qbittorrent import QBittorrentClient
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,4 +37,18 @@ def get_download_task_dispatcher(request: Request) -> DownloadTaskDispatcher:
 
 async def get_nyaa_client() -> AsyncIterator[NyaaClient]:
     async with NyaaClient() as client:
+        yield client
+
+
+
+async def get_qbittorrent_client(
+    request: Request,
+) -> AsyncIterator[QBittorrentClient]:
+    settings: Settings = request.app.state.settings
+    api_key = (
+        settings.qbittorrent_api_key.get_secret_value()
+        if settings.qbittorrent_api_key
+        else ""
+    )
+    async with QBittorrentClient(settings.qbittorrent_url, api_key) as client:
         yield client

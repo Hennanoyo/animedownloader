@@ -6,8 +6,12 @@ import {
 } from "@tanstack/react-query";
 import { ApiRequestError } from "../../../shared/api/client";
 import {
+  cancelDownloadJob,
   createEpisodeDownloadJob,
+  deleteDownloadJob,
   getLatestEpisodeDownloadJob,
+  pauseDownloadJob,
+  resumeDownloadJob,
 } from "../../../entities/download/api/downloadJobs";
 import type { DownloadJob } from "../../../entities/download/model/types";
 
@@ -53,3 +57,55 @@ export function useCreateEpisodeDownloadJob(episodeId: string) {
 }
 
 export type { DownloadJob };
+
+function useDownloadJobAction(
+  episodeId: string,
+  action: (
+    jobId: string,
+    signal?: AbortSignal,
+  ) => Promise<DownloadJob>,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (jobId: string) => action(jobId),
+    onSuccess: async (job) => {
+      queryClient.setQueryData(
+        ["download-jobs", "latest", episodeId],
+        job,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["download-jobs", "latest", episodeId],
+      });
+    },
+  });
+}
+
+export function usePauseDownloadJob(episodeId: string) {
+  return useDownloadJobAction(episodeId, pauseDownloadJob);
+}
+
+export function useResumeDownloadJob(episodeId: string) {
+  return useDownloadJobAction(episodeId, resumeDownloadJob);
+}
+
+export function useCancelDownloadJob(episodeId: string) {
+  return useDownloadJobAction(episodeId, cancelDownloadJob);
+}
+
+export function useDeleteDownloadJob(episodeId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (jobId: string) => deleteDownloadJob(jobId),
+    onSuccess: async () => {
+      queryClient.setQueryData(
+        ["download-jobs", "latest", episodeId],
+        null,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["download-jobs", "latest", episodeId],
+      });
+    },
+  });
+}

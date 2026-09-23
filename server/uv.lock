@@ -157,6 +157,7 @@ requires-dist = [
     { name = "animedownloader-download", editable = "domains/download" },
     { name = "animedownloader-nyaa", editable = "libs/nyaa" },
     { name = "animedownloader-releases", editable = "domains/releases" },
+    { name = "animedownloader-qbittorrent", editable = "libs/qbittorrent" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.141,<0.142" },
     { name = "taskiq", specifier = ">=0.12,<0.13" },
     { name = "taskiq-redis", specifier = ">=1.2,<1.3" },

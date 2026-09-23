@@ -5,7 +5,8 @@
 }
 
 .primaryButton,
-.secondaryButton {
+.secondaryButton,
+.dangerButton {
   min-height: 2.35rem;
   padding: 0 0.75rem;
   border: 1px solid #334155;
@@ -13,6 +14,32 @@
   background: #111827;
   color: #e5e7eb;
   cursor: pointer;
+}
+
+.dangerButton {
+  border-color: #7f1d1d;
+  background: #2a1014;
+  color: #fecaca;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.confirm {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid #7f1d1d;
+  border-radius: 0.55rem;
+  background: #2a1014;
+}
+
+.confirm span {
+  color: #fecaca;
+  font-size: 0.75rem;
 }
 
 .primaryButton {

@@ -7,11 +7,11 @@ from threading import Thread
 import pytest
 
 from animedownloader_storage import (
-    create_storage,
     LocalStorage,
     SeaweedFSStorage,
     StorageError,
     StorageObjectNotFoundError,
+    create_storage,
 )
 
 

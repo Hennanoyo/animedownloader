@@ -150,7 +150,8 @@ jobs:
       - name: Verify worker
         run: |
           for attempt in $(seq 1 30); do
-            if [ "$(docker compose inspect -f '{{.State.Running}}' worker)" = "true" ]; then
+            container_id="$(docker compose ps -q worker)"
+            if [ -n "$container_id" ] && [ "$(docker inspect -f '{{.State.Running}}' "$container_id")" = "true" ]; then
               exit 0
             fi
             sleep 2

@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The project has completed Anime/Episode management, persistent torrent download execution, download controls, and media inspection infrastructure. The current slice establishes persistent post-download media processing and FFprobe inspection.
+The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection infrastructure, and the first persistent post-download processing stage. The next slice turns inspected files into application-level media records before conversion and delivery features are added.
 
 ## Completed
 
@@ -159,30 +159,36 @@ Browser
   → Browser polls and controls DownloadJob
 ```
 
-## Current Phase — Media Processing Job
+## Current Phase — Media Asset Integration
 
-PR #17 establishes the first post-download processing stage.
+### PR #17 — Media Processing Jobs
 
-### PR #17 Scope
+Merged into `main` as commit `57e04d490933aca6dc26871dd69e7ee160b5dce6`.
 
-- Add persistent `MediaProcessingJob` state and transitions
-- Create a processing job after `DownloadJob.COMPLETED`
-- Run FFprobe inspection through the existing `animedownloader-media` library
-- Persist the media path and structured probe metadata
-- Expose processing status and latest Episode processing state through the API
-- Retry failed inspection without re-downloading
-- Keep processing state independent from terminal DownloadJob state
+- Added persistent `MediaProcessingJob` state and transitions
+- Created a processing job after `DownloadJob.COMPLETED`
+- Ran FFprobe inspection through the existing `animedownloader-media` library
+- Persisted the media path and structured probe metadata
+- Exposed processing status and latest Episode processing state through the API
+- Added retry without re-downloading
+- Kept processing state independent from terminal DownloadJob state
+- Added a manual trigger for processing an existing completed DownloadJob
+- Verified Backend, Frontend, and Integration CI successfully
 
-### Processing Rules
+The processing job remains the execution/history record. The next step is to define the application-level media record that represents the usable media attached to an Episode.
 
-- DownloadJob remains the source of truth for torrent acquisition state
-- MediaProcessingJob owns post-download processing state
-- FFprobe inspection is the first processing step
-- Failed inspection is retryable without re-downloading the torrent
-- DownloadJob remains COMPLETED when media processing fails
-- Deleting a DownloadJob does not delete MediaProcessingJob history
+### Next PR — Media Asset / Episode Integration
 
-### Explicitly Out of Scope
+Scope:
+
+- Add a persistent media entity representing the usable media for an Episode
+- Materialize the successful FFprobe result into that media entity
+- Define the canonical media path and core metadata used by the rest of the application
+- Expose Episode media information through the API
+- Decide how existing `download_status` / `conversion_status` fields map to the new media lifecycle
+- Keep DownloadJob and MediaProcessingJob as execution/history records rather than the primary media representation
+
+Explicitly out of scope:
 
 - Subtitle normalization
 - Transcoding or remuxing
@@ -191,15 +197,15 @@ PR #17 establishes the first post-download processing stage.
 - Player/playback UI
 - Media file deletion or retention policy changes
 
-## Planned Follow-up
+### Planned Follow-up
 
-After PR #17:
+After the media asset integration slice:
 
-- subtitle normalization
-- transcoding/remuxing
+- Subtitle normalization and subtitle attachment
+- Transcoding/remuxing
 - HLS/DASH packaging
 - SeaweedFS upload
-- player and playback tooling
+- Player/playback tooling
 
 ## Handoff Notes
 

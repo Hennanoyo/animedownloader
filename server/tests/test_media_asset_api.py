@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
-from uuid import uuid7
+from uuid import UUID, uuid7
 
 import httpx
 import pytest
@@ -14,7 +14,7 @@ from animedownloader_api.schemas import MediaAssetResponse
 from animedownloader_media_asset import MediaAsset, MediaAssetService
 
 
-def make_asset(episode_id) -> MediaAsset:
+def make_asset(episode_id: UUID) -> MediaAsset:
     now = datetime(2026, 9, 23, tzinfo=UTC)
     return MediaAsset(
         id=uuid7(),
@@ -36,7 +36,7 @@ def make_asset(episode_id) -> MediaAsset:
     )
 
 
-def make_episode(episode_id) -> Episode:
+def make_episode(episode_id: UUID) -> Episode:
     return Episode(
         id=episode_id,
         anime_id=uuid7(),

@@ -20,6 +20,17 @@ from .models import (
     MediaStreamType,
 )
 from .parser import parse_ffprobe_json
+from .cmaf import (
+    CMAFMediaSegment,
+    CMAFMediaPlaylist,
+    CMAFPackagingError,
+    CMAFPackagingResult,
+    CMAFRepresentationMetadata,
+    FFmpegCMAFProcessor,
+    build_dash_manifest,
+    build_hls_master_playlist,
+    make_representation_metadata,
+)
 from .preparation import (
     FFmpegMediaPreparationProcessingError,
     FFmpegMediaPreparationProcessor,
@@ -40,8 +51,14 @@ from .thumbnails import (
 )
 
 __all__ = [
+    "CMAFMediaPlaylist",
+    "CMAFMediaSegment",
+    "CMAFPackagingError",
+    "CMAFPackagingResult",
+    "CMAFRepresentationMetadata",
     "DEFAULT_PLAYABLE_MEDIA_PROFILE",
     "FFmpegAttachmentProcessor",
+    "FFmpegCMAFProcessor",
     "FFmpegCommandResult",
     "FFmpegPlayableMediaProcessingError",
     "FFmpegPlayableMediaProcessor",
@@ -72,5 +89,8 @@ __all__ = [
     "SubtitleProcessingError",
     "ThumbnailSpriteResult",
     "UnsupportedSubtitleCodecError",
+    "build_dash_manifest",
+    "build_hls_master_playlist",
+    "make_representation_metadata",
     "parse_ffprobe_json",
 ]

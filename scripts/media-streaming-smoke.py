@@ -114,12 +114,16 @@ async def ensure_packaging_job(episode_id: UUID) -> UUID | None:
                     "Run media preparation again.",
                 )
 
-            job = await MediaStreamingPackageService(session).create_job(
-                media_variant_id=variant.id,
-            )
-
-        if job is None:
-            return None
+            package_service = MediaStreamingPackageService(session)
+            job = await package_service.create_job(media_variant_id=variant.id)
+            if job is None:
+                existing_job = await package_service.get_latest_job(variant.id)
+                if existing_job is not None and existing_job.status in {
+                    "pending",
+                    "processing",
+                }:
+                    return existing_job.id
+                return None
 
         await process_media_packaging.kiq(str(job.id))
         print(f"  packaging job enqueued: {job.id}")

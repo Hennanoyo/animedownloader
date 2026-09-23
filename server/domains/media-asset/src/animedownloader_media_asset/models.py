@@ -314,7 +314,7 @@ class MediaChapter(Base):
         index=True,
     )
     chapter_index: Mapped[int] = mapped_column(Integer)
-    chapter_id: Mapped[int | None] = mapped_column(Integer)
+    chapter_id: Mapped[int | None] = mapped_column(BigInteger)
     start_time_seconds: Mapped[float] = mapped_column(Float)
     end_time_seconds: Mapped[float] = mapped_column(Float)
     title: Mapped[str | None] = mapped_column(String(500))

@@ -8,8 +8,8 @@ from animedownloader_media import (
     MediaStream,
     MediaStreamType,
     PlayableMediaOperation,
-    PlayableMediaPlanningError,
     PlayableMediaPlanner,
+    PlayableMediaPlanningError,
 )
 
 

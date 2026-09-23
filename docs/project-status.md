@@ -159,7 +159,7 @@ Browser
   → Browser polls and controls DownloadJob
 ```
 
-## Current Phase — Media Metadata Integration
+## Current Phase — Subtitle Extraction / Normalization
 
 ### PR #17 — Media Processing Jobs
 

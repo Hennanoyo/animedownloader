@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from animedownloader_media_processing import (
+    MEDIA_PACKAGING_TASK_NAME,
     MEDIA_PREPARATION_TASK_NAME,
     MEDIA_PROCESSING_TASK_NAME,
 )
@@ -23,9 +24,17 @@ class MediaProcessingTaskDispatcher:
             _media_processing_task_placeholder,
             task_name=MEDIA_PREPARATION_TASK_NAME,
         )
+        self._packaging_task = broker.register_task(
+            _media_processing_task_placeholder,
+            task_name=MEDIA_PACKAGING_TASK_NAME,
+        )
 
     async def enqueue(self, job_id: UUID) -> None:
         await self._task.kiq(str(job_id))
 
     async def enqueue_preparation(self, job_id: UUID) -> None:
         await self._preparation_task.kiq(str(job_id))
+
+
+    async def enqueue_packaging(self, job_id: UUID) -> None:
+        await self._packaging_task.kiq(str(job_id))

@@ -9,8 +9,11 @@ from animedownloader_media_asset import (
     SubtitleTrackStatus,
 )
 from animedownloader_media_processing import (
+    MediaPackagingJobStatus,
     MediaPreparationJobStatus,
     MediaProcessingJobStatus,
+    MediaStreamingPackageStatus,
+    MediaStreamingRepresentationStatus,
     MediaTranscodingOperation,
     MediaVariantKind,
     MediaVariantStatus,
@@ -304,6 +307,59 @@ class MediaPreparationJobResponse(BaseModel):
     source_path: str
     source_metadata_updated_at: datetime
     output_path: str | None
+    attempt_count: int
+    error_message: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+class MediaStreamingRepresentationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    package_id: UUID
+    quality: str
+    width: int
+    height: int
+    bandwidth: int
+    video_codec: str
+    audio_codec: str | None
+    duration_seconds: float
+    hls_playlist_key: str
+    init_segment_key: str
+    segment_directory_key: str
+    status: MediaStreamingRepresentationStatus
+    error_message: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class MediaStreamingPackageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    media_variant_id: UUID
+    status: MediaStreamingPackageStatus
+    source_path: str
+    source_variant_updated_at: datetime
+    hls_master_key: str | None
+    dash_manifest_key: str | None
+    error_message: str | None
+    representations: list[MediaStreamingRepresentationResponse]
+    created_at: datetime
+    updated_at: datetime
+
+
+class MediaPackagingJobResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    media_variant_id: UUID
+    package_id: UUID
+    status: MediaPackagingJobStatus
+    source_path: str
+    source_variant_updated_at: datetime
     attempt_count: int
     error_message: str | None
     started_at: datetime | None

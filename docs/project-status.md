@@ -4,7 +4,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, and chapter/embedded attachment integration.
 
-The current phase is shared media preparation for browser-oriented playable media and thumbnail generation. PR #23 and PR #24 are merged; PR #25 is the next development step.
+The current phase is CMAF-based browser streaming preparation. PR #23, PR #24, and PR #25 are merged; PR #26 is the active development step.
 
 ## Completed
 
@@ -214,6 +214,10 @@ Browser
       → chapters
       → attachments / fonts
       → thumbnails / WebVTT
+  → CMAF streaming package
+      ├─ HLS master/media playlists
+      ├─ DASH MPD
+      └─ shared fMP4 segments
 ```
 
 ## Media Pipeline Roadmap
@@ -264,7 +268,7 @@ Out of scope:
 
 ### PR #25 — Shared Media Preparation
 
-**Current development step.**
+**Merged into `main` as commit `bf160e279c0c63693e736d3f836c16e6a8ceb976`.**
 
 Goal: avoid decoding the same source video independently for playable media and thumbnail generation.
 
@@ -293,17 +297,27 @@ Out of scope:
 - SeaweedFS upload/storage migration
 - Player UI
 
-### PR #26 — HLS / DASH Packaging
+### PR #26 — CMAF Packaging / HLS & DASH
 
+**Current development step.**
 
-Goal: derive streaming manifests and segments from the current playable media.
+Goal: derive a shared CMAF/fMP4 representation from the current playable media and expose HLS and DASH manifests over the same media objects.
 
 Scope:
 
-- Add packaging jobs
-- Generate HLS and DASH representations
-- Keep package state separate from source MediaAsset state
-- Reuse the same encoded media where practical
+- Add durable media packaging job state
+- Create one CMAF representation using the current playable resolution
+- Store `master.m3u8` and `manifest.mpd` at the streaming package root
+- Store `<quality>/index.m3u8`, `<quality>/init.mp4`, and `<quality>/s/*.m4s` together
+- Make HLS and DASH reference the same initialization/media segments
+- Keep the data model ready for future 1080p/720p/480p representations
+- Reuse the current playable MediaVariant without re-encoding
+
+Out of scope:
+
+- Generating additional downscaled/ABR representations
+- SeaweedFS storage migration
+- Player UI
 
 ### PR #27 — SeaweedFS / Media Storage
 

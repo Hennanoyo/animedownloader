@@ -20,8 +20,12 @@ MediaPreparationJob
 Playable MediaVariant
   ↓
 CMAF/fMP4 packaging
-  ├─ HLS manifest (.m3u8)
-  └─ DASH manifest (.mpd)
+  ├─ master.m3u8
+  ├─ manifest.mpd
+  └─ shared representation assets
+       ├─ <quality>/index.m3u8
+       ├─ <quality>/init.mp4
+       └─ <quality>/s/*.m4s
 ```
 
 The downloaded `MediaAsset.path` remains the canonical source. Derived playable media and thumbnails are separate artifacts and must not mutate the source.

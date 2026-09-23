@@ -5,8 +5,8 @@ import pytest
 from animedownloader_media import (
     CMAFMediaSegment,
     CMAFRepresentationMetadata,
-    FFmpegCommandResult,
     FFmpegCMAFProcessor,
+    FFmpegCommandResult,
     build_dash_manifest,
     build_hls_master_playlist,
 )

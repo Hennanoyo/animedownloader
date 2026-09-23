@@ -160,8 +160,8 @@ jobs:
 
       - name: Verify deterministic media fixture and thumbnail generation
         run: |
-          docker compose exec -T worker python3             tests/fixtures/media/generate.py             /tmp/animedownloader-fixture.mkv
-          docker compose exec -T worker             uv run --package animedownloader-worker python3 - <<'PY'
+          docker compose exec -T worker python3 tests/fixtures/media/generate.py /tmp/animedownloader-fixture.mkv
+          docker compose exec -T worker uv run --package animedownloader-worker python3 - <<'PY
           import asyncio
           from pathlib import Path
 
@@ -186,7 +186,7 @@ jobs:
 
           asyncio.run(main())
           PY
-          docker compose exec -T worker rm -rf             /tmp/animedownloader-fixture.mkv             /tmp/animedownloader-thumbnails
+          docker compose exec -T worker rm -rf /tmp/animedownloader-fixture.mkv /tmp/animedownloader-thumbnails
 
       - name: Verify Anime CRUD against PostgreSQL
         run: |

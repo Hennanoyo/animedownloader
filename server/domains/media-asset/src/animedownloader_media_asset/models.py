@@ -188,6 +188,8 @@ class SubtitleTrack(Base):
 
     def mark_processing(self) -> None:
         self.status = SubtitleTrackStatus.PROCESSING.value
+        self.normalized_path = None
+        self.normalized_format = None
         self.error_message = None
 
     def mark_completed(

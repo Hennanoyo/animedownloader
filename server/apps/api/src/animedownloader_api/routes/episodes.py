@@ -15,8 +15,8 @@ from animedownloader_api.dependencies import (
 from animedownloader_api.schemas import (
     DownloadJobResponse,
     EpisodeResponse,
-    MediaProcessingJobResponse,
     EpisodeUpdate,
+    MediaProcessingJobResponse,
 )
 from animedownloader_api.task_queue import DownloadTaskDispatcher
 

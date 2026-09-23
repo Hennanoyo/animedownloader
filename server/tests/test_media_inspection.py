@@ -1,8 +1,14 @@
 import json
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
-from animedownloader_media import FFprobeInspector, MediaProbeError, MediaStreamType, ProbeCommandResult
+from animedownloader_media import (
+    FFprobeInspector,
+    MediaProbeError,
+    MediaStreamType,
+    ProbeCommandResult,
+)
 
 
 class FakeProbeRunner:
@@ -10,8 +16,8 @@ class FakeProbeRunner:
         self.result = result
         self.args: tuple[str, ...] | None = None
 
-    async def run(self, args: tuple[str, ...]) -> ProbeCommandResult:
-        self.args = args
+    async def run(self, args: Sequence[str]) -> ProbeCommandResult:
+        self.args = tuple(args)
         return self.result
 
 

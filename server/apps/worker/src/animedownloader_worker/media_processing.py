@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+import logging
 from pathlib import Path
 from typing import Protocol, cast
 from uuid import UUID
@@ -11,6 +12,8 @@ from animedownloader_media_processing import (
     MediaProcessingJobStatus,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+logger = logging.getLogger(__name__)
 
 
 MEDIA_EXTENSIONS = frozenset(
@@ -106,8 +109,10 @@ class MediaProcessingRunner:
         self._download_root = download_root
 
     async def run(self, job_id: UUID) -> None:
+        job_loaded = False
         try:
             context = await self._state.load(job_id)
+            job_loaded = True
             if context.status is MediaProcessingJobStatus.COMPLETED:
                 return
 
@@ -129,10 +134,17 @@ class MediaProcessingRunner:
                 probe_metadata=_serialize_probe(probe),
             )
         except Exception as exc:
-            await self._state.mark_failed(
-                job_id,
-                error_message=_format_error(exc),
-            )
+            if job_loaded:
+                try:
+                    await self._state.mark_failed(
+                        job_id,
+                        error_message=_format_error(exc),
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to persist media processing failure for job %s",
+                        job_id,
+                    )
             raise
 
 

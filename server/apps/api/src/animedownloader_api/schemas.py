@@ -154,22 +154,6 @@ class SubtitleTrackResponse(BaseModel):
     title: str | None
     codec_name: str | None
     source_path: str | None
-    is_default: bool
-    is_forced: bool
-    created_at: datetime
-    updated_at: datetime
-
-
-class SubtitleTrackResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: UUID
-    media_asset_id: UUID
-    stream_index: int | None
-    language: str | None
-    title: str | None
-    codec_name: str | None
-    source_path: str | None
     normalized_path: str | None
     normalized_format: str | None
     status: SubtitleTrackStatus

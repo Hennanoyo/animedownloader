@@ -493,7 +493,7 @@ async def main() -> int:
     parser.add_argument(
         "--timeout",
         type=float,
-        default=300.0,
+        default=1800.0,
         help="Wait time for a current playable media variant",
     )
     parser.add_argument(

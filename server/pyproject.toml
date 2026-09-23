@@ -40,6 +40,8 @@ executionEnvironments = [
         "libs/config/src",
         "libs/database/src",
         "libs/nyaa/src",
+        "libs/qbittorrent/src",
+        "libs/torrent/src",
     ] },
 ]
 

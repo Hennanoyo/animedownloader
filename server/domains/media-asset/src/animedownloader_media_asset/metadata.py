@@ -22,3 +22,22 @@ class SubtitleTrackMetadata:
     source_path: str | None
     is_default: bool
     is_forced: bool
+
+
+@dataclass(frozen=True, slots=True)
+class MediaChapterMetadata:
+    chapter_index: int
+    id: int | None
+    start_time_seconds: float
+    end_time_seconds: float
+    title: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class MediaAttachmentMetadata:
+    attachment_index: int
+    stream_index: int
+    filename: str | None
+    mime_type: str | None
+    description: str | None
+    is_font: bool

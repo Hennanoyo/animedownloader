@@ -6,6 +6,9 @@ from animedownloader_media_asset import (
     MediaAsset,
     MediaAssetMetadata,
     MediaAssetService,
+    MediaAttachmentMetadata,
+    MediaAttachmentStatus,
+    MediaChapterMetadata,
     SubtitleTrack,
     SubtitleTrackMetadata,
     SubtitleTrackStatus,
@@ -163,3 +166,48 @@ def test_subtitle_track_lifecycle() -> None:
     )
     assert track.processing_status is SubtitleTrackStatus.COMPLETED
     assert track.normalized_path == "/data/media/subtitles/track.ass"
+
+
+
+def test_media_asset_chapters_and_attachments_state() -> None:
+    asset = MediaAsset(
+        episode_id=uuid7(),
+        processing_job_id=uuid7(),
+        path="/downloads/example/episode.mkv",
+    )
+    asset.update_chapters(
+        (
+            MediaChapterMetadata(
+                chapter_index=0,
+                id=1,
+                start_time_seconds=0.0,
+                end_time_seconds=30.0,
+                title="Intro",
+            ),
+        ),
+    )
+    asset.update_attachments(
+        (
+            MediaAttachmentMetadata(
+                attachment_index=0,
+                stream_index=4,
+                filename="Example.ttf",
+                mime_type="application/x-truetype-font",
+                description="Example",
+                is_font=True,
+            ),
+        ),
+    )
+
+    assert asset.chapters_ready
+    assert asset.attachments_ready
+    assert not asset.attachment_processing_ready
+    assert asset.attachments[0].processing_status is MediaAttachmentStatus.PENDING
+
+    asset.attachments[0].mark_completed(
+        extracted_path="/data/media/fonts/aa/aa.ttf",
+        size_bytes=10,
+    )
+    asset.mark_attachment_processing_complete()
+
+    assert asset.attachment_processing_ready

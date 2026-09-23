@@ -3,7 +3,7 @@ from uuid import UUID
 
 from animedownloader_anime import ConversionStatus, DownloadStatus, Season, Weekday
 from animedownloader_download import DownloadJobStatus
-from animedownloader_media_asset import SubtitleTrackStatus
+from animedownloader_media_asset import MediaAttachmentStatus, SubtitleTrackStatus
 from animedownloader_media_processing import MediaProcessingJobStatus
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
@@ -164,6 +164,52 @@ class SubtitleTrackResponse(BaseModel):
     updated_at: datetime
 
 
+class MediaChapterResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    media_asset_id: UUID
+    chapter_index: int
+    chapter_id: int | None
+    start_time_seconds: float
+    end_time_seconds: float
+    title: str | None
+
+
+class MediaFontResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    mime_type: str | None
+    sha256: str
+    path: str
+    size_bytes: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class MediaAttachmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    media_asset_id: UUID
+    attachment_index: int
+    stream_index: int
+    filename: str | None
+    mime_type: str | None
+    description: str | None
+    is_font: bool
+    extracted_path: str | None
+    size_bytes: int | None
+    font_id: UUID | None
+    font: MediaFontResponse | None
+    status: MediaAttachmentStatus
+    error_message: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
 class MediaAssetResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -182,7 +228,12 @@ class MediaAssetResponse(BaseModel):
     metadata_updated_at: datetime | None
     subtitle_tracks_updated_at: datetime | None
     subtitle_tracks_processed_at: datetime | None
+    chapters_updated_at: datetime | None
+    attachments_updated_at: datetime | None
+    attachments_processed_at: datetime | None
     subtitle_tracks: list[SubtitleTrackResponse]
+    chapters: list[MediaChapterResponse]
+    attachments: list[MediaAttachmentResponse]
     created_at: datetime
     updated_at: datetime
 

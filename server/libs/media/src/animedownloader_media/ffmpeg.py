@@ -148,3 +148,55 @@ def _validate_result(
         raise SubtitleProcessingError(
             f"FFmpeg completed without creating subtitle output: {output_path}",
         )
+
+
+class FFmpegAttachmentProcessingError(RuntimeError):
+    pass
+
+
+class FFmpegAttachmentProcessor:
+    def __init__(
+        self,
+        *,
+        executable: str = "ffmpeg",
+        runner: FFmpegRunner | None = None,
+    ) -> None:
+        self._executable = executable
+        self._runner = runner or SubprocessFFmpegRunner()
+
+    async def extract(
+        self,
+        *,
+        media_path: Path,
+        attachment_index: int,
+        output_path: Path,
+    ) -> None:
+        if attachment_index < 0:
+            raise FFmpegAttachmentProcessingError(
+                f"Attachment index must be non-negative: {attachment_index}",
+            )
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        result = await self._runner.run(
+            (
+                self._executable,
+                "-v",
+                "error",
+                "-y",
+                f"-dump_attachment:t:{attachment_index}",
+                str(output_path),
+                "-i",
+                str(media_path),
+            ),
+        )
+        if result.returncode != 0:
+            message = result.stderr.decode("utf-8", errors="replace").strip()
+            raise FFmpegAttachmentProcessingError(
+                message
+                or "FFmpeg attachment extraction failed with exit code "
+                f"{result.returncode}",
+            )
+        if not output_path.is_file():
+            raise FFmpegAttachmentProcessingError(
+                f"FFmpeg completed without creating attachment output: {output_path}",
+            )

@@ -5,6 +5,7 @@ from animedownloader_database import Database, create_database
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
 from animedownloader_media import FFmpegSubtitleProcessor, FFprobeInspector
 from animedownloader_media_asset import (
+    MEDIA_ATTACHMENT_PROCESSING_TASK_NAME,
     SUBTITLE_PROCESSING_TASK_NAME,
     MediaAssetService,
 )
@@ -16,6 +17,10 @@ from animedownloader_media_processing import (
 from animedownloader_qbittorrent import QBittorrentClient
 
 from .broker import broker
+from .media_attachment_processing import (
+    MediaAttachmentProcessingRunner,
+    create_media_attachment_processing_state,
+)
 from .media_processing import MediaProcessingRunner, create_media_processing_state
 from .runner import DownloadRunner, create_download_state
 from .subtitle_processing import (
@@ -65,6 +70,7 @@ async def process_media_job(job_id: str) -> None:
         parsed_job_id = UUID(job_id)
         await runner.run(parsed_job_id)
         await _enqueue_subtitle_processing(database, parsed_job_id)
+        await _enqueue_media_attachment_processing(database, parsed_job_id)
     finally:
         await database.dispose()
 
@@ -114,3 +120,32 @@ async def _enqueue_media_processing(
         return
 
     await process_media_job.kiq(str(job.id))
+
+
+@broker.task(task_name=MEDIA_ATTACHMENT_PROCESSING_TASK_NAME)
+async def process_media_attachments(asset_id: str) -> None:
+    settings = Settings()
+    database = create_database(settings.database_url)
+    try:
+        runner = MediaAttachmentProcessingRunner(
+            state=create_media_attachment_processing_state(database.session_factory),
+            processor=FFmpegAttachmentProcessor(),
+            media_root=settings.media_root,
+        )
+        await runner.run(UUID(asset_id))
+    finally:
+        await database.dispose()
+
+
+async def _enqueue_media_attachment_processing(
+    database: Database,
+    job_id: UUID,
+) -> None:
+    async with database.session_factory() as session:
+        job = await MediaProcessingJobService(session).get_job(job_id)
+        asset = await MediaAssetService(session).get_for_episode(job.episode_id)
+
+    if asset is None or not asset.attachments_ready or asset.attachment_processing_ready:
+        return
+
+    await process_media_attachments.kiq(str(asset.id))

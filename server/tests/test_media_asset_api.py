@@ -11,7 +11,11 @@ from animedownloader_api.dependencies import (
     get_media_asset_service,
 )
 from animedownloader_api.schemas import MediaAssetResponse
-from animedownloader_media_asset import MediaAsset, MediaAssetService, SubtitleTrack
+from animedownloader_media_asset import (
+    MediaAsset,
+    MediaAssetService,
+    SubtitleTrack,
+)
 
 
 def make_asset(episode_id: UUID) -> MediaAsset:
@@ -130,6 +134,11 @@ async def test_get_episode_media_returns_asset() -> None:
     assert payload.metadata_updated_at == asset.metadata_updated_at
     assert payload.subtitle_tracks_updated_at == asset.subtitle_tracks_updated_at
     assert payload.subtitle_tracks_processed_at is None
+    assert payload.chapters == []
+    assert payload.attachments == []
+    assert payload.chapters_updated_at is None
+    assert payload.attachments_updated_at is None
+    assert payload.attachments_processed_at is None
     assert len(payload.subtitle_tracks) == 2
     assert payload.subtitle_tracks[0].stream_index == 2
     assert payload.subtitle_tracks[0].language == "jpn"

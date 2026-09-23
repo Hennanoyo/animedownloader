@@ -17,6 +17,8 @@ from animedownloader_worker.media_processing import (
     MediaProcessingRunner,
     build_media_asset_metadata,
     build_subtitle_track_metadata,
+    build_attachment_metadata,
+    build_chapter_metadata,
 )
 
 
@@ -182,6 +184,32 @@ def make_probe(path: Path) -> MediaProbe:
                 disposition_default=False,
                 disposition_forced=True,
                 tags=(),
+            ),
+            MediaStream(
+                index=4,
+                codec_type=MediaStreamType.ATTACHMENT,
+                codec_name="ttf",
+                codec_long_name=None,
+                profile=None,
+                codec_tag_string=None,
+                width=None,
+                height=None,
+                pixel_format=None,
+                frame_rate=None,
+                duration_seconds=None,
+                bit_rate=None,
+                channels=None,
+                channel_layout=None,
+                sample_rate_hz=None,
+                language=None,
+                title=None,
+                disposition_default=False,
+                disposition_forced=False,
+                tags=(
+                    ("filename", "fonts/Example.ttf"),
+                    ("mimetype", "application/x-truetype-font"),
+                    ("description", "Example font"),
+                ),
             ),
         ),
         chapters=(
@@ -424,3 +452,27 @@ async def test_runner_rejects_multiple_media_files(tmp_path: Path) -> None:
 
     assert state.failed_message is not None
     assert inspector.paths == []
+
+
+def test_build_chapter_metadata_from_probe() -> None:
+    probe = make_probe(Path("/downloads/episode.mkv"))
+
+    chapters = build_chapter_metadata(probe)
+
+    assert chapters[0].chapter_index == 0
+    assert chapters[0].id == 1
+    assert chapters[0].title == "Episode"
+
+
+def test_build_attachment_metadata_from_probe() -> None:
+    probe = make_probe(Path("/downloads/episode.mkv"))
+
+    attachments = build_attachment_metadata(probe)
+
+    assert len(attachments) == 1
+    assert attachments[0].attachment_index == 0
+    assert attachments[0].stream_index == 4
+    assert attachments[0].filename == "fonts/Example.ttf"
+    assert attachments[0].mime_type == "application/x-truetype-font"
+    assert attachments[0].description == "Example font"
+    assert attachments[0].is_font

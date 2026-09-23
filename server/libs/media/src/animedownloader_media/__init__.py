@@ -1,5 +1,6 @@
 from .errors import MediaProbeError
 from .ffmpeg import (
+    FFmpegAttachmentProcessor,
     FFmpegCommandResult,
     FFmpegRunner,
     FFmpegSubtitleProcessor,
@@ -18,6 +19,7 @@ from .models import (
 from .parser import parse_ffprobe_json
 
 __all__ = [
+    "FFmpegAttachmentProcessor",
     "FFmpegCommandResult",
     "FFmpegRunner",
     "FFmpegSubtitleProcessor",

@@ -60,7 +60,7 @@ A media item may expose assets such as:
 - DASH manifest
 - CMAF/fMP4 segments
 - normalized ASS subtitle files
-- extracted subtitle fonts
+- reusable extracted subtitle fonts (content-addressed by SHA-256)
 - chapter metadata
 - media metadata
 - thumbnail sprite/timing data

@@ -10,6 +10,8 @@ from animedownloader_media import MediaProbe, MediaStream
 from animedownloader_media_asset import (
     MediaAssetMetadata,
     MediaAssetService,
+    MediaAttachmentMetadata,
+    MediaChapterMetadata,
     SubtitleTrackMetadata,
 )
 from animedownloader_media_processing import (
@@ -92,6 +94,8 @@ class MediaProcessingState:
                     asset is not None
                     and asset.metadata_ready
                     and asset.subtitle_tracks_ready
+                    and asset.chapters_ready
+                    and asset.attachments_ready
                 ),
             )
 
@@ -116,6 +120,8 @@ class MediaProcessingState:
                 media_path=media_path,
                 metadata=asset_metadata,
                 subtitle_tracks=build_subtitle_track_metadata(probe),
+                chapters=build_chapter_metadata(probe),
+                attachments=build_attachment_metadata(probe),
             )
             job.media_path = media_path
             job.probe_metadata = _serialize_probe(probe)
@@ -240,6 +246,59 @@ def build_subtitle_track_metadata(
         for stream in probe.subtitle_streams
     )
 
+
+
+def build_chapter_metadata(
+    probe: MediaProbe,
+) -> tuple[MediaChapterMetadata, ...]:
+    return tuple(
+        MediaChapterMetadata(
+            chapter_index=index,
+            id=chapter.id,
+            start_time_seconds=chapter.start_time_seconds,
+            end_time_seconds=chapter.end_time_seconds,
+            title=chapter.title,
+        )
+        for index, chapter in enumerate(probe.chapters)
+    )
+
+
+def build_attachment_metadata(
+    probe: MediaProbe,
+) -> tuple[MediaAttachmentMetadata, ...]:
+    return tuple(
+        MediaAttachmentMetadata(
+            attachment_index=index,
+            stream_index=stream.index,
+            filename=_stream_tag(stream, "filename"),
+            mime_type=_stream_tag(stream, "mimetype"),
+            description=_stream_tag(stream, "description"),
+            is_font=_is_font_attachment(stream),
+        )
+        for index, stream in enumerate(probe.attachment_streams)
+    )
+
+
+def _is_font_attachment(stream: MediaStream) -> bool:
+    mime_type = (_stream_tag(stream, "mimetype") or "").casefold()
+    filename = (_stream_tag(stream, "filename") or "").casefold()
+    return (
+        mime_type.startswith("font/")
+        or mime_type
+        in {
+            "application/x-truetype-font",
+            "application/x-font-ttf",
+            "application/vnd.ms-opentype",
+        }
+        or filename.endswith((".ttf", ".otf", ".woff", ".woff2"))
+    )
+
+
+def _stream_tag(stream: MediaStream, key: str) -> str | None:
+    for tag_key, value in stream.tags:
+        if tag_key.casefold() == key:
+            return value
+    return None
 
 def _primary_stream(streams: tuple[MediaStream, ...]) -> MediaStream | None:
     if not streams:

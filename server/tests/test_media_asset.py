@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid7
 
 import pytest
-from animedownloader_media_asset import MediaAssetMetadata, MediaAssetService
+from animedownloader_media_asset import MediaAsset, MediaAssetMetadata, MediaAssetService
 
 
 def make_service() -> MediaAssetService:
@@ -27,7 +27,7 @@ async def test_upsert_creates_media_asset() -> None:
     service = make_service()
     service.assets.get_for_episode = AsyncMock(return_value=None)
 
-    async def add(asset):
+    async def add(asset: MediaAsset) -> None:
         assert asset.processing_job_id is not None
         assert asset.path is not None
         assert asset.metadata_ready

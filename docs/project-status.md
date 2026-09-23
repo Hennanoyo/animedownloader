@@ -4,7 +4,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, and chapter/embedded attachment integration.
 
-The current phase is transcoding/remuxing for browser-oriented playable media. PR #23 (thumbnail sprite integration) is merged; PR #24 is the next development step.
+The current phase is shared media preparation for browser-oriented playable media and thumbnail generation. PR #23 and PR #24 are merged; PR #25 is the next development step.
 
 ## Completed
 

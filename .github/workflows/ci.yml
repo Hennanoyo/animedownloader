@@ -238,6 +238,12 @@ jobs:
               assert media_processing.status_code == 200, media_processing.text
               assert media_processing.json() is None
 
+              media = client.get(
+                  "/api/episodes/" + episode_ids[0] + "/media"
+              )
+              assert media.status_code == 200, media.text
+              assert media.json() is None
+
               updated_episode = client.patch(
                   "/api/episodes/" + episode_ids[0],
                   json={

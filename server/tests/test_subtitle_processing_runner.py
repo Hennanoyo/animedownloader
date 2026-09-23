@@ -170,7 +170,7 @@ async def test_runner_marks_empty_subtitle_set_complete(tmp_path: Path) -> None:
     runner = SubtitleProcessingRunner(
         state=state,
         processor=processor,
-        media_root=tmp_path,
+        storage=LocalStorage(tmp_path / "storage", "http://localhost:8888"),
     )
 
     await runner.run(context.asset_id)

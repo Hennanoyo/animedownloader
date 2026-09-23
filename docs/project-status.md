@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The project is in the frontend Anime Detail / Episode Management phase. PR #12 is implementing Anime edit/delete.
+The project is in the frontend Anime Detail / Episode Management phase. PR #13 is implementing the per-Episode DownloadJob UI and persistent progress display.
 
 ## Completed
 
@@ -87,6 +87,18 @@ Merged into `main`.
 - Added focused single-Anime API coverage
 - Kept edit/delete and download mutations out of scope for this slice
 
+### PR #12 — Anime Edit and Delete
+
+Merged into `main`.
+
+- Added Anime metadata editing with TanStack Form + Zod
+- Kept Episode data unchanged during Anime edits
+- Updated Anime detail and catalog caches after successful edits
+- Added explicit Anime deletion confirmation
+- Returned to the catalog after successful deletion
+- Added API and validation coverage
+- Added repository guidance to use `just` as the canonical local validation entry point
+
 ## Current Workflow
 
 ```
@@ -102,39 +114,37 @@ Browser
   → worker
   → TorrentClient / qBittorrent
   → persist DownloadJob progress/state
+  → Browser polls persistent DownloadJob state
 ```
 
 ## Current Phase — Frontend Anime Detail / Episode Management
 
-PR #12 focuses on Anime edit/delete.
+PR #13 focuses on per-Episode DownloadJob execution UI.
 
-### PR #12 Scope
+### PR #13 Scope
 
-- Add an Anime edit UI from the detail page
-- Reuse the existing Anime update API
-- Validate edit fields with TanStack Form + Zod
-- Invalidate/update Anime detail and list query caches after a successful edit
-- Add Anime delete with explicit confirmation
-- Navigate back to the Anime catalog after deletion
-- Keep Episode editing and download-job UI out of scope
-
-### Planned Follow-up
-
-PR #13 will add the per-Episode DownloadJob UI and persistent progress display.
+- Add a DownloadJob entity/API client to the frontend
+- Add Episode download action on the Anime detail page
+- Show pending/downloading progress from PostgreSQL-backed DownloadJob state
+- Continue polling while a Job is pending or downloading
+- Show completed, failed, and cancelled states
+- Allow redownload/retry after terminal states
+- Add an Episode-level latest DownloadJob API so the UI can restore state after refresh
+- Keep qBittorrent completely behind the backend API
+- Keep Episode editing and later media pipeline stages out of scope
 
 The frontend should remain separate from the backend execution implementation so API/worker behavior can continue to be tested independently.
 
-## Out of Scope for This Phase
+## Planned Follow-up
 
-Do not expand the first download workflow into later media pipeline stages:
+After PR #13, continue with the media pipeline as separate focused phases:
 
 - media inspection
 - subtitle normalization
-- transcoding
+- transcoding/remuxing
 - HLS/DASH packaging
 - SeaweedFS upload
-
-These should remain separate follow-up phases.
+- player and playback tooling
 
 ## Handoff Notes
 

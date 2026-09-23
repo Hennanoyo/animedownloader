@@ -41,6 +41,9 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: web
 
+      - name: Format
+        run: just web-format
+
       - name: Check
         run: just web-check
 
@@ -66,6 +69,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-packages --locked
         working-directory: server
+
+      - name: Format
+        run: just server-format
 
       - name: Check
         run: just server-check

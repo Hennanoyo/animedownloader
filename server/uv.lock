@@ -9,6 +9,7 @@ members = [
     "animedownloader-config",
     "animedownloader-database",
     "animedownloader-download",
+    "animedownloader-media",
     "animedownloader-nyaa",
     "animedownloader-qbittorrent",
     "animedownloader-releases",
@@ -205,6 +206,11 @@ requires-dist = [
     { name = "animedownloader-anime", editable = "domains/anime" },
     { name = "animedownloader-database", editable = "libs/database" },
 ]
+
+[[package]]
+name = "animedownloader-media"
+version = "0.1.0"
+source = { editable = "libs/media" }
 
 [[package]]
 name = "animedownloader-nyaa"

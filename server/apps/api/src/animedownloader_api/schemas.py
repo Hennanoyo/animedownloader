@@ -3,6 +3,7 @@ from uuid import UUID
 
 from animedownloader_anime import ConversionStatus, DownloadStatus, Season, Weekday
 from animedownloader_download import DownloadJobStatus
+from animedownloader_media_asset import SubtitleTrackStatus
 from animedownloader_media_processing import MediaProcessingJobStatus
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
@@ -159,6 +160,26 @@ class SubtitleTrackResponse(BaseModel):
     updated_at: datetime
 
 
+class SubtitleTrackResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    media_asset_id: UUID
+    stream_index: int | None
+    language: str | None
+    title: str | None
+    codec_name: str | None
+    source_path: str | None
+    normalized_path: str | None
+    normalized_format: str | None
+    status: SubtitleTrackStatus
+    error_message: str | None
+    is_default: bool
+    is_forced: bool
+    created_at: datetime
+    updated_at: datetime
+
+
 class MediaAssetResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -176,6 +197,7 @@ class MediaAssetResponse(BaseModel):
     frame_rate: str | None
     metadata_updated_at: datetime | None
     subtitle_tracks_updated_at: datetime | None
+    subtitle_tracks_processed_at: datetime | None
     subtitle_tracks: list[SubtitleTrackResponse]
     created_at: datetime
     updated_at: datetime

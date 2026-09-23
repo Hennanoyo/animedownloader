@@ -101,7 +101,7 @@ class MediaProcessingState:
         async with self._session_factory() as session, session.begin():
             processing_service = MediaProcessingJobService(session)
             job = await processing_service.get_job(job_id)
-            asset_metadata = _build_asset_metadata(probe)
+            asset_metadata = build_media_asset_metadata(probe)
             await MediaAssetService(session).upsert(
                 episode_id=job.episode_id,
                 processing_job_id=job.id,
@@ -199,7 +199,7 @@ def _find_media_file(root: Path) -> Path:
     return candidates[0]
 
 
-def _build_asset_metadata(probe: MediaProbe) -> MediaAssetMetadata:
+def build_media_asset_metadata(probe: MediaProbe) -> MediaAssetMetadata:
     video_stream = _primary_stream(probe.video_streams)
     audio_stream = _primary_stream(probe.audio_streams)
 

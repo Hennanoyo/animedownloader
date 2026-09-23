@@ -6,6 +6,7 @@ from sqlalchemy import BigInteger
 import pytest
 from animedownloader_media_asset import (
     MediaAsset,
+    MediaChapter,
     MediaAssetMetadata,
     MediaAssetService,
     MediaAttachmentMetadata,

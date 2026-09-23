@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Protocol
 from uuid import UUID
 
@@ -16,6 +17,7 @@ from animedownloader_media import (
     ThumbnailSpriteResult,
 )
 from animedownloader_media_asset import MediaAssetService
+from animedownloader_storage import Storage
 from animedownloader_media_processing import (
     MediaPreparationJobService,
     MediaPreparationJobStatus,
@@ -245,6 +247,7 @@ class MediaPreparationRunner:
         playable_processor: PlayableMediaProcessor,
         thumbnail_processor: ThumbnailProcessor,
         media_root: Path,
+        storage: Storage,
     ) -> None:
         self._state = state
         self._inspector = inspector
@@ -253,6 +256,7 @@ class MediaPreparationRunner:
         self._playable_processor = playable_processor
         self._thumbnail_processor = thumbnail_processor
         self._media_root = media_root
+        self._storage = storage
 
     async def run(self, job_id: UUID) -> None:
         context: MediaPreparationContext | None = None
@@ -311,13 +315,16 @@ class MediaPreparationRunner:
 
             playable_probe: MediaProbe | None = None
             thumbnail: ThumbnailSpriteResult | None = None
-            output_dir = self._media_root / "playable" / str(context.asset_id)
-            playable_path = output_dir / f"{job_id}.mp4"
-            thumbnail_dir = self._media_root / "thumbnails" / str(context.asset_id)
-            sprite_path = thumbnail_dir / "sprite.jpg"
-            vtt_path = thumbnail_dir / "sprite.vtt"
 
-            if playable_required and thumbnail_required:
+            with TemporaryDirectory(prefix="animedownloader-preparation-") as staging_dir:
+                staging_root = Path(staging_dir)
+                output_dir = staging_root / "playable" / str(context.asset_id)
+                playable_path = output_dir / f"{job_id}.mp4"
+                thumbnail_dir = staging_root / "thumbnails" / str(context.asset_id)
+                sprite_path = thumbnail_dir / "sprite.jpg"
+                vtt_path = thumbnail_dir / "sprite.vtt"
+
+                if playable_required and thumbnail_required:
                 if operation is None or source_probe is None:
                     raise MediaPreparationExecutionError(
                         "A playable operation is required for combined preparation",
@@ -333,29 +340,72 @@ class MediaPreparationRunner:
                 playable_probe = await self._inspector.inspect(combined.playable.output_path)
                 self._planner.validate(playable_probe)
                 thumbnail = combined.thumbnail
-            elif playable_required:
-                if operation is None:
-                    raise MediaPreparationExecutionError(
-                        "A playable operation is required for playable preparation",
+                elif playable_required:
+                    if operation is None:
+                        raise MediaPreparationExecutionError(
+                            "A playable operation is required for playable preparation",
+                        )
+                    result = await self._playable_processor.process(
+                        media_path=Path(context.source_path),
+                        output_path=playable_path,
+                        operation=operation,
                     )
-                result = await self._playable_processor.process(
-                    media_path=Path(context.source_path),
-                    output_path=playable_path,
-                    operation=operation,
-                )
-                playable_probe = await self._inspector.inspect(result.output_path)
-                self._planner.validate(playable_probe)
-            else:
-                thumbnail = await self._thumbnail_processor.generate(
-                    media_path=Path(context.source_path),
-                    output_dir=thumbnail_dir,
-                    duration_seconds=context.duration_seconds,
-                )
+                    playable_probe = await self._inspector.inspect(result.output_path)
+                    self._planner.validate(playable_probe)
+                else:
+                    thumbnail = await self._thumbnail_processor.generate(
+                        media_path=Path(context.source_path),
+                        output_dir=thumbnail_dir,
+                        duration_seconds=context.duration_seconds,
+                    )
+
+                playable_output_key = None
+                if playable_probe is not None:
+                    playable_output_key = (
+                        f"playable/{context.asset_id}/{job_id}.mp4"
+                    )
+                    await self._storage.put_file(
+                        playable_probe.path,
+                        playable_output_key,
+                        content_type="video/mp4",
+                    )
+
+                thumbnail_sprite_key = None
+                thumbnail_vtt_key = None
+                if thumbnail is not None:
+                    thumbnail_sprite_key = (
+                        f"thumbnails/{context.asset_id}/sprite.jpg"
+                    )
+                    thumbnail_vtt_key = (
+                        f"thumbnails/{context.asset_id}/sprite.vtt"
+                    )
+                    await self._storage.put_file(
+                        thumbnail.sprite_path,
+                        thumbnail_sprite_key,
+                        content_type="image/jpeg",
+                    )
+                    await self._storage.put_file(
+                        thumbnail.vtt_path,
+                        thumbnail_vtt_key,
+                        content_type="text/vtt",
+                    )
 
             await self._state.mark_completed(
                 job_id,
-                playable_probe=playable_probe,
-                thumbnail=thumbnail,
+                playable_probe=(
+                    _probe_with_path(playable_probe, playable_output_key)
+                    if playable_probe is not None
+                    else None
+                ),
+                thumbnail=(
+                    _thumbnail_with_paths(
+                        thumbnail,
+                        thumbnail_sprite_key,
+                        thumbnail_vtt_key,
+                    )
+                    if thumbnail is not None
+                    else None
+                ),
             )
         except Exception as exc:
             if context is not None:
@@ -381,3 +431,30 @@ def create_media_preparation_state(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> MediaPreparationState:
     return MediaPreparationState(session_factory)
+
+
+
+def _probe_with_path(probe: MediaProbe, object_key: str) -> MediaProbe:
+    return MediaProbe(
+        path=object_key,
+        format=probe.format,
+        streams=probe.streams,
+        chapters=probe.chapters,
+    )
+
+
+def _thumbnail_with_paths(
+    result: ThumbnailSpriteResult,
+    sprite_key: str | None,
+    vtt_key: str | None,
+) -> ThumbnailSpriteResult:
+    if sprite_key is None or vtt_key is None:
+        raise MediaPreparationExecutionError(
+            "Thumbnail storage keys are required when a thumbnail was generated",
+        )
+    return ThumbnailSpriteResult(
+        sprite_path=Path(sprite_key),
+        vtt_path=Path(vtt_key),
+        frame_count=result.frame_count,
+        interval_seconds=result.interval_seconds,
+    )

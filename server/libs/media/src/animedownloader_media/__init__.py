@@ -8,6 +8,7 @@ from .cmaf import (
     build_dash_manifest,
     build_hls_master_playlist,
     make_representation_metadata,
+    parse_cmaf_media_playlist,
 )
 from .errors import MediaProbeError
 from .ffmpeg import (
@@ -92,5 +93,6 @@ __all__ = [
     "build_dash_manifest",
     "build_hls_master_playlist",
     "make_representation_metadata",
+    "parse_cmaf_media_playlist",
     "parse_ffprobe_json",
 ]

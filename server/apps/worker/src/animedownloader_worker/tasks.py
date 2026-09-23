@@ -5,6 +5,7 @@ from animedownloader_database import Database, create_database
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
 from animedownloader_media import (
     FFmpegAttachmentProcessor,
+    FFmpegCMAFProcessor,
     FFmpegMediaPreparationProcessor,
     FFmpegPlayableMediaProcessor,
     FFmpegSubtitleProcessor,
@@ -18,11 +19,14 @@ from animedownloader_media_asset import (
     MediaAssetService,
 )
 from animedownloader_media_processing import (
+    MEDIA_PACKAGING_TASK_NAME,
     MEDIA_PREPARATION_TASK_NAME,
     MEDIA_PROCESSING_TASK_NAME,
     MediaPreparationJobService,
     MediaProcessingJobService,
     MediaProcessingJobStatus,
+    MediaStreamingPackageService,
+    MediaVariantService,
 )
 from animedownloader_qbittorrent import QBittorrentClient
 
@@ -31,6 +35,7 @@ from .media_attachment_processing import (
     MediaAttachmentProcessingRunner,
     create_media_attachment_processing_state,
 )
+from .media_packaging import MediaPackagingRunner, create_media_packaging_state
 from .media_preparation import MediaPreparationRunner, create_media_preparation_state
 from .media_processing import MediaProcessingRunner, create_media_processing_state
 from .runner import DownloadRunner, create_download_state
@@ -177,7 +182,8 @@ async def process_media_preparation(job_id: str) -> None:
             thumbnail_processor=FFmpegThumbnailSpriteProcessor(),
             media_root=settings.media_root,
         )
-        await runner.run(UUID(job_id))
+        parsed_job_id = UUID(job_id)
+        await runner.run(parsed_job_id)
     finally:
         await database.dispose()
 
@@ -207,3 +213,44 @@ async def _enqueue_media_preparation(
         return
 
     await process_media_preparation.kiq(str(preparation_job.id))
+
+
+@broker.task(task_name=MEDIA_PACKAGING_TASK_NAME)
+async def process_media_packaging(job_id: str) -> None:
+    settings = Settings()
+    database = create_database(settings.database_url)
+    try:
+        runner = MediaPackagingRunner(
+            state=create_media_packaging_state(database.session_factory),
+            processor=FFmpegCMAFProcessor(),
+            media_root=settings.media_root,
+        )
+        parsed_job_id = UUID(job_id)
+        await runner.run(parsed_job_id)
+        await _enqueue_media_packaging(database, parsed_job_id)
+    finally:
+        await database.dispose()
+
+
+async def _enqueue_media_packaging(
+    database: Database,
+    media_preparation_job_id: UUID,
+) -> None:
+    async with database.session_factory() as session:
+        preparation_job = await MediaPreparationJobService(session).get_job(
+            media_preparation_job_id,
+        )
+        variant = await MediaVariantService(session).get_playable_variant(
+            preparation_job.variant_id,
+        )
+        if variant is None:
+            return
+
+        packaging_job = await MediaStreamingPackageService(session).create_job(
+            media_variant_id=variant.id,
+        )
+
+    if packaging_job is None:
+        return
+
+    await process_media_packaging.kiq(str(packaging_job.id))

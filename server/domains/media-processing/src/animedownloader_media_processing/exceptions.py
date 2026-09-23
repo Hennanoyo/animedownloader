@@ -50,3 +50,22 @@ class InvalidMediaPreparationJobTransitionError(MediaPreparationJobError):
         )
 
 
+
+
+class MediaPackagingJobError(MediaProcessingJobError):
+    pass
+
+
+class MediaPackagingJobNotFoundError(MediaPackagingJobError):
+    def __init__(self, job_id: UUID) -> None:
+        self.job_id = job_id
+        super().__init__(f"Media packaging job not found: {job_id}")
+
+
+class InvalidMediaPackagingJobTransitionError(MediaPackagingJobError):
+    def __init__(self, current: str, target: str) -> None:
+        self.current = current
+        self.target = target
+        super().__init__(
+            f"Invalid media packaging job transition: {current} -> {target}",
+        )

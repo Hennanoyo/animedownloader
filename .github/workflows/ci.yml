@@ -224,10 +224,95 @@ jobs:
                   f"transcode={transcoded.output_path.name}, "
                   f"remux={remuxed.output_path.name}"
               )
+              from animedownloader_media import (
+                  FFmpegCMAFProcessor,
+                  build_dash_manifest,
+                  build_hls_master_playlist,
+                  make_representation_metadata,
+                  parse_cmaf_media_playlist,
+              )
+
+              cmaf_dir = Path("/tmp/animedownloader-cmaf")
+              cmaf = await FFmpegCMAFProcessor().process(
+                  media_path=remuxed.output_path,
+                  output_dir=cmaf_dir / "1080p",
+              )
+
+              cmaf_playlist = parse_cmaf_media_playlist(
+                  cmaf.playlist_path.read_text(encoding="utf-8"),
+              )
+              assert cmaf_playlist.init_uri == "init.mp4"
+              assert cmaf_playlist.segments
+              assert (cmaf.playlist_path.parent / cmaf_playlist.init_uri).is_file()
+              assert all(
+                  (cmaf.playlist_path.parent / segment.uri).is_file()
+                  for segment in cmaf_playlist.segments
+              )
+
+              video = remuxed_probe.video_streams[0]
+              audio = (
+                  remuxed_probe.audio_streams[0]
+                  if remuxed_probe.audio_streams
+                  else None
+              )
+              representation = make_representation_metadata(
+                  quality="1080p",
+                  width=video.width,
+                  height=video.height,
+                  size_bytes=Path(remuxed.output_path).stat().st_size,
+                  duration_seconds=remuxed_probe.format.duration_seconds,
+                  video_codec=video.codec_name,
+                  audio_codec=audio.codec_name if audio else None,
+                  segments=cmaf_playlist.segments,
+              )
+              hls_master = build_hls_master_playlist((representation,))
+              dash = build_dash_manifest(
+                  (representation,),
+                  media_presentation_duration_seconds=representation.duration_seconds,
+              )
+
+              cmaf_dir.mkdir(parents=True, exist_ok=True)
+              hls_master_path = cmaf_dir / "master.m3u8"
+              dash_path = cmaf_dir / "manifest.mpd"
+              hls_master_path.write_text(hls_master, encoding="utf-8")
+              dash_path.write_text(dash, encoding="utf-8")
+
+              assert hls_master_path.is_file()
+              assert dash_path.is_file()
+              assert "1080p/index.m3u8" in hls_master
+              assert 'initialization="1080p/init.mp4"' in dash
+              assert 'media="1080p/s/$Number%05d$.m4s"' in dash
+              hls_init_uri = cmaf_playlist.init_uri
+              hls_segment_uris = tuple(
+                  segment.uri for segment in cmaf_playlist.segments
+              )
+              dash_init_uri = representation.init_uri
+              dash_segment_pattern = representation.segment_template
+
+              assert hls_init_uri == Path(dash_init_uri).name
+              assert hls_segment_uris
+              assert all(uri.startswith("s/") for uri in hls_segment_uris)
+              assert all(uri.endswith(".m4s") for uri in hls_segment_uris)
+              assert dash_segment_pattern.endswith("$Number%05d$.m4s")
+              assert "1080p/init.mp4" in dash
+              assert "1080p/s/$Number%05d$.m4s" in dash
+              assert all(
+                  segment.uri.endswith(".m4s")
+                  for segment in cmaf_playlist.segments
+              )
+
+              print(
+                  "CMAF streaming fixture verified: "
+                  f"hls={hls_master_path.name}, "
+                  f"dash={dash_path.name}, "
+                  f"init={cmaf_playlist.init_uri}, "
+                  f"segments={len(cmaf_playlist.segments)}"
+              )
+
 
           asyncio.run(main())
           PY
-          docker compose exec -T worker rm -rf             /tmp/animedownloader-fixture.mkv             /tmp/animedownloader-thumbnails             /tmp/animedownloader-playable
+          docker compose exec -T worker rm -rf             /tmp/animedownloader-fixture.mkv             /tmp/animedownloader-thumbnails             /tmp/animedownloader-playable             /tmp/animedownloader-cmaf
 
       - name: Verify Anime CRUD against PostgreSQL
         run: |

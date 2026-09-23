@@ -3,6 +3,7 @@ FROM ghcr.io/astral-sh/uv:0.12.17 AS uv
 FROM mcr.microsoft.com/devcontainers/javascript-node:24-bookworm
 
 COPY --from=uv /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/casey/just:latest /just /usr/local/bin/just
 
 USER root
 

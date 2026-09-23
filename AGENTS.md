@@ -65,6 +65,25 @@ See `docs/architecture/storage.md`.
 
 A change is complete only after relevant local checks and applicable GitHub Actions checks pass.
 
+### Runtime Smoke Tests
+
+Runtime smoke tests are developer-facing end-to-end checks for workflows that cross multiple real services or processes. They complement unit/integration tests rather than replacing them.
+
+An agent should consider creating or updating a runtime smoke test when a change:
+
+- crosses multiple runtime boundaries such as API → database → Taskiq/worker → ffmpeg → filesystem/storage;
+- depends on real infrastructure wiring such as PostgreSQL, Redis, qBittorrent, SeaweedFS, ffmpeg, or container networking;
+- changes a critical user-visible workflow whose failure could be caused by deployment/configuration rather than isolated business logic;
+- exposes a workflow that is difficult to validate convincingly with deterministic integration tests alone.
+
+Do not create a runtime smoke test for every small domain or utility change. Prefer the smallest number of workflow-oriented smoke tests that provide meaningful coverage.
+
+Store runtime smoke scripts under `scripts/smoke/` when the collection grows beyond a small number of standalone scripts, and expose them through the repository `justfile`. Command-driven, step-by-step execution is acceptable and preferred over adding unnecessary CI complexity. Smoke commands should be safe to rerun where practical, produce actionable failures, and avoid destructive cleanup unless explicitly named and documented as destructive.
+
+Runtime smoke tests normally belong to local/staging validation rather than the default CI suite when they require existing real media, mutable application state, or environment-specific resources. Keep deterministic unit/integration coverage in CI.
+
+When implementing a PR, the agent should decide whether a runtime smoke test adds material value. If it does, create or update one as part of the PR, run it when the actual environment is available, and tell the user which workflow was verified and whether the test is intended for local/staging use or CI. If it does not add meaningful value, do not create one merely for coverage optics.
+
 ## Pre-Commit Validation
 
 Use the repository's `justfile` as the **mandatory** entry point for local validation. Do not manually substitute an equivalent command sequence when a corresponding `just` target exists.

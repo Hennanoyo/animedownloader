@@ -9,6 +9,8 @@ from animedownloader_media_processing import (
     MediaPreparationJobService,
     MediaProcessingJob,
     MediaProcessingJobService,
+    MediaStreamingPackage,
+    MediaStreamingPackageService,
     MediaVariantService,
 )
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -20,6 +22,7 @@ from animedownloader_api.dependencies import (
     get_media_asset_service,
     get_media_preparation_job_service,
     get_media_processing_job_service,
+    get_media_streaming_package_service,
     get_media_variant_service,
 )
 from animedownloader_api.schemas import (
@@ -29,6 +32,7 @@ from animedownloader_api.schemas import (
     MediaAssetResponse,
     MediaPreparationJobResponse,
     MediaProcessingJobResponse,
+    MediaStreamingPackageResponse,
     MediaVariantResponse,
 )
 from animedownloader_api.task_queue import DownloadTaskDispatcher
@@ -58,6 +62,10 @@ MediaPreparationJobServiceDependency = Annotated[
 MediaVariantServiceDependency = Annotated[
     MediaVariantService,
     Depends(get_media_variant_service),
+]
+MediaStreamingPackageServiceDependency = Annotated[
+    MediaStreamingPackageService,
+    Depends(get_media_streaming_package_service),
 ]
 
 
@@ -129,6 +137,40 @@ async def get_episode_playable_media(
         source_metadata_updated_at=asset.metadata_updated_at,
     )
     return response
+
+
+@router.get(
+    "/{episode_id}/streaming-media",
+    response_model=MediaStreamingPackageResponse | None,
+)
+async def get_episode_streaming_media(
+    episode_id: UUID,
+    anime_service: AnimeServiceDependency,
+    media_service: MediaAssetServiceDependency,
+    variant_service: MediaVariantServiceDependency,
+    package_service: MediaStreamingPackageServiceDependency,
+) -> MediaStreamingPackage | None:
+    await anime_service.get_episode(episode_id)
+    asset = await media_service.get_for_episode(episode_id)
+    if asset is None or asset.metadata_updated_at is None:
+        return None
+
+    variant = await variant_service.get_playable_variant(asset.id)
+    if variant is None or not variant.ready or variant.path is None:
+        return None
+    if not variant.is_current(
+        source_path=asset.path,
+        source_metadata_updated_at=asset.metadata_updated_at,
+    ):
+        return None
+
+    package = await package_service.get_for_variant(variant.id)
+    if package is None or not package.is_current(
+        source_path=variant.path,
+        source_variant_updated_at=variant.updated_at,
+    ):
+        return None
+    return package
 
 
 @router.get(

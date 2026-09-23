@@ -14,10 +14,13 @@ from animedownloader_download import (
     InvalidDownloadJobTransitionError,
 )
 from animedownloader_media_processing import (
+    InvalidMediaPackagingJobTransitionError,
     InvalidMediaPreparationJobTransitionError,
     InvalidMediaProcessingJobTransitionError,
+    MediaPackagingJobNotFoundError,
     MediaPreparationJobNotFoundError,
     MediaProcessingJobNotFoundError,
+    MediaStreamingPackageNotFoundError,
 )
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +31,7 @@ from animedownloader_api.routes import (
     animes_router,
     download_jobs_router,
     episodes_router,
+    media_packaging_jobs_router,
     media_preparation_jobs_router,
     media_processing_jobs_router,
     releases_router,
@@ -76,11 +80,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_exception_handler(DownloadJobActiveError, _duplicate_episode_handler)
     app.add_exception_handler(DownloadJobNotFoundError, _not_found_handler)
     app.add_exception_handler(InvalidDownloadJobTransitionError, _duplicate_episode_handler)
+    app.add_exception_handler(MediaPackagingJobNotFoundError, _not_found_handler)
     app.add_exception_handler(MediaPreparationJobNotFoundError, _not_found_handler)
     app.add_exception_handler(MediaProcessingJobNotFoundError, _not_found_handler)
     app.add_exception_handler(
+        InvalidMediaPackagingJobTransitionError,
+        _duplicate_episode_handler,
+    )
+    app.add_exception_handler(
         InvalidMediaPreparationJobTransitionError,
         _duplicate_episode_handler,
+    )
+    app.add_exception_handler(
+        MediaStreamingPackageNotFoundError,
+        _not_found_handler,
     )
     app.add_exception_handler(
         InvalidMediaProcessingJobTransitionError,
@@ -90,6 +103,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(animes_router)
     app.include_router(episodes_router)
     app.include_router(download_jobs_router)
+    app.include_router(media_packaging_jobs_router)
     app.include_router(media_preparation_jobs_router)
     app.include_router(media_processing_jobs_router)
     app.include_router(releases_router)

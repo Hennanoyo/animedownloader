@@ -9,6 +9,7 @@ from animedownloader_media_asset import MediaAssetService
 from animedownloader_media_processing import (
     MediaPreparationJobService,
     MediaProcessingJobService,
+    MediaStreamingPackageService,
     MediaVariantService,
 )
 from animedownloader_nyaa import NyaaClient
@@ -85,3 +86,9 @@ def get_media_variant_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> MediaVariantService:
     return MediaVariantService(session)
+
+
+def get_media_streaming_package_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> MediaStreamingPackageService:
+    return MediaStreamingPackageService(session)

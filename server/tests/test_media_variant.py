@@ -84,24 +84,24 @@ def test_media_preparation_job_tracks_operation_and_attempts() -> None:
     job.operation = MediaTranscodingOperation.TRANSCODE.value
     job.transition_to(MediaPreparationJobStatus.PROCESSING)
 
-    assert job.job_status is MediaTranscodingJobStatus.PROCESSING
+    assert job.job_status is MediaPreparationJobStatus.PROCESSING
     assert job.transcoding_operation is MediaTranscodingOperation.TRANSCODE
     assert job.attempt_count == 1
     assert job.started_at is not None
 
-    job.transition_to(MediaTranscodingJobStatus.COMPLETED)
-    assert job.job_status is MediaTranscodingJobStatus.COMPLETED
+    job.transition_to(MediaPreparationJobStatus.COMPLETED)
+    assert job.job_status is MediaPreparationJobStatus.COMPLETED
     assert job.completed_at is not None
 
 
 def test_failed_preparation_job_cannot_be_reused_in_place() -> None:
-    job = MediaTranscodingJob(
+    job = MediaPreparationJob(
         media_asset_id=uuid7(),
         variant_id=uuid7(),
         source_path="/downloads/source.mkv",
         source_metadata_updated_at=datetime(2026, 9, 24, tzinfo=UTC),
-        status=MediaTranscodingJobStatus.FAILED.value,
+        status=MediaPreparationJobStatus.FAILED.value,
     )
 
     with pytest.raises(InvalidMediaPreparationJobTransitionError):
-        job.transition_to(MediaTranscodingJobStatus.PENDING)
+        job.transition_to(MediaPreparationJobStatus.PENDING)

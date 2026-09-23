@@ -136,7 +136,7 @@ async def test_runner_inspects_and_completes(tmp_path: Path) -> None:
     state = FakeState(
         MediaProcessingContext(
             status=MediaProcessingJobStatus.PENDING,
-            download_job_id=download_job_id,
+            download_directory=str(download_job_id),
         )
     )
     inspector = FakeInspector(make_probe(media_path))

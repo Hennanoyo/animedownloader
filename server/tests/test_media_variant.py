@@ -2,7 +2,6 @@ from datetime import UTC, datetime
 from uuid import uuid7
 
 import pytest
-
 from animedownloader_media_processing import (
     MediaTranscodingJob,
     MediaTranscodingJobStatus,

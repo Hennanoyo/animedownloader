@@ -39,6 +39,7 @@ from .media_packaging import MediaPackagingRunner, create_media_packaging_state
 from .media_preparation import MediaPreparationRunner, create_media_preparation_state
 from .media_processing import MediaProcessingRunner, create_media_processing_state
 from .runner import DownloadRunner, create_download_state
+from .storage import create_media_storage
 from .subtitle_processing import (
     SubtitleProcessingRunner,
     create_subtitle_processing_state,
@@ -99,6 +100,7 @@ async def process_subtitle_tracks(asset_id: str) -> None:
     try:
         runner = SubtitleProcessingRunner(
             state=create_subtitle_processing_state(database.session_factory),
+            storage=create_media_storage(settings),
             processor=FFmpegSubtitleProcessor(),
             media_root=settings.media_root,
         )
@@ -146,6 +148,7 @@ async def process_media_attachments(asset_id: str) -> None:
     try:
         runner = MediaAttachmentProcessingRunner(
             state=create_media_attachment_processing_state(database.session_factory),
+            storage=create_media_storage(settings),
             processor=FFmpegAttachmentProcessor(),
             media_root=settings.media_root,
         )
@@ -175,6 +178,7 @@ async def process_media_preparation(job_id: str) -> None:
     try:
         runner = MediaPreparationRunner(
             state=create_media_preparation_state(database.session_factory),
+            storage=create_media_storage(settings),
             inspector=FFprobeInspector(),
             planner=PlayableMediaPlanner(),
             preparation_processor=FFmpegMediaPreparationProcessor(),
@@ -222,6 +226,7 @@ async def process_media_packaging(job_id: str) -> None:
     try:
         runner = MediaPackagingRunner(
             state=create_media_packaging_state(database.session_factory),
+            storage=create_media_storage(settings),
             processor=FFmpegCMAFProcessor(),
             media_root=settings.media_root,
         )

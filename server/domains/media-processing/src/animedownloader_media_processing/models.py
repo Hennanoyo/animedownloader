@@ -8,7 +8,6 @@ from animedownloader_anime import Episode
 from animedownloader_database import Base
 from animedownloader_download import DownloadJob
 from sqlalchemy import (
-    BigInteger,
     DateTime,
     ForeignKey,
     Index,

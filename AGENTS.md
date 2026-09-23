@@ -67,46 +67,28 @@ A change is complete only after relevant local checks and applicable GitHub Acti
 
 ## Pre-Commit Validation
 
-Run the relevant local validation commands before committing or opening/updating a pull request. Do not rely on GitHub Actions to discover errors that can be detected locally.
+Use the repository's `justfile` as the canonical entry point for local validation. Do not manually substitute an equivalent command sequence when a corresponding `just` target exists.
 
-### Frontend changes
+Before committing or opening/updating a pull request:
 
-When `web/` files are changed, run from `web/`:
+- For frontend-only changes, run `just web-check`.
+- For backend-only changes, run `just server-check`.
+- For changes affecting both workspaces, shared configuration, or repository-level behavior, run `just check`.
 
-```bash
-pnpm run lint
-pnpm run typecheck
-pnpm run test
-pnpm run build
-```
-
-At minimum, `lint` and `typecheck` must pass before committing. Prefer the full frontend validation set before opening or updating a pull request.
-
-### Backend changes
-
-When `server/` files are changed, run from `server/`:
-
-```bash
-uv run ruff check .
-uv run ruff format --check .
-uv run pyright
-uv run pytest
-```
-
-All applicable backend checks must pass before committing or opening/updating a pull request.
+These targets currently run the same lint, formatting, type-check, and test checks used by CI. Keep the local validation command aligned with the `justfile` rather than duplicating its individual commands in this document.
 
 ### Validation workflow
 
-1. After making code changes, run the narrowest relevant validation first.
-2. If any validation fails, fix the implementation and rerun the failed command.
-3. After fixing a failure, rerun the complete validation set for the affected workspace before committing.
-4. Never open or update a pull request while a locally reproducible lint, formatting, type-check, build, or test failure remains.
-5. When a pull request receives a CI failure, reproduce the failing command locally before making further feature changes.
-6. After any CI-driven fix, rerun the corresponding local checks and verify that the new commit starts a fresh CI run.
+1. After making code changes, run the narrowest relevant `just` validation target first.
+2. If any validation fails, fix the implementation and rerun the failed target.
+3. After fixing a failure, rerun the complete required `just` validation target before committing.
+4. Never open or update a pull request while a locally reproducible lint, formatting, type-check, or test failure remains.
+5. When a pull request receives a CI failure, reproduce the failing check locally using the relevant `just` target before making further feature changes.
+6. After any CI-driven fix, rerun the corresponding local `just` target and verify that the new commit starts a fresh CI run.
 
 ### Repository-level validation
 
-When changes affect multiple workspaces or shared configuration, run the repository-level checks required by CI in addition to workspace-specific checks.
+When changes affect multiple workspaces or shared configuration, run `just check`.
 
 ## Git Workflow
 
@@ -128,7 +110,7 @@ When a task requires code changes:
 
 1. Make the smallest coherent change.
 2. Run focused tests/checks.
-3. Run the required pre-commit validation for every affected workspace.
+3. Run the required pre-commit `just` validation for every affected workspace.
 4. Commit and push the change through the normal Git workflow.
 5. Inspect GitHub Actions results when available.
 6. Fix CI failures rather than ignoring them.

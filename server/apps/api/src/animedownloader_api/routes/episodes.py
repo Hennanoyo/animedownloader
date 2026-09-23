@@ -5,7 +5,6 @@ from animedownloader_anime import AnimeService, Episode, EpisodeUpdateData
 from animedownloader_download import ActiveDownloadJobError, DownloadJob, DownloadJobService
 from animedownloader_media_asset import MediaAsset, MediaAssetService
 from animedownloader_media_processing import (
-    MediaProcessingJob,
     MediaPreparationJob,
     MediaPreparationJobService,
     MediaProcessingJob,

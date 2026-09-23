@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The persistent Episode download workflow is complete. The next phase is the frontend Anime Detail / Episode Management UI that will expose the backend download workflow.
+The project is in the frontend Anime Detail / Episode Management phase. PR #11 is implementing the first slice: an Anime detail route and read-only episode list.
 
 ## Completed
 
@@ -39,7 +39,7 @@ Merged into `main` as commit `767ad92ce7f88f0266e2845a3d4a9833522ec80b`.
 - Added the qBittorrent Web API adapter
 - Added job-tag correlation for torrents
 - Added qBittorrent configuration and Compose service
-- Shared `/data/downloads` between worker and qBittorrent
+- Shared `/downloads` between worker and qBittorrent
 - Added deterministic adapter tests and CI runtime checks
 
 ### PR #8 — Episode Download Execution
@@ -101,7 +101,7 @@ Build the frontend against the now-stable backend workflow:
 - Per-episode download action
 - Persistent DownloadJob status/progress display
 
-The frontend should remain separate from the backend execution implementation so API/worker behavior can continue to be tested independently.
+PR #11 intentionally stops before edit/delete and download mutations. The frontend should remain separate from the backend execution implementation so API/worker behavior can continue to be tested independently.
 
 ## Out of Scope for This Phase
 

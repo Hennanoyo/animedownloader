@@ -50,6 +50,3 @@ class InvalidMediaPreparationJobTransitionError(MediaPreparationJobError):
         )
 
 
-MediaTranscodingJobError = MediaPreparationJobError
-MediaTranscodingJobNotFoundError = MediaPreparationJobNotFoundError
-InvalidMediaTranscodingJobTransitionError = InvalidMediaPreparationJobTransitionError

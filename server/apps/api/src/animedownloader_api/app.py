@@ -103,6 +103,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(animes_router)
     app.include_router(episodes_router)
     app.include_router(download_jobs_router)
+    app.include_router(media_packaging_jobs_router)
     app.include_router(media_preparation_jobs_router)
     app.include_router(media_processing_jobs_router)
     app.include_router(releases_router)

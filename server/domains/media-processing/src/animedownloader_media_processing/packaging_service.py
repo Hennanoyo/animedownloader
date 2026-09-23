@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .enums import (
     MediaPackagingJobStatus,
     MediaStreamingPackageStatus,
+    MediaStreamingRepresentationStatus,
 )
 from .exceptions import (
     MediaPackagingJobNotFoundError,
@@ -168,6 +169,7 @@ class MediaStreamingPackageService:
                     hls_playlist_key=hls_playlist_key,
                     init_segment_key=init_segment_key,
                     segment_directory_key=segment_directory_key,
+                    status=MediaStreamingRepresentationStatus.COMPLETED.value,
                 ),
             )
             package.hls_master_key = hls_master_key

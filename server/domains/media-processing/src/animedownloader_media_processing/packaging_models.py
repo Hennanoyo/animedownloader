@@ -5,7 +5,17 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from animedownloader_database import Base
-from sqlalchemy import BigInteger, DateTime, Float, ForeignKey, Index, Integer, String, func
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .enums import (
@@ -79,6 +89,11 @@ class MediaStreamingRepresentation(Base):
         Index(
             "ix_media_streaming_representations_package_id",
             "package_id",
+        ),
+        UniqueConstraint(
+            "package_id",
+            "quality",
+            name="uq_media_streaming_representations_package_quality",
         ),
     )
 

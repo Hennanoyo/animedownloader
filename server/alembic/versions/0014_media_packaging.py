@@ -93,6 +93,11 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "package_id",
+            "quality",
+            name="uq_media_streaming_representations_package_quality",
+        ),
     )
     op.create_index(
         "ix_media_streaming_representations_package_id",

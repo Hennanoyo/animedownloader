@@ -131,6 +131,10 @@ class DownloadRunner:
     async def run(self, job_id: UUID) -> None:
         try:
             context = await self._state.load(job_id)
+            while context.status is DownloadJobStatus.PAUSED:
+                await self._sleep(self._poll_interval)
+                context = await self._state.load(job_id)
+
             if context.status in {
                 DownloadJobStatus.COMPLETED,
                 DownloadJobStatus.FAILED,
@@ -156,11 +160,42 @@ class DownloadRunner:
                     return
 
             while True:
+                context = await self._state.load(job_id)
+                if context.status in {
+                    DownloadJobStatus.COMPLETED,
+                    DownloadJobStatus.FAILED,
+                    DownloadJobStatus.CANCELLED,
+                }:
+                    return
+
                 info = await self._torrent_client.get(torrent.id)
                 if info is None:
                     raise DownloadExecutionError(
                         f"Torrent disappeared from qBittorrent: {torrent.id}"
                     )
+
+                if context.status is DownloadJobStatus.PAUSED:
+                    if info.status is not TorrentStatus.PAUSED:
+                        try:
+                            await self._torrent_client.pause(info.id)
+                        except Exception:
+                            logger.exception(
+                                "Failed to pause qBittorrent torrent %s",
+                                info.id,
+                            )
+                    await self._sleep(self._poll_interval)
+                    continue
+
+                if info.status is TorrentStatus.PAUSED:
+                    try:
+                        await self._torrent_client.resume(info.id)
+                    except Exception:
+                        logger.exception(
+                            "Failed to resume qBittorrent torrent %s",
+                            info.id,
+                        )
+                        await self._sleep(self._poll_interval)
+                        continue
 
                 await self._state.update_progress(
                     job_id,

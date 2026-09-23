@@ -78,8 +78,8 @@ class DownloadJobService:
     async def mark_paused(self, job_id: UUID) -> DownloadJob:
         return await self._transition(job_id, DownloadJobStatus.PAUSED)
 
-
     async def delete_job(self, job_id: UUID) -> None:
+        await self.session.rollback()
         async with self.session.begin():
             job = await self.get_job(job_id)
             if job.job_status in {

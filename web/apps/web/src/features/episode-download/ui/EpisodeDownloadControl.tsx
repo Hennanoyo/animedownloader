@@ -45,10 +45,7 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
   const job = query.data;
 
   if (job?.status === "pending" || job?.status === "downloading") {
-    const pending =
-      pauseMutation.isPending ||
-      cancelMutation.isPending ||
-      confirm !== null;
+    const pending = pauseMutation.isPending || cancelMutation.isPending;
 
     return (
       <div className={styles.control}>

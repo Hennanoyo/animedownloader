@@ -5,6 +5,8 @@ Revises: 0002_create_download_jobs
 Create Date: 2026-09-23
 """
 
+import sqlalchemy as sa
+
 from alembic import op
 
 revision = "0003_add_paused_download_job_status"
@@ -20,7 +22,7 @@ def upgrade() -> None:
         "download_jobs",
         ["episode_id"],
         unique=True,
-        postgresql_where=op.inline_literal(
+        postgresql_where=sa.text(
             "status IN ('pending', 'downloading', 'paused')",
         ),
     )
@@ -33,7 +35,7 @@ def downgrade() -> None:
         "download_jobs",
         ["episode_id"],
         unique=True,
-        postgresql_where=op.inline_literal(
+        postgresql_where=sa.text(
             "status IN ('pending', 'downloading')",
         ),
     )

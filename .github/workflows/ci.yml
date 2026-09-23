@@ -162,6 +162,7 @@ jobs:
         run: |
           set +e
           docker compose exec -T api uv run --package animedownloader-api python3 - <<'PY'
+          import asyncio
           import uuid
           from datetime import datetime, timezone
 

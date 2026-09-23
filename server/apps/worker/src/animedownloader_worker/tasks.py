@@ -6,10 +6,12 @@ from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
 from animedownloader_media import (
     FFmpegAttachmentProcessor,
     FFmpegSubtitleProcessor,
+    FFmpegThumbnailSpriteProcessor,
     FFprobeInspector,
 )
 from animedownloader_media_asset import (
     MEDIA_ATTACHMENT_PROCESSING_TASK_NAME,
+    MEDIA_THUMBNAIL_PROCESSING_TASK_NAME,
     SUBTITLE_PROCESSING_TASK_NAME,
     MediaAssetService,
 )
@@ -30,6 +32,10 @@ from .runner import DownloadRunner, create_download_state
 from .subtitle_processing import (
     SubtitleProcessingRunner,
     create_subtitle_processing_state,
+)
+from .media_thumbnail_processing import (
+    MediaThumbnailProcessingRunner,
+    create_media_thumbnail_processing_state,
 )
 
 
@@ -75,6 +81,7 @@ async def process_media_job(job_id: str) -> None:
         await runner.run(parsed_job_id)
         await _enqueue_subtitle_processing(database, parsed_job_id)
         await _enqueue_media_attachment_processing(database, parsed_job_id)
+        await _enqueue_media_thumbnail_processing(database, parsed_job_id)
     finally:
         await database.dispose()
 
@@ -153,3 +160,32 @@ async def _enqueue_media_attachment_processing(
         return
 
     await process_media_attachments.kiq(str(asset.id))
+
+
+@broker.task(task_name=MEDIA_THUMBNAIL_PROCESSING_TASK_NAME)
+async def process_media_thumbnail(asset_id: str) -> None:
+    settings = Settings()
+    database = create_database(settings.database_url)
+    try:
+        runner = MediaThumbnailProcessingRunner(
+            state=create_media_thumbnail_processing_state(database.session_factory),
+            processor=FFmpegThumbnailSpriteProcessor(),
+            media_root=settings.media_root,
+        )
+        await runner.run(UUID(asset_id))
+    finally:
+        await database.dispose()
+
+
+async def _enqueue_media_thumbnail_processing(
+    database: Database,
+    job_id: UUID,
+) -> None:
+    async with database.session_factory() as session:
+        job = await MediaProcessingJobService(session).get_job(job_id)
+        asset = await MediaAssetService(session).get_for_episode(job.episode_id)
+
+    if asset is None or asset.thumbnail_ready:
+        return
+
+    await process_media_thumbnail.kiq(str(asset.id))

@@ -5,7 +5,6 @@ from pathlib import Path
 from threading import Thread
 
 import pytest
-
 from animedownloader_storage import (
     LocalStorage,
     SeaweedFSStorage,

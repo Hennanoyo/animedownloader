@@ -137,6 +137,7 @@ def test_subtitle_track_lifecycle() -> None:
         title="Japanese",
         codec_name="subrip",
         source_path=None,
+        status=SubtitleTrackStatus.PENDING.value,
     )
 
     assert track.processing_status is SubtitleTrackStatus.PENDING

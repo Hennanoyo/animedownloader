@@ -15,10 +15,10 @@ from animedownloader_worker.media_processing import (
     MediaProcessingContext,
     MediaProcessingExecutionError,
     MediaProcessingRunner,
-    build_media_asset_metadata,
-    build_subtitle_track_metadata,
     build_attachment_metadata,
     build_chapter_metadata,
+    build_media_asset_metadata,
+    build_subtitle_track_metadata,
 )
 
 

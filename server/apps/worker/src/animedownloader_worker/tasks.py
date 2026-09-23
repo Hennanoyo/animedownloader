@@ -3,7 +3,11 @@ from uuid import UUID
 from animedownloader_config import Settings
 from animedownloader_database import Database, create_database
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
-from animedownloader_media import FFmpegSubtitleProcessor, FFprobeInspector
+from animedownloader_media import (
+    FFmpegAttachmentProcessor,
+    FFmpegSubtitleProcessor,
+    FFprobeInspector,
+)
 from animedownloader_media_asset import (
     MEDIA_ATTACHMENT_PROCESSING_TASK_NAME,
     SUBTITLE_PROCESSING_TASK_NAME,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from pathlib import Path
-from typing import cast
+from typing import Protocol, cast
 from uuid import UUID
 
 from animedownloader_media import FFprobeInspector, MediaProbe
@@ -34,6 +34,10 @@ MEDIA_EXTENSIONS = frozenset(
 
 class MediaProcessingExecutionError(RuntimeError):
     pass
+
+
+class MediaInspector(Protocol):
+    async def inspect(self, path: Path) -> MediaProbe: ...
 
 
 class MediaProcessingContext:
@@ -94,7 +98,7 @@ class MediaProcessingRunner:
         self,
         *,
         state: MediaProcessingState,
-        inspector: FFprobeInspector,
+        inspector: MediaInspector,
         download_root: Path,
     ) -> None:
         self._state = state

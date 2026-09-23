@@ -17,6 +17,10 @@ class TorrentClient(Protocol):
 
     async def find_by_tag(self, tag: str) -> TorrentInfo | None: ...
 
+    async def pause(self, torrent_id: str) -> None: ...
+
+    async def resume(self, torrent_id: str) -> None: ...
+
     async def remove(
         self,
         torrent_id: str,

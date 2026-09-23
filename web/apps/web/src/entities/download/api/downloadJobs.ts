@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getJson, postJson } from "../../../shared/api/client";
+import { deleteJson, getJson, postJson } from "../../../shared/api/client";
 import type { DownloadJob } from "../model/types";
 
 const downloadJobSchema = z.object({
@@ -8,6 +8,7 @@ const downloadJobSchema = z.object({
   status: z.enum([
     "pending",
     "downloading",
+    "paused",
     "completed",
     "failed",
     "cancelled",
@@ -72,4 +73,39 @@ function parseDownloadJob(payload: unknown): DownloadJob {
     throw new DownloadJobResponseError(result.error.issues);
   }
   return result.data;
+}
+
+
+export async function pauseDownloadJob(
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<DownloadJob> {
+  return parseDownloadJob(
+    await postJson("/api/download-jobs/" + jobId + "/pause", {}, { signal }),
+  );
+}
+
+export async function resumeDownloadJob(
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<DownloadJob> {
+  return parseDownloadJob(
+    await postJson("/api/download-jobs/" + jobId + "/resume", {}, { signal }),
+  );
+}
+
+export async function cancelDownloadJob(
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<DownloadJob> {
+  return parseDownloadJob(
+    await postJson("/api/download-jobs/" + jobId + "/cancel", {}, { signal }),
+  );
+}
+
+export async function deleteDownloadJob(
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  await deleteJson("/api/download-jobs/" + jobId, { signal });
 }

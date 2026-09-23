@@ -177,3 +177,39 @@ async def test_qbittorrent_invalid_payload() -> None:
     async with make_client(httpx.MockTransport(handler)) as client:
         with pytest.raises(QBittorrentAPIError):
             await client.get("abc123")
+
+
+@pytest.mark.anyio
+async def test_pause_torrent() -> None:
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["method"] = request.method
+        captured["path"] = request.url.path
+        captured["body"] = request.read()
+        return httpx.Response(200, text="Ok.")
+
+    async with make_client(httpx.MockTransport(handler)) as client:
+        await client.pause("abc123")
+
+    assert captured["method"] == "POST"
+    assert captured["path"] == "/api/v2/torrents/pause"
+    assert b"hashes=abc123" in captured["body"]  # type: ignore[operator]
+
+
+@pytest.mark.anyio
+async def test_resume_torrent() -> None:
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["method"] = request.method
+        captured["path"] = request.url.path
+        captured["body"] = request.read()
+        return httpx.Response(200, text="Ok.")
+
+    async with make_client(httpx.MockTransport(handler)) as client:
+        await client.resume("abc123")
+
+    assert captured["method"] == "POST"
+    assert captured["path"] == "/api/v2/torrents/resume"
+    assert b"hashes=abc123" in captured["body"]  # type: ignore[operator]

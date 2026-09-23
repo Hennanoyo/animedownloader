@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  cancelDownloadJob,
   createEpisodeDownloadJob,
+  deleteDownloadJob,
   getLatestEpisodeDownloadJob,
+  pauseDownloadJob,
+  resumeDownloadJob,
 } from "./downloadJobs";
 
 const jobPayload = {
@@ -71,3 +75,36 @@ describe("download job API", () => {
     vi.unstubAllGlobals();
   });
 });
+
+
+  it("controls and deletes a download job", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      const status =
+        url.endsWith("/pause") ? "paused" :
+        url.endsWith("/resume") ? "downloading" :
+        url.endsWith("/cancel") ? "cancelled" :
+        jobPayload.status;
+      return new Response(
+        method === "DELETE" ? null : JSON.stringify({ ...jobPayload, status }),
+        { status: method === "DELETE" ? 204 : 200 },
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect((await pauseDownloadJob(jobPayload.id)).status).toBe("paused");
+    expect((await resumeDownloadJob(jobPayload.id)).status).toBe("downloading");
+    expect((await cancelDownloadJob(jobPayload.id)).status).toBe("cancelled");
+    await deleteDownloadJob(jobPayload.id);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/download-jobs/" + jobPayload.id + "/pause"),
+      expect.objectContaining({ method: "POST", body: "{}" }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/download-jobs/" + jobPayload.id),
+      expect.objectContaining({ method: "DELETE" }),
+    );
+    vi.unstubAllGlobals();
+  });

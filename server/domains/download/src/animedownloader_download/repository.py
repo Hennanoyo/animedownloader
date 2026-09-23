@@ -23,6 +23,7 @@ class DownloadJobRepository:
                     (
                         DownloadJobStatus.PENDING.value,
                         DownloadJobStatus.DOWNLOADING.value,
+                        DownloadJobStatus.PAUSED.value,
                     )
                 ),
             )
@@ -42,3 +43,6 @@ class DownloadJobRepository:
         self.session.add(job)
         await self.session.flush()
         return job
+
+    async def delete(self, job: DownloadJob) -> None:
+        await self.session.delete(job)

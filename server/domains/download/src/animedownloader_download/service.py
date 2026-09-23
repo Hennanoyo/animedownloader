@@ -5,7 +5,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .enums import DownloadJobStatus
-from .exceptions import ActiveDownloadJobError, DownloadJobNotFoundError
+from .exceptions import (
+    ActiveDownloadJobError,
+    DownloadJobActiveError,
+    DownloadJobNotFoundError,
+)
 from .models import DownloadJob
 from .repository import DownloadJobRepository
 
@@ -70,6 +74,21 @@ class DownloadJobService:
 
     async def mark_downloading(self, job_id: UUID) -> DownloadJob:
         return await self._transition(job_id, DownloadJobStatus.DOWNLOADING)
+
+    async def mark_paused(self, job_id: UUID) -> DownloadJob:
+        return await self._transition(job_id, DownloadJobStatus.PAUSED)
+
+
+    async def delete_job(self, job_id: UUID) -> None:
+        async with self.session.begin():
+            job = await self.get_job(job_id)
+            if job.job_status in {
+                DownloadJobStatus.PENDING,
+                DownloadJobStatus.DOWNLOADING,
+                DownloadJobStatus.PAUSED,
+            }:
+                raise DownloadJobActiveError(job_id)
+            await self.jobs.delete(job)
 
     async def mark_completed(
         self,

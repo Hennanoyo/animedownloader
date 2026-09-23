@@ -1,6 +1,7 @@
 export const downloadJobStatuses = [
   "pending",
   "downloading",
+  "paused",
   "completed",
   "failed",
   "cancelled",

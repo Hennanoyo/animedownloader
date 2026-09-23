@@ -8,7 +8,11 @@ from animedownloader_anime import (
 )
 from animedownloader_config import Settings
 from animedownloader_database import create_database
-from animedownloader_download import DownloadJobNotFoundError
+from animedownloader_download import (
+    DownloadJobActiveError,
+    DownloadJobNotFoundError,
+    InvalidDownloadJobTransitionError,
+)
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -47,6 +51,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.database = database
     app.state.download_task_dispatcher = task_dispatcher
+    app.state.settings = app_settings
 
     app.add_middleware(
         CORSMiddleware,
@@ -57,7 +62,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.add_exception_handler(AnimeNotFoundError, _not_found_handler)
     app.add_exception_handler(EpisodeNotFoundError, _not_found_handler)
+    app.add_exception_handler(DownloadJobActiveError, _duplicate_episode_handler)
     app.add_exception_handler(DownloadJobNotFoundError, _not_found_handler)
+    app.add_exception_handler(InvalidDownloadJobTransitionError, _duplicate_episode_handler)
     app.add_exception_handler(DuplicateEpisodeError, _duplicate_episode_handler)
     app.include_router(animes_router)
     app.include_router(episodes_router)

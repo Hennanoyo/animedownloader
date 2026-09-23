@@ -121,6 +121,20 @@ class QBittorrentClient:
             return None
         return self._parse_torrent(torrents[0])
 
+    async def pause(self, torrent_id: str) -> None:
+        await self._request(
+            "POST",
+            "/torrents/pause",
+            data={"hashes": torrent_id},
+        )
+
+    async def resume(self, torrent_id: str) -> None:
+        await self._request(
+            "POST",
+            "/torrents/resume",
+            data={"hashes": torrent_id},
+        )
+
     async def remove(
         self,
         torrent_id: str,

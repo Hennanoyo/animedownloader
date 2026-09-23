@@ -3,6 +3,12 @@ from uuid import UUID
 from .enums import DownloadJobStatus
 
 
+class DownloadJobActiveError(Exception):
+    def __init__(self, job_id: UUID) -> None:
+        super().__init__(f"Download job is still active: {job_id}")
+        self.job_id = job_id
+
+
 class DownloadJobNotFoundError(Exception):
     def __init__(self, job_id: UUID) -> None:
         super().__init__(f"Download job not found: {job_id}")

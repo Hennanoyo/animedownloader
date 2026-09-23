@@ -151,7 +151,9 @@ class DownloadRunner:
                     save_path=str(save_path),
                     tags=(tag,),
                 )
-                torrent = await self._wait_for_torrent(tag)
+                torrent = await self._wait_for_torrent(job_id, tag)
+                if torrent is None:
+                    return
 
             while True:
                 info = await self._torrent_client.get(torrent.id)
@@ -198,9 +200,21 @@ class DownloadRunner:
                 )
             raise
 
-    async def _wait_for_torrent(self, tag: str) -> TorrentInfo:
+    async def _wait_for_torrent(
+        self,
+        job_id: UUID,
+        tag: str,
+    ) -> TorrentInfo | None:
         deadline = asyncio.get_running_loop().time() + self._discovery_timeout
         while True:
+            context = await self._state.load(job_id)
+            if context.status in {
+                DownloadJobStatus.COMPLETED,
+                DownloadJobStatus.FAILED,
+                DownloadJobStatus.CANCELLED,
+            }:
+                return None
+
             torrent = await self._torrent_client.find_by_tag(tag)
             if torrent is not None:
                 return torrent

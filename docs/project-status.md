@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The project is in the frontend Anime Detail / Episode Management phase. PR #11 is implementing the first slice: an Anime detail route and read-only episode list.
+The project is in the frontend Anime Detail / Episode Management phase. PR #12 is implementing Anime edit/delete.
 
 ## Completed
 
@@ -76,6 +76,17 @@ Merged into `main` as commit `ce2a9f4d646c70d684603949f23fcccb6fcc302d`.
 - Restored Nyaa client lifecycle management in the release-search dependency
 - Updated development, devcontainer, and CI configuration for the new path/origins
 
+### PR #11 — Anime Detail and Episode List
+
+Merged into `main`.
+
+- Added `/animes/:animeId` detail route
+- Added read-only Anime detail view with schedule metadata
+- Added Episode list with source, torrent metadata, and processing statuses
+- Linked Anime catalog entries to their detail pages
+- Added focused single-Anime API coverage
+- Kept edit/delete and download mutations out of scope for this slice
+
 ## Current Workflow
 
 ```
@@ -84,6 +95,8 @@ Browser
   → select release
   → create Anime + Episodes
   → PostgreSQL
+  → Anime detail
+  → edit/delete Anime
   → create persistent DownloadJob
   → enqueue Taskiq task
   → worker
@@ -91,17 +104,25 @@ Browser
   → persist DownloadJob progress/state
 ```
 
-## Next Phase — Frontend Anime Detail / Episode Management
+## Current Phase — Frontend Anime Detail / Episode Management
 
-Build the frontend against the now-stable backend workflow:
+PR #12 focuses on Anime edit/delete.
 
-- Anime detail view
-- Anime edit/delete
-- Episode list and metadata
-- Per-episode download action
-- Persistent DownloadJob status/progress display
+### PR #12 Scope
 
-PR #11 intentionally stops before edit/delete and download mutations. The frontend should remain separate from the backend execution implementation so API/worker behavior can continue to be tested independently.
+- Add an Anime edit UI from the detail page
+- Reuse the existing Anime update API
+- Validate edit fields with TanStack Form + Zod
+- Invalidate/update Anime detail and list query caches after a successful edit
+- Add Anime delete with explicit confirmation
+- Navigate back to the Anime catalog after deletion
+- Keep Episode editing and download-job UI out of scope
+
+### Planned Follow-up
+
+PR #13 will add the per-Episode DownloadJob UI and persistent progress display.
+
+The frontend should remain separate from the backend execution implementation so API/worker behavior can continue to be tested independently.
 
 ## Out of Scope for This Phase
 

@@ -237,4 +237,154 @@ After the media metadata slice:
 
 ## Handoff Notes
 
+For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current open pull request, and recent commits. Treat the repository state as authoritative and update this file when the project phase changes.## Current Phase — Media Asset Integration
+
+### PR #17 — Media Processing Jobs
+
+Merged into `main` as commit `57e04d490933aca6dc26871dd69e7ee160b5dce6`.
+
+- Added persistent `MediaProcessingJob` state and transitions
+- Created a processing job after `DownloadJob.COMPLETED`
+- Ran FFprobe inspection through the existing `animedownloader-media` library
+- Persisted the media path and structured probe metadata
+- Exposed processing status and latest Episode processing state through the API
+- Added retry without re-downloading
+- Kept processing state independent from terminal DownloadJob state
+- Added a manual trigger for processing an existing completed DownloadJob
+- Verified Backend, Frontend, and Integration CI successfully
+
+The processing job remains the execution/history record rather than the primary representation of the current playable media.
+
+### PR #18 — Media Asset / Episode Integration
+
+Merged into `main` as commit `b3222e675a51e9d2d95faea06b15b2a2794391ef`.
+
+- Added a persistent `MediaAsset` entity with one canonical asset per Episode
+- Materialized the successful processing output path into the Episode media asset
+- Kept MediaAsset metadata minimal; detailed probe data remains on `MediaProcessingJob`
+- Exposed Episode media information through `GET /api/episodes/{episode_id}/media`
+- Kept DownloadJob and MediaProcessingJob as execution/history records
+- Made media asset materialization part of the same transaction as processing completion
+- Verified Backend, Frontend, and Integration CI successfully
+
+### PR #19 — Current Media Metadata
+
+Merged into `main`.
+
+- Added current user-facing media metadata to `MediaAsset`
+- Added container format, duration, size, codecs, dimensions, frame rate, and metadata refresh timestamp
+- Added a typed `MediaAssetMetadata` value object to keep the domain independent from the technical media package
+- Projected the existing typed FFprobe result into MediaAsset metadata
+- Re-inspected existing assets whose metadata had not yet been materialized
+- Kept the full FFprobe snapshot on `MediaProcessingJob` without duplicating it into MediaAsset
+- Expanded `GET /api/episodes/{episode_id}/media` to expose current media metadata
+- Kept metadata materialization atomic with processing completion
+- Added API, worker, unit, and PostgreSQL-backed integration coverage
+
+## Media Pipeline Roadmap
+
+The next features continue to build the current MediaAsset representation without turning `MediaProcessingJob` into a container for every media concern.
+
+### PR #20 — Subtitle Track Integration
+
+Goal: represent subtitle tracks as part of the current media asset without implementing extraction yet.
+
+Scope:
+
+- Add a persistent subtitle-track entity associated with MediaAsset
+- Store track language, title, default/forced flags, codec or format, and source/path information needed by later extraction/normalization stages
+- Define the relationship between MediaAsset and its current subtitle tracks
+- Extend the media API with current subtitle-track information
+- Add migration and domain/API coverage
+
+Out of scope:
+
+- Subtitle extraction from containers
+- Subtitle OCR or format conversion
+- Subtitle normalization rules
+- HLS/DASH subtitle packaging
+
+### PR #21 — Subtitle Extraction / Normalization
+
+Goal: materialize embedded or external subtitle sources into a normalized application representation.
+
+Scope:
+
+- Extract subtitle tracks discovered by FFprobe
+- Normalize supported subtitle formats
+- Persist normalized subtitle artifacts and processing status
+- Make extraction retryable without re-downloading the video
+- Update current MediaAsset subtitle-track state atomically
+
+Out of scope:
+
+- Transcoding/remuxing of video or audio
+- Player UI
+
+### PR #22 — Chapter / Attachment / Sprite Integration
+
+Goal: persist the remaining useful inspection metadata that belongs to the current media asset.
+
+Scope:
+
+- Persist chapter metadata
+- Represent embedded attachments where useful to playback or later processing
+- Define sprite/thumbnail metadata needed by the future player pipeline
+- Expose the current media-related assets through focused API models
+
+Out of scope:
+
+- Video transcoding
+- HLS/DASH packaging
+- Player implementation
+
+### PR #23 — Transcoding / Remuxing
+
+Goal: introduce derived-media generation while preserving MediaAsset as the current playable-media identity.
+
+Scope:
+
+- Define processing jobs for remux/transcode operations
+- Persist derived media paths and output metadata
+- Re-inspect generated output and update MediaAsset atomically
+- Support retry/failure history
+
+### PR #24 — HLS / DASH Packaging
+
+Goal: derive streaming representations from the current media asset.
+
+Scope:
+
+- Add packaging jobs and generated manifests/segments
+- Track package state separately from the source MediaAsset
+- Keep source-media metadata and streaming-package metadata distinct
+
+### PR #25 — SeaweedFS / Media Storage
+
+Goal: move durable media artifacts from local development storage to SeaweedFS.
+
+Scope:
+
+- Define storage abstraction and media-object lifecycle
+- Upload current media and derived artifacts
+- Preserve local filesystem support for development
+- Add cleanup/error handling without coupling storage concerns to processing jobs
+
+### PR #26 — Player / Playback
+
+Goal: expose the current MediaAsset and its derived streaming/subtitle resources to the frontend player.
+
+Scope:
+
+- Add playback-oriented API
+- Integrate media metadata and subtitle tracks
+- Support direct-file playback and later packaged playback as separate paths
+- Add focused player UI and API coverage
+
+## Planned Follow-up
+
+Immediate next work is PR #20, focused only on subtitle-track persistence and API representation. Extraction and normalization remain a separate PR so the data model can stabilize before introducing processing logic.
+
+## Handoff Notes
+
 For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current open pull request, and recent commits. Treat the repository state as authoritative and update this file when the project phase changes.

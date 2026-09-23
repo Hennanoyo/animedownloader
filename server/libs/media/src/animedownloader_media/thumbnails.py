@@ -228,7 +228,7 @@ def _write_webvtt(
             ),
         )
 
-    path.write_text("\n".join(lines), encoding="utf-8")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _format_timestamp(seconds: float) -> str:

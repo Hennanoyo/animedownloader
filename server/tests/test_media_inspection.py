@@ -96,9 +96,7 @@ def probe_payload() -> bytes:
 async def test_inspector_parses_media_streams_and_chapters(tmp_path: Path) -> None:
     media_path = tmp_path / "episode.mkv"
     media_path.touch()
-    runner = FakeProbeRunner(
-        ProbeCommandResult(stdout=probe_payload(), stderr=b"", returncode=0)
-    )
+    runner = FakeProbeRunner(ProbeCommandResult(stdout=probe_payload(), stderr=b"", returncode=0))
 
     result = await FFprobeInspector(runner=runner).inspect(media_path)
 
@@ -133,9 +131,7 @@ async def test_inspector_parses_media_streams_and_chapters(tmp_path: Path) -> No
 
 @pytest.mark.anyio
 async def test_inspector_raises_for_missing_media_file(tmp_path: Path) -> None:
-    runner = FakeProbeRunner(
-        ProbeCommandResult(stdout=b"{}", stderr=b"", returncode=0)
-    )
+    runner = FakeProbeRunner(ProbeCommandResult(stdout=b"{}", stderr=b"", returncode=0))
 
     with pytest.raises(MediaProbeError, match="does not exist"):
         await FFprobeInspector(runner=runner).inspect(tmp_path / "missing.mkv")
@@ -163,9 +159,7 @@ async def test_inspector_raises_for_ffprobe_failure(tmp_path: Path) -> None:
 async def test_inspector_raises_for_invalid_json(tmp_path: Path) -> None:
     media_path = tmp_path / "episode.mkv"
     media_path.touch()
-    runner = FakeProbeRunner(
-        ProbeCommandResult(stdout=b"not-json", stderr=b"", returncode=0)
-    )
+    runner = FakeProbeRunner(ProbeCommandResult(stdout=b"not-json", stderr=b"", returncode=0))
 
     with pytest.raises(MediaProbeError, match="Invalid FFprobe JSON"):
         await FFprobeInspector(runner=runner).inspect(media_path)

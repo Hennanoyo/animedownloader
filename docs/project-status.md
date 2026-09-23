@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The project is in the frontend Anime Detail / Episode Management phase. PR #13 is implementing the per-Episode DownloadJob UI and persistent progress display.
+The project is in the backend media pipeline foundation phase. PR #14 is adding reusable FFprobe-based media inspection infrastructure.
 
 ## Completed
 
@@ -55,8 +55,6 @@ Merged into `main` as commit `a8610bb1cb39c508b64e9d9111b67b39412fc32f`.
 - Added deterministic API/runner coverage
 - Added Worker runtime verification to CI
 
-CI passed for PR #8 with Backend, Frontend, and Integration checks.
-
 ### PR #9 — qBittorrent Pending Add Handling
 
 Merged into `main`.
@@ -95,9 +93,21 @@ Merged into `main`.
 - Kept Episode data unchanged during Anime edits
 - Updated Anime detail and catalog caches after successful edits
 - Added explicit Anime deletion confirmation
-- Returned to the catalog after successful deletion
+- Returned to the Anime catalog after successful deletion
 - Added API and validation coverage
 - Added repository guidance to use `just` as the canonical local validation entry point
+
+### PR #13 — Episode Download UI
+
+Merged into `main` as commit `d057a4d7c14a36caff36a25779af87abec5951b4`.
+
+- Added a frontend DownloadJob entity and typed API client
+- Added an Episode Download action to Anime detail
+- Showed queued/downloading progress with automatic polling
+- Restored the latest persisted Job after page refresh
+- Added completed, failed, and cancelled states with retry/redownload actions
+- Added the Episode latest DownloadJob API endpoint
+- Added API and frontend response coverage
 
 ## Current Workflow
 
@@ -117,29 +127,28 @@ Browser
   → Browser polls persistent DownloadJob state
 ```
 
-## Current Phase — Frontend Anime Detail / Episode Management
+## Current Phase — Backend Media Pipeline Foundations
 
-PR #13 focuses on per-Episode DownloadJob execution UI.
+PR #14 focuses on reusable FFprobe-based media inspection.
 
-### PR #13 Scope
+### PR #14 Scope
 
-- Add a DownloadJob entity/API client to the frontend
-- Add Episode download action on the Anime detail page
-- Show pending/downloading progress from PostgreSQL-backed DownloadJob state
-- Continue polling while a Job is pending or downloading
-- Show completed, failed, and cancelled states
-- Allow redownload/retry after terminal states
-- Add an Episode-level latest DownloadJob API so the UI can restore state after refresh
-- Keep qBittorrent completely behind the backend API
-- Keep Episode editing and later media pipeline stages out of scope
+- Add the `animedownloader-media` technical library
+- Execute FFprobe asynchronously without a shell
+- Parse FFprobe JSON into typed media format, stream, and chapter models
+- Preserve stream metadata needed by later subtitle/attachment processing
+- Add deterministic unit tests using a fake process runner
+- Include the media package and FFmpeg tooling in the backend image
+- Do not yet persist a media-processing job or automatically trigger inspection after download
+- Do not transcode, remux, package, or upload media in this PR
 
-The frontend should remain separate from the backend execution implementation so API/worker behavior can continue to be tested independently.
+The inspection layer should remain independent from the Episode/DownloadJob domain so later pipeline orchestration can compose it without coupling the domain to subprocess details.
 
 ## Planned Follow-up
 
-After PR #13, continue with the media pipeline as separate focused phases:
+After PR #14, continue the media pipeline as separate focused phases:
 
-- media inspection
+- persist media-processing job state and trigger inspection after download
 - subtitle normalization
 - transcoding/remuxing
 - HLS/DASH packaging

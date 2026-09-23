@@ -135,12 +135,10 @@ class SubtitleProcessingRunner:
         *,
         state: SubtitleProcessingStateProtocol,
         processor: FFmpegSubtitleProcessor,
-        media_root: Path,
         storage: Storage,
     ) -> None:
         self._state = state
         self._processor = processor
-        self._media_root = media_root
         self._storage = storage
 
     async def run(self, asset_id: UUID) -> None:

@@ -10,6 +10,7 @@ from uuid import UUID
 from animedownloader_media import (
     MediaPreparationProcessingResult,
     MediaProbe,
+    PlayableMediaProcessingResult,
     PlayableMediaOperation,
     PlayableMediaPlanner,
     ThumbnailSpriteResult,

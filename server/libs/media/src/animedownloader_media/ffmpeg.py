@@ -74,15 +74,12 @@ class FFmpegSubtitleProcessor:
         codec = codec_name.casefold() if codec_name is not None else ""
         if codec not in _TEXT_SUBTITLE_CODECS:
             raise UnsupportedSubtitleCodecError(
-                f"Subtitle codec is not supported for ASS normalization: "
+                "Subtitle codec is not supported for ASS normalization: "
                 f"{codec_name or 'unknown'}",
             )
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        if codec in {"ass", "ssa"}:
-            encoder = "copy"
-        else:
-            encoder = "ass"
+        encoder = "copy" if codec in {"ass", "ssa"} else "ass"
 
         result = await self._runner.run(
             (
@@ -99,19 +96,8 @@ class FFmpegSubtitleProcessor:
                 str(output_path),
             ),
         )
-        if result.returncode != 0:
-            message = result.stderr.decode("utf-8", errors="replace").strip()
-            raise SubtitleProcessingError(
-                message
-                or f"FFmpeg subtitle extraction failed with exit code {result.returncode}",
-            )
-        if not output_path.is_file():
-            raise SubtitleProcessingError(
-                f"FFmpeg completed without creating subtitle output: {output_path}",
-            )
-
+        _validate_result(result, output_path, "subtitle extraction")
         return "ssa" if codec == "ssa" else "ass"
-
 
     async def normalize_external(
         self,
@@ -123,12 +109,13 @@ class FFmpegSubtitleProcessor:
         codec = codec_name.casefold() if codec_name is not None else ""
         if codec not in _TEXT_SUBTITLE_CODECS:
             raise UnsupportedSubtitleCodecError(
-                f"Subtitle codec is not supported for ASS normalization: "
+                "Subtitle codec is not supported for ASS normalization: "
                 f"{codec_name or 'unknown'}",
             )
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         encoder = "copy" if codec in {"ass", "ssa"} else "ass"
+
         result = await self._runner.run(
             (
                 self._executable,
@@ -142,15 +129,22 @@ class FFmpegSubtitleProcessor:
                 str(output_path),
             ),
         )
-        if result.returncode != 0:
-            message = result.stderr.decode("utf-8", errors="replace").strip()
-            raise SubtitleProcessingError(
-                message
-                or f"FFmpeg subtitle normalization failed with exit code {result.returncode}",
-            )
-        if not output_path.is_file():
-            raise SubtitleProcessingError(
-                f"FFmpeg completed without creating subtitle output: {output_path}",
-            )
-
+        _validate_result(result, output_path, "subtitle normalization")
         return "ssa" if codec == "ssa" else "ass"
+
+
+def _validate_result(
+    result: FFmpegCommandResult,
+    output_path: Path,
+    operation: str,
+) -> None:
+    if result.returncode != 0:
+        message = result.stderr.decode("utf-8", errors="replace").strip()
+        raise SubtitleProcessingError(
+            message
+            or f"FFmpeg {operation} failed with exit code {result.returncode}",
+        )
+    if not output_path.is_file():
+        raise SubtitleProcessingError(
+            f"FFmpeg completed without creating subtitle output: {output_path}",
+        )

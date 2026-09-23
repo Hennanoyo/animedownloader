@@ -243,6 +243,7 @@ jobs:
               )
               assert cmaf_playlist.init_uri == "init.mp4"
               assert cmaf_playlist.segments
+              assert (cmaf.playlist_path.parent / cmaf_playlist.init_uri).is_file()
               assert all(
                   (cmaf.playlist_path.parent / segment.uri).is_file()
                   for segment in cmaf_playlist.segments
@@ -281,11 +282,18 @@ jobs:
               assert "1080p/index.m3u8" in hls_master
               assert 'initialization="1080p/init.mp4"' in dash
               assert 'media="1080p/s/$Number%05d$.m4s"' in dash
-              assert cmaf_playlist.init_uri == Path(representation.init_uri).name
-              assert all(
-                  segment.uri.startswith("s/")
-                  for segment in cmaf_playlist.segments
+              hls_init_uri = cmaf_playlist.init_uri
+              hls_segment_uris = tuple(
+                  segment.uri for segment in cmaf_playlist.segments
               )
+              dash_init_uri = representation.init_uri
+              dash_segment_pattern = representation.segment_template
+
+              assert hls_init_uri == Path(dash_init_uri).name
+              assert hls_segment_uris == ("s/00000.m4s",)
+              assert dash_segment_pattern.endswith("$Number%05d$.m4s")
+              assert "1080p/init.mp4" in dash
+              assert "1080p/s/$Number%05d$.m4s" in dash
               assert all(
                   segment.uri.endswith(".m4s")
                   for segment in cmaf_playlist.segments

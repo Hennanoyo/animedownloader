@@ -3,11 +3,8 @@ from uuid import UUID
 from animedownloader_media_asset import MediaAssetService
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .enums import (
-    MediaPackagingJobStatus,
-    MediaStreamingPackageStatus,
-    MediaStreamingRepresentationStatus,
-)
+from .enums import MediaStreamingPackageStatus
+from .packaging import MediaPackagingJobStatus, MediaStreamingRepresentationStatus
 from .exceptions import (
     MediaPackagingJobNotFoundError,
     MediaStreamingPackageNotFoundError,

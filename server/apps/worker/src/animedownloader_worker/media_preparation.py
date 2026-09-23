@@ -42,6 +42,7 @@ class MediaPreparationContext:
     variant_id: UUID
     playable_ready: bool
     thumbnail_ready: bool
+    duration_seconds: float | None
     source_is_current: bool = True
 
 
@@ -109,6 +110,7 @@ class MediaPreparationState:
                     source_metadata_updated_at=job.source_metadata_updated_at,
                 ),
                 thumbnail_ready=asset.thumbnail_ready,
+                duration_seconds=asset.duration_seconds,
                 source_is_current=(
                     asset.path == job.source_path
                     and asset.metadata_updated_at == job.source_metadata_updated_at

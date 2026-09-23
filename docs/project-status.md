@@ -4,7 +4,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, and chapter/embedded attachment integration.
 
-The current phase is CMAF-based browser streaming preparation. PR #23, PR #24, and PR #25 are merged; PR #26 is the active development step.
+The current phase is media storage and delivery infrastructure. PR #23, PR #24, PR #25, and PR #26 are merged; PR #27 is the next development step.
 
 ## Completed
 
@@ -299,19 +299,18 @@ Out of scope:
 
 ### PR #26 — CMAF Packaging / HLS & DASH
 
-**Current development step.**
+**Merged into `main` as commit `cc46526205615587a3f818988a96d47cc956bea3`.**
 
-Goal: derive a shared CMAF/fMP4 representation from the current playable media and expose HLS and DASH manifests over the same media objects.
-
-Scope:
-
-- Add durable media packaging job state
-- Create one CMAF representation using the current playable resolution
-- Store `master.m3u8` and `manifest.mpd` at the streaming package root
-- Store `<quality>/index.m3u8`, `<quality>/init.mp4`, and `<quality>/s/*.m4s` together
-- Make HLS and DASH reference the same initialization/media segments
-- Keep the data model ready for future 1080p/720p/480p representations
-- Reuse the current playable MediaVariant without re-encoding
+- Added durable media packaging job state
+- Created one CMAF representation from the current playable resolution
+- Stored `master.m3u8` and `manifest.mpd` at the streaming package root
+- Stored `<quality>/index.m3u8`, `<quality>/init.mp4`, and `<quality>/s/*.m4s` together
+- Made HLS and DASH reference the same CMAF initialization/media segments
+- Kept the data model ready for future multi-resolution representations
+- Reused the current playable MediaVariant without re-encoding
+- Added packaging status/retry APIs and stale-source protection
+- Added a developer runtime smoke test for real Docker Compose/API/worker/FFmpeg validation
+- Fixed a worker task bug discovered by runtime validation so completed packaging jobs are not incorrectly re-enqueued
 
 Out of scope:
 

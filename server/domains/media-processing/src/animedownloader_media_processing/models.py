@@ -28,7 +28,10 @@ from .enums import (
     MediaVariantKind,
     MediaVariantStatus,
 )
-from .exceptions import InvalidMediaProcessingJobTransitionError
+from .exceptions import (
+    InvalidMediaProcessingJobTransitionError,
+    InvalidMediaTranscodingJobTransitionError,
+)
 
 
 class MediaProcessingJob(Base):

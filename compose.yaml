@@ -78,6 +78,7 @@ services:
         uv sync --all-packages --locked &&
         uv run --package animedownloader-worker
         taskiq worker animedownloader_worker.broker:broker
+        animedownloader_worker.tasks
     volumes:
       - .:/app
       - downloads:/data/downloads

@@ -143,6 +143,8 @@ dependencies = [
     { name = "animedownloader-nyaa" },
     { name = "animedownloader-releases" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "taskiq" },
+    { name = "taskiq-redis" },
 ]
 
 [package.metadata]
@@ -155,6 +157,8 @@ requires-dist = [
     { name = "animedownloader-nyaa", editable = "libs/nyaa" },
     { name = "animedownloader-releases", editable = "domains/releases" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.141,<0.142" },
+    { name = "taskiq", specifier = ">=0.12,<0.13" },
+    { name = "taskiq-redis", specifier = ">=1.2,<1.3" },
 ]
 
 [[package]]
@@ -273,6 +277,9 @@ version = "0.1.0"
 source = { editable = "apps/worker" }
 dependencies = [
     { name = "animedownloader-config" },
+    { name = "animedownloader-download" },
+    { name = "animedownloader-qbittorrent" },
+    { name = "animedownloader-torrent" },
     { name = "taskiq" },
     { name = "taskiq-redis" },
 ]
@@ -280,6 +287,9 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "animedownloader-config", editable = "libs/config" },
+    { name = "animedownloader-download", editable = "domains/download" },
+    { name = "animedownloader-qbittorrent", editable = "libs/qbittorrent" },
+    { name = "animedownloader-torrent", editable = "libs/torrent" },
     { name = "taskiq", specifier = ">=0.12,<0.13" },
     { name = "taskiq-redis", specifier = ">=1.2,<1.3" },
 ]

@@ -9,6 +9,11 @@ from animedownloader_anime import (
 from animedownloader_config import Settings
 from animedownloader_database import create_database
 from animedownloader_download import DownloadJobNotFoundError
+
+from animedownloader_api.task_queue import (
+    DownloadTaskDispatcher,
+    create_task_broker,
+)
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -24,11 +29,17 @@ from animedownloader_api.routes import (
 def create_app(settings: Settings | None = None) -> FastAPI:
     app_settings = settings or Settings()
     database = create_database(app_settings.database_url)
+    task_broker = create_task_broker(app_settings.redis_url)
+    task_dispatcher = DownloadTaskDispatcher(task_broker)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
-        yield
-        await database.dispose()
+        await task_broker.startup()
+        try:
+            yield
+        finally:
+            await task_broker.shutdown()
+            await database.dispose()
 
     app = FastAPI(
         title="AnimeDownloader API",
@@ -36,6 +47,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.database = database
+    app.state.download_task_dispatcher = task_dispatcher
 
     app.add_middleware(
         CORSMiddleware,

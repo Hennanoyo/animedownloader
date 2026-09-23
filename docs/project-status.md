@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Episode download workflow is now in progress. The persistent download-job layer is complete; the next implementation step is the torrent infrastructure layer.
+Episode download workflow execution is now in progress. The torrent infrastructure layer is complete; the current work adds Taskiq execution and persistent download orchestration.
 
 ## Completed
 
@@ -31,6 +31,17 @@ Merged into `main` as commit `734366149c0779129f00d7ae0ea19ce3cd8460f9`.
 - Added the `download_jobs` Alembic migration
 - Added deterministic state/API tests and PostgreSQL migration coverage in CI
 
+### PR #7 — Torrent Infrastructure
+
+Merged into `main` as commit `767ad92ce7f88f0266e2845a3d4a9833522ec80b`.
+
+- Added the domain-neutral `TorrentClient` protocol and torrent models
+- Added the qBittorrent Web API adapter
+- Added job-tag correlation for torrents
+- Added qBittorrent configuration and Compose service
+- Shared `/data/downloads` between worker and qBittorrent
+- Added deterministic adapter tests and CI runtime checks
+
 ## Current Workflow
 
 ```
@@ -39,42 +50,37 @@ Browser
   → select release
   → create Anime + Episodes
   → PostgreSQL
-  → persistent DownloadJob
+  → create persistent DownloadJob
+  → enqueue Taskiq task
+  → worker
+  → TorrentClient / qBittorrent
+  → persist DownloadJob progress/state
 ```
 
-Actual torrent downloading and Taskiq execution are not implemented yet.
+## Current PR — Episode Download Execution
 
-## Next Phase
+The current PR implements the execution layer for GitHub Issue #4:
 
-### Episode Download Workflow
+- `POST /api/episodes/{episode_id}/download-jobs` creates an active persistent job and enqueues Taskiq work
+- the API owns only task dispatch; the worker owns download execution
+- worker execution is isolated in a `DownloadRunner` application service
+- retries/restarts reuse the per-job qBittorrent tag instead of blindly adding duplicate torrents
+- qBittorrent progress is persisted back to PostgreSQL
+- completed, failed, and terminal jobs remain observable through the existing job status API
+- deterministic API/runner tests cover enqueueing, duplicate-job behavior, success, resume, and failure paths
 
-Tracked by GitHub Issue #4: `feat: implement Episode download workflow`.
+Actual live torrent downloads are intentionally not part of normal CI; integration tests continue to use deterministic external-service boundaries.
 
-The workflow is being implemented in small stages:
+### Next Phase
 
-```
-Episode
-  → create persistent download job
-  → enqueue Taskiq work
-  → torrent-client adapter/service
-  → download
-  → persist download/job state
-```
+After this PR, the frontend should get a separate Anime Detail / Episode Management UI:
 
-#### PR B — Torrent Infrastructure
+- Anime detail/edit/delete
+- Episode list and metadata
+- per-episode download action
+- persistent job status/progress display
 
-The next PR should establish the infrastructure boundary without starting real download execution:
-
-- define a small torrent-client protocol/interface used by the domain/application layer
-- add a qBittorrent Web API adapter behind that interface
-- add qBittorrent configuration and Compose service wiring
-- define the shared download staging volume/path contract between worker and qBittorrent
-- keep qBittorrent-specific request/response types and API details inside the adapter
-- add deterministic adapter/configuration tests without requiring a real qBittorrent server in normal CI
-
-Taskiq job dispatch, actual torrent execution, progress polling, and Episode/job orchestration remain follow-up work.
-
-### Out of Scope for This Phase
+## Out of Scope for This Phase
 
 Do not expand the first download-workflow change into the later media pipeline stages:
 
@@ -88,4 +94,4 @@ These should remain separate follow-up phases.
 
 ## Handoff Notes
 
-For a new development session, use this document together with `AGENTS.md`, the relevant architecture/decision documents, the current open PR, and recent commits. Treat the repository state as authoritative and update this file when the project phase changes.
+For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current open pull request, and recent commits. Treat the repository state as authoritative and update this file when the project phase changes.

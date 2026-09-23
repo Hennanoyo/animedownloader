@@ -2,13 +2,32 @@ from typing import Annotated
 from uuid import UUID
 
 from animedownloader_anime import AnimeService, Episode, EpisodeUpdateData
-from fastapi import APIRouter, Depends, Response, status
+from animedownloader_download import ActiveDownloadJobError, DownloadJob, DownloadJobService
 
-from animedownloader_api.dependencies import get_anime_service
-from animedownloader_api.schemas import EpisodeResponse, EpisodeUpdate
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+
+from animedownloader_api.dependencies import (
+    get_anime_service,
+    get_download_job_service,
+    get_download_task_dispatcher,
+)
+from animedownloader_api.schemas import (
+    DownloadJobResponse,
+    EpisodeResponse,
+    EpisodeUpdate,
+)
+from animedownloader_api.task_queue import DownloadTaskDispatcher
 
 router = APIRouter(prefix="/api/episodes", tags=["episodes"])
 AnimeServiceDependency = Annotated[AnimeService, Depends(get_anime_service)]
+DownloadJobServiceDependency = Annotated[
+    DownloadJobService,
+    Depends(get_download_job_service),
+]
+DownloadTaskDispatcherDependency = Annotated[
+    DownloadTaskDispatcher,
+    Depends(get_download_task_dispatcher),
+]
 
 
 @router.get("/{episode_id}", response_model=EpisodeResponse)
@@ -44,6 +63,39 @@ async def update_episode(
             conversion_status=payload.conversion_status,
         ),
     )
+
+
+@router.post(
+    "/{episode_id}/download-jobs",
+    response_model=DownloadJobResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_episode_download_job(
+    episode_id: UUID,
+    service: DownloadJobServiceDependency,
+    dispatcher: DownloadTaskDispatcherDependency,
+) -> DownloadJob:
+    try:
+        job = await service.create_job(episode_id)
+    except ActiveDownloadJobError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    try:
+        await dispatcher.enqueue(job.id)
+    except Exception as exc:
+        await service.mark_failed(
+            job.id,
+            error_message="Failed to enqueue download task.",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Download task queue is temporarily unavailable",
+        ) from exc
+
+    return job
 
 
 @router.delete("/{episode_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -12,6 +12,7 @@ from animedownloader_media import (
     FFmpegThumbnailSpriteProcessor,
     FFprobeInspector,
     PlayableMediaPlanner,
+    SubprocessFFmpegRunner,
 )
 from animedownloader_media_asset import (
     MEDIA_ATTACHMENT_PROCESSING_TASK_NAME,
@@ -98,10 +99,13 @@ async def process_subtitle_tracks(asset_id: str) -> None:
     settings = Settings()
     database = create_database(settings.database_url)
     try:
+        ffmpeg_runner = SubprocessFFmpegRunner(
+            timeout_seconds=settings.ffmpeg_timeout_seconds,
+        )
         runner = SubtitleProcessingRunner(
             state=create_subtitle_processing_state(database.session_factory),
             storage=create_media_storage(settings),
-            processor=FFmpegSubtitleProcessor(),
+            processor=FFmpegSubtitleProcessor(runner=ffmpeg_runner),
         )
         await runner.run(UUID(asset_id))
     finally:
@@ -145,10 +149,13 @@ async def process_media_attachments(asset_id: str) -> None:
     settings = Settings()
     database = create_database(settings.database_url)
     try:
+        ffmpeg_runner = SubprocessFFmpegRunner(
+            timeout_seconds=settings.ffmpeg_timeout_seconds,
+        )
         runner = MediaAttachmentProcessingRunner(
             state=create_media_attachment_processing_state(database.session_factory),
             storage=create_media_storage(settings),
-            processor=FFmpegAttachmentProcessor(),
+            processor=FFmpegAttachmentProcessor(runner=ffmpeg_runner),
         )
         await runner.run(UUID(asset_id))
     finally:
@@ -174,14 +181,23 @@ async def process_media_preparation(job_id: str) -> None:
     settings = Settings()
     database = create_database(settings.database_url)
     try:
+        ffmpeg_runner = SubprocessFFmpegRunner(
+            timeout_seconds=settings.ffmpeg_timeout_seconds,
+        )
         runner = MediaPreparationRunner(
             state=create_media_preparation_state(database.session_factory),
             storage=create_media_storage(settings),
             inspector=FFprobeInspector(),
             planner=PlayableMediaPlanner(),
-            preparation_processor=FFmpegMediaPreparationProcessor(),
-            playable_processor=FFmpegPlayableMediaProcessor(),
-            thumbnail_processor=FFmpegThumbnailSpriteProcessor(),
+            preparation_processor=FFmpegMediaPreparationProcessor(
+                runner=ffmpeg_runner,
+            ),
+            playable_processor=FFmpegPlayableMediaProcessor(
+                runner=ffmpeg_runner,
+            ),
+            thumbnail_processor=FFmpegThumbnailSpriteProcessor(
+                runner=ffmpeg_runner,
+            ),
         )
         parsed_job_id = UUID(job_id)
         await runner.run(parsed_job_id)
@@ -222,10 +238,13 @@ async def process_media_packaging(job_id: str) -> None:
     settings = Settings()
     database = create_database(settings.database_url)
     try:
+        ffmpeg_runner = SubprocessFFmpegRunner(
+            timeout_seconds=settings.ffmpeg_timeout_seconds,
+        )
         runner = MediaPackagingRunner(
             state=create_media_packaging_state(database.session_factory),
             storage=create_media_storage(settings),
-            processor=FFmpegCMAFProcessor(),
+            processor=FFmpegCMAFProcessor(runner=ffmpeg_runner),
         )
         parsed_job_id = UUID(job_id)
         await runner.run(parsed_job_id)

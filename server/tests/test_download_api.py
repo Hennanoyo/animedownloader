@@ -14,18 +14,22 @@ from animedownloader_download import (
     ActiveDownloadJobError,
     DownloadJob,
     DownloadJobService,
+    DownloadJobStatus,
 )
 
 
-def make_job() -> DownloadJob:
+def make_job(status: DownloadJobStatus = DownloadJobStatus.PENDING) -> DownloadJob:
     now = datetime(2026, 9, 23, tzinfo=UTC)
     return DownloadJob(
         id=uuid7(),
         episode_id=uuid7(),
-        status="pending",
+        status=status.value,
         downloaded_bytes=0,
         total_bytes=1000,
         attempt_count=0,
+        error_message=None,
+        started_at=None,
+        completed_at=None,
         created_at=now,
         updated_at=now,
     )
@@ -53,7 +57,9 @@ async def test_create_download_job_enqueues_task() -> None:
     dispatcher.enqueue = AsyncMock()
 
     async with make_client(service, dispatcher) as client:
-        response = await client.post("/api/episodes/" + str(job.episode_id) + "/download-jobs")
+        response = await client.post(
+            "/api/episodes/" + str(job.episode_id) + "/download-jobs"
+        )
 
     assert response.status_code == 201
     assert response.json()["id"] == str(job.id)
@@ -67,10 +73,14 @@ async def test_duplicate_download_job_returns_409() -> None:
     dispatcher = MagicMock(spec=DownloadTaskDispatcher)
     episode_id = uuid7()
     active_job_id = uuid7()
-    service.create_job = AsyncMock(side_effect=ActiveDownloadJobError(episode_id, active_job_id))
+    service.create_job = AsyncMock(
+        side_effect=ActiveDownloadJobError(episode_id, active_job_id)
+    )
 
     async with make_client(service, dispatcher) as client:
-        response = await client.post("/api/episodes/" + str(episode_id) + "/download-jobs")
+        response = await client.post(
+            "/api/episodes/" + str(episode_id) + "/download-jobs"
+        )
 
     assert response.status_code == 409
     assert str(active_job_id) in response.json()["detail"]
@@ -87,10 +97,48 @@ async def test_create_download_job_marks_failed_when_enqueue_fails() -> None:
     service.mark_failed = AsyncMock(return_value=job)
 
     async with make_client(service, dispatcher) as client:
-        response = await client.post("/api/episodes/" + str(job.episode_id) + "/download-jobs")
+        response = await client.post(
+            "/api/episodes/" + str(job.episode_id) + "/download-jobs"
+        )
 
     assert response.status_code == 503
     service.mark_failed.assert_awaited_once_with(
         job.id,
         error_message="Failed to enqueue download task.",
     )
+
+
+@pytest.mark.anyio
+async def test_get_latest_episode_download_job() -> None:
+    service = MagicMock(spec=DownloadJobService)
+    dispatcher = MagicMock(spec=DownloadTaskDispatcher)
+    job = make_job(DownloadJobStatus.COMPLETED)
+    service.get_latest_job = AsyncMock(return_value=job)
+
+    async with make_client(service, dispatcher) as client:
+        response = await client.get(
+            "/api/episodes/" + str(job.episode_id) + "/download-jobs/latest"
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == str(job.id)
+    assert payload["status"] == "completed"
+    service.get_latest_job.assert_awaited_once_with(job.episode_id)
+
+
+@pytest.mark.anyio
+async def test_latest_episode_download_job_returns_null_when_missing() -> None:
+    service = MagicMock(spec=DownloadJobService)
+    dispatcher = MagicMock(spec=DownloadTaskDispatcher)
+    episode_id = uuid7()
+    service.get_latest_job = AsyncMock(return_value=None)
+
+    async with make_client(service, dispatcher) as client:
+        response = await client.get(
+            "/api/episodes/" + str(episode_id) + "/download-jobs/latest"
+        )
+
+    assert response.status_code == 200
+    assert response.json() is None
+    service.get_latest_job.assert_awaited_once_with(episode_id)

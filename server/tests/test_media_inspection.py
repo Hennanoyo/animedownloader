@@ -1,4 +1,5 @@
 import json
+import math
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -102,7 +103,8 @@ async def test_inspector_parses_media_streams_and_chapters(tmp_path: Path) -> No
 
     assert result.path == str(media_path)
     assert result.format.format_name == "matroska,webm"
-    assert result.format.duration_seconds == pytest.approx(123.456)
+    assert result.format.duration_seconds is not None
+    assert math.isclose(result.format.duration_seconds, 123.456)
     assert result.format.size_bytes == 123456789
     assert result.video_streams[0].codec_name == "hevc"
     assert result.video_streams[0].width == 1920

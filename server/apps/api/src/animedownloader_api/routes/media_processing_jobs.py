@@ -77,14 +77,15 @@ async def create_media_processing_job_from_download(
     if job.job_status is MediaProcessingJobStatus.COMPLETED:
         needs_processing = (await media_asset_service.get_for_episode(job.episode_id)) is None
 
-    if needs_processing and job.job_status is MediaProcessingJobStatus.PENDING:
+    if needs_processing:
         try:
             await dispatcher.enqueue(job.id)
         except Exception as exc:
-            await service.mark_failed(
-                job.id,
-                error_message="Failed to enqueue media processing task.",
-            )
+            if job.job_status is MediaProcessingJobStatus.PENDING:
+                await service.mark_failed(
+                    job.id,
+                    error_message="Failed to enqueue media processing task.",
+                )
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Media processing task queue is temporarily unavailable",

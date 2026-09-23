@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from pathlib import Path
+from datetime import datetime\nfrom pathlib import Path
 from typing import Protocol
 from uuid import UUID
 
@@ -37,7 +37,7 @@ class MediaPreparationContext:
     job_id: UUID
     asset_id: UUID
     source_path: str
-    source_metadata_updated_at: object
+    source_metadata_updated_at: datetime
     status: MediaPreparationJobStatus
     operation: MediaTranscodingOperation | None
     variant_id: UUID

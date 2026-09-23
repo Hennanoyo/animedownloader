@@ -127,9 +127,7 @@ class SeaweedFSStorage:
 
     def _connection(self) -> http.client.HTTPConnection | http.client.HTTPSConnection:
         connection_type = (
-            http.client.HTTPSConnection
-            if self._scheme == "https"
-            else http.client.HTTPConnection
+            http.client.HTTPSConnection if self._scheme == "https" else http.client.HTTPConnection
         )
         return connection_type(
             self._host,
@@ -162,9 +160,7 @@ class SeaweedFSStorage:
             raise StorageError(f"Source file does not exist: {source_path}")
 
         detected_type = (
-            content_type
-            or mimetypes.guess_type(source.name)[0]
-            or "application/octet-stream"
+            content_type or mimetypes.guess_type(source.name)[0] or "application/octet-stream"
         )
         boundary = f"----animedownloader-{id(source):x}"
         prefix = (
@@ -172,8 +168,8 @@ class SeaweedFSStorage:
             f'Content-Disposition: form-data; name="file"; filename="{source.name}"\\r\\n'
             f"Content-Type: {detected_type}\\r\\n"
             "\\r\\n"
-        ).encode("utf-8")
-        suffix = f"\\r\\n--{boundary}--\\r\\n".encode("utf-8")
+        ).encode()
+        suffix = f"\\r\\n--{boundary}--\\r\\n".encode()
         content_length = source.stat().st_size + len(prefix) + len(suffix)
 
         connection = self._connection()

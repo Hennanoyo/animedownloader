@@ -134,15 +134,9 @@ class MediaPackagingState:
                 video_codec=representation.video_codec,
                 audio_codec=representation.audio_codec,
                 duration_seconds=representation.duration_seconds,
-                hls_playlist_key=(
-                    f"{package_root_key}/{representation.quality}/index.m3u8"
-                ),
-                init_segment_key=(
-                    f"{package_root_key}/{representation.quality}/init.mp4"
-                ),
-                segment_directory_key=(
-                    f"{package_root_key}/{representation.quality}/s"
-                ),
+                hls_playlist_key=(f"{package_root_key}/{representation.quality}/index.m3u8"),
+                init_segment_key=(f"{package_root_key}/{representation.quality}/init.mp4"),
+                segment_directory_key=(f"{package_root_key}/{representation.quality}/s"),
             )
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
@@ -194,8 +188,7 @@ class MediaPackagingRunner:
                 await self._state.mark_processing(job_id)
             elif context.status is not MediaPackagingJobStatus.PROCESSING:
                 raise MediaPackagingExecutionError(
-                    "Packaging job cannot be executed from status "
-                    f"{context.status.value}",
+                    f"Packaging job cannot be executed from status {context.status.value}",
                 )
 
             quality = f"{context.height}p"
@@ -262,7 +255,6 @@ class MediaPackagingRunner:
                         job_id,
                     )
             raise
-
 
 
 async def _upload_tree(

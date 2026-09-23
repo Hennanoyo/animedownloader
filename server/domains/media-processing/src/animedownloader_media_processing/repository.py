@@ -93,4 +93,3 @@ class MediaProcessingJobRepository:
         self.session.add(job)
         await self.session.flush()
         return job
-

@@ -272,6 +272,7 @@ class MediaProcessingJobResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
 class MediaVariantResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -313,6 +314,7 @@ class MediaPreparationJobResponse(BaseModel):
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
 
 class MediaStreamingRepresentationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

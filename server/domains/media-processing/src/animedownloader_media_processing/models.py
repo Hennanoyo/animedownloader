@@ -131,6 +131,7 @@ class MediaProcessingJob(Base):
             self.probe_metadata = None
             self.completed_at = None
 
+
 class MediaVariant(Base):
     __tablename__ = "media_variants"
     __table_args__ = (

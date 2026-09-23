@@ -179,15 +179,11 @@ class SubtitleProcessingRunner:
                         )
 
                     extension = output_path.suffix.lstrip(".")
-                    object_key = (
-                        f"subtitles/{context.asset_id}/{track.id}.{extension}"
-                    )
+                    object_key = f"subtitles/{context.asset_id}/{track.id}.{extension}"
                     await self._storage.put_file(
                         output_path,
                         object_key,
-                        content_type=(
-                            "text/x-ssa" if extension == "ssa" else "text/x-ass"
-                        ),
+                        content_type=("text/x-ssa" if extension == "ssa" else "text/x-ass"),
                     )
                     await self._state.mark_completed(
                         track.id,

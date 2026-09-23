@@ -164,19 +164,13 @@ class MediaPreparationState:
                 job_id,
                 playable_output_path=playable_output_key,
                 format_name=(
-                    playable_probe.format.format_name
-                    if playable_probe is not None
-                    else None
+                    playable_probe.format.format_name if playable_probe is not None else None
                 ),
                 duration_seconds=(
-                    playable_probe.format.duration_seconds
-                    if playable_probe is not None
-                    else None
+                    playable_probe.format.duration_seconds if playable_probe is not None else None
                 ),
                 size_bytes=(
-                    playable_probe.format.size_bytes
-                    if playable_probe is not None
-                    else None
+                    playable_probe.format.size_bytes if playable_probe is not None else None
                 ),
                 video_codec=video_stream.codec_name if video_stream is not None else None,
                 audio_codec=audio_stream.codec_name if audio_stream is not None else None,
@@ -306,8 +300,7 @@ class MediaPreparationRunner:
                     )
             else:
                 raise MediaPreparationExecutionError(
-                    "Preparation job cannot be executed from status "
-                    f"{context.status.value}",
+                    f"Preparation job cannot be executed from status {context.status.value}",
                 )
 
             playable_probe: MediaProbe | None = None
@@ -363,9 +356,7 @@ class MediaPreparationRunner:
                     )
 
                 if playable_output_path is not None:
-                    playable_output_key = (
-                        f"playable/{context.asset_id}/{job_id}.mp4"
-                    )
+                    playable_output_key = f"playable/{context.asset_id}/{job_id}.mp4"
                     await self._storage.put_file(
                         playable_output_path,
                         playable_output_key,
@@ -373,12 +364,8 @@ class MediaPreparationRunner:
                     )
 
                 if thumbnail is not None:
-                    thumbnail_sprite_key = (
-                        f"thumbnails/{context.asset_id}/sprite.jpg"
-                    )
-                    thumbnail_vtt_key = (
-                        f"thumbnails/{context.asset_id}/sprite.vtt"
-                    )
+                    thumbnail_sprite_key = f"thumbnails/{context.asset_id}/sprite.jpg"
+                    thumbnail_vtt_key = f"thumbnails/{context.asset_id}/sprite.vtt"
                     await self._storage.put_file(
                         thumbnail.sprite_path,
                         thumbnail_sprite_key,
@@ -422,6 +409,3 @@ def create_media_preparation_state(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> MediaPreparationState:
     return MediaPreparationState(session_factory)
-
-
-

@@ -220,9 +220,7 @@ class MediaAttachmentProcessingRunner:
                     if attachment.is_font:
                         sha256 = _sha256(output_path)
                         extension = output_path.suffix or ".bin"
-                        object_key = (
-                            f"fonts/{sha256[:2]}/{sha256}{extension}"
-                        )
+                        object_key = f"fonts/{sha256[:2]}/{sha256}{extension}"
                         await self._storage.put_file(
                             output_path,
                             object_key,
@@ -236,9 +234,7 @@ class MediaAttachmentProcessingRunner:
                             size_bytes=size_bytes,
                         )
                     else:
-                        object_key = (
-                            f"attachments/{context.asset_id}/{attachment.id}-{filename}"
-                        )
+                        object_key = f"attachments/{context.asset_id}/{attachment.id}-{filename}"
                         await self._storage.put_file(
                             output_path,
                             object_key,
@@ -262,7 +258,6 @@ class MediaAttachmentProcessingRunner:
                     )
 
         await self._state.mark_asset_complete(context.asset_id)
-
 
     def _output_path(
         self,

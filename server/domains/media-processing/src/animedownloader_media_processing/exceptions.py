@@ -45,11 +45,8 @@ class InvalidMediaPreparationJobTransitionError(MediaPreparationJobError):
         self.current = current
         self.target = target
         super().__init__(
-            "Invalid media preparation job transition: "
-            f"{current.value} -> {target.value}",
+            f"Invalid media preparation job transition: {current.value} -> {target.value}",
         )
-
-
 
 
 class MediaPackagingJobError(MediaProcessingJobError):

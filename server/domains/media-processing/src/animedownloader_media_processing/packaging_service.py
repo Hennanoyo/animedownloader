@@ -21,6 +21,7 @@ from .packaging_models import (
 )
 from .packaging_repo import MediaPackagingRepository
 
+
 class MediaStreamingPackageService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session

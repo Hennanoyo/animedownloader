@@ -331,5 +331,3 @@ class MediaPreparationJob(Base):
 
         if target is MediaPreparationJobStatus.FAILED:
             self.error_message = "Media preparation failed."
-
-MediaTranscodingJob = MediaPreparationJob

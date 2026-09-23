@@ -15,7 +15,7 @@ class FakeRunner:
 
     async def run(self, args: tuple[str, ...]) -> FFmpegCommandResult:
         self.calls.append(args)
-        playable_path = Path(args[-7])
+        playable_path = Path(args[-8])
         sprite_path = Path(args[-1])
         playable_path.parent.mkdir(parents=True, exist_ok=True)
         sprite_path.parent.mkdir(parents=True, exist_ok=True)

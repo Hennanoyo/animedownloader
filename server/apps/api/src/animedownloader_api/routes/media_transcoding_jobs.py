@@ -54,7 +54,7 @@ async def retry_media_transcoding_job(
     asset_service: MediaAssetServiceDependency,
     dispatcher: MediaProcessingTaskDispatcherDependency,
 ) -> MediaTranscodingJob:
-    job = await service.get_transcoding_job(job_id)
+    job = await service.get_job(job_id)
     if job.status in {"pending", "processing"}:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

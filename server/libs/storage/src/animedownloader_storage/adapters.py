@@ -163,13 +163,14 @@ class SeaweedFSStorage:
             content_type or mimetypes.guess_type(source.name)[0] or "application/octet-stream"
         )
         boundary = f"----animedownloader-{id(source):x}"
+        crlf = "\\r\\n"
         prefix = (
-            f"--{boundary}\\r\\n"
-            f'Content-Disposition: form-data; name="file"; filename="{source.name}"\\r\\n'
-            f"Content-Type: {detected_type}\\r\\n"
-            "\\r\\n"
+            f"--{boundary}{crlf}"
+            f'Content-Disposition: form-data; name="file"; filename="{source.name}"{crlf}'
+            f"Content-Type: {detected_type}{crlf}"
+            f"{crlf}"
         ).encode()
-        suffix = f"\\r\\n--{boundary}--\\r\\n".encode()
+        suffix = f"{crlf}--{boundary}--{crlf}".encode()
         content_length = source.stat().st_size + len(prefix) + len(suffix)
 
         connection = self._connection()

@@ -3,8 +3,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .enums import MediaTranscodingJobStatus
-from .models import MediaProcessingJob, MediaTranscodingJob, MediaVariant
+from .enums import MediaPreparationJobStatus
+from .models import MediaPreparationJob, MediaProcessingJob, MediaTranscodingJob, MediaVariant
 
 
 class MediaProcessingJobRepository:
@@ -55,41 +55,62 @@ class MediaProcessingJobRepository:
         await self.session.flush()
         return variant
 
+    async def get_preparation_job(self, job_id: UUID) -> MediaPreparationJob | None:
+        return await self.session.get(MediaPreparationJob, job_id)
+
+    async def get_latest_preparation_job(
+        self,
+        media_asset_id: UUID,
+    ) -> MediaPreparationJob | None:
+        return await self.session.scalar(
+            select(MediaPreparationJob)
+            .where(MediaPreparationJob.media_asset_id == media_asset_id)
+            .order_by(MediaPreparationJob.created_at.desc()),
+        )
+
+    async def get_active_preparation_job(
+        self,
+        media_asset_id: UUID,
+    ) -> MediaPreparationJob | None:
+        return await self.session.scalar(
+            select(MediaPreparationJob)
+            .where(
+                MediaPreparationJob.media_asset_id == media_asset_id,
+                MediaPreparationJob.status.in_(
+                    (
+                        MediaPreparationJobStatus.PENDING.value,
+                        MediaPreparationJobStatus.PROCESSING.value,
+                    ),
+                ),
+            )
+            .order_by(MediaPreparationJob.created_at.desc()),
+        )
+
+    async def add_preparation_job(
+        self,
+        job: MediaPreparationJob,
+    ) -> MediaPreparationJob:
+        self.session.add(job)
+        await self.session.flush()
+        return job
+
     async def get_transcoding_job(self, job_id: UUID) -> MediaTranscodingJob | None:
-        return await self.session.get(MediaTranscodingJob, job_id)
+        return await self.get_preparation_job(job_id)
 
     async def get_latest_transcoding_job(
         self,
         media_asset_id: UUID,
     ) -> MediaTranscodingJob | None:
-        return await self.session.scalar(
-            select(MediaTranscodingJob)
-            .where(MediaTranscodingJob.media_asset_id == media_asset_id)
-            .order_by(MediaTranscodingJob.created_at.desc()),
-        )
+        return await self.get_latest_preparation_job(media_asset_id)
 
     async def get_active_transcoding_job(
         self,
         media_asset_id: UUID,
     ) -> MediaTranscodingJob | None:
-        return await self.session.scalar(
-            select(MediaTranscodingJob)
-            .where(
-                MediaTranscodingJob.media_asset_id == media_asset_id,
-                MediaTranscodingJob.status.in_(
-                    (
-                        MediaTranscodingJobStatus.PENDING.value,
-                        MediaTranscodingJobStatus.PROCESSING.value,
-                    ),
-                ),
-            )
-            .order_by(MediaTranscodingJob.created_at.desc()),
-        )
+        return await self.get_active_preparation_job(media_asset_id)
 
     async def add_transcoding_job(
         self,
         job: MediaTranscodingJob,
     ) -> MediaTranscodingJob:
-        self.session.add(job)
-        await self.session.flush()
-        return job
+        return await self.add_preparation_job(job)

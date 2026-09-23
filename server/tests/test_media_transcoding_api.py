@@ -4,6 +4,7 @@ from uuid import uuid7
 
 import httpx
 import pytest
+from animedownloader_anime import AnimeService
 from animedownloader_api.app import create_app
 from animedownloader_api.dependencies import (
     get_anime_service,
@@ -11,7 +12,6 @@ from animedownloader_api.dependencies import (
     get_media_transcoding_job_service,
     get_media_variant_service,
 )
-from animedownloader_anime import AnimeService
 from animedownloader_media_asset import MediaAsset, MediaAssetService
 from animedownloader_media_processing import (
     MediaTranscodingJob,

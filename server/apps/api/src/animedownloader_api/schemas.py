@@ -9,8 +9,8 @@ from animedownloader_media_asset import (
     SubtitleTrackStatus,
 )
 from animedownloader_media_processing import (
+    MediaPreparationJobStatus,
     MediaProcessingJobStatus,
-    MediaTranscodingJobStatus,
     MediaTranscodingOperation,
     MediaVariantKind,
     MediaVariantStatus,

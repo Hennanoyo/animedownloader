@@ -9,6 +9,7 @@ dependencies = [
     "animedownloader-config",
     "animedownloader-database",
     "animedownloader-download",
+    "animedownloader-media-processing",
     "animedownloader-nyaa",
     "animedownloader-releases",
     "animedownloader-qbittorrent",
@@ -22,6 +23,7 @@ animedownloader-anime = { workspace = true }
 animedownloader-config = { workspace = true }
 animedownloader-database = { workspace = true }
 animedownloader-download = { workspace = true }
+animedownloader-media-processing = { workspace = true }
 animedownloader-nyaa = { workspace = true }
 animedownloader-releases = { workspace = true }
 animedownloader-qbittorrent = { workspace = true }

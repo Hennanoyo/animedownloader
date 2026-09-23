@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .metadata import MediaAssetMetadata
 from .models import MediaAsset
 from .repository import MediaAssetRepository
 
@@ -20,6 +21,7 @@ class MediaAssetService:
         episode_id: UUID,
         processing_job_id: UUID,
         media_path: str,
+        metadata: MediaAssetMetadata,
     ) -> MediaAsset:
         asset = await self.assets.get_for_episode(episode_id)
         if asset is None:
@@ -30,4 +32,5 @@ class MediaAssetService:
 
         asset.processing_job_id = processing_job_id
         asset.path = media_path
+        asset.update_metadata(metadata)
         return asset

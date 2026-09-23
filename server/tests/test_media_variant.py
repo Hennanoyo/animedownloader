@@ -21,6 +21,7 @@ def test_media_variant_tracks_current_source() -> None:
     variant = MediaVariant(
         media_asset_id=asset_id,
         kind=MediaVariantKind.PLAYABLE.value,
+        status=MediaVariantStatus.PENDING.value,
     )
 
     assert variant.variant_status is MediaVariantStatus.PENDING
@@ -73,6 +74,8 @@ def test_media_transcoding_job_tracks_operation_and_attempts() -> None:
         variant_id=uuid7(),
         source_path="/downloads/source.mkv",
         source_metadata_updated_at=datetime(2026, 9, 24, tzinfo=UTC),
+        status=MediaTranscodingJobStatus.PENDING.value,
+        attempt_count=0,
     )
 
     assert job.job_status is MediaTranscodingJobStatus.PENDING

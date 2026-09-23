@@ -293,13 +293,13 @@ class MediaVariantResponse(BaseModel):
     updated_at: datetime
 
 
-class MediaTranscodingJobResponse(BaseModel):
+class MediaPreparationJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     media_asset_id: UUID
     variant_id: UUID
-    status: MediaTranscodingJobStatus
+    status: MediaPreparationJobStatus
     operation: MediaTranscodingOperation | None
     source_path: str
     source_metadata_updated_at: datetime

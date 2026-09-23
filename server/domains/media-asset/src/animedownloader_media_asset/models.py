@@ -147,18 +147,34 @@ class MediaAsset(Base):
         self,
         tracks: tuple[SubtitleTrackMetadata, ...],
     ) -> None:
+        existing = {
+            track.stream_index: track
+            for track in self.subtitle_tracks
+        }
+        incoming = {track.stream_index for track in tracks}
         self.subtitle_tracks = [
-            SubtitleTrack(
-                stream_index=track.stream_index,
-                language=track.language,
-                title=track.title,
-                codec_name=track.codec_name,
-                source_path=track.source_path,
-                is_default=track.is_default,
-                is_forced=track.is_forced,
-            )
-            for track in tracks
+            track
+            for track in self.subtitle_tracks
+            if track.stream_index in incoming
         ]
+
+        for track in tracks:
+            current = existing.get(track.stream_index)
+            if current is None:
+                current = SubtitleTrack(stream_index=track.stream_index)
+                self.subtitle_tracks.append(current)
+
+            current.language = track.language
+            current.title = track.title
+            current.codec_name = track.codec_name
+            current.source_path = track.source_path
+            current.is_default = track.is_default
+            current.is_forced = track.is_forced
+            current.status = SubtitleTrackStatus.PENDING.value
+            current.normalized_path = None
+            current.normalized_format = None
+            current.error_message = None
+
         self.subtitle_tracks_updated_at = datetime.now(UTC)
         self.subtitle_tracks_processed_at = None
 
@@ -166,34 +182,65 @@ class MediaAsset(Base):
         self,
         chapters: tuple[MediaChapterMetadata, ...],
     ) -> None:
+        existing = {
+            chapter.chapter_index: chapter
+            for chapter in self.chapters
+        }
+        incoming = {chapter.chapter_index for chapter in chapters}
         self.chapters = [
-            MediaChapter(
-                chapter_index=chapter.chapter_index,
-                chapter_id=chapter.id,
-                start_time_seconds=chapter.start_time_seconds,
-                end_time_seconds=chapter.end_time_seconds,
-                title=chapter.title,
-            )
-            for chapter in chapters
+            chapter
+            for chapter in self.chapters
+            if chapter.chapter_index in incoming
         ]
+
+        for chapter in chapters:
+            current = existing.get(chapter.chapter_index)
+            if current is None:
+                current = MediaChapter(chapter_index=chapter.chapter_index)
+                self.chapters.append(current)
+
+            current.chapter_id = chapter.id
+            current.start_time_seconds = chapter.start_time_seconds
+            current.end_time_seconds = chapter.end_time_seconds
+            current.title = chapter.title
+
         self.chapters_updated_at = datetime.now(UTC)
 
     def update_attachments(
         self,
         attachments: tuple[MediaAttachmentMetadata, ...],
     ) -> None:
+        existing = {
+            attachment.attachment_index: attachment
+            for attachment in self.attachments
+        }
+        incoming = {attachment.attachment_index for attachment in attachments}
         self.attachments = [
-            MediaAttachment(
-                attachment_index=attachment.attachment_index,
-                stream_index=attachment.stream_index,
-                filename=attachment.filename,
-                mime_type=attachment.mime_type,
-                description=attachment.description,
-                is_font=attachment.is_font,
-                status=MediaAttachmentStatus.PENDING.value,
-            )
-            for attachment in attachments
+            attachment
+            for attachment in self.attachments
+            if attachment.attachment_index in incoming
         ]
+
+        for attachment in attachments:
+            current = existing.get(attachment.attachment_index)
+            if current is None:
+                current = MediaAttachment(
+                    attachment_index=attachment.attachment_index,
+                    stream_index=attachment.stream_index,
+                )
+                self.attachments.append(current)
+
+            current.stream_index = attachment.stream_index
+            current.filename = attachment.filename
+            current.mime_type = attachment.mime_type
+            current.description = attachment.description
+            current.is_font = attachment.is_font
+            current.status = MediaAttachmentStatus.PENDING.value
+            current.extracted_path = None
+            current.size_bytes = None
+            current.font_id = None
+            current.error_message = None
+
         self.attachments_updated_at = datetime.now(UTC)
         self.attachments_processed_at = None
 

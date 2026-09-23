@@ -88,6 +88,9 @@ The `check` targets are verification-only: they must not modify source files. Au
 
 Keep the local validation command aligned with the `justfile` rather than duplicating its individual commands in this document.
 
+In GitHub Actions, run the affected workspace's automatic formatting target before its check target as a defensive validation step. CI formatting only changes the ephemeral runner workspace and must not be treated as a branch update; the PR branch is updated through normal commits.
+
+
 ## Git Workflow
 
 - Prefer focused branches and small pull requests.

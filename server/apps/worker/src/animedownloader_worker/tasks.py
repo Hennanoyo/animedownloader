@@ -102,7 +102,6 @@ async def process_subtitle_tracks(asset_id: str) -> None:
             state=create_subtitle_processing_state(database.session_factory),
             storage=create_media_storage(settings),
             processor=FFmpegSubtitleProcessor(),
-            media_root=settings.media_root,
         )
         await runner.run(UUID(asset_id))
     finally:
@@ -150,7 +149,6 @@ async def process_media_attachments(asset_id: str) -> None:
             state=create_media_attachment_processing_state(database.session_factory),
             storage=create_media_storage(settings),
             processor=FFmpegAttachmentProcessor(),
-            media_root=settings.media_root,
         )
         await runner.run(UUID(asset_id))
     finally:
@@ -184,7 +182,6 @@ async def process_media_preparation(job_id: str) -> None:
             preparation_processor=FFmpegMediaPreparationProcessor(),
             playable_processor=FFmpegPlayableMediaProcessor(),
             thumbnail_processor=FFmpegThumbnailSpriteProcessor(),
-            media_root=settings.media_root,
         )
         parsed_job_id = UUID(job_id)
         await runner.run(parsed_job_id)
@@ -228,11 +225,9 @@ async def process_media_packaging(job_id: str) -> None:
             state=create_media_packaging_state(database.session_factory),
             storage=create_media_storage(settings),
             processor=FFmpegCMAFProcessor(),
-            media_root=settings.media_root,
         )
         parsed_job_id = UUID(job_id)
         await runner.run(parsed_job_id)
-        await _enqueue_media_packaging(database, parsed_job_id)
     finally:
         await database.dispose()
 

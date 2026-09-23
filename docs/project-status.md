@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The project is in the backend media pipeline foundation phase. PR #14 is adding reusable FFprobe-based media inspection infrastructure.
+The project is in the Anime / Episode management phase. The download workflow and media inspection foundation are complete; the next slice is Episode add/edit/delete in the Anime management UI.
 
 ## Completed
 
@@ -109,6 +109,17 @@ Merged into `main` as commit `d057a4d7c14a36caff36a25779af87abec5951b4`.
 - Added the Episode latest DownloadJob API endpoint
 - Added API and frontend response coverage
 
+
+### PR #14 — Media Inspection Infrastructure
+
+Merged into `main` as commit `19ae042137a5dffd2b54fd4a16a7a1433521822f`.
+
+- Added the `animedownloader-media` technical library
+- Added async FFprobe execution without a shell
+- Added typed parsing for format, stream, attachment, and chapter metadata
+- Added deterministic inspector tests with a fake process runner
+- Registered the media package in the backend image and uv workspace
+
 ## Current Workflow
 
 ```
@@ -127,26 +138,30 @@ Browser
   → Browser polls persistent DownloadJob state
 ```
 
-## Current Phase — Backend Media Pipeline Foundations
+## Current Phase — Anime / Episode Management
 
-PR #14 focuses on reusable FFprobe-based media inspection.
+The next PR extends the existing Anime edit experience so an Anime's Episodes can be managed without leaving the management screen.
 
-### PR #14 Scope
+### Next PR Scope
 
-- Add the `animedownloader-media` technical library
-- Execute FFprobe asynchronously without a shell
-- Parse FFprobe JSON into typed media format, stream, and chapter models
-- Preserve stream metadata needed by later subtitle/attachment processing
-- Add deterministic unit tests using a fake process runner
-- Include the media package and FFmpeg tooling in the backend image
-- Do not yet persist a media-processing job or automatically trigger inspection after download
-- Do not transcode, remux, package, or upload media in this PR
+- Add an Episode from a Nyaa release
+- Edit Episode number and title
+- Replace the Episode's selected release and provenance metadata
+- Delete an Episode with explicit confirmation
+- Preserve the existing DownloadJob workflow
+- Update the Anime detail query cache after Episode mutations
+- Keep media inspection and later media pipeline stages out of scope
 
-The inspection layer should remain independent from the Episode/DownloadJob domain so later pipeline orchestration can compose it without coupling the domain to subprocess details.
+### Episode Management Rules
+
+- Episode numbers must remain unique within an Anime
+- New Episodes require a selected Nyaa release
+- Editing an Episode does not change its DownloadJob state unless the release metadata is explicitly replaced
+- Deleting an Episode removes only that Episode; Anime remains intact
 
 ## Planned Follow-up
 
-After PR #14, continue the media pipeline as separate focused phases:
+After Episode management, continue the media pipeline as separate focused phases:
 
 - persist media-processing job state and trigger inspection after download
 - subtitle normalization

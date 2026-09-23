@@ -6,6 +6,7 @@ import { useAnimeDetail } from "../../../features/anime-detail/model/useAnimeDet
 import { useDeleteAnime } from "../../../features/anime-edit/model/useEditAnime";
 import AnimeEditForm from "../../../features/anime-edit/ui/AnimeEditForm";
 import EpisodeDownloadControl from "../../../features/episode-download/ui/EpisodeDownloadControl";
+import EpisodeManagement from "../../../features/episode-management/ui/EpisodeManagement";
 import { ApiRequestError } from "../../../shared/api/client";
 import styles from "./AnimeDetailPage.module.scss";
 
@@ -61,16 +62,17 @@ export default function AnimeDetailPage() {
               <p className={styles.kicker}>Anime management</p>
               <h1 id="edit-heading">Edit anime</h1>
               <p className={styles.panelDescription}>
-                Update the anime schedule and display information. Episodes
-                remain unchanged.
+                Update the anime information and manage the episodes belonging
+                to this Anime.
               </p>
             </div>
           </div>
           <AnimeEditForm
             anime={anime}
             onCancel={() => setIsEditing(false)}
-            onSaved={() => setIsEditing(false)}
+            onSaved={() => void query.refetch()}
           />
+          <EpisodeManagement anime={anime} />
         </section>
       ) : (
         <AnimeHeader
@@ -90,7 +92,8 @@ export default function AnimeDetailPage() {
         />
       ) : null}
 
-      <section className={styles.panel} aria-labelledby="episodes-heading">
+      {!isEditing ? (
+        <section className={styles.panel} aria-labelledby="episodes-heading">
         <div className={styles.panelHeader}>
           <div>
             <p className={styles.kicker}>Episodes</p>
@@ -152,7 +155,8 @@ export default function AnimeDetailPage() {
             </table>
           </div>
         )}
-      </section>
+        </section>
+      ) : null}
     </main>
   );
 }

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from uuid import UUID, uuid7
@@ -21,10 +22,10 @@ class FakeState:
     completed: tuple[int, int] | None = None
     failed_message: str | None = None
 
-    async def load(self, _: UUID) -> DownloadContext:
+    async def load(self, job_id: UUID) -> DownloadContext:
         return self.context
 
-    async def mark_downloading(self, _: UUID) -> None:
+    async def mark_downloading(self, job_id: UUID) -> None:
         self.transitions.append("downloading")
         self.context = DownloadContext(
             status=DownloadJobStatus.DOWNLOADING,
@@ -33,7 +34,7 @@ class FakeState:
 
     async def update_progress(
         self,
-        _: UUID,
+        job_id: UUID,
         *,
         downloaded_bytes: int,
         total_bytes: int,
@@ -42,14 +43,14 @@ class FakeState:
 
     async def mark_completed(
         self,
-        _: UUID,
+        job_id: UUID,
         *,
         downloaded_bytes: int,
         total_bytes: int,
     ) -> None:
         self.completed = (downloaded_bytes, total_bytes)
 
-    async def mark_failed(self, _: UUID, *, error_message: str) -> None:
+    async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
         self.failed_message = error_message
 
 
@@ -59,22 +60,33 @@ class FakeTorrentClient:
     added: list[tuple[str, str, tuple[str, ...]]] = field(default_factory=list)
     info_sequence: list[TorrentInfo] = field(default_factory=list)
 
-    async def find_by_tag(self, _: str) -> TorrentInfo | None:
+    async def find_by_tag(self, tag: str) -> TorrentInfo | None:
         if self.torrents:
             return self.torrents[-1]
         if self.added:
             return make_torrent(TorrentStatus.DOWNLOADING, 0.0, 0)
         return None
 
-    async def add(self, source: str, *, save_path: str, tags: tuple[str, ...] = ()) -> None:
+    async def add(
+        self,
+        source: str,
+        *,
+        save_path: str,
+        tags: Sequence[str] = (),
+    ) -> None:
         self.added.append((source, save_path, tags))
 
-    async def get(self, _: str) -> TorrentInfo | None:
+    async def get(self, torrent_id: str) -> TorrentInfo | None:
         if self.info_sequence:
             return self.info_sequence.pop(0)
         return self.torrents[-1] if self.torrents else None
 
-    async def remove(self, _: str, *, delete_files: bool = False) -> None:
+    async def remove(
+        self,
+        torrent_id: str,
+        *,
+        delete_files: bool = False,
+    ) -> None:
         raise NotImplementedError
 
 

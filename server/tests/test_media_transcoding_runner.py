@@ -233,7 +233,7 @@ async def test_runner_remuxes_compatible_source(tmp_path: Path) -> None:
 async def test_runner_persists_failure(tmp_path: Path) -> None:
     state = FakeState(make_context(status=MediaTranscodingJobStatus.PENDING))
     inspector = FakeInspector([RuntimeError("probe failed")])
-    processor = FakeProcessor(PlayableMediaOperation.TRANSCODE)
+    processor = FakeProcessor()
 
     runner = MediaTranscodingRunner(
         state=state,
@@ -247,6 +247,7 @@ async def test_runner_persists_failure(tmp_path: Path) -> None:
         await runner.run(state.context.job_id)
 
     assert state.failed_message == "probe failed"
+
 
 @pytest.mark.anyio
 async def test_runner_rejects_stale_source_snapshot(tmp_path: Path) -> None:

@@ -38,8 +38,14 @@ async def test_search_releases() -> None:
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
-        response = await client.get("/api/releases/search", params={"q": "Frieren"})
+        response = await client.get(
+            "/api/releases/search",
+            params={"q": "Frieren"},
+            headers={"Origin": "http://localhost:5173"},
+        )
 
     assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert response.headers["access-control-allow-credentials"] == "true"
     assert response.json()["query"] == "Frieren"
     assert response.json()["items"][0]["title"] == release.title

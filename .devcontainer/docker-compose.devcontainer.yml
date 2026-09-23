@@ -15,8 +15,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       STORAGE_INTERNAL_URL: http://storage:8888
       STORAGE_PUBLIC_URL: http://localhost:8888
-      CORS_ORIGINS_RAW: http://localhost:5173
-      DOWNLOAD_ROOT: /data/downloads
+      CORS_ORIGINS_RAW: http://localhost:5173,http://127.0.0.1:5173
+      DOWNLOAD_ROOT: /downloads
       MEDIA_ROOT: /data/media
     depends_on:
       api:

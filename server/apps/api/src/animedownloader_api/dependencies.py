@@ -34,4 +34,5 @@ def get_download_task_dispatcher(request: Request) -> DownloadTaskDispatcher:
 
 
 async def get_nyaa_client() -> AsyncIterator[NyaaClient]:
-    yield NyaaClient()
+    async with NyaaClient() as client:
+        yield client

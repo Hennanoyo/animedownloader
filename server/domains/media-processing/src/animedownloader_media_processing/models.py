@@ -42,6 +42,7 @@ class MediaProcessingJob(Base):
     download_job_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("download_jobs.id", ondelete="SET NULL"),
     )
+    download_directory: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(
         String(32),
         default=MediaProcessingJobStatus.PENDING.value,

@@ -7,9 +7,8 @@ from typing import Protocol
 from uuid import UUID
 
 from animedownloader_media import FFmpegSubtitleProcessor
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
 from animedownloader_media_asset import MediaAssetService, SubtitleTrack, SubtitleTrackStatus
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 logger = logging.getLogger(__name__)
 

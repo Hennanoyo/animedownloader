@@ -6,6 +6,7 @@ from uuid import UUID, uuid7
 import pytest
 from animedownloader_media import CMAFMediaSegment, CMAFPackagingResult
 from animedownloader_media_processing import MediaPackagingJobStatus
+from animedownloader_storage import LocalStorage
 from animedownloader_worker.media_packaging import (
     MediaPackagingContext,
     MediaPackagingRunner,
@@ -45,9 +46,17 @@ class FakeProcessor:
         media_path: Path,
         output_dir: Path,
     ) -> CMAFPackagingResult:
+        del media_path
+        segment_path = output_dir / "s" / "00000.m4s"
+        segment_path.parent.mkdir(parents=True, exist_ok=True)
+        segment_path.write_bytes(b"segment")
+        playlist_path = output_dir / "index.m3u8"
+        playlist_path.write_text("#EXTM3U\n", encoding="utf-8")
+        init_path = output_dir / "init.mp4"
+        init_path.write_bytes(b"init")
         return CMAFPackagingResult(
-            playlist_path=output_dir / "index.m3u8",
-            init_segment_path=output_dir / "init.mp4",
+            playlist_path=playlist_path,
+            init_segment_path=init_path,
             segments=(
                 CMAFMediaSegment(
                     number=0,
@@ -66,7 +75,7 @@ def make_context(
         job_id=uuid7(),
         package_id=uuid7(),
         variant_id=uuid7(),
-        source_path="/data/playable.mp4",
+        source_path="playable/source.mp4",
         source_variant_updated_at=datetime(2026, 9, 24, tzinfo=UTC),
         status=MediaPackagingJobStatus.PENDING,
         width=1920,
@@ -82,11 +91,15 @@ def make_context(
 @pytest.mark.anyio
 async def test_runner_packages_current_playable_variant(tmp_path: Path) -> None:
     state = FakeState(make_context())
+    storage = LocalStorage(tmp_path / "storage", "http://localhost:8888")
+    source = tmp_path / "storage" / "playable" / "source.mp4"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"playable")
 
     await MediaPackagingRunner(
         state=state,
         processor=FakeProcessor(),
-        media_root=tmp_path,
+        storage=storage,
     ).run(state.context.job_id)
 
     assert state.processing_calls == 1
@@ -105,7 +118,7 @@ async def test_runner_rejects_stale_playable_variant(tmp_path: Path) -> None:
         await MediaPackagingRunner(
             state=state,
             processor=FakeProcessor(),
-            media_root=tmp_path,
+            storage=LocalStorage(tmp_path / "storage", "http://localhost:8888"),
         ).run(state.context.job_id)
 
     assert state.failed_message is not None

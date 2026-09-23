@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from tempfile import TemporaryDirectory
 from dataclasses import dataclass
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Protocol
 from uuid import UUID
 

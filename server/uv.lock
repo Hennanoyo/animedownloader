@@ -214,6 +214,23 @@ version = "0.1.0"
 source = { editable = "libs/media" }
 
 [[package]]
+name = "animedownloader-media-processing"
+version = "0.1.0"
+source = { editable = "domains/media-processing" }
+dependencies = [
+    { name = "animedownloader-anime" },
+    { name = "animedownloader-database" },
+    { name = "animedownloader-download" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "animedownloader-anime", editable = "domains/anime" },
+    { name = "animedownloader-database", editable = "libs/database" },
+    { name = "animedownloader-download", editable = "domains/download" },
+]
+
+[[package]]
 name = "animedownloader-nyaa"
 version = "0.1.0"
 source = { editable = "libs/nyaa" }

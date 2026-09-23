@@ -163,7 +163,7 @@ class MediaProcessingRunner:
                 probe=probe,
             )
         except Exception as exc:
-            if job_loaded:
+            if job_loaded and context.status is not MediaProcessingJobStatus.COMPLETED:
                 try:
                     await self._state.mark_failed(
                         job_id,

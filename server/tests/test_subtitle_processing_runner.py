@@ -4,6 +4,7 @@ from uuid import UUID, uuid7
 import pytest
 from animedownloader_media import FFmpegSubtitleProcessor
 from animedownloader_media_asset import SubtitleTrackStatus
+from animedownloader_storage import LocalStorage
 from animedownloader_worker.subtitle_processing import (
     SubtitleProcessingContext,
     SubtitleProcessingRunner,
@@ -46,7 +47,6 @@ class StubProcessor(FFmpegSubtitleProcessor):
         super().__init__()
         self.results = results
         self.calls: list[UUID] = []
-        self.track_by_path: dict[Path, UUID] = {}
 
     async def extract(
         self,
@@ -56,7 +56,7 @@ class StubProcessor(FFmpegSubtitleProcessor):
         codec_name: str | None,
         output_path: Path,
     ) -> str:
-        track_id = self.track_by_path[output_path]
+        track_id = UUID(output_path.stem)
         self.calls.append(track_id)
         result = self.results[track_id]
         if isinstance(result, Exception):
@@ -101,13 +101,10 @@ async def test_runner_processes_pending_tracks(tmp_path: Path) -> None:
     )
     state = FakeState(context)
     processor = StubProcessor({track_id: "ass"})
-    processor.track_by_path = {
-        tmp_path / "subtitles" / str(context.asset_id) / f"{track_id}.ass": track_id,
-    }
     runner = SubtitleProcessingRunner(
         state=state,
         processor=processor,
-        media_root=tmp_path,
+        storage=LocalStorage(tmp_path / "storage", "http://localhost:8888"),
     )
 
     await runner.run(context.asset_id)

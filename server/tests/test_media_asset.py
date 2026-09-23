@@ -26,7 +26,13 @@ def make_metadata() -> MediaAssetMetadata:
 async def test_upsert_creates_media_asset() -> None:
     service = make_service()
     service.assets.get_for_episode = AsyncMock(return_value=None)
-    service.assets.add = AsyncMock()
+
+    async def add(asset):
+        assert asset.processing_job_id is not None
+        assert asset.path is not None
+        assert asset.metadata_ready
+
+    service.assets.add = AsyncMock(side_effect=add)
 
     episode_id = uuid7()
     processing_job_id = uuid7()

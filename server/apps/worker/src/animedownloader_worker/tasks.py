@@ -18,11 +18,10 @@ from animedownloader_media_asset import (
     MediaAssetService,
 )
 from animedownloader_media_processing import (
+    MEDIA_PREPARATION_TASK_NAME,
     MEDIA_PROCESSING_TASK_NAME,
-    MEDIA_TRANSCODING_TASK_NAME,
+    MediaPreparationJobService,
     MediaProcessingJobService,
-    MediaProcessingJobStatus,
-    MediaTranscodingJobService,
 )
 from animedownloader_qbittorrent import QBittorrentClient
 
@@ -32,11 +31,7 @@ from .media_attachment_processing import (
     create_media_attachment_processing_state,
 )
 from .media_processing import MediaProcessingRunner, create_media_processing_state
-from .media_thumbnail_processing import (
-    MediaThumbnailProcessingRunner,
-    create_media_thumbnail_processing_state,
-)
-from .media_transcoding import MediaTranscodingRunner, create_media_transcoding_state
+from .media_preparation import MediaPreparationRunner, create_media_preparation_state
 from .runner import DownloadRunner, create_download_state
 from .subtitle_processing import (
     SubtitleProcessingRunner,
@@ -86,8 +81,7 @@ async def process_media_job(job_id: str) -> None:
         await runner.run(parsed_job_id)
         await _enqueue_subtitle_processing(database, parsed_job_id)
         await _enqueue_media_attachment_processing(database, parsed_job_id)
-        await _enqueue_media_thumbnail_processing(database, parsed_job_id)
-        await _enqueue_media_transcoding(database, parsed_job_id)
+        await _enqueue_media_preparation(database, parsed_job_id)
     finally:
         await database.dispose()
 
@@ -196,16 +190,18 @@ async def _enqueue_media_thumbnail_processing(
 
     await process_media_thumbnail.kiq(str(asset.id))
 
-@broker.task(task_name=MEDIA_TRANSCODING_TASK_NAME)
-async def process_media_transcoding(job_id: str) -> None:
+@broker.task(task_name=MEDIA_PREPARATION_TASK_NAME)
+async def process_media_preparation(job_id: str) -> None:
     settings = Settings()
     database = create_database(settings.database_url)
     try:
-        runner = MediaTranscodingRunner(
-            state=create_media_transcoding_state(database.session_factory),
+        runner = MediaPreparationRunner(
+            state=create_media_preparation_state(database.session_factory),
             inspector=FFprobeInspector(),
             planner=PlayableMediaPlanner(),
-            processor=FFmpegPlayableMediaProcessor(),
+            preparation_processor=FFmpegMediaPreparationProcessor(),
+            playable_processor=FFmpegPlayableMediaProcessor(),
+            thumbnail_processor=FFmpegThumbnailSpriteProcessor(),
             media_root=settings.media_root,
         )
         await runner.run(UUID(job_id))
@@ -213,7 +209,7 @@ async def process_media_transcoding(job_id: str) -> None:
         await database.dispose()
 
 
-async def _enqueue_media_transcoding(
+async def _enqueue_media_preparation(
     database: Database,
     media_processing_job_id: UUID,
 ) -> None:
@@ -227,13 +223,14 @@ async def _enqueue_media_transcoding(
         if asset is None or asset.metadata_updated_at is None:
             return
 
-        transcoding_job = await MediaTranscodingJobService(session).create_job(
+        preparation_job = await MediaPreparationJobService(session).create_job(
             media_asset_id=asset.id,
             source_path=asset.path,
             source_metadata_updated_at=asset.metadata_updated_at,
+            thumbnail_ready=asset.thumbnail_ready,
         )
 
-    if transcoding_job is None:
+    if preparation_job is None:
         return
 
-    await process_media_transcoding.kiq(str(transcoding_job.id))
+    await process_media_preparation.kiq(str(preparation_job.id))

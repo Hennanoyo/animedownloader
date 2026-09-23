@@ -25,6 +25,7 @@ def make_job(status: MediaProcessingJobStatus) -> MediaProcessingJob:
         id=uuid7(),
         episode_id=uuid7(),
         download_job_id=uuid7(),
+        download_directory="download-dir",
         status=status.value,
         media_path=None,
         probe_metadata=None,

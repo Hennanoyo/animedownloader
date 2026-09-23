@@ -7,6 +7,7 @@ from typing import Protocol, cast
 from uuid import UUID
 
 from animedownloader_media import MediaProbe
+from animedownloader_media_asset import MediaAssetService
 from animedownloader_media_processing import (
     MediaProcessingJobService,
     MediaProcessingJobStatus,
@@ -53,7 +54,7 @@ class MediaProcessingStateProtocol(Protocol):
         job_id: UUID,
         *,
         media_path: str,
-        probe_metadata: dict[str, object],
+        probe: MediaProbe,
     ) -> None: ...
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None: ...
@@ -91,14 +92,21 @@ class MediaProcessingState:
         job_id: UUID,
         *,
         media_path: str,
-        probe_metadata: dict[str, object],
+        probe: MediaProbe,
     ) -> None:
         async with self._session_factory() as session:
-            await MediaProcessingJobService(session).mark_completed(
-                job_id,
-                media_path=media_path,
-                probe_metadata=probe_metadata,
-            )
+            async with session.begin():
+                processing_service = MediaProcessingJobService(session)
+                job = await processing_service.get_job(job_id)
+                await MediaAssetService(session).upsert_from_probe(
+                    episode_id=job.episode_id,
+                    processing_job_id=job.id,
+                    media_path=media_path,
+                    probe=probe,
+                )
+                job.media_path = media_path
+                job.probe_metadata = _serialize_probe(probe)
+                job.transition_to(MediaProcessingJobStatus.COMPLETED)
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
         async with self._session_factory() as session:
@@ -144,7 +152,7 @@ class MediaProcessingRunner:
             await self._state.mark_completed(
                 job_id,
                 media_path=str(media_path),
-                probe_metadata=_serialize_probe(probe),
+                probe=probe,
             )
         except Exception as exc:
             if job_loaded:

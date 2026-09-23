@@ -1,14 +1,6 @@
 from uuid import UUID
 
-from .exceptions import (
-    InvalidMediaPackagingJobTransitionError,
-    MediaPackagingJobError,
-)
-
-from .exceptions import (
-    InvalidMediaPackagingJobTransitionError,
-    MediaPackagingJobError,
-)
+from .exceptions import MediaPackagingJobError
 
 
 class MediaPackagingJobNotFoundError(MediaPackagingJobError):

@@ -108,6 +108,34 @@ Use Docker Desktop or the Compose output panel to inspect service logs.
 
 Because Docker Compose is managed by the Dev Containers extension in the supported workflow, do not assume the `dev` container needs access to the host Docker socket.
 
+## Runtime Media Storage Smoke Test
+
+The storage migration can be validated against the real Compose SeaweedFS service without adding live media workflows to CI.
+
+`STORAGE_BACKEND` defaults to `local`. To exercise the SeaweedFS application path, start or restart the API and Worker with the backend selected:
+
+```bash
+STORAGE_BACKEND=seaweedfs docker compose up -d --build api worker
+```
+
+Process a new Episode while this backend is active. Existing derived artifacts written before the switch remain in local storage and are not migrated automatically.
+
+Then run the adapter check and the end-to-end media storage check:
+
+```bash
+just storage-smoke
+just storage-media-smoke <episode-id>
+```
+
+`storage-media-smoke` waits for the current playable media variant, reads the Episode media and streaming-package APIs, materializes derived objects from the configured storage backend, validates the stored playable MP4 with FFprobe, and verifies HLS/DASH manifests and CMAF segments.
+
+Use `--skip-playable` when a full playable-file download is undesirable:
+
+```bash
+docker compose exec -T worker uv run --package animedownloader-worker \
+  python3 /app/scripts/storage-media-smoke.py <episode-id> --skip-playable
+```
+
 ## Monorepo
 
 The repository contains two package-management domains:

@@ -11,6 +11,7 @@ from .repository import MediaProcessingJobRepository
 
 class MediaTranscodingJobService:
     def __init__(self, session: AsyncSession) -> None:
+        self.session = session
         self.jobs = MediaProcessingJobRepository(session)
 
     async def get_job(self, job_id: UUID) -> MediaTranscodingJob:
@@ -29,7 +30,7 @@ class MediaTranscodingJobService:
         source_path: str,
         source_metadata_updated_at: datetime,
     ) -> MediaTranscodingJob | None:
-        await self.jobs.session.rollback()
+        await self.session.rollback()
         async with self.jobs.session.begin():
             active = await self.jobs.get_active_transcoding_job(media_asset_id)
             if active is not None:

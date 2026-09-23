@@ -92,11 +92,14 @@ class FakeProcessor:
         media_path: Path,
         output_path: Path,
         operation: PlayableMediaOperation,
-    ):
+    ) -> PlayableMediaProcessingResult:
         self.operations.append(operation)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(b"playable")
-        return type("Result", (), {"output_path": output_path})()
+        return PlayableMediaProcessingResult(
+            output_path=output_path,
+            operation=operation,
+        )
 
 
 def make_probe(codec: str, container: str) -> MediaProbe:

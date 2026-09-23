@@ -159,7 +159,7 @@ Browser
   → Browser polls and controls DownloadJob
 ```
 
-## Current Phase — Media Asset Integration
+## Current Phase — Media Metadata Integration
 
 ### PR #17 — Media Processing Jobs
 
@@ -172,23 +172,47 @@ Merged into `main` as commit `57e04d490933aca6dc26871dd69e7ee160b5dce6`.
 - Exposed processing status and latest Episode processing state through the API
 - Added retry without re-downloading
 - Kept processing state independent from terminal DownloadJob state
-- Added a manual trigger for processing an existing completed DownloadJob
+- Added a manual trigger for processing an existing completed `DownloadJob`
 - Verified Backend, Frontend, and Integration CI successfully
 
-The processing job remains the execution/history record. The current slice defines the application-level media record that represents the usable media attached to an Episode.
+`MediaProcessingJob` remains the execution/history record for post-download processing.
 
 ### PR #18 — Media Asset / Episode Integration
 
-This PR is in development on `feature/media-asset-integration`.
+Merged into `main` as commit `b3222e675a51e9d2d95faea06b15b2a2794391ef`.
+
+- Added persistent `MediaAsset` with one canonical asset per Episode
+- Materialized the successful processing output path into the Episode media asset
+- Kept MediaAsset metadata minimal and avoided duplicating the full FFprobe result
+- Exposed Episode media information through `GET /api/episodes/{episode_id}/media`
+- Kept `DownloadJob` and `MediaProcessingJob` as execution/history records
+- Made media asset materialization part of the same transaction as processing completion
+
+The `MediaAsset` record is the current usable media representation for an Episode.
+
+### PR #19 — Media Metadata Integration
+
+In development on `feature/media-metadata`.
 
 Scope:
 
-- Add a persistent `MediaAsset` entity with one canonical asset per Episode
-- Materialize the successful processing output path into the Episode media asset
-- Keep MediaAsset metadata minimal; detailed probe data is not duplicated into the asset
-- Expose Episode media information through `GET /api/episodes/{episode_id}/media`
-- Keep DownloadJob and MediaProcessingJob as execution/history records rather than the primary media representation
-- Make media asset materialization part of the same transaction as processing completion
+- Add only the current user-facing media metadata needed by `MediaAsset`
+- Materialize selected metadata from the existing typed `MediaProbe`
+- Preserve the full probe snapshot only on `MediaProcessingJob` for now
+- Track when the current MediaAsset metadata was refreshed
+- Re-inspect existing PR #18 assets whose metadata has not yet been materialized
+- Extend `GET /api/episodes/{episode_id}/media` with current metadata
+
+Current MediaAsset metadata:
+
+- container format
+- duration
+- file size
+- video codec
+- audio codec
+- video width and height
+- frame rate
+- metadata refresh timestamp
 
 Explicitly out of scope:
 
@@ -201,9 +225,11 @@ Explicitly out of scope:
 
 ### Planned Follow-up
 
-After the media asset integration slice:
+After the media metadata slice:
 
-- Subtitle normalization and subtitle attachment
+- Subtitle track integration
+- Subtitle extraction / normalization
+- Chapter, attachment, and sprite integration
 - Transcoding/remuxing
 - HLS/DASH packaging
 - SeaweedFS upload

@@ -22,6 +22,11 @@ web-check:
 server-sync:
   cd server && uv sync --all-packages
 
+server-format:
+  cd server && uv run ruff format .
+
+format: server-format
+
 server-check:
   cd server && uv run ruff check .
   cd server && uv run ruff format --check .

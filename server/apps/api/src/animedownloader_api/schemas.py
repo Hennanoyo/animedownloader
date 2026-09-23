@@ -143,6 +143,27 @@ class DownloadJobResponse(BaseModel):
     updated_at: datetime
 
 
+class MediaAssetResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    episode_id: UUID
+    processing_job_id: UUID | None
+    path: str
+    format_name: str | None
+    duration_seconds: float | None
+    size_bytes: int | None
+    video_codec: str | None
+    width: int | None
+    height: int | None
+    frame_rate: str | None
+    audio_codec: str | None
+    audio_channels: int | None
+    audio_sample_rate_hz: int | None
+    created_at: datetime
+    updated_at: datetime
+
+
 class MediaProcessingJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

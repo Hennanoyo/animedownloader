@@ -1,6 +1,6 @@
 """add media chapters, attachments, and reusable fonts
 
-Revision ID: 0009_media_chapters_attachments_fonts
+Revision ID: 0009_media_resources
 Revises: 0008_subtitle_processing
 Create Date: 2026-09-24
 """
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "0009_media_chapters_attachments_fonts"
+revision = "0009_media_resources"
 down_revision = "0008_subtitle_processing"
 branch_labels = None
 depends_on = None

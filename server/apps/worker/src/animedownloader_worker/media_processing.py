@@ -130,7 +130,8 @@ class MediaProcessingRunner:
 
             if context.status is MediaProcessingJobStatus.FAILED:
                 raise MediaProcessingExecutionError(
-                    f"Media processing job is failed and must be retried before execution: {job_id}",
+                    "Media processing job is failed and must be retried "
+                    f"before execution: {job_id}",
                 )
 
             if context.status is MediaProcessingJobStatus.PENDING:

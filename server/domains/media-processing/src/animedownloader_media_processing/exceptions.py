@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from .enums import MediaProcessingJobStatus, MediaTranscodingJobStatus
+from .enums import MediaPreparationJobStatus, MediaProcessingJobStatus
 
 
 class MediaProcessingJobError(RuntimeError):
@@ -26,25 +26,30 @@ class InvalidMediaProcessingJobTransitionError(MediaProcessingJobError):
         )
 
 
-class MediaTranscodingJobError(MediaProcessingJobError):
+class MediaPreparationJobError(MediaProcessingJobError):
     pass
 
 
-class MediaTranscodingJobNotFoundError(MediaTranscodingJobError):
+class MediaPreparationJobNotFoundError(MediaPreparationJobError):
     def __init__(self, job_id: UUID) -> None:
         self.job_id = job_id
-        super().__init__(f"Media transcoding job not found: {job_id}")
+        super().__init__(f"Media preparation job not found: {job_id}")
 
 
-class InvalidMediaTranscodingJobTransitionError(MediaTranscodingJobError):
+class InvalidMediaPreparationJobTransitionError(MediaPreparationJobError):
     def __init__(
         self,
-        current: MediaTranscodingJobStatus,
-        target: MediaTranscodingJobStatus,
+        current: MediaPreparationJobStatus,
+        target: MediaPreparationJobStatus,
     ) -> None:
         self.current = current
         self.target = target
         super().__init__(
-            "Invalid media transcoding job transition: "
+            "Invalid media preparation job transition: "
             f"{current.value} -> {target.value}",
         )
+
+
+MediaTranscodingJobError = MediaPreparationJobError
+MediaTranscodingJobNotFoundError = MediaPreparationJobNotFoundError
+InvalidMediaTranscodingJobTransitionError = InvalidMediaPreparationJobTransitionError

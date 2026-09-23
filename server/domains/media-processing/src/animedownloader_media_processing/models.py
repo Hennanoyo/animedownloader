@@ -9,7 +9,9 @@ from animedownloader_database import Base
 from animedownloader_download import DownloadJob
 from sqlalchemy import (
     JSON,
+    BigInteger,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -19,7 +21,13 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .enums import MediaProcessingJobStatus
+from .enums import (
+    MediaProcessingJobStatus,
+    MediaTranscodingJobStatus,
+    MediaTranscodingOperation,
+    MediaVariantKind,
+    MediaVariantStatus,
+)
 from .exceptions import InvalidMediaProcessingJobTransitionError
 
 

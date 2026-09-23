@@ -224,7 +224,7 @@ async def _enqueue_media_transcoding(
         if asset is None or asset.metadata_updated_at is None:
             return
 
-        transcoding_job = await MediaTranscodingJobService(session).create_transcoding_job(
+        transcoding_job = await MediaTranscodingJobService(session).create_job(
             media_asset_id=asset.id,
             source_path=asset.path,
             source_metadata_updated_at=asset.metadata_updated_at,

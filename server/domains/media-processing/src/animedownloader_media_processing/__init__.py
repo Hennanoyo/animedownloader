@@ -14,6 +14,8 @@ from .exceptions import (
 )
 from .models import MediaProcessingJob, MediaTranscodingJob, MediaVariant
 from .service import MediaProcessingJobService
+from .transcoding_service import MediaTranscodingJobService
+from .variant_service import MediaVariantService
 
 MEDIA_TRANSCODING_TASK_NAME = "animedownloader.process-media-transcoding"
 
@@ -27,10 +29,12 @@ __all__ = [
     "MediaProcessingJobService",
     "MediaProcessingJobStatus",
     "MediaTranscodingJob",
+    "MediaTranscodingJobService",
     "MediaTranscodingJobNotFoundError",
     "MediaTranscodingJobStatus",
     "MediaTranscodingOperation",
     "MediaVariant",
+    "MediaVariantService",
     "MediaVariantKind",
     "MediaVariantStatus",
 ]

@@ -6,13 +6,15 @@ from animedownloader_download import DownloadJobStatus
 from animedownloader_media_asset import (
     MediaAttachmentStatus,
     MediaThumbnailStatus,
+    SubtitleTrackStatus,
+)
+from animedownloader_media_processing import (
+    MediaProcessingJobStatus,
     MediaTranscodingJobStatus,
     MediaTranscodingOperation,
     MediaVariantKind,
     MediaVariantStatus,
-    SubtitleTrackStatus,
 )
-from animedownloader_media_processing import MediaProcessingJobStatus
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 

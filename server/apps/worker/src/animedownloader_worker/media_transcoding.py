@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from uuid import UUID
+from typing import Protocol
 
 from animedownloader_media import (
     FFmpegPlayableMediaProcessor,
@@ -14,10 +15,9 @@ from animedownloader_media import (
     PlayableMediaPlanner,
 )
 from animedownloader_media_processing import (
-    MediaTranscodingJob,
     MediaTranscodingJobService,
     MediaTranscodingJobStatus,
-    MediaVariant,
+    MediaTranscodingOperation,
     MediaVariantService,
 )
 from animedownloader_media_asset import MediaAssetService
@@ -41,7 +41,7 @@ class MediaTranscodingContext:
     variant_id: UUID
 
 
-class MediaTranscodingStateProtocol:
+class MediaTranscodingStateProtocol(Protocol):
     async def load(self, job_id: UUID) -> MediaTranscodingContext: ...
 
     async def mark_processing(
@@ -89,11 +89,20 @@ class MediaTranscodingState:
                     f"Media variant does not exist: {job.variant_id}",
                 )
 
+            if (
+                asset.path != job.source_path
+                or asset.metadata_updated_at != job.source_metadata_updated_at
+            ):
+                raise MediaTranscodingExecutionError(
+                    "Media asset source changed after the transcoding job was created; "
+                    "create a new transcoding job",
+                )
+
             return MediaTranscodingContext(
                 job_id=job.id,
                 asset_id=asset.id,
-                source_path=asset.path,
-                source_metadata_updated_at=asset.metadata_updated_at,
+                source_path=job.source_path,
+                source_metadata_updated_at=job.source_metadata_updated_at,
                 status=job.job_status,
                 operation=job.transcoding_operation,
                 variant_id=variant.id,
@@ -104,19 +113,11 @@ class MediaTranscodingState:
         job_id: UUID,
         operation: PlayableMediaOperation,
     ) -> None:
-        async with self._session_factory() as session, session.begin():
-            job_service = MediaTranscodingJobService(session)
-            variant_service = MediaVariantService(session)
-            job = await job_service.get_job(job_id)
-            variant = await variant_service.get(job.variant_id)
-            if variant is None:
-                raise MediaTranscodingExecutionError(
-                    f"Media variant does not exist: {job.variant_id}",
-                )
-
-            job.transition_to(MediaTranscodingJobStatus.PROCESSING)
-            job.operation = operation.value
-            variant.mark_processing()
+        async with self._session_factory() as session:
+            await MediaTranscodingJobService(session).mark_processing(
+                job_id,
+                operation,
+            )
 
     async def mark_completed(
         self,
@@ -125,49 +126,51 @@ class MediaTranscodingState:
         output_path: Path,
         probe: MediaProbe,
     ) -> None:
-        async with self._session_factory() as session, session.begin():
-            job_service = MediaTranscodingJobService(session)
-            variant_service = MediaVariantService(session)
-            job = await job_service.get_job(job_id)
-            variant = await variant_service.get(job.variant_id)
-            if variant is None:
-                raise MediaTranscodingExecutionError(
-                    f"Media variant does not exist: {job.variant_id}",
-                )
-
-            variant.mark_completed(
-                source_path=job.source_path,
-                source_metadata_updated_at=job.source_metadata_updated_at,
+        video_stream = next(iter(probe.video_streams), None)
+        audio_stream = next(iter(probe.audio_streams), None)
+        async with self._session_factory() as session:
+            await MediaTranscodingJobService(session).mark_completed(
+                job_id,
                 output_path=str(output_path),
-                probe=probe,
+                format_name=probe.format.format_name,
+                duration_seconds=probe.format.duration_seconds,
+                size_bytes=probe.format.size_bytes,
+                video_codec=video_stream.codec_name if video_stream is not None else None,
+                audio_codec=audio_stream.codec_name if audio_stream is not None else None,
+                width=video_stream.width if video_stream is not None else None,
+                height=video_stream.height if video_stream is not None else None,
+                frame_rate=video_stream.frame_rate if video_stream is not None else None,
             )
-            job.output_path = str(output_path)
-            job.transition_to(MediaTranscodingJobStatus.COMPLETED)
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
-        async with self._session_factory() as session, session.begin():
-            job_service = MediaTranscodingJobService(session)
-            variant_service = MediaVariantService(session)
-            job = await job_service.get_job(job_id)
-            variant = await variant_service.get(job.variant_id)
-            if variant is None:
-                raise MediaTranscodingExecutionError(
-                    f"Media variant does not exist: {job.variant_id}",
-                )
+        async with self._session_factory() as session:
+            await MediaTranscodingJobService(session).mark_failed(
+                job_id,
+                error_message=error_message,
+            )
 
-            job.transition_to(MediaTranscodingJobStatus.FAILED)
-            job.error_message = error_message[:2000]
-            variant.mark_failed(error_message)
 
+class MediaInspector(Protocol):
+    async def inspect(self, path: Path) -> MediaProbe: ...
+
+
+class PlayableMediaProcessor(Protocol):
+    async def process(
+        self,
+        *,
+        media_path: Path,
+        output_path: Path,
+        operation: PlayableMediaOperation,
+    ) -> object: ...
 
 class MediaTranscodingRunner:
     def __init__(
         self,
         *,
         state: MediaTranscodingStateProtocol,
-        inspector: FFprobeInspector,
+        inspector: MediaInspector,
         planner: PlayableMediaPlanner,
-        processor: FFmpegPlayableMediaProcessor,
+        processor: PlayableMediaProcessor,
         media_root: Path,
     ) -> None:
         self._state = state

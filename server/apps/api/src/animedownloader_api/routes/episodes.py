@@ -146,7 +146,7 @@ async def get_latest_episode_playable_media_transcoding_job(
     asset = await media_service.get_for_episode(episode_id)
     if asset is None:
         return None
-    return await service.get_latest_transcoding_job(asset.id)
+    return await service.get_latest_job(asset.id)
 
 
 @router.patch("/{episode_id}", response_model=EpisodeResponse)

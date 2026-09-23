@@ -40,7 +40,7 @@ async def get_media_transcoding_job(
     job_id: UUID,
     service: MediaTranscodingJobServiceDependency,
 ) -> MediaTranscodingJob:
-    return await service.get_transcoding_job(job_id)
+    return await service.get_job(job_id)
 
 
 @router.post(
@@ -73,7 +73,7 @@ async def retry_media_transcoding_job(
             detail="Media asset metadata is not ready",
         )
 
-    new_job = await service.create_transcoding_job(
+    new_job = await service.create_job(
         media_asset_id=asset.id,
         source_path=asset.path,
         source_metadata_updated_at=asset.metadata_updated_at,
@@ -87,7 +87,7 @@ async def retry_media_transcoding_job(
     try:
         await dispatcher.enqueue_transcoding(new_job.id)
     except Exception as exc:
-        await service.mark_transcoding_failed(
+        await service.mark_failed(
             new_job.id,
             error_message="Failed to enqueue media transcoding task.",
         )

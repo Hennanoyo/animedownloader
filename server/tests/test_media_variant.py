@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 from uuid import uuid7
 
+import pytest
+
 from animedownloader_media_processing import (
     MediaTranscodingJob,
     MediaTranscodingJobStatus,
@@ -86,7 +88,6 @@ def test_media_transcoding_job_tracks_operation_and_attempts() -> None:
     assert job.started_at is not None
 
     job.transition_to(MediaTranscodingJobStatus.COMPLETED)
-
     assert job.job_status is MediaTranscodingJobStatus.COMPLETED
     assert job.completed_at is not None
 
@@ -100,9 +101,5 @@ def test_failed_transcoding_job_cannot_be_reused_in_place() -> None:
         status=MediaTranscodingJobStatus.FAILED.value,
     )
 
-    try:
+    with pytest.raises(InvalidMediaTranscodingJobTransitionError):
         job.transition_to(MediaTranscodingJobStatus.PENDING)
-    except InvalidMediaTranscodingJobTransitionError:
-        pass
-    else:
-        raise AssertionError("failed transcoding jobs must be retried as new history rows")

@@ -226,7 +226,9 @@ async def process_media_packaging(job_id: str) -> None:
             processor=FFmpegCMAFProcessor(),
             media_root=settings.media_root,
         )
-        await runner.run(UUID(job_id))
+        parsed_job_id = UUID(job_id)
+        await runner.run(parsed_job_id)
+        await _enqueue_media_packaging(database, parsed_job_id)
     finally:
         await database.dispose()
 

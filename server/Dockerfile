@@ -20,10 +20,11 @@ COPY server/domains/releases/pyproject.toml domains/releases/pyproject.toml
 COPY server/domains/anime/pyproject.toml domains/anime/pyproject.toml
 COPY server/domains/download/pyproject.toml domains/download/pyproject.toml
 COPY server/libs/config/pyproject.toml libs/config/pyproject.toml
-COPY server/libs/nyaa/pyproject.toml libs/nyaa/pyproject.toml
 COPY server/libs/database/pyproject.toml libs/database/pyproject.toml
-COPY server/libs/torrent/pyproject.toml libs/torrent/pyproject.toml
+COPY server/libs/media/pyproject.toml libs/media/pyproject.toml
+COPY server/libs/nyaa/pyproject.toml libs/nyaa/pyproject.toml
 COPY server/libs/qbittorrent/pyproject.toml libs/qbittorrent/pyproject.toml
+COPY server/libs/torrent/pyproject.toml libs/torrent/pyproject.toml
 
 RUN uv sync --all-packages --locked --no-install-workspace
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from dataclasses import dataclass
@@ -15,6 +16,8 @@ from animedownloader_torrent import TorrentClient, TorrentInfo, TorrentStatus
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 DOWNLOAD_TAG_PREFIX = "animedownloader:job-"
+
+logger = logging.getLogger(__name__)
 
 
 class DownloadExecutionError(RuntimeError):
@@ -163,18 +166,28 @@ class DownloadRunner:
                     total_bytes=info.total_bytes,
                 )
 
+                if info.status is TorrentStatus.ERROR:
+                    raise DownloadExecutionError(
+                        f"qBittorrent reported an error for torrent {info.id}"
+                    )
+
                 if info.is_complete:
                     await self._state.mark_completed(
                         job_id,
                         downloaded_bytes=info.downloaded_bytes,
                         total_bytes=info.total_bytes,
                     )
+                    try:
+                        await self._torrent_client.remove(
+                            info.id,
+                            delete_files=False,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to remove completed qBittorrent torrent %s",
+                            info.id,
+                        )
                     return
-
-                if info.status is TorrentStatus.ERROR:
-                    raise DownloadExecutionError(
-                        f"qBittorrent reported an error for torrent {info.id}"
-                    )
 
                 await self._sleep(self._poll_interval)
         except Exception as exc:

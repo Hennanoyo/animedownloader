@@ -39,6 +39,7 @@ executionEnvironments = [
         "domains/releases/src",
         "libs/config/src",
         "libs/database/src",
+        "libs/media/src",
         "libs/nyaa/src",
         "libs/qbittorrent/src",
         "libs/torrent/src",

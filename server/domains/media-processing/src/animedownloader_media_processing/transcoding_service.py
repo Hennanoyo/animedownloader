@@ -1,3 +1,0 @@
-from .preparation_service import MediaPreparationJobService
-
-MediaTranscodingJobService = MediaPreparationJobService

@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { createAnime, getAnime, listAnimes } from "./animes";
+import {
+  createAnime,
+  deleteAnime,
+  getAnime,
+  listAnimes,
+  updateAnime,
+} from "./animes";
 
 const payload = {
   id: "0198a2a8-5b7c-7d7d-8a1f-9f0b8d53f000",
@@ -61,6 +67,47 @@ describe("anime API", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/animes/" + payload.id),
       expect.objectContaining({ method: "GET" }),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("updates one anime record", async () => {
+    const updated = { ...payload, title: "Updated Anime" };
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify(updated), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await updateAnime(payload.id, {
+      title: "Updated Anime",
+      air_time: null,
+    });
+
+    expect(result.title).toBe("Updated Anime");
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/animes/" + payload.id),
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          title: "Updated Anime",
+          air_time: null,
+        }),
+      }),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("deletes one anime record", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(null, { status: 204 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await deleteAnime(payload.id);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/animes/" + payload.id),
+      expect.objectContaining({ method: "DELETE" }),
     );
     vi.unstubAllGlobals();
   });

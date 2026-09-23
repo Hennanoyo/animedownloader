@@ -65,6 +65,31 @@ See `docs/architecture/storage.md`.
 
 A change is complete only after relevant local checks and applicable GitHub Actions checks pass.
 
+## Pre-Commit Validation
+
+Use the repository's `justfile` as the canonical entry point for local validation. Do not manually substitute an equivalent command sequence when a corresponding `just` target exists.
+
+Before committing or opening/updating a pull request:
+
+- For frontend-only changes, run `just web-check`.
+- For backend-only changes, run `just server-check`.
+- For changes affecting both workspaces, shared configuration, or repository-level behavior, run `just check`.
+
+These targets currently run the same lint, formatting, type-check, and test checks used by CI. Keep the local validation command aligned with the `justfile` rather than duplicating its individual commands in this document.
+
+### Validation workflow
+
+1. After making code changes, run the narrowest relevant `just` validation target first.
+2. If any validation fails, fix the implementation and rerun the failed target.
+3. After fixing a failure, rerun the complete required `just` validation target before committing.
+4. Never open or update a pull request while a locally reproducible lint, formatting, type-check, or test failure remains.
+5. When a pull request receives a CI failure, reproduce the failing check locally using the relevant `just` target before making further feature changes.
+6. After any CI-driven fix, rerun the corresponding local `just` target and verify that the new commit starts a fresh CI run.
+
+### Repository-level validation
+
+When changes affect multiple workspaces or shared configuration, run `just check`.
+
 ## Git Workflow
 
 - Prefer focused branches and small pull requests.
@@ -85,9 +110,10 @@ When a task requires code changes:
 
 1. Make the smallest coherent change.
 2. Run focused tests/checks.
-3. Commit and push the change through the normal Git workflow.
-4. Inspect GitHub Actions results when available.
-5. Fix CI failures rather than ignoring them.
-6. Update documentation when architecture or externally visible behavior changes.
+3. Run the required pre-commit `just` validation for every affected workspace.
+4. Commit and push the change through the normal Git workflow.
+5. Inspect GitHub Actions results when available.
+6. Fix CI failures rather than ignoring them.
+7. Update documentation when architecture or externally visible behavior changes.
 
 When completing a feature or PR, update `docs/project-status.md` when the current phase, completed work, or next planned work changes.

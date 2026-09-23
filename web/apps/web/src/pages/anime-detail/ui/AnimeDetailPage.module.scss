@@ -57,6 +57,73 @@
   font-size: 0.8rem;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.secondaryButton,
+.dangerButton {
+  min-height: 2.5rem;
+  padding: 0 0.8rem;
+  border: 1px solid #334155;
+  border-radius: 0.6rem;
+  background: #111827;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.secondaryButton {
+  border-color: #475569;
+}
+
+.dangerButton {
+  border-color: #7f1d1d;
+  color: #fecaca;
+}
+
+.editPanel,
+.deletePanel {
+  margin-top: 2rem;
+  padding: 1.2rem;
+  border: 1px solid #26324a;
+  border-radius: 0.9rem;
+  background: #0f172a;
+}
+
+.panelDescription {
+  margin-top: 0.5rem !important;
+  max-width: 65ch;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.deletePanel {
+  border-color: #7f1d1d;
+}
+
+.deletePanel h2,
+.deletePanel p {
+  margin-block: 0;
+}
+
+.deletePanel h2 {
+  margin-top: 0.25rem;
+  color: #fee2e2;
+}
+
+.deletePanel > div:first-child p:last-child {
+  margin-top: 0.55rem;
+  color: #fecaca;
+  line-height: 1.5;
+}
+
+.deleteError {
+  margin: 1rem 0 0;
+  color: #fecaca;
+}
+
 .panel {
   margin-top: 2rem;
   padding: 1.2rem;
@@ -154,15 +221,27 @@
     padding-inline: 1rem;
   }
 
-  .header {
+  .header,
+  .panelHeader {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .headerActions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .headerActions button {
+    flex: 1 1 auto;
   }
 
   .episodeCount {
     align-self: flex-start;
   }
 
+  .editPanel,
+  .deletePanel,
   .panel {
     padding: 0.9rem;
   }

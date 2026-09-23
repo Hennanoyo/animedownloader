@@ -1,0 +1,109 @@
+.form {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.field :global(input) {
+  min-height: 2.8rem;
+  padding: 0 0.8rem;
+  border: 1px solid #334155;
+  border-radius: 0.6rem;
+  background: #0b1222;
+  color: #e5e7eb;
+}
+
+.field :global(label) {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.selectButton,
+.primaryButton,
+.cancelButton {
+  min-height: 2.8rem;
+  padding: 0 0.9rem;
+  border: 1px solid #334155;
+  border-radius: 0.6rem;
+  background: #111827;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.selectButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.popover {
+  min-width: 12rem;
+  padding: 0.35rem;
+  border: 1px solid #334155;
+  border-radius: 0.7rem;
+  background: #0f172a;
+}
+
+.popover :global([role="option"]) {
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.popover :global([role="option"][data-focused]) {
+  background: #1e293b;
+}
+
+.primaryButton {
+  border-color: #60a5fa;
+  background: #2563eb;
+}
+
+.cancelButton {
+  background: transparent;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+}
+
+.formError {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid #7f1d1d;
+  border-radius: 0.7rem;
+  color: #fecaca;
+  background: #2a1014;
+}
+
+.fieldError {
+  color: #fecaca;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}

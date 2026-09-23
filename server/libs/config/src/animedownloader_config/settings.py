@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +15,8 @@ class Settings(BaseSettings):
     cors_origins_raw: str = "http://localhost:5173"
     download_root: Path = Path("/data/downloads")
     media_root: Path = Path("/data/media")
+    qbittorrent_url: str = "http://qbittorrent:8080"
+    qbittorrent_api_key: SecretStr | None = None
 
     model_config = SettingsConfigDict(
         env_file="/app/server/.env",

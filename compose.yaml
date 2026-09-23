@@ -92,7 +92,6 @@ services:
       DOWNLOAD_ROOT: /data/downloads
       MEDIA_ROOT: /data/media
       QBITTORRENT_URL: http://qbittorrent:8080
-      QBITTORRENT_API_KEY: ${QBITTORRENT_API_KEY:-}
     depends_on:
       redis:
         condition: service_healthy

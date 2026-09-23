@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import { z } from "zod";
 import AnimeCreatePage from "../pages/anime-create/ui/AnimeCreatePage";
+import AnimeDetailPage from "../pages/anime-detail/ui/AnimeDetailPage";
 import AnimeListPage from "../pages/animes/ui/AnimeListPage";
 import ReleaseSearchPage from "../pages/release-search/ui/ReleaseSearchPage";
 import App from "./App";
@@ -28,10 +29,17 @@ const animeCreateRoute = createRoute({
   component: AnimeCreatePage,
 });
 
+const animeDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/animes/$animeId",
+  component: AnimeDetailPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   animesRoute,
   animeCreateRoute,
+  animeDetailRoute,
 ]);
 
 export const router = createRouter({

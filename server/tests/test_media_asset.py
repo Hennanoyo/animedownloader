@@ -1,9 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid7
 
-from sqlalchemy import BigInteger
-
 import pytest
+from sqlalchemy import BigInteger
 from animedownloader_media_asset import (
     MediaAsset,
     MediaChapter,
@@ -174,6 +173,98 @@ def test_subtitle_track_lifecycle() -> None:
 
 def test_media_chapter_id_uses_bigint() -> None:
     assert isinstance(MediaChapter.__table__.c.chapter_id.type, BigInteger)
+
+
+def test_media_asset_updates_existing_media_children_in_place() -> None:
+    asset = MediaAsset(
+        episode_id=uuid7(),
+        processing_job_id=uuid7(),
+        path="/downloads/example/episode.mkv",
+    )
+    asset.update_subtitle_tracks(make_subtitle_tracks())
+    existing_subtitle = asset.subtitle_tracks[0]
+
+    asset.update_chapters(
+        (
+            MediaChapterMetadata(
+                chapter_index=0,
+                id=123,
+                start_time_seconds=0.0,
+                end_time_seconds=30.0,
+                title="Intro",
+            ),
+        ),
+    )
+    existing_chapter = asset.chapters[0]
+
+    asset.update_attachments(
+        (
+            MediaAttachmentMetadata(
+                attachment_index=0,
+                stream_index=4,
+                filename="Example.ttf",
+                mime_type="application/x-truetype-font",
+                description="Example",
+                is_font=True,
+            ),
+        ),
+    )
+    existing_attachment = asset.attachments[0]
+    existing_attachment.mark_completed(
+        extracted_path="/data/media/fonts/aa/aa.ttf",
+        size_bytes=10,
+        font_id=uuid7(),
+    )
+
+    asset.update_subtitle_tracks(
+        (
+            SubtitleTrackMetadata(
+                stream_index=2,
+                language="eng",
+                title="Updated",
+                codec_name="ass",
+                source_path=None,
+                is_default=False,
+                is_forced=True,
+            ),
+        ),
+    )
+    asset.update_chapters(
+        (
+            MediaChapterMetadata(
+                chapter_index=0,
+                id=456,
+                start_time_seconds=1.0,
+                end_time_seconds=31.0,
+                title="Updated Intro",
+            ),
+        ),
+    )
+    asset.update_attachments(
+        (
+            MediaAttachmentMetadata(
+                attachment_index=0,
+                stream_index=4,
+                filename="Renamed.ttf",
+                mime_type="application/x-truetype-font",
+                description="Updated",
+                is_font=True,
+            ),
+        ),
+    )
+
+    assert asset.subtitle_tracks[0] is existing_subtitle
+    assert existing_subtitle.language == "eng"
+    assert existing_subtitle.status == SubtitleTrackStatus.PENDING.value
+    assert existing_subtitle.is_forced
+    assert asset.chapters[0] is existing_chapter
+    assert existing_chapter.chapter_id == 456
+    assert existing_chapter.title == "Updated Intro"
+    assert asset.attachments[0] is existing_attachment
+    assert existing_attachment.filename == "Renamed.ttf"
+    assert existing_attachment.processing_status is MediaAttachmentStatus.PENDING
+    assert existing_attachment.extracted_path is None
+    assert existing_attachment.font_id is None
 
 
 def test_media_asset_chapters_and_attachments_state() -> None:

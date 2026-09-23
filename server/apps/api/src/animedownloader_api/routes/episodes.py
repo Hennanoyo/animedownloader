@@ -6,9 +6,10 @@ from animedownloader_download import ActiveDownloadJobError, DownloadJob, Downlo
 from animedownloader_media_asset import MediaAsset, MediaAssetService
 from animedownloader_media_processing import (
     MediaProcessingJob,
+    MediaPreparationJob,
+    MediaPreparationJobService,
+    MediaProcessingJob,
     MediaProcessingJobService,
-    MediaTranscodingJob,
-    MediaTranscodingJobService,
     MediaVariantService,
 )
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -18,8 +19,8 @@ from animedownloader_api.dependencies import (
     get_download_job_service,
     get_download_task_dispatcher,
     get_media_asset_service,
+    get_media_preparation_job_service,
     get_media_processing_job_service,
-    get_media_transcoding_job_service,
     get_media_variant_service,
 )
 from animedownloader_api.schemas import (
@@ -27,8 +28,8 @@ from animedownloader_api.schemas import (
     EpisodeResponse,
     EpisodeUpdate,
     MediaAssetResponse,
+    MediaPreparationJobResponse,
     MediaProcessingJobResponse,
-    MediaTranscodingJobResponse,
     MediaVariantResponse,
 )
 from animedownloader_api.task_queue import DownloadTaskDispatcher
@@ -51,9 +52,9 @@ MediaProcessingJobServiceDependency = Annotated[
     MediaProcessingJobService,
     Depends(get_media_processing_job_service),
 ]
-MediaTranscodingJobServiceDependency = Annotated[
-    MediaTranscodingJobService,
-    Depends(get_media_transcoding_job_service),
+MediaPreparationJobServiceDependency = Annotated[
+    MediaPreparationJobService,
+    Depends(get_media_preparation_job_service),
 ]
 MediaVariantServiceDependency = Annotated[
     MediaVariantService,
@@ -132,15 +133,15 @@ async def get_episode_playable_media(
 
 
 @router.get(
-    "/{episode_id}/playable-media-transcoding-jobs/latest",
-    response_model=MediaTranscodingJobResponse | None,
+    "/{episode_id}/media-preparation-jobs/latest",
+    response_model=MediaPreparationJobResponse | None,
 )
-async def get_latest_episode_playable_media_transcoding_job(
+async def get_latest_episode_media_preparation_job(
     episode_id: UUID,
     anime_service: AnimeServiceDependency,
     media_service: MediaAssetServiceDependency,
-    service: MediaTranscodingJobServiceDependency,
-) -> MediaTranscodingJob | None:
+    service: MediaPreparationJobServiceDependency,
+) -> MediaPreparationJob | None:
     await anime_service.get_episode(episode_id)
     asset = await media_service.get_for_episode(episode_id)
     if asset is None:

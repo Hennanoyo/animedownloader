@@ -231,7 +231,9 @@ async def test_manual_media_processing_requeues_completed_job_when_asset_is_miss
 
 
 @pytest.mark.anyio
-async def test_manual_media_processing_requeues_completed_job_when_asset_metadata_is_missing() -> None:
+async def test_manual_media_processing_requeues_completed_job_when_asset_metadata_is_missing() -> (
+    None
+):
     service = MagicMock(spec=MediaProcessingJobService)
     dispatcher = MagicMock(spec=MediaProcessingTaskDispatcher)
     download_service = MagicMock(spec=DownloadJobService)
@@ -254,6 +256,9 @@ async def test_manual_media_processing_requeues_completed_job_when_asset_metadat
     stale_asset.metadata_ready = False
     stale_asset.subtitle_tracks_ready = True
     stale_asset.subtitle_processing_ready = False
+    stale_asset.chapters_ready = True
+    stale_asset.attachments_ready = True
+    stale_asset.attachment_processing_ready = True
     download_service.get_job = AsyncMock(return_value=download_job)
     service.create_for_download_job = AsyncMock(return_value=job)
     media_asset_service.get_for_episode = AsyncMock(return_value=stale_asset)

@@ -159,7 +159,7 @@ Browser
   → Browser polls and controls DownloadJob
 ```
 
-## Current Phase — Subtitle Extraction / Normalization
+## Current Phase — Chapter / Attachment Integration
 
 ### PR #17 — Media Processing Jobs
 
@@ -310,7 +310,7 @@ Out of scope:
 
 ### PR #21 — Subtitle Extraction / Normalization
 
-In development on `feature/subtitle-extraction-normalization`.
+Merged into `main` as commit `aed70a37160d8aeb8603124050f6155be812db9f`.
 
 Goal: materialize embedded or external subtitle sources into a normalized application representation.
 
@@ -331,9 +331,11 @@ Out of scope:
 - Transcoding/remuxing of video or audio
 - Player UI
 
-### PR #22 — Chapter / Attachment / Sprite Integration
+### PR #22 — Chapter / Attachment Integration
 
-Goal: persist the remaining useful inspection metadata that belongs to the current media asset.
+In development on `feature/chapter-attachment-integration`.
+
+Goal: persist chapters and attachment resources that belong to the current MediaAsset, while extracting reusable embedded fonts into content-addressed storage.
 
 Scope:
 
@@ -348,7 +350,24 @@ Out of scope:
 - HLS/DASH packaging
 - Player implementation
 
-### PR #23 — Transcoding / Remuxing
+### PR #23 — Thumbnail Sprite Integration
+
+Goal: generate thumbnail sprite assets and timing metadata for future player hover/seek previews.
+
+Scope:
+
+- Extract thumbnail frames with FFmpeg
+- Generate sprite image output and WebVTT timing/region metadata
+- Persist current sprite metadata on MediaAsset
+- Keep generation retryable
+
+Out of scope:
+
+- Video transcoding
+- HLS/DASH packaging
+- Player implementation
+
+### PR #24 — Transcoding / Remuxing
 
 Goal: introduce derived-media generation while preserving MediaAsset as the current playable-media identity.
 
@@ -359,7 +378,7 @@ Scope:
 - Re-inspect generated output and update MediaAsset atomically
 - Support retry/failure history
 
-### PR #24 — HLS / DASH Packaging
+### PR #25 — HLS / DASH Packaging
 
 Goal: derive streaming representations from the current media asset.
 
@@ -369,7 +388,7 @@ Scope:
 - Track package state separately from the source MediaAsset
 - Keep source-media metadata and streaming-package metadata distinct
 
-### PR #25 — SeaweedFS / Media Storage
+### PR #26 — SeaweedFS / Media Storage
 
 Goal: move durable media artifacts from local development storage to SeaweedFS.
 
@@ -380,7 +399,7 @@ Scope:
 - Preserve local filesystem support for development
 - Add cleanup/error handling without coupling storage concerns to processing jobs
 
-### PR #26 — Player / Playback
+### PR #27 — Player / Playback
 
 Goal: expose the current MediaAsset and its derived streaming/subtitle resources to the frontend player.
 
@@ -393,8 +412,29 @@ Scope:
 
 ## Planned Follow-up
 
-After PR #21, immediate next work is PR #22, focused on chapter, attachment, and thumbnail-sprite metadata integration.
+After PR #21, immediate next work is PR #22, focused on chapter and attachment integration. Thumbnail sprite generation is split into PR #23.
 
 ## Handoff Notes
 
 For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current open pull request, and recent commits. Treat the repository state as authoritative and update this file when the project phase changes.
+
+
+### PR #22 — Chapter / Attachment Integration
+
+Scope:
+
+- Materialize chapter metadata from the existing FFprobe result
+- Materialize embedded attachment metadata
+- Extract embedded attachments through FFmpeg
+- Keep per-MediaAsset attachment occurrences separate from reusable font resources
+- Deduplicate identical font binaries by SHA-256
+- Preserve original font filenames as metadata for later subtitle/font matching
+- Expose chapters, attachments, and referenced font resources through the media API
+- Keep attachment processing retryable without re-downloading
+
+Out of scope:
+
+- Thumbnail sprite generation
+- Video/audio transcoding or remuxing
+- HLS/DASH packaging
+- Player UI

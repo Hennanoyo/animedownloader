@@ -1,11 +1,17 @@
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .enums import SubtitleTrackStatus
+from .enums import MediaAttachmentStatus, SubtitleTrackStatus
 from .exceptions import MediaAssetValidationError
-from .metadata import MediaAssetMetadata, SubtitleTrackMetadata
-from .models import MediaAsset
+from .metadata import (
+    MediaAssetMetadata,
+    MediaAttachmentMetadata,
+    MediaChapterMetadata,
+    SubtitleTrackMetadata,
+)
+from .models import MediaAsset, MediaFont
 from .repository import MediaAssetRepository
 
 
@@ -32,6 +38,47 @@ class MediaAssetService:
         asset.subtitle_tracks_processed_at = None
         return asset
 
+    async def retry_failed_attachments(self, asset_id: UUID) -> MediaAsset:
+        asset = await self.assets.get(asset_id)
+        if asset is None:
+            raise MediaAssetValidationError(f"Media asset not found: {asset_id}")
+
+        for attachment in asset.attachments:
+            if attachment.processing_status is MediaAttachmentStatus.FAILED:
+                attachment.retry()
+
+        asset.attachments_processed_at = None
+        return asset
+
+    async def get_or_create_font(
+        self,
+        *,
+        name: str,
+        mime_type: str | None,
+        sha256: str,
+        path: str,
+        size_bytes: int,
+    ) -> MediaFont:
+        font = await self.assets.get_font_by_sha256(sha256)
+        if font is not None:
+            return font
+
+        font = MediaFont(
+            name=name,
+            mime_type=mime_type,
+            sha256=sha256,
+            path=path,
+            size_bytes=size_bytes,
+        )
+        try:
+            async with self.session.begin_nested():
+                return await self.assets.add_font(font)
+        except IntegrityError:
+            existing = await self.assets.get_font_by_sha256(sha256)
+            if existing is None:
+                raise
+            return existing
+
     async def upsert(
         self,
         *,
@@ -40,16 +87,18 @@ class MediaAssetService:
         media_path: str,
         metadata: MediaAssetMetadata,
         subtitle_tracks: tuple[SubtitleTrackMetadata, ...] = (),
+        chapters: tuple[MediaChapterMetadata, ...] = (),
+        attachments: tuple[MediaAttachmentMetadata, ...] = (),
     ) -> MediaAsset:
         asset = await self.assets.get_for_episode(episode_id)
         if asset is None:
-            asset = MediaAsset(
-                episode_id=episode_id,
-            )
+            asset = MediaAsset(episode_id=episode_id)
             asset.processing_job_id = processing_job_id
             asset.path = media_path
             asset.update_metadata(metadata)
             asset.update_subtitle_tracks(subtitle_tracks)
+            asset.update_chapters(chapters)
+            asset.update_attachments(attachments)
             await self.assets.add(asset)
             return asset
 
@@ -57,4 +106,6 @@ class MediaAssetService:
         asset.path = media_path
         asset.update_metadata(metadata)
         asset.update_subtitle_tracks(subtitle_tracks)
+        asset.update_chapters(chapters)
+        asset.update_attachments(attachments)
         return asset

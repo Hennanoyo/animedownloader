@@ -30,7 +30,7 @@ def _paths() -> list[Path]:
 class FakeState:
     context: MediaProcessingContext
     transitions: list[str] = field(default_factory=_strings)
-    completed: tuple[str, dict[str, object]] | None = None
+    completed: tuple[str, MediaProbe] | None = None
     failed_message: str | None = None
 
     async def load(self, job_id: UUID) -> MediaProcessingContext:
@@ -48,9 +48,9 @@ class FakeState:
         job_id: UUID,
         *,
         media_path: str,
-        probe_metadata: dict[str, object],
+        probe: MediaProbe,
     ) -> None:
-        self.completed = (media_path, probe_metadata)
+        self.completed = (media_path, probe)
         self.context = MediaProcessingContext(
             status=MediaProcessingJobStatus.COMPLETED,
             download_directory=self.context.download_directory,
@@ -151,9 +151,7 @@ async def test_runner_inspects_and_completes(tmp_path: Path) -> None:
     assert inspector.paths == [media_path]
     assert state.completed is not None
     assert state.completed[0] == str(media_path)
-    format_metadata = state.completed[1]["format"]
-    assert isinstance(format_metadata, dict)
-    assert format_metadata["format_name"] == "matroska,webm"
+    assert state.completed[1].format.format_name == "matroska,webm"
 
 
 @pytest.mark.anyio

@@ -211,7 +211,7 @@ class MediaPackagingJob(Base):
         self.status = target.value
 
         if target is MediaPackagingJobStatus.PROCESSING:
-            self.attempt_count += 1
+            self.attempt_count = (self.attempt_count or 0) + 1
             if self.started_at is None:
                 self.started_at = now
             self.error_message = None

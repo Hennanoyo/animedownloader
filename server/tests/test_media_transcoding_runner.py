@@ -82,9 +82,8 @@ class FakeInspector:
 
 
 class FakeProcessor:
-    def __init__(self, result_operation: PlayableMediaOperation) -> None:
+    def __init__(self) -> None:
         self.operations: list[PlayableMediaOperation] = []
-        self.result_operation = result_operation
 
     async def process(
         self,
@@ -187,7 +186,7 @@ async def test_runner_transcodes_incompatible_source(tmp_path: Path) -> None:
     output_probe = make_probe("hevc", "mov,mp4,m4a,3gp,3g2,mj2")
     state = FakeState(make_context(status=MediaTranscodingJobStatus.PENDING))
     inspector = FakeInspector([source_probe, output_probe])
-    processor = FakeProcessor(PlayableMediaOperation.TRANSCODE)
+    processor = FakeProcessor()
 
     runner = MediaTranscodingRunner(
         state=state,
@@ -214,7 +213,7 @@ async def test_runner_remuxes_compatible_source(tmp_path: Path) -> None:
     output_probe = source_probe
     state = FakeState(make_context(status=MediaTranscodingJobStatus.PENDING))
     inspector = FakeInspector([source_probe, output_probe])
-    processor = FakeProcessor(PlayableMediaOperation.REMUX)
+    processor = FakeProcessor()
 
     runner = MediaTranscodingRunner(
         state=state,
@@ -248,3 +247,39 @@ async def test_runner_persists_failure(tmp_path: Path) -> None:
         await runner.run(state.context.job_id)
 
     assert state.failed_message == "probe failed"
+
+@pytest.mark.anyio
+async def test_runner_rejects_stale_source_snapshot(tmp_path: Path) -> None:
+    state = FakeState(
+        make_context(status=MediaTranscodingJobStatus.PENDING),
+    )
+    state.context = MediaTranscodingContext(
+        job_id=state.context.job_id,
+        asset_id=state.context.asset_id,
+        source_path=state.context.source_path,
+        source_metadata_updated_at=state.context.source_metadata_updated_at,
+        status=state.context.status,
+        operation=state.context.operation,
+        variant_id=state.context.variant_id,
+        source_is_current=False,
+    )
+    processor = FakeProcessor()
+    inspector = FakeInspector([])
+
+    runner = MediaTranscodingRunner(
+        state=state,
+        inspector=inspector,
+        planner=PlayableMediaPlanner(),
+        processor=processor,
+        media_root=tmp_path,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="source changed after the transcoding job",
+    ):
+        await runner.run(state.context.job_id)
+
+    assert state.failed_message is not None
+    assert inspector.paths == []
+    assert processor.operations == []

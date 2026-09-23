@@ -4,7 +4,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, and chapter/embedded attachment integration.
 
-The current phase is thumbnail sprite generation for browser player hover/seek previews. PR #23 is in development on `feature/thumbnail-sprite-integration`.
+The current phase is transcoding/remuxing for browser-oriented playable media. PR #23 (thumbnail sprite integration) is merged; PR #24 is the next development step.
 
 ## Completed
 
@@ -213,13 +213,14 @@ Browser
       → subtitles
       → chapters
       → attachments / fonts
+      → thumbnails / WebVTT
 ```
 
 ## Media Pipeline Roadmap
 
 ### PR #23 — Thumbnail Sprite Integration
 
-**In development on `feature/thumbnail-sprite-integration`.**
+**Merged into `main` as commit `69184f804ad5cc872095aa632075a818a894467a`.**
 
 Goal: generate a small thumbnail sprite and WebVTT timing metadata for player hover/seek previews, with a deterministic MKV fixture available for direct FFmpeg/media-pipeline verification.
 
@@ -251,15 +252,39 @@ Out of scope:
 
 ### PR #24 — Transcoding / Remuxing
 
-Goal: create derived playable media when the source does not satisfy the target playback constraints.
+**Next development step.**
+
+Goal: create a canonical derived playable media representation only when the downloaded source does not satisfy the target browser playback constraints.
 
 Scope:
 
-- Define derived-media processing state
-- Decide when remuxing is sufficient versus transcoding
-- Persist derived output and refreshed metadata
-- Re-inspect generated output
-- Keep retries and failure history separate from download state
+- Define a derived-media model/state that is separate from the source `MediaAsset` and `MediaProcessingJob`
+- Persist the relationship between the source asset and its derived playable output
+- Inspect the source codec/container/stream properties and make the remux-versus-transcode decision explicitly
+- Remux compatible sources without unnecessary video/audio re-encoding
+- Transcode incompatible video to the project's target HEVC representation
+- Preserve compatible audio/subtitle/chapter/attachment semantics where the chosen output format supports them
+- Re-inspect every generated playable output with FFprobe before marking it ready
+- Persist output path and refreshed media metadata
+- Support retry/failure history without re-downloading the original Episode media
+- Keep source `MediaAsset.path` immutable and treat the derived playable file as a separate artifact
+- Add deterministic FFmpeg fixtures covering at least remux, transcode-required, retry/failure, and metadata-refresh paths
+- Add worker, persistence, API, and PostgreSQL integration coverage for the derived-media lifecycle
+
+Design constraints:
+
+- The source media remains the canonical downloaded input; this PR must not replace or mutate it
+- The decision logic should be deterministic and inspectable from persisted metadata
+- FFmpeg execution belongs behind the media/infrastructure adapter rather than being embedded in API or domain code
+- The generated playable artifact must be independently retryable and eventually replaceable by later HLS/DASH packaging
+- Keep the output representation compatible with the subsequent PR #25 packaging work
+
+Out of scope:
+
+- HLS/DASH manifest and segment generation
+- SeaweedFS upload/storage migration
+- Player UI
+- Thumbnail generation (completed in PR #23)
 
 ### PR #25 — HLS / DASH Packaging
 

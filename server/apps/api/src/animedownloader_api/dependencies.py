@@ -5,6 +5,7 @@ from animedownloader_anime import AnimeService
 from animedownloader_config import Settings
 from animedownloader_database import Database
 from animedownloader_download import DownloadJobService
+from animedownloader_media_asset import MediaAssetService
 from animedownloader_media_processing import MediaProcessingJobService
 from animedownloader_nyaa import NyaaClient
 from animedownloader_qbittorrent import QBittorrentClient
@@ -35,6 +36,12 @@ def get_download_job_service(
 
 def get_download_task_dispatcher(request: Request) -> DownloadTaskDispatcher:
     return request.app.state.download_task_dispatcher
+
+
+def get_media_asset_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> MediaAssetService:
+    return MediaAssetService(session)
 
 
 def get_media_processing_job_service(

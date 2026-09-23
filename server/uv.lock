@@ -10,8 +10,10 @@ members = [
     "animedownloader-database",
     "animedownloader-download",
     "animedownloader-nyaa",
+    "animedownloader-qbittorrent",
     "animedownloader-releases",
     "animedownloader-server",
+    "animedownloader-torrent",
     "animedownloader-worker",
 ]
 
@@ -214,6 +216,21 @@ dependencies = [
 requires-dist = [
     { name = "animedownloader-releases", editable = "domains/releases" },
     { name = "defusedxml", specifier = ">=0.7.1,<1" },
+    { name = "httpx", specifier = ">=0.28,<1" },
+]
+
+[[package]]
+name = "animedownloader-qbittorrent"
+version = "0.1.0"
+source = { editable = "libs/qbittorrent" }
+dependencies = [
+    { name = "animedownloader-torrent" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "animedownloader-torrent", editable = "libs/torrent" },
     { name = "httpx", specifier = ">=0.28,<1" },
 ]
 

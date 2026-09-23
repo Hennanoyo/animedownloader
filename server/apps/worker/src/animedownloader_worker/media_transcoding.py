@@ -106,7 +106,7 @@ class MediaTranscodingState:
     async def mark_processing(
         self,
         job_id: UUID,
-        operation: PlayableMediaOperation,
+        operation: MediaTranscodingOperation,
     ) -> None:
         async with self._session_factory() as session:
             await MediaTranscodingJobService(session).mark_processing(

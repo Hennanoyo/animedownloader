@@ -53,7 +53,9 @@ async def test_cmaf_processor_creates_one_fmp4_media_set(tmp_path: Path) -> None
     assert len(runner.calls) == 1
     command = runner.calls[0]
     assert command[command.index("-hls_segment_type") + 1] == "fmp4"
-    assert command[command.index("-hls_segment_filename") + 1] == "s/%05d.m4s"
+    assert command[command.index("-hls_segment_filename") + 1] == str(
+        output / "s" / "%05d.m4s"
+    )
     assert result.init_segment_path == output / "init.mp4"
     assert result.segments == (
         CMAFMediaSegment(

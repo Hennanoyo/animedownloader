@@ -16,6 +16,7 @@ from animedownloader_config import Settings
 from animedownloader_database import create_database
 from animedownloader_media import parse_cmaf_media_playlist
 from animedownloader_media_asset import MediaAssetService
+from animedownloader_storage import Storage
 from animedownloader_media_processing import (
     MediaStreamingPackageService,
     MediaVariantService,
@@ -126,7 +127,7 @@ async def ensure_packaging_job(episode_id: UUID) -> UUID | None:
 
 async def verify_streaming_package(
     *,
-    storage: object,
+    storage: Storage,
     api_url: str,
     episode_id: UUID,
 ) -> None:

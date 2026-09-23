@@ -1,12 +1,13 @@
 from uuid import UUID
 
 from animedownloader_config import Settings
-from animedownloader_database import create_database
+from animedownloader_database import Database, create_database
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
 from animedownloader_media import FFprobeInspector
 from animedownloader_media_processing import (
     MEDIA_PROCESSING_TASK_NAME,
     MediaProcessingJobService,
+    MediaProcessingJobStatus,
 )
 from animedownloader_qbittorrent import QBittorrentClient
 
@@ -62,7 +63,7 @@ async def process_media_job(job_id: str) -> None:
 
 
 async def _enqueue_media_processing(
-    database,
+    database: Database,
     download_job_id: UUID,
 ) -> None:
     async with database.session_factory() as session:

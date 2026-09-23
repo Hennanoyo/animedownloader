@@ -144,13 +144,20 @@ class QBittorrentClient:
         self,
         method: str,
         path: str,
-        **kwargs: object,
+        *,
+        data: dict[str, str] | None = None,
+        params: dict[str, str] | None = None,
     ) -> httpx.Response:
         if self._http_client is None:
             raise RuntimeError("QBittorrentClient must be used as an async context manager")
 
         try:
-            response = await self._http_client.request(method, path, **kwargs)
+            response = await self._http_client.request(
+                method,
+                path,
+                data=data,
+                params=params,
+            )
         except httpx.RequestError as exc:
             raise QBittorrentConnectionError("qBittorrent API request failed") from exc
 
@@ -171,13 +178,14 @@ class QBittorrentClient:
     @staticmethod
     def _decode_torrent_list(response: httpx.Response) -> list[dict[str, object]]:
         try:
-            payload = response.json()
+            raw_payload: object = response.json()
         except ValueError as exc:
             raise QBittorrentAPIError("qBittorrent returned invalid JSON") from exc
 
-        if not isinstance(payload, list):
+        if not isinstance(raw_payload, list):
             raise QBittorrentAPIError("qBittorrent returned an invalid torrent list")
 
+        payload: list[object] = cast(list[object], raw_payload)
         torrents: list[dict[str, object]] = []
         for item in payload:
             if not isinstance(item, dict):

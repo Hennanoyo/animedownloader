@@ -5,9 +5,11 @@ from animedownloader_database import Database, create_database
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
 from animedownloader_media import (
     FFmpegAttachmentProcessor,
+    FFmpegPlayableMediaProcessor,
     FFmpegSubtitleProcessor,
     FFmpegThumbnailSpriteProcessor,
     FFprobeInspector,
+    PlayableMediaPlanner,
 )
 from animedownloader_media_asset import (
     MEDIA_ATTACHMENT_PROCESSING_TASK_NAME,
@@ -30,6 +32,7 @@ from .media_attachment_processing import (
     create_media_attachment_processing_state,
 )
 from .media_processing import MediaProcessingRunner, create_media_processing_state
+from .media_transcoding import MediaTranscodingRunner, create_media_transcoding_state
 from .media_thumbnail_processing import (
     MediaThumbnailProcessingRunner,
     create_media_thumbnail_processing_state,

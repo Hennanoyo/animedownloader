@@ -36,7 +36,7 @@ from .media_thumbnail_processing import (
     MediaThumbnailProcessingRunner,
     create_media_thumbnail_processing_state,
 )
-from .media_transcoding import MediaTranscodingRunner, create_media_transcoding_state,
+from .media_transcoding import MediaTranscodingRunner, create_media_transcoding_state
 from .runner import DownloadRunner, create_download_state
 from .subtitle_processing import (
     SubtitleProcessingRunner,

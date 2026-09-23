@@ -5,7 +5,6 @@ from uuid import UUID, uuid7
 import pytest
 from animedownloader_download import DownloadJobStatus
 from animedownloader_torrent import TorrentInfo, TorrentStatus
-
 from animedownloader_worker.runner import (
     DOWNLOAD_TAG_PREFIX,
     DownloadContext,

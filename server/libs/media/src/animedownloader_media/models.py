@@ -64,11 +64,15 @@ class MediaProbe:
 
     @property
     def video_streams(self) -> tuple[MediaStream, ...]:
-        return tuple(stream for stream in self.streams if stream.codec_type is MediaStreamType.VIDEO)
+        return tuple(
+            stream for stream in self.streams if stream.codec_type is MediaStreamType.VIDEO
+        )
 
     @property
     def audio_streams(self) -> tuple[MediaStream, ...]:
-        return tuple(stream for stream in self.streams if stream.codec_type is MediaStreamType.AUDIO)
+        return tuple(
+            stream for stream in self.streams if stream.codec_type is MediaStreamType.AUDIO
+        )
 
     @property
     def subtitle_streams(self) -> tuple[MediaStream, ...]:

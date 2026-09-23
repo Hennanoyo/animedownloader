@@ -193,11 +193,6 @@ requires-dist = [
 ]
 
 [[package]]
-name = "animedownloader-media"
-version = "0.1.0"
-source = { editable = "libs/media" }
-
-[[package]]
 name = "animedownloader-download"
 version = "0.1.0"
 source = { editable = "domains/download" }
@@ -211,6 +206,11 @@ requires-dist = [
     { name = "animedownloader-anime", editable = "domains/anime" },
     { name = "animedownloader-database", editable = "libs/database" },
 ]
+
+[[package]]
+name = "animedownloader-media"
+version = "0.1.0"
+source = { editable = "libs/media" }
 
 [[package]]
 name = "animedownloader-nyaa"

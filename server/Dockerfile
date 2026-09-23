@@ -26,6 +26,7 @@ COPY server/libs/database/pyproject.toml libs/database/pyproject.toml
 COPY server/libs/media/pyproject.toml libs/media/pyproject.toml
 COPY server/libs/nyaa/pyproject.toml libs/nyaa/pyproject.toml
 COPY server/libs/qbittorrent/pyproject.toml libs/qbittorrent/pyproject.toml
+COPY server/libs/storage/pyproject.toml libs/storage/pyproject.toml
 COPY server/libs/torrent/pyproject.toml libs/torrent/pyproject.toml
 
 RUN uv sync --all-packages --locked --no-install-workspace

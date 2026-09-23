@@ -7,6 +7,7 @@ class MediaProcessingJobStatus(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
 
+
 class MediaVariantKind(StrEnum):
     PLAYABLE = "playable"
 

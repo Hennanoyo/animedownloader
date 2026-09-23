@@ -90,6 +90,7 @@ class FakeTorrentClient:
         save_path: str,
         tags: Sequence[str] = (),
     ) -> None:
+        assert not Path(save_path).exists()
         self.added.append((source, save_path, tuple(tags)))
 
     async def get(self, torrent_id: str) -> TorrentInfo | None:
@@ -158,7 +159,6 @@ async def test_download_runner_starts_download_and_persists_completion(tmp_path:
     ]
     assert state.progress == [(500, 1000), (1000, 1000)]
     assert state.completed == (1000, 1000)
-    assert (tmp_path / str(job_id)).is_dir()
 
 
 @pytest.mark.anyio

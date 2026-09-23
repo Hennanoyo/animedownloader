@@ -4,8 +4,6 @@ from typing import Annotated
 from animedownloader_anime import AnimeService
 from animedownloader_database import Database
 from animedownloader_download import DownloadJobService
-
-from animedownloader_api.task_queue import DownloadTaskDispatcher
 from animedownloader_nyaa import NyaaClient
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession

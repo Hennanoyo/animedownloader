@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from tempfile import TemporaryDirectory
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -8,6 +9,7 @@ from uuid import UUID
 
 from animedownloader_media import FFmpegSubtitleProcessor
 from animedownloader_media_asset import MediaAssetService, SubtitleTrack, SubtitleTrackStatus
+from animedownloader_storage import Storage
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 logger = logging.getLogger(__name__)
@@ -134,59 +136,75 @@ class SubtitleProcessingRunner:
         state: SubtitleProcessingStateProtocol,
         processor: FFmpegSubtitleProcessor,
         media_root: Path,
+        storage: Storage,
     ) -> None:
         self._state = state
         self._processor = processor
         self._media_root = media_root
+        self._storage = storage
 
     async def run(self, asset_id: UUID) -> None:
         context = await self._state.load(asset_id)
         if context.ready:
             return
 
-        for track in context.tracks:
-            if track.status is SubtitleTrackStatus.COMPLETED:
-                continue
+        with TemporaryDirectory(prefix="animedownloader-subtitles-") as staging_dir:
+            staging_root = Path(staging_dir)
+            for track in context.tracks:
+                if track.status is SubtitleTrackStatus.COMPLETED:
+                    continue
 
-            await self._state.mark_processing(track.id)
-            try:
-                normalized_path = _normalized_path(
-                    self._media_root,
-                    context.asset_id,
-                    track.id,
-                    track.codec_name,
-                )
-                if track.source_path is not None:
-                    normalized_format = await self._processor.normalize_external(
-                        source_path=Path(track.source_path),
-                        codec_name=track.codec_name,
-                        output_path=normalized_path,
+                await self._state.mark_processing(track.id)
+                try:
+                    output_path = _normalized_path(
+                        staging_root,
+                        context.asset_id,
+                        track.id,
+                        track.codec_name,
                     )
-                else:
-                    if track.stream_index is None:
-                        raise SubtitleProcessingExecutionError(
-                            f"Embedded subtitle track has no stream index: {track.id}",
+                    if track.source_path is not None:
+                        normalized_format = await self._processor.normalize_external(
+                            source_path=Path(track.source_path),
+                            codec_name=track.codec_name,
+                            output_path=output_path,
                         )
-                    normalized_format = await self._processor.extract(
-                        media_path=Path(context.media_path),
-                        stream_index=track.stream_index,
-                        codec_name=track.codec_name,
-                        output_path=normalized_path,
+                    else:
+                        if track.stream_index is None:
+                            raise SubtitleProcessingExecutionError(
+                                f"Embedded subtitle track has no stream index: {track.id}",
+                            )
+                        normalized_format = await self._processor.extract(
+                            media_path=Path(context.media_path),
+                            stream_index=track.stream_index,
+                            codec_name=track.codec_name,
+                            output_path=output_path,
+                        )
+
+                    extension = output_path.suffix.lstrip(".")
+                    object_key = (
+                        f"subtitles/{context.asset_id}/{track.id}.{extension}"
                     )
-                await self._state.mark_completed(
-                    track.id,
-                    normalized_path=str(normalized_path),
-                    normalized_format=normalized_format,
-                )
-            except Exception as exc:
-                await self._state.mark_failed(
-                    track.id,
-                    error_message=_format_error(exc),
-                )
-                logger.exception(
-                    "Subtitle processing failed for track %s",
-                    track.id,
-                )
+                    await self._storage.put_file(
+                        output_path,
+                        object_key,
+                        content_type=(
+                            "text/x-ssa" if extension == "ssa" else "text/x-ass"
+                        ),
+                    )
+                    await self._state.mark_completed(
+                        track.id,
+                        normalized_path=object_key,
+                        normalized_format=normalized_format,
+                    )
+                except Exception as exc:
+                    await self._state.mark_failed(
+                        track.id,
+                        error_message=_format_error(exc),
+                    )
+                    logger.exception(
+                        "Subtitle processing failed for track %s",
+                        track.id,
+                    )
 
         await self._state.mark_asset_complete(context.asset_id)
 

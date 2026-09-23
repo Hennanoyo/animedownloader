@@ -82,6 +82,7 @@ class MediaProcessingJob(Base):
         ] = {
             MediaProcessingJobStatus.PENDING: {
                 MediaProcessingJobStatus.PROCESSING,
+                MediaProcessingJobStatus.FAILED,
             },
             MediaProcessingJobStatus.PROCESSING: {
                 MediaProcessingJobStatus.COMPLETED,

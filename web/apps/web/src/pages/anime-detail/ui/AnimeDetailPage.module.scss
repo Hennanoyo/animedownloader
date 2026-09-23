@@ -1,0 +1,169 @@
+.page {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+}
+
+.backLink {
+  display: inline-flex;
+  margin-bottom: 1.5rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.backLink:hover,
+.backLink:focus-visible {
+  color: #e5e7eb;
+}
+
+.header,
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.kicker {
+  margin: 0 0 0.5rem;
+  color: #60a5fa;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.header h1,
+.header p,
+.panelHeader h2,
+.panelHeader p,
+.state h1,
+.state p {
+  margin: 0;
+}
+
+.schedule {
+  margin-top: 0.65rem !important;
+  color: #94a3b8;
+}
+
+.episodeCount {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+}
+
+.panel {
+  margin-top: 2rem;
+  padding: 1.2rem;
+  border: 1px solid #26324a;
+  border-radius: 0.9rem;
+  background: #0f172a;
+}
+
+.tableWrap {
+  margin-top: 1rem;
+  overflow-x: auto;
+  border: 1px solid #26324a;
+  border-radius: 0.7rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+  font-size: 0.84rem;
+}
+
+.table th,
+.table td {
+  padding: 0.8rem 0.75rem;
+  border-bottom: 1px solid #26324a;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.table thead th {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: #0b1222;
+}
+
+.table tbody tr:last-child th,
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table tbody th {
+  color: #e5e7eb;
+  font-weight: 700;
+}
+
+.table tbody td {
+  color: #cbd5e1;
+}
+
+.table a {
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.table a:hover,
+.table a:focus-visible {
+  text-decoration: underline;
+}
+
+.status {
+  display: inline-flex;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #334155;
+  border-radius: 0.45rem;
+  color: #cbd5e1;
+  font-size: 0.75rem;
+}
+
+.empty,
+.state {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px dashed #334155;
+  border-radius: 0.7rem;
+  color: #94a3b8;
+}
+
+.state h1 {
+  color: #e5e7eb;
+  font-size: 1.1rem;
+}
+
+.state p {
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding-inline: 1rem;
+  }
+
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .episodeCount {
+    align-self: flex-start;
+  }
+
+  .panel {
+    padding: 0.9rem;
+  }
+}

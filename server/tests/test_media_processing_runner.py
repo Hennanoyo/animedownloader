@@ -12,7 +12,6 @@ from animedownloader_media import (
 )
 from animedownloader_media_processing import MediaProcessingJobStatus
 from animedownloader_worker.media_processing import (
-    MediaInspector,
     MediaProcessingContext,
     MediaProcessingExecutionError,
     MediaProcessingRunner,

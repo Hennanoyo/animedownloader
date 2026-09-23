@@ -180,7 +180,7 @@ def make_probe(path: Path) -> MediaProbe:
                 language="eng",
                 title="English",
                 disposition_default=False,
-                disposition_forced=False,
+                disposition_forced=True,
                 tags=(),
             ),
         ),
@@ -225,6 +225,8 @@ def test_build_subtitle_track_metadata_from_probe() -> None:
     assert tracks[1].stream_index == 3
     assert tracks[1].language == "eng"
     assert tracks[1].codec_name == "subrip"
+    assert not tracks[1].is_default
+    assert tracks[1].is_forced
 
 
 @pytest.mark.anyio

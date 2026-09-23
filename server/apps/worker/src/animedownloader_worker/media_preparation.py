@@ -65,7 +65,10 @@ class MediaPreparationStateProtocol(Protocol):
         job_id: UUID,
         *,
         playable_probe: MediaProbe | None,
+        playable_output_key: str | None,
         thumbnail: ThumbnailSpriteResult | None,
+        thumbnail_sprite_key: str | None,
+        thumbnail_vtt_key: str | None,
     ) -> None: ...
 
     async def mark_failed(
@@ -140,7 +143,10 @@ class MediaPreparationState:
         job_id: UUID,
         *,
         playable_probe: MediaProbe | None,
+        playable_output_key: str | None,
         thumbnail: ThumbnailSpriteResult | None,
+        thumbnail_sprite_key: str | None,
+        thumbnail_vtt_key: str | None,
     ) -> None:
         async with self._session_factory() as session:
             service = MediaPreparationJobService(session)
@@ -156,13 +162,7 @@ class MediaPreparationState:
             )
             await service.mark_completed(
                 job_id,
-                playable_output_path=(
-                    str(
-                        playable_probe.path,
-                    )
-                    if playable_probe is not None
-                    else None
-                ),
+                playable_output_path=playable_output_key,
                 format_name=(
                     playable_probe.format.format_name
                     if playable_probe is not None
@@ -183,12 +183,8 @@ class MediaPreparationState:
                 width=video_stream.width if video_stream is not None else None,
                 height=video_stream.height if video_stream is not None else None,
                 frame_rate=video_stream.frame_rate if video_stream is not None else None,
-                thumbnail_sprite_path=(
-                    str(thumbnail.sprite_path) if thumbnail is not None else None
-                ),
-                thumbnail_vtt_path=(
-                    str(thumbnail.vtt_path) if thumbnail is not None else None
-                ),
+                thumbnail_sprite_path=thumbnail_sprite_key,
+                thumbnail_vtt_path=thumbnail_vtt_key,
             )
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
@@ -246,7 +242,6 @@ class MediaPreparationRunner:
         preparation_processor: MediaPreparationProcessor,
         playable_processor: PlayableMediaProcessor,
         thumbnail_processor: ThumbnailProcessor,
-        media_root: Path,
         storage: Storage,
     ) -> None:
         self._state = state
@@ -255,7 +250,6 @@ class MediaPreparationRunner:
         self._preparation_processor = preparation_processor
         self._playable_processor = playable_processor
         self._thumbnail_processor = thumbnail_processor
-        self._media_root = media_root
         self._storage = storage
 
     async def run(self, job_id: UUID) -> None:
@@ -395,20 +389,11 @@ class MediaPreparationRunner:
 
             await self._state.mark_completed(
                 job_id,
-                playable_probe=(
-                    _probe_with_path(playable_probe, playable_output_key)
-                    if playable_probe is not None and playable_output_key is not None
-                    else None
-                ),
-                thumbnail=(
-                    _thumbnail_with_paths(
-                        thumbnail,
-                        thumbnail_sprite_key,
-                        thumbnail_vtt_key,
-                    )
-                    if thumbnail is not None
-                    else None
-                ),
+                playable_probe=playable_probe,
+                playable_output_key=playable_output_key,
+                thumbnail=thumbnail,
+                thumbnail_sprite_key=thumbnail_sprite_key,
+                thumbnail_vtt_key=thumbnail_vtt_key,
             )
         except Exception as exc:
             if context is not None:
@@ -437,27 +422,3 @@ def create_media_preparation_state(
 
 
 
-def _probe_with_path(probe: MediaProbe, object_key: str) -> MediaProbe:
-    return MediaProbe(
-        path=object_key,
-        format=probe.format,
-        streams=probe.streams,
-        chapters=probe.chapters,
-    )
-
-
-def _thumbnail_with_paths(
-    result: ThumbnailSpriteResult,
-    sprite_key: str | None,
-    vtt_key: str | None,
-) -> ThumbnailSpriteResult:
-    if sprite_key is None or vtt_key is None:
-        raise MediaPreparationExecutionError(
-            "Thumbnail storage keys are required when a thumbnail was generated",
-        )
-    return ThumbnailSpriteResult(
-        sprite_path=Path(sprite_key),
-        vtt_path=Path(vtt_key),
-        frame_count=result.frame_count,
-        interval_seconds=result.interval_seconds,
-    )

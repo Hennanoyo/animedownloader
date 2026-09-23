@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
@@ -9,14 +9,15 @@ from animedownloader_media import (
 )
 
 
-@dataclass
 class FakeRunner:
-    result: FFmpegCommandResult
-    calls: list[tuple[str, ...]] = field(default_factory=list)
+    def __init__(self, result: FFmpegCommandResult) -> None:
+        self.result = result
+        self.calls: list[tuple[str, ...]] = []
 
-    async def run(self, args: tuple[str, ...]) -> FFmpegCommandResult:
-        self.calls.append(args)
-        output_path = Path(args[-1])
+    async def run(self, args: Sequence[str]) -> FFmpegCommandResult:
+        command = tuple(args)
+        self.calls.append(command)
+        output_path = Path(command[-1])
         output_path.parent.mkdir(parents=True, exist_ok=True)
         if self.result.returncode == 0:
             output_path.touch()

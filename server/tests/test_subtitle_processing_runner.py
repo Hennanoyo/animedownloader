@@ -1,4 +1,3 @@
-from dataclasses import dataclass, field
 from pathlib import Path
 from uuid import UUID, uuid7
 
@@ -12,13 +11,13 @@ from animedownloader_worker.subtitle_processing import (
 )
 
 
-@dataclass
 class FakeState:
-    context: SubtitleProcessingContext
-    transitions: list[tuple[str, UUID]] = field(default_factory=list)
-    completed: list[tuple[UUID, str, str]] = field(default_factory=list)
-    failed: list[tuple[UUID, str]] = field(default_factory=list)
-    asset_completed: bool = False
+    def __init__(self, context: SubtitleProcessingContext) -> None:
+        self.context = context
+        self.transitions: list[tuple[str, UUID]] = []
+        self.completed: list[tuple[UUID, str, str]] = []
+        self.failed: list[tuple[UUID, str]] = []
+        self.asset_completed = False
 
     async def load(self, asset_id: UUID) -> SubtitleProcessingContext:
         return self.context

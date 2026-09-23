@@ -32,5 +32,7 @@ __all__ = [
     "ProbeRunner",
     "SubprocessFFmpegRunner",
     "SubprocessProbeRunner",
+    "SubtitleProcessingError",
+    "UnsupportedSubtitleCodecError",
     "parse_ffprobe_json",
 ]

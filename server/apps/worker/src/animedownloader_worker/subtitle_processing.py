@@ -10,7 +10,7 @@ from animedownloader_media import FFmpegSubtitleProcessor
 from animedownloader_media_asset import SubtitleTrackStatus
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from animedownloader_media_asset import MediaAsset, MediaAssetService, SubtitleTrack
+from animedownloader_media_asset import MediaAssetService, SubtitleTrack
 
 logger = logging.getLogger(__name__)
 

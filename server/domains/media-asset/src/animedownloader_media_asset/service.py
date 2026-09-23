@@ -71,9 +71,9 @@ class MediaAssetService:
             size_bytes=size_bytes,
         )
         try:
-            return await self.assets.add_font(font)
+            async with self.session.begin_nested():
+                return await self.assets.add_font(font)
         except IntegrityError:
-            await self.session.rollback()
             existing = await self.assets.get_font_by_sha256(sha256)
             if existing is None:
                 raise

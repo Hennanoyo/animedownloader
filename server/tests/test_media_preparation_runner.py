@@ -18,6 +18,7 @@ from animedownloader_media_processing import (
     MediaPreparationJobStatus,
     MediaTranscodingOperation,
 )
+from animedownloader_storage import LocalStorage
 from animedownloader_worker.media_preparation import (
     MediaPreparationContext,
     MediaPreparationRunner,
@@ -62,7 +63,10 @@ class FakeState:
         job_id: UUID,
         *,
         playable_probe: MediaProbe | None,
+        playable_output_key: str | None,
         thumbnail: ThumbnailSpriteResult | None,
+        thumbnail_sprite_key: str | None,
+        thumbnail_vtt_key: str | None,
     ) -> None:
         self.completed = (playable_probe, thumbnail)
 
@@ -270,7 +274,7 @@ def make_runner(
         preparation_processor=preparation,
         playable_processor=playable,
         thumbnail_processor=thumbnail,
-        media_root=tmp_path,
+        storage=LocalStorage(tmp_path / "storage", "http://localhost:8888"),
     )
 
 

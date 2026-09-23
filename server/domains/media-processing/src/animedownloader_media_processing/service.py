@@ -1,7 +1,11 @@
 from uuid import UUID
 
 from animedownloader_anime import Episode, EpisodeNotFoundError
-from animedownloader_download import DownloadJob, DownloadJobStatus
+from animedownloader_download import (
+    DownloadJob,
+    DownloadJobNotFoundError,
+    DownloadJobStatus,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .enums import MediaProcessingJobStatus
@@ -37,7 +41,7 @@ class MediaProcessingJobService:
 
             download_job = await self.session.get(DownloadJob, download_job_id)
             if download_job is None:
-                raise MediaProcessingJobNotFoundError(download_job_id)
+                raise DownloadJobNotFoundError(download_job_id)
 
             if download_job.episode_id != episode_id:
                 raise ValueError("Download job does not belong to episode")

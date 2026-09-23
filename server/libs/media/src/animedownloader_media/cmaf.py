@@ -107,9 +107,15 @@ class FFmpegCMAFProcessor:
         )
         _validate_ffmpeg_result(result, playlist_path)
 
-        playlist = parse_cmaf_media_playlist(
-            playlist_path.read_text(encoding="utf-8"),
+        raw_playlist = playlist_path.read_text(encoding="utf-8")
+        playlist = parse_cmaf_media_playlist(raw_playlist)
+        normalized_playlist, normalized_segments = _normalize_segment_uris(
+            playlist_path=playlist_path,
+            content=raw_playlist,
+            segments=playlist.segments,
         )
+        if normalized_playlist != raw_playlist:
+            playlist_path.write_text(normalized_playlist, encoding="utf-8")
         init_segment_path = _resolve_playlist_path(playlist_path, playlist.init_uri)
         if not init_segment_path.is_file():
             raise CMAFPackagingError(
@@ -128,7 +134,7 @@ class FFmpegCMAFProcessor:
         return CMAFPackagingResult(
             playlist_path=playlist_path,
             init_segment_path=init_segment_path,
-            segments=playlist.segments,
+            segments=normalized_segments,
         )
 
 
@@ -179,6 +185,36 @@ def parse_cmaf_media_playlist(content: str) -> CMAFMediaPlaylist:
         init_uri=init_uri,
         segments=tuple(segments),
     )
+
+
+def _normalize_segment_uris(
+    *,
+    playlist_path: Path,
+    content: str,
+    segments: Sequence[CMAFMediaSegment],
+) -> tuple[str, tuple[CMAFMediaSegment, ...]]:
+    segment_by_uri = {segment.uri: segment for segment in segments}
+    normalized_segments = tuple(
+        CMAFMediaSegment(
+            number=segment.number,
+            duration_seconds=segment.duration_seconds,
+            uri=f"s/{Path(segment.uri).name}",
+        )
+        for segment in segments
+    )
+
+    normalized_content: list[str] = []
+    for line in content.splitlines():
+        stripped = line.strip()
+        segment = segment_by_uri.get(stripped)
+        if segment is None:
+            normalized_content.append(line)
+            continue
+        normalized_content.append(
+            f"s/{Path(segment.uri).name}",
+        )
+
+    return "\n".join(normalized_content) + "\n", normalized_segments
 
 
 def build_hls_master_playlist(

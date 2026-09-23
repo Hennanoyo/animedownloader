@@ -177,7 +177,7 @@ jobs:
               )
               assert result.sprite_path.is_file()
               assert result.vtt_path.is_file()
-              assert result.frame_count > 0
+              assert result.frame_count == 3
               assert "WEBVTT" in result.vtt_path.read_text(encoding="utf-8")
               print(
                   f"thumbnail fixture verified: {result.frame_count} frames, "

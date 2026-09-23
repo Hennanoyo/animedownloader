@@ -1,6 +1,10 @@
 import httpx
 import pytest
-from animedownloader_qbittorrent import QBittorrentAPIError, QBittorrentClient
+from animedownloader_qbittorrent import (
+    QBittorrentAddError,
+    QBittorrentAPIError,
+    QBittorrentClient,
+)
 from animedownloader_torrent import TorrentStatus
 
 
@@ -37,6 +41,47 @@ async def test_add_torrent() -> None:
     assert b"urls=https%3A%2F%2Fexample.com%2Fepisode.torrent" in captured["body"]  # type: ignore[operator]
     assert b"savepath=%2Fdata%2Fdownloads" in captured["body"]  # type: ignore[operator]
     assert b"tags=animedownloader%3Ajob-123" in captured["body"]  # type: ignore[operator]
+
+
+@pytest.mark.anyio
+async def test_add_torrent_pending() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            202,
+            json={
+                "added_torrent_ids": [],
+                "failure_count": 0,
+                "pending_count": 1,
+                "success_count": 0,
+            },
+        )
+
+    async with make_client(httpx.MockTransport(handler)) as client:
+        await client.add(
+            "magnet:?xt=urn:btih:example",
+            save_path="/data/downloads",
+            tags=("animedownloader:job-123",),
+        )
+
+
+@pytest.mark.anyio
+async def test_add_torrent_failure() -> None:
+    response_body: dict[str, object] = {
+        "added_torrent_ids": [],
+        "failure_count": 1,
+        "pending_count": 0,
+        "success_count": 0,
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=response_body)
+
+    async with make_client(httpx.MockTransport(handler)) as client:
+        with pytest.raises(QBittorrentAddError, match="failure_count"):
+            await client.add(
+                "https://example.com/episode.torrent",
+                save_path="/data/downloads",
+            )
 
 
 @pytest.mark.anyio

@@ -4,7 +4,12 @@ from uuid import uuid7
 
 import httpx
 import pytest
-from animedownloader_anime import AnimeNotFoundError, AnimeService, DuplicateEpisodeError
+from animedownloader_anime import (
+    AnimeNotFoundError,
+    AnimeService,
+    DuplicateEpisodeError,
+    EpisodeNotFoundError,
+)
 from animedownloader_anime.models import Anime, Episode
 from animedownloader_api.app import create_app
 from animedownloader_api.dependencies import get_anime_service
@@ -127,3 +132,89 @@ async def test_duplicate_episode_is_409() -> None:
         )
 
     assert response.status_code == 409
+
+
+@pytest.mark.anyio
+async def test_create_episode() -> None:
+    episode = make_anime().episodes[0]
+    service = MagicMock(spec=AnimeService)
+    service.create_episode = AsyncMock(return_value=episode)
+
+    app = create_app()
+    app.dependency_overrides[get_anime_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.post(
+            "/api/animes/" + str(episode.anime_id) + "/episodes",
+            json={
+                "episode_number": episode.episode_number,
+                "title": episode.title,
+                "source": episode.source,
+                "source_id": episode.source_id,
+                "source_title": episode.source_title,
+                "source_url": episode.source_url,
+                "torrent_url": episode.torrent_url,
+            },
+        )
+
+    assert response.status_code == 201
+    assert response.json()["id"] == str(episode.id)
+    service.create_episode.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_update_episode() -> None:
+    episode = make_anime().episodes[0]
+    service = MagicMock(spec=AnimeService)
+    service.update_episode = AsyncMock(return_value=episode)
+
+    app = create_app()
+    app.dependency_overrides[get_anime_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.patch(
+            "/api/episodes/" + str(episode.id),
+            json={"title": "Updated Episode", "episode_number": 2},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == str(episode.id)
+    service.update_episode.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_missing_episode_update_is_404() -> None:
+    episode_id = uuid7()
+    service = MagicMock(spec=AnimeService)
+    service.update_episode = AsyncMock(side_effect=EpisodeNotFoundError(episode_id))
+
+    app = create_app()
+    app.dependency_overrides[get_anime_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.patch(
+            "/api/episodes/" + str(episode_id),
+            json={"title": "Missing"},
+        )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_delete_episode() -> None:
+    episode_id = uuid7()
+    service = MagicMock(spec=AnimeService)
+    service.delete_episode = AsyncMock()
+
+    app = create_app()
+    app.dependency_overrides[get_anime_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.delete("/api/episodes/" + str(episode_id))
+
+    assert response.status_code == 204
+    service.delete_episode.assert_awaited_once_with(episode_id)

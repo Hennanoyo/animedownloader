@@ -25,7 +25,7 @@ import {
   type AnimeCreateFormValues,
   type AnimeEpisodeDraft,
 } from "../model/schema";
-import ReleasePicker from "./ReleasePicker";
+import ReleasePicker from "../../release-picker/ui/ReleasePicker";
 import styles from "./AnimeCreateForm.module.scss";
 
 const seasons: Array<{ value: Season; label: string }> = [

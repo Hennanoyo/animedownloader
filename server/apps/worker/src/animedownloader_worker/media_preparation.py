@@ -314,7 +314,11 @@ class MediaPreparationRunner:
                 )
 
             playable_probe: MediaProbe | None = None
+            playable_output_path: Path | None = None
             thumbnail: ThumbnailSpriteResult | None = None
+            playable_output_key: str | None = None
+            thumbnail_sprite_key: str | None = None
+            thumbnail_vtt_key: str | None = None
 
             with TemporaryDirectory(prefix="animedownloader-preparation-") as staging_dir:
                 staging_root = Path(staging_dir)
@@ -325,21 +329,22 @@ class MediaPreparationRunner:
                 vtt_path = thumbnail_dir / "sprite.vtt"
 
                 if playable_required and thumbnail_required:
-                if operation is None or source_probe is None:
-                    raise MediaPreparationExecutionError(
-                        "A playable operation is required for combined preparation",
+                    if operation is None or source_probe is None:
+                        raise MediaPreparationExecutionError(
+                            "A playable operation is required for combined preparation",
+                        )
+                    combined = await self._preparation_processor.process(
+                        media_path=Path(context.source_path),
+                        playable_path=playable_path,
+                        sprite_path=sprite_path,
+                        vtt_path=vtt_path,
+                        duration_seconds=source_probe.format.duration_seconds,
+                        operation=operation,
                     )
-                combined = await self._preparation_processor.process(
-                    media_path=Path(context.source_path),
-                    playable_path=playable_path,
-                    sprite_path=sprite_path,
-                    vtt_path=vtt_path,
-                    duration_seconds=source_probe.format.duration_seconds,
-                    operation=operation,
-                )
-                playable_probe = await self._inspector.inspect(combined.playable.output_path)
-                self._planner.validate(playable_probe)
-                thumbnail = combined.thumbnail
+                    playable_output_path = combined.playable.output_path
+                    playable_probe = await self._inspector.inspect(playable_output_path)
+                    self._planner.validate(playable_probe)
+                    thumbnail = combined.thumbnail
                 elif playable_required:
                     if operation is None:
                         raise MediaPreparationExecutionError(
@@ -350,7 +355,8 @@ class MediaPreparationRunner:
                         output_path=playable_path,
                         operation=operation,
                     )
-                    playable_probe = await self._inspector.inspect(result.output_path)
+                    playable_output_path = result.output_path
+                    playable_probe = await self._inspector.inspect(playable_output_path)
                     self._planner.validate(playable_probe)
                 else:
                     thumbnail = await self._thumbnail_processor.generate(
@@ -359,19 +365,16 @@ class MediaPreparationRunner:
                         duration_seconds=context.duration_seconds,
                     )
 
-                playable_output_key = None
-                if playable_probe is not None:
+                if playable_output_path is not None:
                     playable_output_key = (
                         f"playable/{context.asset_id}/{job_id}.mp4"
                     )
                     await self._storage.put_file(
-                        playable_probe.path,
+                        playable_output_path,
                         playable_output_key,
                         content_type="video/mp4",
                     )
 
-                thumbnail_sprite_key = None
-                thumbnail_vtt_key = None
                 if thumbnail is not None:
                     thumbnail_sprite_key = (
                         f"thumbnails/{context.asset_id}/sprite.jpg"
@@ -394,7 +397,7 @@ class MediaPreparationRunner:
                 job_id,
                 playable_probe=(
                     _probe_with_path(playable_probe, playable_output_key)
-                    if playable_probe is not None
+                    if playable_probe is not None and playable_output_key is not None
                     else None
                 ),
                 thumbnail=(

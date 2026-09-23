@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import shlex
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
 from .playback import PlayableMediaOperation
+
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_FFMPEG_TIMEOUT_SECONDS = 1800.0
+DEFAULT_FFMPEG_HEARTBEAT_INTERVAL_SECONDS = 30.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,19 +29,94 @@ class FFmpegRunner(Protocol):
     async def run(self, args: Sequence[str]) -> FFmpegCommandResult: ...
 
 
+class FFmpegTimeoutError(RuntimeError):
+    pass
+
+
 class SubprocessFFmpegRunner:
+    def __init__(
+        self,
+        *,
+        timeout_seconds: float = DEFAULT_FFMPEG_TIMEOUT_SECONDS,
+        heartbeat_interval_seconds: float = DEFAULT_FFMPEG_HEARTBEAT_INTERVAL_SECONDS,
+    ) -> None:
+        if timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be positive")
+        if heartbeat_interval_seconds <= 0:
+            raise ValueError("heartbeat_interval_seconds must be positive")
+
+        self._timeout_seconds = timeout_seconds
+        self._heartbeat_interval_seconds = heartbeat_interval_seconds
+
     async def run(self, args: Sequence[str]) -> FFmpegCommandResult:
+        command = tuple(args)
+        started_at = time.monotonic()
         process = await asyncio.create_subprocess_exec(
-            *args,
+            *command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await process.communicate()
-        return FFmpegCommandResult(
-            stdout=stdout,
-            stderr=stderr,
-            returncode=process.returncode or 0,
+        logger.info(
+            "FFmpeg started: pid=%s command=%s",
+            process.pid,
+            shlex.join(command),
         )
+
+        communication = asyncio.create_task(process.communicate())
+        try:
+            while True:
+                elapsed = time.monotonic() - started_at
+                remaining = self._timeout_seconds - elapsed
+                if remaining <= 0:
+                    raise TimeoutError
+
+                try:
+                    stdout, stderr = await asyncio.wait_for(
+                        asyncio.shield(communication),
+                        timeout=min(self._heartbeat_interval_seconds, remaining),
+                    )
+                    break
+                except asyncio.TimeoutError:
+                    elapsed = time.monotonic() - started_at
+                    logger.info(
+                        "FFmpeg still running: pid=%s elapsed=%.0fs",
+                        process.pid,
+                        elapsed,
+                    )
+
+            elapsed = time.monotonic() - started_at
+            returncode = process.returncode or 0
+            logger.info(
+                "FFmpeg finished: pid=%s elapsed=%.1fs returncode=%s",
+                process.pid,
+                elapsed,
+                returncode,
+            )
+            return FFmpegCommandResult(
+                stdout=stdout,
+                stderr=stderr,
+                returncode=returncode,
+            )
+        except TimeoutError as exc:
+            process.kill()
+            await communication
+            elapsed = time.monotonic() - started_at
+            logger.error(
+                "FFmpeg timed out: pid=%s elapsed=%.1fs timeout=%.1fs command=%s",
+                process.pid,
+                elapsed,
+                self._timeout_seconds,
+                shlex.join(command),
+            )
+            raise FFmpegTimeoutError(
+                "FFmpeg timed out after "
+                f"{self._timeout_seconds:.1f}s: {shlex.join(command)}",
+            ) from exc
+        except asyncio.CancelledError:
+            process.kill()
+            await communication
+            logger.warning("FFmpeg cancelled: pid=%s", process.pid)
+            raise
 
 
 class SubtitleProcessingError(RuntimeError):
@@ -210,6 +294,7 @@ class FFmpegAttachmentProcessor:
                 f"FFmpeg completed without creating attachment output: {output_path}",
             )
 
+
 class FFmpegPlayableMediaProcessingError(RuntimeError):
     pass
 
@@ -268,8 +353,8 @@ class FFmpegPlayableMediaProcessor:
                 "hvc1",
                 "-c:a",
                 audio_codec,
-                *(("-b:a", "192k") if operation is PlayableMediaOperation.TRANSCODE else ()),
-                *(("-preset", "medium", "-crf", "28", "-pix_fmt", "yuv420p")
+                *(( "-b:a", "192k") if operation is PlayableMediaOperation.TRANSCODE else ()),
+                *(( "-preset", "medium", "-crf", "28", "-pix_fmt", "yuv420p")
                   if operation is PlayableMediaOperation.TRANSCODE
                   else ()),
                 "-movflags",

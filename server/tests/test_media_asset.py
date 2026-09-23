@@ -7,6 +7,8 @@ from animedownloader_media_asset import (
     MediaAssetMetadata,
     MediaAssetService,
     SubtitleTrackMetadata,
+    SubtitleTrackStatus,
+    SubtitleTrack,
 )
 
 
@@ -125,3 +127,38 @@ async def test_upsert_updates_existing_episode_asset() -> None:
     existing.update_metadata.assert_called_once_with(metadata)
     existing.update_subtitle_tracks.assert_called_once_with(subtitle_tracks)
     service.assets.add.assert_not_awaited()
+
+
+def test_subtitle_track_lifecycle() -> None:
+    track = SubtitleTrack(
+        media_asset_id=uuid7(),
+        stream_index=2,
+        language="jpn",
+        title="Japanese",
+        codec_name="subrip",
+        source_path=None,
+    )
+
+    assert track.processing_status is SubtitleTrackStatus.PENDING
+
+    track.mark_processing()
+    assert track.processing_status is SubtitleTrackStatus.PROCESSING
+    assert track.error_message is None
+
+    track.mark_failed("conversion failed")
+    assert track.processing_status is SubtitleTrackStatus.FAILED
+    assert track.error_message == "conversion failed"
+
+    track.retry()
+    assert track.processing_status is SubtitleTrackStatus.PENDING
+    assert track.normalized_path is None
+    assert track.normalized_format is None
+    assert track.error_message is None
+
+    track.mark_processing()
+    track.mark_completed(
+        normalized_path="/data/media/subtitles/track.ass",
+        normalized_format="ass",
+    )
+    assert track.processing_status is SubtitleTrackStatus.COMPLETED
+    assert track.normalized_path == "/data/media/subtitles/track.ass"

@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 from animedownloader_media import (
+    FFmpegCommandResult,
     FFmpegThumbnailProcessingError,
     FFmpegThumbnailSpriteProcessor,
-    FFmpegCommandResult,
 )
 
 

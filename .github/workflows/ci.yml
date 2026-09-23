@@ -162,8 +162,11 @@ jobs:
         run: |
           set +e
           docker compose exec -T api uv run --package animedownloader-api python3 - <<'PY'
+          import asyncio
           import uuid
+          from datetime import datetime, timezone
 
+          import asyncpg
           import httpx
 
           payload = {
@@ -243,6 +246,63 @@ jobs:
               )
               assert media.status_code == 200, media.text
               assert media.json() is None
+
+              async def create_media_asset() -> None:
+                  connection = await asyncpg.connect(
+                      "postgresql://animedownloader:animedownloader@db:5432/animedownloader"
+                  )
+                  try:
+                      now = datetime.now(timezone.utc)
+                      await connection.execute(
+                          """
+                          INSERT INTO media_assets (
+                              id, episode_id, processing_job_id, path,
+                              format_name, duration_seconds, size_bytes,
+                              video_codec, audio_codec, width, height,
+                              frame_rate, metadata_updated_at,
+                              created_at, updated_at
+                          )
+                          VALUES (
+                              $1, $2, NULL, $3, $4, $5, $6, $7, $8,
+                              $9, $10, $11, $12, $13, $14
+                          )
+                          """,
+                          uuid.uuid7(),
+                          uuid.UUID(episode_ids[0]),
+                          "/downloads/ci/episode.mkv",
+                          "matroska,webm",
+                          123.456,
+                          123456789,
+                          "hevc",
+                          "aac",
+                          1920,
+                          1080,
+                          "24000/1001",
+                          now,
+                          now,
+                          now,
+                      )
+                  finally:
+                      await connection.close()
+
+              asyncio.run(create_media_asset())
+
+              media = client.get(
+                  "/api/episodes/" + episode_ids[0] + "/media"
+              )
+              assert media.status_code == 200, media.text
+              media_asset = media.json()
+              assert media_asset["episode_id"] == episode_ids[0]
+              assert media_asset["path"] == "/downloads/ci/episode.mkv"
+              assert media_asset["format_name"] == "matroska,webm"
+              assert media_asset["duration_seconds"] == 123.456
+              assert media_asset["size_bytes"] == 123456789
+              assert media_asset["video_codec"] == "hevc"
+              assert media_asset["audio_codec"] == "aac"
+              assert media_asset["width"] == 1920
+              assert media_asset["height"] == 1080
+              assert media_asset["frame_rate"] == "24000/1001"
+              assert media_asset["metadata_updated_at"] is not None
 
               updated_episode = client.patch(
                   "/api/episodes/" + episode_ids[0],

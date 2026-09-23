@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Protocol, cast
 from uuid import UUID
 
-from animedownloader_media import MediaProbe
-from animedownloader_media_asset import MediaAssetService
+from animedownloader_media import MediaProbe, MediaStream
+from animedownloader_media_asset import MediaAssetMetadata, MediaAssetService
 from animedownloader_media_processing import (
     MediaProcessingJobService,
     MediaProcessingJobStatus,
@@ -66,11 +66,11 @@ class MediaProcessingContext:
         *,
         status: MediaProcessingJobStatus,
         download_directory: str,
-        media_asset_exists: bool = False,
+        media_asset_ready: bool = False,
     ) -> None:
         self.status = status
         self.download_directory = download_directory
-        self.media_asset_exists = media_asset_exists
+        self.media_asset_ready = media_asset_ready
 
 
 class MediaProcessingState:
@@ -80,13 +80,11 @@ class MediaProcessingState:
     async def load(self, job_id: UUID) -> MediaProcessingContext:
         async with self._session_factory() as session:
             job = await MediaProcessingJobService(session).get_job(job_id)
-            media_asset_exists = (
-                await MediaAssetService(session).get_for_episode(job.episode_id)
-            ) is not None
+            asset = await MediaAssetService(session).get_for_episode(job.episode_id)
             return MediaProcessingContext(
                 status=job.job_status,
                 download_directory=job.download_directory,
-                media_asset_exists=media_asset_exists,
+                media_asset_ready=asset is not None and asset.metadata_ready,
             )
 
     async def mark_processing(self, job_id: UUID) -> None:
@@ -103,10 +101,12 @@ class MediaProcessingState:
         async with self._session_factory() as session, session.begin():
             processing_service = MediaProcessingJobService(session)
             job = await processing_service.get_job(job_id)
+            asset_metadata = build_media_asset_metadata(probe)
             await MediaAssetService(session).upsert(
                 episode_id=job.episode_id,
                 processing_job_id=job.id,
                 media_path=media_path,
+                metadata=asset_metadata,
             )
             job.media_path = media_path
             job.probe_metadata = _serialize_probe(probe)
@@ -139,7 +139,7 @@ class MediaProcessingRunner:
             context = await self._state.load(job_id)
             job_loaded = True
             persist_failure = context.status is not MediaProcessingJobStatus.COMPLETED
-            if context.status is MediaProcessingJobStatus.COMPLETED and context.media_asset_exists:
+            if context.status is MediaProcessingJobStatus.COMPLETED and context.media_asset_ready:
                 return
 
             if context.status is MediaProcessingJobStatus.FAILED:
@@ -197,6 +197,32 @@ def _find_media_file(root: Path) -> Path:
             f"Expected exactly one media file in {root}, found {len(candidates)}: {names}{suffix}",
         )
     return candidates[0]
+
+
+def build_media_asset_metadata(probe: MediaProbe) -> MediaAssetMetadata:
+    video_stream = _primary_stream(probe.video_streams)
+    audio_stream = _primary_stream(probe.audio_streams)
+
+    return MediaAssetMetadata(
+        format_name=probe.format.format_name,
+        duration_seconds=probe.format.duration_seconds,
+        size_bytes=probe.format.size_bytes,
+        video_codec=video_stream.codec_name if video_stream is not None else None,
+        audio_codec=audio_stream.codec_name if audio_stream is not None else None,
+        width=video_stream.width if video_stream is not None else None,
+        height=video_stream.height if video_stream is not None else None,
+        frame_rate=video_stream.frame_rate if video_stream is not None else None,
+    )
+
+
+def _primary_stream(streams: tuple[MediaStream, ...]) -> MediaStream | None:
+    if not streams:
+        return None
+
+    return next(
+        (stream for stream in streams if stream.disposition_default),
+        streams[0],
+    )
 
 
 def _serialize_probe(probe: MediaProbe) -> dict[str, object]:

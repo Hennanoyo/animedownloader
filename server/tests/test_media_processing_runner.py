@@ -15,6 +15,7 @@ from animedownloader_worker.media_processing import (
     MediaProcessingContext,
     MediaProcessingExecutionError,
     MediaProcessingRunner,
+    build_media_asset_metadata,
 )
 
 
@@ -41,7 +42,7 @@ class FakeState:
         self.context = MediaProcessingContext(
             status=MediaProcessingJobStatus.PROCESSING,
             download_directory=self.context.download_directory,
-            media_asset_exists=self.context.media_asset_exists,
+            media_asset_ready=self.context.media_asset_ready,
         )
 
     async def mark_completed(
@@ -55,7 +56,7 @@ class FakeState:
         self.context = MediaProcessingContext(
             status=MediaProcessingJobStatus.COMPLETED,
             download_directory=self.context.download_directory,
-            media_asset_exists=True,
+            media_asset_ready=True,
         )
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
@@ -63,7 +64,7 @@ class FakeState:
         self.context = MediaProcessingContext(
             status=MediaProcessingJobStatus.FAILED,
             download_directory=self.context.download_directory,
-            media_asset_exists=self.context.media_asset_exists,
+            media_asset_ready=self.context.media_asset_ready,
         )
 
 
@@ -115,6 +116,28 @@ def make_probe(path: Path) -> MediaProbe:
                 disposition_forced=False,
                 tags=(),
             ),
+            MediaStream(
+                index=1,
+                codec_type=MediaStreamType.AUDIO,
+                codec_name="aac",
+                codec_long_name="AAC",
+                profile=None,
+                codec_tag_string=None,
+                width=None,
+                height=None,
+                pixel_format=None,
+                frame_rate=None,
+                duration_seconds=60.0,
+                bit_rate=192000,
+                channels=2,
+                channel_layout="stereo",
+                sample_rate_hz=48000,
+                language="jpn",
+                title=None,
+                disposition_default=True,
+                disposition_forced=False,
+                tags=(),
+            ),
         ),
         chapters=(
             MediaChapter(
@@ -125,6 +148,21 @@ def make_probe(path: Path) -> MediaProbe:
             ),
         ),
     )
+
+
+def test_build_media_asset_metadata_from_probe() -> None:
+    probe = make_probe(Path("/downloads/episode.mkv"))
+
+    metadata = build_media_asset_metadata(probe)
+
+    assert metadata.format_name == "matroska,webm"
+    assert metadata.duration_seconds == 60.0
+    assert metadata.size_bytes == 1024
+    assert metadata.video_codec == "hevc"
+    assert metadata.audio_codec == "aac"
+    assert metadata.width == 1920
+    assert metadata.height == 1080
+    assert metadata.frame_rate == "24000/1001"
 
 
 @pytest.mark.anyio
@@ -188,7 +226,38 @@ async def test_runner_repairs_completed_job_when_media_asset_is_missing(
 
 
 @pytest.mark.anyio
-async def test_runner_skips_completed_job_when_media_asset_exists(
+async def test_runner_refreshes_completed_job_when_media_asset_metadata_is_missing(
+    tmp_path: Path,
+) -> None:
+    job_id = uuid7()
+    download_job_id = uuid7()
+    media_path = tmp_path / str(download_job_id) / "episode.mkv"
+    media_path.parent.mkdir()
+    media_path.touch()
+
+    state = FakeState(
+        MediaProcessingContext(
+            status=MediaProcessingJobStatus.COMPLETED,
+            download_directory=str(download_job_id),
+            media_asset_ready=False,
+        )
+    )
+    inspector = FakeInspector(make_probe(media_path))
+    runner = MediaProcessingRunner(
+        state=state,
+        inspector=inspector,
+        download_root=tmp_path,
+    )
+
+    await runner.run(job_id)
+
+    assert inspector.paths == [media_path]
+    assert state.completed is not None
+    assert state.completed[0] == str(media_path)
+
+
+@pytest.mark.anyio
+async def test_runner_skips_completed_job_when_media_asset_ready(
     tmp_path: Path,
 ) -> None:
     job_id = uuid7()
@@ -197,7 +266,7 @@ async def test_runner_skips_completed_job_when_media_asset_exists(
         MediaProcessingContext(
             status=MediaProcessingJobStatus.COMPLETED,
             download_directory=str(download_job_id),
-            media_asset_exists=True,
+            media_asset_ready=True,
         )
     )
     inspector = FakeInspector(make_probe(tmp_path / "unused.mkv"))

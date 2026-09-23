@@ -21,6 +21,15 @@ def make_asset(episode_id: UUID) -> MediaAsset:
         episode_id=episode_id,
         processing_job_id=uuid7(),
         path="/downloads/example/episode.mkv",
+        format_name="matroska,webm",
+        duration_seconds=60.0,
+        size_bytes=1024,
+        video_codec="hevc",
+        audio_codec="aac",
+        width=1920,
+        height=1080,
+        frame_rate="24000/1001",
+        metadata_updated_at=now,
         created_at=now,
         updated_at=now,
     )
@@ -71,6 +80,15 @@ async def test_get_episode_media_returns_asset() -> None:
     assert response.status_code == 200
     payload = MediaAssetResponse.model_validate(response.json())
     assert payload.episode_id == episode_id
+    assert payload.format_name == "matroska,webm"
+    assert payload.duration_seconds == 60.0
+    assert payload.size_bytes == 1024
+    assert payload.video_codec == "hevc"
+    assert payload.audio_codec == "aac"
+    assert payload.width == 1920
+    assert payload.height == 1080
+    assert payload.frame_rate == "24000/1001"
+    assert payload.metadata_updated_at == asset.metadata_updated_at
     anime_service.get_episode.assert_awaited_once_with(episode_id)
     media_service.get_for_episode.assert_awaited_once_with(episode_id)
 

@@ -231,6 +231,48 @@ async def test_manual_media_processing_requeues_completed_job_when_asset_is_miss
 
 
 @pytest.mark.anyio
+async def test_manual_media_processing_requeues_completed_job_when_asset_metadata_is_missing() -> None:
+    service = MagicMock(spec=MediaProcessingJobService)
+    dispatcher = MagicMock(spec=MediaProcessingTaskDispatcher)
+    download_service = MagicMock(spec=DownloadJobService)
+    media_asset_service = MagicMock(spec=MediaAssetService)
+    job = make_job(MediaProcessingJobStatus.COMPLETED)
+    download_job = DownloadJob(
+        id=uuid7(),
+        episode_id=job.episode_id,
+        status=DownloadJobStatus.COMPLETED.value,
+        downloaded_bytes=100,
+        total_bytes=100,
+        attempt_count=1,
+        error_message=None,
+        started_at=datetime(2026, 9, 23, tzinfo=UTC),
+        completed_at=datetime(2026, 9, 23, tzinfo=UTC),
+        created_at=datetime(2026, 9, 23, tzinfo=UTC),
+        updated_at=datetime(2026, 9, 23, tzinfo=UTC),
+    )
+    stale_asset = MagicMock()
+    stale_asset.metadata_ready = False
+    download_service.get_job = AsyncMock(return_value=download_job)
+    service.create_for_download_job = AsyncMock(return_value=job)
+    media_asset_service.get_for_episode = AsyncMock(return_value=stale_asset)
+    dispatcher.enqueue = AsyncMock()
+
+    async with make_client(
+        service,
+        dispatcher,
+        download_service,
+        media_asset_service,
+    ) as client:
+        response = await client.post(
+            f"/api/media-processing-jobs/from-download-job/{download_job.id}",
+        )
+
+    assert response.status_code == 201
+    media_asset_service.get_for_episode.assert_awaited_once_with(job.episode_id)
+    dispatcher.enqueue.assert_awaited_once_with(job.id)
+
+
+@pytest.mark.anyio
 async def test_manual_media_processing_does_not_requeue_completed_job_with_asset() -> None:
     service = MagicMock(spec=MediaProcessingJobService)
     dispatcher = MagicMock(spec=MediaProcessingTaskDispatcher)

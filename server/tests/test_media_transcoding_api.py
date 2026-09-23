@@ -107,7 +107,7 @@ async def test_get_latest_episode_transcoding_job() -> None:
     anime_service.get_episode = AsyncMock()
     asset_service = MagicMock(spec=MediaAssetService)
     asset_service.get_for_episode = AsyncMock(return_value=asset)
-    variant_service = MagicMock(spec=MediaVariantService) if False else MagicMock()
+    variant_service = MagicMock()
     job_service = MagicMock(spec=MediaTranscodingJobService)
     job_service.get_latest_job = AsyncMock(return_value=job)
 

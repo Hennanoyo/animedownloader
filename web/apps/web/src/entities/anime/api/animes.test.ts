@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createAnime, listAnimes } from "./animes";
+import { createAnime, getAnime, listAnimes } from "./animes";
 
 const payload = {
   id: "0198a2a8-5b7c-7d7d-8a1f-9f0b8d53f000",
@@ -45,6 +45,23 @@ describe("anime API", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]?.title).toBe(payload.title);
+    vi.unstubAllGlobals();
+  });
+
+  it("gets one anime record", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify(payload), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getAnime(payload.id);
+
+    expect(result.id).toBe(payload.id);
+    expect(result.episodes).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/animes/" + payload.id),
+      expect.objectContaining({ method: "GET" }),
+    );
     vi.unstubAllGlobals();
   });
 });

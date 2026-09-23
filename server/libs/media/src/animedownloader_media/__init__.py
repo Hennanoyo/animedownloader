@@ -1,4 +1,12 @@
 from .errors import MediaProbeError
+from .ffmpeg import (
+    FFmpegCommandResult,
+    FFmpegRunner,
+    FFmpegSubtitleProcessor,
+    SubprocessFFmpegRunner,
+    SubtitleProcessingError,
+    UnsupportedSubtitleCodecError,
+)
 from .ffprobe import FFprobeInspector, ProbeCommandResult, ProbeRunner, SubprocessProbeRunner
 from .models import (
     MediaChapter,
@@ -10,6 +18,9 @@ from .models import (
 from .parser import parse_ffprobe_json
 
 __all__ = [
+    "FFmpegCommandResult",
+    "FFmpegRunner",
+    "FFmpegSubtitleProcessor",
     "FFprobeInspector",
     "MediaChapter",
     "MediaFormat",
@@ -19,6 +30,7 @@ __all__ = [
     "MediaStreamType",
     "ProbeCommandResult",
     "ProbeRunner",
+    "SubprocessFFmpegRunner",
     "SubprocessProbeRunner",
     "parse_ffprobe_json",
 ]

@@ -17,6 +17,7 @@ from animedownloader_media_asset import MediaAssetService
 from animedownloader_media_processing import (
     MediaTranscodingJobService,
     MediaTranscodingJobStatus,
+    MediaTranscodingOperation,
     MediaVariantService,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -35,7 +36,7 @@ class MediaTranscodingContext:
     source_path: str
     source_metadata_updated_at: datetime
     status: MediaTranscodingJobStatus
-    operation: PlayableMediaOperation | None
+    operation: MediaTranscodingOperation | None
     variant_id: UUID
     source_is_current: bool = True
 
@@ -46,7 +47,7 @@ class MediaTranscodingStateProtocol(Protocol):
     async def mark_processing(
         self,
         job_id: UUID,
-        operation: PlayableMediaOperation,
+        operation: MediaTranscodingOperation,
     ) -> None: ...
 
     async def mark_completed(
@@ -191,9 +192,15 @@ class MediaTranscodingRunner:
             operation = self._planner.plan(probe)
 
             if context.status is MediaTranscodingJobStatus.PENDING:
-                await self._state.mark_processing(job_id, operation)
+                await self._state.mark_processing(
+                    job_id,
+                    MediaTranscodingOperation(operation.value),
+                )
             elif context.status is MediaTranscodingJobStatus.PROCESSING:
-                if context.operation is not None and context.operation is not operation:
+                if (
+                    context.operation is not None
+                    and context.operation.value != operation.value
+                ):
                     raise MediaTranscodingExecutionError(
                         "Transcoding operation changed while a job was processing: "
                         f"{context.operation.value} -> {operation.value}",

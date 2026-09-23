@@ -2,7 +2,9 @@
 
 ## Current Phase
 
-The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection infrastructure, and the first persistent post-download media pipeline stages. The current slice records the user-facing metadata of the current MediaAsset before conversion and delivery features are added.
+The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, and chapter/embedded attachment integration.
+
+The next phase is thumbnail sprite generation for browser player hover/seek previews.
 
 ## Completed
 
@@ -10,136 +12,185 @@ The project has completed Anime/Episode management, persistent torrent download 
 
 Merged into `main` as commit `9a48d0c1f85b40541712275220a14eecab811a0e`.
 
-- Persistent `Anime` and `Episode` models with PostgreSQL and Alembic
-- Anime and Episode CRUD API
+- Persistent Anime and Episode models with PostgreSQL and Alembic
+- Complete Anime and Episode CRUD API
 - Episode Nyaa provenance and torrent metadata persistence
-- Episode download/conversion status fields for future processing
-- Anime creation UI
-- Per-episode Nyaa release selection and title cleanup
-- Anime catalog page
+- Anime creation and catalog UI
 - PostgreSQL CRUD and cascade integration coverage in CI
 
 ### PR #6 — Persistent Download Jobs
 
 Merged into `main` as commit `734366149c0779129f00d7ae0ea19ce3cd8460f9`.
 
-- Added the `animedownloader-download` domain
-- Added persistent `DownloadJob` state in PostgreSQL
-- Enforced one active (`pending` / `downloading`) job per Episode at the database level
-- Added explicit download-job state transitions and terminal history
-- Added `GET /api/download-jobs/{job_id}`
-- Added the `download_jobs` Alembic migration
-- Added deterministic state/API tests and PostgreSQL migration coverage in CI
+- Persistent DownloadJob state and terminal history
+- One active job per Episode at the database level
+- Download job API and migration
+- Deterministic state/API tests and PostgreSQL migration coverage
 
 ### PR #7 — Torrent Infrastructure
 
 Merged into `main` as commit `767ad92ce7f88f0266e2845a3d4a9833522ec80b`.
 
-- Added the domain-neutral `TorrentClient` protocol and torrent models
-- Added the qBittorrent Web API adapter
-- Added job-tag correlation for torrents
-- Added qBittorrent configuration and Compose service
-- Shared `/downloads` between worker and qBittorrent
-- Added deterministic adapter tests and CI runtime checks
+- Domain-neutral TorrentClient protocol
+- qBittorrent Web API adapter
+- Per-job torrent tag correlation
+- qBittorrent configuration and Compose service
+- Shared download volume and CI runtime verification
 
 ### PR #8 — Episode Download Execution
 
 Merged into `main` as commit `a8610bb1cb39c508b64e9d9111b67b39412fc32f`.
 
-- Added `POST /api/episodes/{episode_id}/download-jobs`
-- Added Taskiq dispatch through Redis
-- Added Worker-side `DownloadRunner` orchestration
-- Reused qBittorrent torrents by per-job tag across worker restarts/retries
-- Persisted qBittorrent progress and terminal state to PostgreSQL
-- Added duplicate active-job handling
-- Added deterministic API/runner coverage
-- Added Worker runtime verification to CI
+- Episode download-job creation and Taskiq dispatch
+- Worker-side DownloadRunner
+- qBittorrent progress/state persistence
+- Retry-safe torrent reuse and deterministic runner/API tests
 
 ### PR #9 — qBittorrent Pending Add Handling
 
 Merged into `main`.
 
-- Accepted qBittorrent v5.2 pending torrent-add responses
-- Added adapter coverage for pending and mixed add-response payloads
+- Accepted qBittorrent pending torrent-add responses
+- Added adapter coverage for pending and mixed add responses
 
 ### PR #10 — qBittorrent Environment and Download Path Fixes
 
 Merged into `main` as commit `ce2a9f4d646c70d684603949f23fcccb6fcc302d`.
 
-- Loaded `QBITTORRENT_API_KEY` from `server/.env` through Pydantic Settings
-- Aligned the shared download volume to `/downloads` for API/Worker/qBittorrent
-- Let qBittorrent create and own per-job download directories
-- Removed completed torrents after successful download without deleting downloaded files
-- Allowed both `localhost:5173` and `127.0.0.1:5173` CORS origins
-- Restored Nyaa client lifecycle management in the release-search dependency
-- Updated development, devcontainer, and CI configuration for the new path/origins
+- Loaded qBittorrent API credentials from server settings
+- Standardized the shared `/downloads` path
+- Removed completed torrents without deleting downloaded files
+- Updated local CORS origins and development/CI configuration
 
 ### PR #11 — Anime Detail and Episode List
 
 Merged into `main`.
 
-- Added `/animes/:animeId` detail route
-- Added read-only Anime detail view with schedule metadata
-- Added Episode list with source, torrent metadata, and processing statuses
-- Linked Anime catalog entries to their detail pages
+- Added Anime detail route and read-only detail view
+- Added Episode list with download/conversion metadata
 - Added focused single-Anime API coverage
-- Kept edit/delete and download mutations out of scope for this slice
 
 ### PR #12 — Anime Edit and Delete
 
 Merged into `main`.
 
-- Added Anime metadata editing with TanStack Form + Zod
-- Kept Episode data unchanged during Anime edits
-- Updated Anime detail and catalog caches after successful edits
-- Added explicit Anime deletion confirmation
-- Returned to the Anime catalog after successful deletion
-- Added API and validation coverage
-- Added repository guidance to use `just` as the canonical local validation entry point
+- Added Anime metadata editing and deletion
+- Preserved existing Episodes during Anime edits
+- Added frontend cache updates and API/validation coverage
 
 ### PR #13 — Episode Download UI
 
 Merged into `main` as commit `d057a4d7c14a36caff36a25779af87abec5951b4`.
 
-- Added a frontend DownloadJob entity and typed API client
-- Added an Episode Download action to Anime detail
-- Showed queued/downloading progress with automatic polling
-- Restored the latest persisted Job after page refresh
-- Added completed, failed, and cancelled states with retry/redownload actions
-- Added the Episode latest DownloadJob API endpoint
-- Added API and frontend response coverage
+- Added DownloadJob frontend entity and API client
+- Added Episode download action and progress polling
+- Restored latest persisted job state after refresh
+- Added completed, failed, cancelled, retry and redownload states
 
 ### PR #14 — Media Inspection Infrastructure
 
 Merged into `main` as commit `19ae042137a5dffd2b54fd4a16a7a1433521822f`.
 
-- Added the `animedownloader-media` technical library
+- Added `animedownloader-media`
 - Added async FFprobe execution without a shell
-- Added typed parsing for format, stream, attachment, and chapter metadata
-- Added deterministic inspector tests with a fake process runner
-- Registered the media package in the backend image and uv workspace
+- Added typed format, stream, attachment and chapter metadata
+- Added deterministic inspector tests
 
 ### PR #15 — Episode Management and Release Reuse
 
 Merged into `main` as commit `1adf634e60d66900426a5fe0e9e934b879c626a2`.
 
 - Added Episode add/edit/delete operations from Anime detail
-- Reused the existing Nyaa release picker for Episode creation
-- Added Episode CRUD API and frontend mutations
-- Updated frontend query caches after Episode mutations
-- Added API and frontend coverage
+- Reused the Nyaa release picker for Episode creation
+- Added frontend/backend mutation coverage
 
 ### PR #16 — Download Job Controls
 
 Merged into `main` as commit `9773b092a72856dff3907079d74f2da5259beb65`.
 
-- Added persistent `paused` DownloadJob status
-- Added qBittorrent pause/resume controls behind `TorrentClient`
-- Added active-job cancel with partial torrent-data removal
-- Added terminal DownloadJob record deletion while retaining completed media files
-- Kept paused jobs active and unique per Episode
-- Reconciled worker behavior with pause/cancel state changes
-- Added API, worker, torrent adapter, and frontend coverage
+- Added paused DownloadJob state
+- Added qBittorrent pause/resume
+- Added active-job cancel with partial-data removal
+- Added terminal job-record deletion while retaining completed media files
+
+## Media Pipeline
+
+The post-download media pipeline keeps execution/history records separate from the current `MediaAsset` representation.
+
+```
+DownloadJob.COMPLETED
+  → MediaProcessingJob
+  → FFprobe inspection
+  → current MediaAsset
+      ├─ media metadata
+      ├─ subtitle tracks
+      ├─ chapters
+      └─ embedded attachments
+             └─ reusable MediaFont resources
+```
+
+### PR #17 — Media Processing Jobs
+
+Merged into `main` as commit `57e04d490933aca6dc26871dd69e7ee160b5dce6`.
+
+- Added persistent MediaProcessingJob state and transitions
+- Created a processing job after completed downloads
+- Persisted media path and structured FFprobe metadata
+- Added retry without re-downloading
+- Added manual processing triggers
+- Kept processing state independent from DownloadJob terminal state
+
+### PR #18 — Media Asset / Episode Integration
+
+Merged into `main` as commit `b3222e675a51e9d2d95faea06b15b2a2794391ef`.
+
+- Added one canonical MediaAsset per Episode
+- Materialized the successful processing output path
+- Exposed `GET /api/episodes/{episode_id}/media`
+- Kept DownloadJob and MediaProcessingJob as execution/history records
+
+### PR #19 — Current Media Metadata
+
+Merged into `main`.
+
+- Added current MediaAsset metadata for container, duration, size, codecs, dimensions and frame rate
+- Added metadata refresh tracking
+- Projected the typed FFprobe result into MediaAsset
+- Re-inspected existing assets missing current metadata
+- Kept the full FFprobe snapshot on MediaProcessingJob
+
+### PR #20 — Subtitle Track Integration
+
+Merged into `main` as commit `7c680f24f0f09d08d758141a865c4cc031032e1f`.
+
+- Added persistent SubtitleTrack records owned by MediaAsset
+- Materialized embedded subtitle-stream metadata from FFprobe
+- Stored language, title, codec, default/forced flags and source metadata
+- Exposed current subtitle tracks through the media API
+
+### PR #21 — Subtitle Extraction / Normalization
+
+Merged into `main` as commit `aed70a37160d8aeb8603124050f6155be812db9f`.
+
+- Extracted embedded text subtitle tracks through FFmpeg
+- Preserved ASS/SSA without re-encoding
+- Normalized supported text formats to ASS
+- Added per-track processing state, retry and failure isolation
+- Enqueued subtitle processing after media inspection
+
+### PR #22 — Chapter / Attachment Integration
+
+Merged into `main` as commit `8513ed1f400eb212050463ea5f2de6427c4accfa`.
+
+- Materialized chapter metadata from FFprobe
+- Materialized embedded attachment metadata
+- Extracted embedded attachments through FFmpeg
+- Added per-MediaAsset attachment processing state and retry
+- Added reusable MediaFont resources identified by SHA-256
+- Preserved original font filenames as metadata
+- Exposed chapters, attachments and referenced fonts through the media API
+
+The attachment extractor was verified against a real downloaded MKV in the Docker runtime. A FFmpeg-specific edge case was fixed so the `dump_attachment` operation supplies a real null output and does not fail with `At least one output file must be specified`.
 
 ## Current Workflow
 
@@ -149,244 +200,76 @@ Browser
   → select release
   → create Anime + Episodes
   → PostgreSQL
-  → Anime detail
-  → edit/delete Anime or Episode
-  → create persistent DownloadJob
-  → enqueue Taskiq task
-  → worker
+  → Anime detail / Episode management
+  → create DownloadJob
+  → Taskiq
+  → Worker
   → TorrentClient / qBittorrent
-  → persist DownloadJob progress/state
-  → Browser polls and controls DownloadJob
+  → DownloadJob.COMPLETED
+  → MediaProcessingJob
+  → FFprobe
+  → MediaAsset
+      → metadata
+      → subtitles
+      → chapters
+      → attachments / fonts
 ```
-
-## Current Phase — Chapter / Attachment Integration
-
-### PR #17 — Media Processing Jobs
-
-Merged into `main` as commit `57e04d490933aca6dc26871dd69e7ee160b5dce6`.
-
-- Added persistent `MediaProcessingJob` state and transitions
-- Created a processing job after `DownloadJob.COMPLETED`
-- Ran FFprobe inspection through the existing `animedownloader-media` library
-- Persisted the media path and structured probe metadata
-- Exposed processing status and latest Episode processing state through the API
-- Added retry without re-downloading
-- Kept processing state independent from terminal DownloadJob state
-- Added a manual trigger for processing an existing completed `DownloadJob`
-- Verified Backend, Frontend, and Integration CI successfully
-
-`MediaProcessingJob` remains the execution/history record for post-download processing.
-
-### PR #18 — Media Asset / Episode Integration
-
-Merged into `main` as commit `b3222e675a51e9d2d95faea06b15b2a2794391ef`.
-
-- Added persistent `MediaAsset` with one canonical asset per Episode
-- Materialized the successful processing output path into the Episode media asset
-- Kept MediaAsset metadata minimal and avoided duplicating the full FFprobe result
-- Exposed Episode media information through `GET /api/episodes/{episode_id}/media`
-- Kept `DownloadJob` and `MediaProcessingJob` as execution/history records
-- Made media asset materialization part of the same transaction as processing completion
-
-The `MediaAsset` record is the current usable media representation for an Episode.
-
-### PR #19 — Media Metadata Integration
-
-In development on `feature/media-metadata`.
-
-Scope:
-
-- Add only the current user-facing media metadata needed by `MediaAsset`
-- Materialize selected metadata from the existing typed `MediaProbe`
-- Preserve the full probe snapshot only on `MediaProcessingJob` for now
-- Track when the current MediaAsset metadata was refreshed
-- Re-inspect existing PR #18 assets whose metadata has not yet been materialized
-- Extend `GET /api/episodes/{episode_id}/media` with current metadata
-
-Current MediaAsset metadata:
-
-- container format
-- duration
-- file size
-- video codec
-- audio codec
-- video width and height
-- frame rate
-- metadata refresh timestamp
-
-Explicitly out of scope:
-
-- Subtitle normalization
-- Transcoding or remuxing
-- HLS/DASH packaging
-- SeaweedFS upload
-- Player/playback UI
-- Media file deletion or retention policy changes
-
-### Planned Follow-up
-
-After the media metadata slice:
-
-- Subtitle track integration
-- Subtitle extraction / normalization
-- Chapter, attachment, and sprite integration
-- Transcoding/remuxing
-- HLS/DASH packaging
-- SeaweedFS upload
-- Player/playback tooling
-
-## Handoff Notes
-
-For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current open pull request, and recent commits. Treat the repository state as authoritative and update this file when the project phase changes.## Current Phase — Media Asset Integration
-
-### PR #17 — Media Processing Jobs
-
-Merged into `main` as commit `57e04d490933aca6dc26871dd69e7ee160b5dce6`.
-
-- Added persistent `MediaProcessingJob` state and transitions
-- Created a processing job after `DownloadJob.COMPLETED`
-- Ran FFprobe inspection through the existing `animedownloader-media` library
-- Persisted the media path and structured probe metadata
-- Exposed processing status and latest Episode processing state through the API
-- Added retry without re-downloading
-- Kept processing state independent from terminal DownloadJob state
-- Added a manual trigger for processing an existing completed DownloadJob
-- Verified Backend, Frontend, and Integration CI successfully
-
-The processing job remains the execution/history record rather than the primary representation of the current playable media.
-
-### PR #18 — Media Asset / Episode Integration
-
-Merged into `main` as commit `b3222e675a51e9d2d95faea06b15b2a2794391ef`.
-
-- Added a persistent `MediaAsset` entity with one canonical asset per Episode
-- Materialized the successful processing output path into the Episode media asset
-- Kept MediaAsset metadata minimal; detailed probe data remains on `MediaProcessingJob`
-- Exposed Episode media information through `GET /api/episodes/{episode_id}/media`
-- Kept DownloadJob and MediaProcessingJob as execution/history records
-- Made media asset materialization part of the same transaction as processing completion
-- Verified Backend, Frontend, and Integration CI successfully
-
-### PR #19 — Current Media Metadata
-
-Merged into `main`.
-
-- Added current user-facing media metadata to `MediaAsset`
-- Added container format, duration, size, codecs, dimensions, frame rate, and metadata refresh timestamp
-- Added a typed `MediaAssetMetadata` value object to keep the domain independent from the technical media package
-- Projected the existing typed FFprobe result into MediaAsset metadata
-- Re-inspected existing assets whose metadata had not yet been materialized
-- Kept the full FFprobe snapshot on `MediaProcessingJob` without duplicating it into MediaAsset
-- Expanded `GET /api/episodes/{episode_id}/media` to expose current media metadata
-- Kept metadata materialization atomic with processing completion
-- Added API, worker, unit, and PostgreSQL-backed integration coverage
 
 ## Media Pipeline Roadmap
 
-The next features continue to build the current MediaAsset representation without turning `MediaProcessingJob` into a container for every media concern.
-
-### PR #20 — Subtitle Track Integration
-
-Merged into `main` as commit `7c680f24f0f09d08d758141a865c4cc031032e1f`.
-
-Goal: represent subtitle tracks as part of the current media asset without implementing extraction yet.
-
-Scope:
-
-- Add a persistent subtitle-track entity associated with MediaAsset
-- Materialize current embedded subtitle-stream metadata from FFprobe during media processing
-- Add persistent current subtitle-track metadata and MediaAsset relationship
-- Store track language, title, default/forced flags, codec or format, and source/path information needed by later extraction/normalization stages
-- Define the relationship between MediaAsset and its current subtitle tracks
-- Extend the media API with current subtitle-track information
-- Add migration and domain/API coverage
-
-Out of scope:
-
-- Subtitle extraction from containers
-- Subtitle OCR or format conversion
-- Subtitle normalization rules
-- HLS/DASH subtitle packaging
-
-### PR #21 — Subtitle Extraction / Normalization
-
-Merged into `main` as commit `aed70a37160d8aeb8603124050f6155be812db9f`.
-
-Goal: materialize embedded or external subtitle sources into a normalized application representation.
-
-Scope:
-
-- Extract subtitle tracks discovered by FFprobe
-- Normalize supported subtitle formats
-- Extract embedded text subtitle tracks through FFmpeg
-- Preserve ASS/SSA streams without re-encoding
-- Normalize supported text subtitle formats to ASS
-- Persist normalized subtitle artifacts and per-track processing status
-- Make extraction retryable without re-downloading the video
-- Keep per-track subtitle failures independent from MediaProcessingJob terminal state
-- Update current MediaAsset subtitle-track state atomically
-
-Out of scope:
-
-- Transcoding/remuxing of video or audio
-- Player UI
-
-### PR #22 — Chapter / Attachment Integration
-
-In development on `feature/chapter-attachment-integration`.
-
-Goal: persist chapters and attachment resources that belong to the current MediaAsset, while extracting reusable embedded fonts into content-addressed storage.
-
-Scope:
-
-- Persist chapter metadata
-- Represent embedded attachments where useful to playback or later processing
-- Define sprite/thumbnail metadata needed by the future player pipeline
-- Expose the current media-related assets through focused API models
-
-Out of scope:
-
-- Video transcoding
-- HLS/DASH packaging
-- Player implementation
-
 ### PR #23 — Thumbnail Sprite Integration
 
-Goal: generate thumbnail sprite assets and timing metadata for future player hover/seek previews.
+**Current next PR.**
+
+Goal: generate thumbnail sprite assets and WebVTT timing metadata for player hover/seek previews.
 
 Scope:
 
-- Extract thumbnail frames with FFmpeg
-- Generate sprite image output and WebVTT timing/region metadata
-- Persist current sprite metadata on MediaAsset
-- Keep generation retryable
+- Extract evenly spaced thumbnail frames from the current MediaAsset media file with FFmpeg
+- Generate a sprite image without transcoding the source video
+- Generate WebVTT cue/region metadata mapping playback time to sprite coordinates
+- Persist the current sprite paths and generation timestamp
+- Track sprite generation state independently from MediaProcessingJob terminal state
+- Make generation retryable without re-downloading the source media
+- Add deterministic FFmpeg unit tests and PostgreSQL/API coverage where state is exposed
+
+Design constraints:
+
+- The source `MediaAsset.path` remains the input; do not create a new playable video representation
+- Thumbnail generation is a derived artifact and should not change video/audio metadata
+- Keep sprite generation independent from subtitle/attachment processing so a sprite failure does not invalidate those artifacts
+- Prefer a small, explicit sprite metadata representation rather than duplicating the generated files in MediaAsset itself
+- Keep the implementation ready for later storage migration to SeaweedFS
 
 Out of scope:
 
-- Video transcoding
+- Video/audio transcoding or remuxing
 - HLS/DASH packaging
-- Player implementation
+- SeaweedFS upload
+- Player UI
 
 ### PR #24 — Transcoding / Remuxing
 
-Goal: introduce derived-media generation while preserving MediaAsset as the current playable-media identity.
+Goal: create derived playable media when the source does not satisfy the target playback constraints.
 
 Scope:
 
-- Define processing jobs for remux/transcode operations
-- Persist derived media paths and output metadata
-- Re-inspect generated output and update MediaAsset atomically
-- Support retry/failure history
+- Define derived-media processing state
+- Decide when remuxing is sufficient versus transcoding
+- Persist derived output and refreshed metadata
+- Re-inspect generated output
+- Keep retries and failure history separate from download state
 
 ### PR #25 — HLS / DASH Packaging
 
-Goal: derive streaming representations from the current media asset.
+Goal: derive streaming manifests and segments from the current playable media.
 
 Scope:
 
-- Add packaging jobs and generated manifests/segments
-- Track package state separately from the source MediaAsset
-- Keep source-media metadata and streaming-package metadata distinct
+- Add packaging jobs
+- Generate HLS and DASH representations
+- Keep package state separate from source MediaAsset state
+- Reuse the same encoded media where practical
 
 ### PR #26 — SeaweedFS / Media Storage
 
@@ -394,47 +277,23 @@ Goal: move durable media artifacts from local development storage to SeaweedFS.
 
 Scope:
 
-- Define storage abstraction and media-object lifecycle
-- Upload current media and derived artifacts
+- Define storage abstraction and object lifecycle
+- Upload current and derived artifacts
 - Preserve local filesystem support for development
-- Add cleanup/error handling without coupling storage concerns to processing jobs
+- Add upload failure and cleanup handling
 
 ### PR #27 — Player / Playback
 
-Goal: expose the current MediaAsset and its derived streaming/subtitle resources to the frontend player.
+Goal: expose current media and derived resources to the frontend player.
 
 Scope:
 
 - Add playback-oriented API
-- Integrate media metadata and subtitle tracks
+- Integrate media metadata, chapters and subtitles
+- Load thumbnail sprite/WebVTT metadata
 - Support direct-file playback and later packaged playback as separate paths
 - Add focused player UI and API coverage
 
-## Planned Follow-up
-
-After PR #21, immediate next work is PR #22, focused on chapter and attachment integration. Thumbnail sprite generation is split into PR #23.
-
 ## Handoff Notes
 
-For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current open pull request, and recent commits. Treat the repository state as authoritative and update this file when the project phase changes.
-
-
-### PR #22 — Chapter / Attachment Integration
-
-Scope:
-
-- Materialize chapter metadata from the existing FFprobe result
-- Materialize embedded attachment metadata
-- Extract embedded attachments through FFmpeg
-- Keep per-MediaAsset attachment occurrences separate from reusable font resources
-- Deduplicate identical font binaries by SHA-256
-- Preserve original font filenames as metadata for later subtitle/font matching
-- Expose chapters, attachments, and referenced font resources through the media API
-- Keep attachment processing retryable without re-downloading
-
-Out of scope:
-
-- Thumbnail sprite generation
-- Video/audio transcoding or remuxing
-- HLS/DASH packaging
-- Player UI
+For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current repository state, and recent commits. Treat the repository state as authoritative and update this file whenever the development phase changes.

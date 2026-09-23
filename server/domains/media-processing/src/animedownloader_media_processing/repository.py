@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .enums import MediaPreparationJobStatus
-from .models import MediaPreparationJob, MediaProcessingJob, MediaTranscodingJob, MediaVariant
+from .models import MediaPreparationJob, MediaProcessingJob, MediaVariant
 
 
 class MediaProcessingJobRepository:

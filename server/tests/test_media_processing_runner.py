@@ -16,6 +16,7 @@ from animedownloader_worker.media_processing import (
     MediaProcessingExecutionError,
     MediaProcessingRunner,
     build_media_asset_metadata,
+    build_subtitle_track_metadata,
 )
 
 
@@ -138,6 +139,50 @@ def make_probe(path: Path) -> MediaProbe:
                 disposition_forced=False,
                 tags=(),
             ),
+            MediaStream(
+                index=2,
+                codec_type=MediaStreamType.SUBTITLE,
+                codec_name="ass",
+                codec_long_name="ASS (Advanced SubStation Alpha) subtitle",
+                profile=None,
+                codec_tag_string=None,
+                width=None,
+                height=None,
+                pixel_format=None,
+                frame_rate=None,
+                duration_seconds=60.0,
+                bit_rate=None,
+                channels=None,
+                channel_layout=None,
+                sample_rate_hz=None,
+                language="jpn",
+                title="Japanese",
+                disposition_default=True,
+                disposition_forced=False,
+                tags=(),
+            ),
+            MediaStream(
+                index=3,
+                codec_type=MediaStreamType.SUBTITLE,
+                codec_name="subrip",
+                codec_long_name="SubRip subtitle",
+                profile=None,
+                codec_tag_string=None,
+                width=None,
+                height=None,
+                pixel_format=None,
+                frame_rate=None,
+                duration_seconds=60.0,
+                bit_rate=None,
+                channels=None,
+                channel_layout=None,
+                sample_rate_hz=None,
+                language="eng",
+                title="English",
+                disposition_default=False,
+                disposition_forced=False,
+                tags=(),
+            ),
         ),
         chapters=(
             MediaChapter(
@@ -163,6 +208,23 @@ def test_build_media_asset_metadata_from_probe() -> None:
     assert metadata.width == 1920
     assert metadata.height == 1080
     assert metadata.frame_rate == "24000/1001"
+
+
+def test_build_subtitle_track_metadata_from_probe() -> None:
+    probe = make_probe(Path("/downloads/episode.mkv"))
+
+    tracks = build_subtitle_track_metadata(probe)
+
+    assert len(tracks) == 2
+    assert tracks[0].stream_index == 2
+    assert tracks[0].language == "jpn"
+    assert tracks[0].title == "Japanese"
+    assert tracks[0].codec_name == "ass"
+    assert tracks[0].is_default
+    assert not tracks[0].is_forced
+    assert tracks[1].stream_index == 3
+    assert tracks[1].language == "eng"
+    assert tracks[1].codec_name == "subrip"
 
 
 @pytest.mark.anyio

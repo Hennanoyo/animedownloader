@@ -13,7 +13,10 @@ from animedownloader_media import (
     PlayableMediaPlanner,
     PlayableMediaProcessingResult,
 )
-from animedownloader_media_processing import MediaTranscodingJobStatus
+from animedownloader_media_processing import (
+    MediaTranscodingJobStatus,
+    MediaTranscodingOperation,
+)
 from animedownloader_worker.media_transcoding import (
     MediaTranscodingContext,
     MediaTranscodingRunner,
@@ -33,7 +36,7 @@ class FakeState:
     async def mark_processing(
         self,
         job_id: UUID,
-        operation: PlayableMediaOperation,
+        operation: MediaTranscodingOperation,
     ) -> None:
         self.transitions.append(operation.value)
         self.context = MediaTranscodingContext(
@@ -167,7 +170,7 @@ def make_probe(codec: str, container: str) -> MediaProbe:
 def make_context(
     *,
     status: MediaTranscodingJobStatus,
-    operation: PlayableMediaOperation | None = None,
+    operation: MediaTranscodingOperation | None = None,
 ) -> MediaTranscodingContext:
     return MediaTranscodingContext(
         job_id=uuid7(),

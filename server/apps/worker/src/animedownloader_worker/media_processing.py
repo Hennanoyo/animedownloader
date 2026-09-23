@@ -48,10 +48,10 @@ class MediaProcessingContext:
         self,
         *,
         status: MediaProcessingJobStatus,
-        download_job_id: UUID,
+        download_directory: str,
     ) -> None:
         self.status = status
-        self.download_job_id = download_job_id
+        self.download_directory = download_directory
 
 
 class MediaProcessingState:
@@ -61,13 +61,9 @@ class MediaProcessingState:
     async def load(self, job_id: UUID) -> MediaProcessingContext:
         async with self._session_factory() as session:
             job = await MediaProcessingJobService(session).get_job(job_id)
-            if job.download_job_id is None:
-                raise MediaProcessingExecutionError(
-                    f"Download job provenance is missing: {job_id}",
-                )
             return MediaProcessingContext(
                 status=job.job_status,
-                download_job_id=job.download_job_id,
+                download_directory=job.download_directory,
             )
 
     async def mark_processing(self, job_id: UUID) -> None:
@@ -125,7 +121,7 @@ class MediaProcessingRunner:
                 await self._state.mark_processing(job_id)
 
             media_path = _find_media_file(
-                self._download_root / str(context.download_job_id),
+                self._download_root / context.download_directory,
             )
             probe = await self._inspector.inspect(media_path)
             await self._state.mark_completed(

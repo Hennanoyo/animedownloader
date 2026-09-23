@@ -196,16 +196,53 @@ class MediaPreparationState:
             )
 
 
+class MediaInspector(Protocol):
+    async def inspect(self, path: Path) -> MediaProbe: ...
+
+
+class MediaPreparationProcessor(Protocol):
+    async def process(
+        self,
+        *,
+        media_path: Path,
+        playable_path: Path,
+        sprite_path: Path,
+        vtt_path: Path,
+        duration_seconds: float | None,
+        operation: PlayableMediaOperation,
+    ) -> MediaPreparationProcessingResult: ...
+
+
+class PlayableMediaProcessor(Protocol):
+    async def process(
+        self,
+        *,
+        media_path: Path,
+        output_path: Path,
+        operation: PlayableMediaOperation,
+    ) -> PlayableMediaProcessingResult: ...
+
+
+class ThumbnailProcessor(Protocol):
+    async def generate(
+        self,
+        *,
+        media_path: Path,
+        output_dir: Path,
+        duration_seconds: float | None,
+    ) -> ThumbnailSpriteResult: ...
+
+
 class MediaPreparationRunner:
     def __init__(
         self,
         *,
         state: MediaPreparationStateProtocol,
-        inspector,
+        inspector: MediaInspector,
         planner: PlayableMediaPlanner,
-        preparation_processor: FFmpegMediaPreparationProcessor,
-        playable_processor: FFmpegPlayableMediaProcessor,
-        thumbnail_processor: FFmpegThumbnailSpriteProcessor,
+        preparation_processor: MediaPreparationProcessor,
+        playable_processor: PlayableMediaProcessor,
+        thumbnail_processor: ThumbnailProcessor,
         media_root: Path,
     ) -> None:
         self._state = state
@@ -311,7 +348,7 @@ class MediaPreparationRunner:
                 thumbnail = await self._thumbnail_processor.generate(
                     media_path=Path(context.source_path),
                     output_dir=thumbnail_dir,
-                    duration_seconds=None if not context.thumbnail_ready else 0,
+                    duration_seconds=context.duration_seconds,
                 )
 
             await self._state.mark_completed(

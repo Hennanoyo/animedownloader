@@ -225,13 +225,11 @@ version = "0.1.0"
 source = { editable = "domains/media-asset" }
 dependencies = [
     { name = "animedownloader-database" },
-    { name = "animedownloader-media" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "animedownloader-database", editable = "libs/database" },
-    { name = "animedownloader-media", editable = "libs/media" },
 ]
 
 [[package]]

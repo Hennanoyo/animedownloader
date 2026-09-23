@@ -15,7 +15,7 @@ class FakeRunner:
         self.calls: list[tuple[str, ...]] = []
 
     async def run(self, args: Sequence[str]) -> FFmpegCommandResult:
-        self.calls.append(args)
+        self.calls.append(tuple(args))
         playable_path = Path(args[-8])
         sprite_path = Path(args[-1])
         playable_path.parent.mkdir(parents=True, exist_ok=True)
@@ -97,7 +97,7 @@ async def test_preparation_propagates_ffmpeg_failure(tmp_path: Path) -> None:
     source.write_bytes(b"source")
 
     class FailedRunner:
-        async def run(self, args: tuple[str, ...]) -> FFmpegCommandResult:
+        async def run(self, args: Sequence[str]) -> FFmpegCommandResult:
             return FFmpegCommandResult(
                 stdout=b"",
                 stderr=b"encoder failed",

@@ -103,11 +103,10 @@ class MediaProcessingState:
         async with self._session_factory() as session, session.begin():
             processing_service = MediaProcessingJobService(session)
             job = await processing_service.get_job(job_id)
-            await MediaAssetService(session).upsert_from_probe(
+            await MediaAssetService(session).upsert(
                 episode_id=job.episode_id,
                 processing_job_id=job.id,
                 media_path=media_path,
-                probe=probe,
             )
             job.media_path = media_path
             job.probe_metadata = _serialize_probe(probe)

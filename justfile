@@ -13,6 +13,9 @@ down-v:
 logs service="":
   docker compose logs -f {{service}}
 
+media-smoke episode_id timeout="180":
+  docker compose exec -T worker uv run --package animedownloader-worker python3 /app/scripts/media-streaming-smoke.py {{episode_id}} --timeout {{timeout}}
+
 web-install:
   cd web && pnpm install
 

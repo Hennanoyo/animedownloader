@@ -9,8 +9,8 @@ from typing import Protocol
 from uuid import UUID
 
 from animedownloader_media import (
-    CMAFRepresentationMetadata,
     CMAFPackagingResult,
+    CMAFRepresentationMetadata,
     build_dash_manifest,
     build_hls_master_playlist,
     make_representation_metadata,

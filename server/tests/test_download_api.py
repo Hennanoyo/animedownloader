@@ -87,9 +87,7 @@ async def test_create_download_job_marks_failed_when_enqueue_fails() -> None:
     service.mark_failed = AsyncMock(return_value=job)
 
     async with make_client(service, dispatcher) as client:
-        response = await client.post(
-            "/api/episodes/" + str(job.episode_id) + "/download-jobs"
-        )
+        response = await client.post("/api/episodes/" + str(job.episode_id) + "/download-jobs")
 
     assert response.status_code == 503
     service.mark_failed.assert_awaited_once_with(

@@ -6,9 +6,9 @@ from animedownloader_media_asset import (
     MediaAsset,
     MediaAssetMetadata,
     MediaAssetService,
+    SubtitleTrack,
     SubtitleTrackMetadata,
     SubtitleTrackStatus,
-    SubtitleTrack,
 )
 
 

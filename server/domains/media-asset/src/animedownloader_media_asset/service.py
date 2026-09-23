@@ -28,7 +28,11 @@ class MediaAssetService:
             asset = MediaAsset(
                 episode_id=episode_id,
             )
+            asset.processing_job_id = processing_job_id
+            asset.path = media_path
+            asset.update_metadata(metadata)
             await self.assets.add(asset)
+            return asset
 
         asset.processing_job_id = processing_job_id
         asset.path = media_path

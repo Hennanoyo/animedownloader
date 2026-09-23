@@ -8,11 +8,11 @@ from animedownloader_anime import Episode
 from animedownloader_database import Base
 from animedownloader_download import DownloadJob
 from sqlalchemy import (
+    JSON,
     DateTime,
     ForeignKey,
     Index,
     Integer,
-    JSON,
     String,
     UniqueConstraint,
     func,

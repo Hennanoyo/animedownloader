@@ -140,3 +140,20 @@ class DownloadJobResponse(BaseModel):
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class MediaProcessingJobResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    episode_id: UUID
+    download_job_id: UUID | None
+    status: str
+    media_path: str | None
+    probe_metadata: dict[str, object] | None
+    attempt_count: int
+    error_message: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime

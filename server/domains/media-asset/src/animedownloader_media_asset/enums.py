@@ -14,6 +14,7 @@ class MediaAttachmentStatus(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
 
+
 class MediaThumbnailStatus(StrEnum):
     PENDING = "pending"
     PROCESSING = "processing"

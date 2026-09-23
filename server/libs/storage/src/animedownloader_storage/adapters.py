@@ -166,22 +166,31 @@ class SeaweedFSStorage:
             or mimetypes.guess_type(source.name)[0]
             or "application/octet-stream"
         )
+        boundary = f"----animedownloader-{id(source):x}"
+        prefix = (
+            f"--{boundary}\\r\\n"
+            f'Content-Disposition: form-data; name="file"; filename="{source.name}"\\r\\n'
+            f"Content-Type: {detected_type}\\r\\n"
+            "\\r\\n"
+        ).encode("utf-8")
+        suffix = f"\\r\\n--{boundary}--\\r\\n".encode("utf-8")
+        content_length = source.stat().st_size + len(prefix) + len(suffix)
+
         connection = self._connection()
         try:
-            connection.request(
-                "POST",
-                self._path(object_key),
-                headers={
-                    "Content-Type": detected_type,
-                    "Content-Length": str(source.stat().st_size),
-                },
+            connection.putrequest("POST", self._path(object_key))
+            connection.putheader(
+                "Content-Type",
+                f"multipart/form-data; boundary={boundary}",
             )
-            request = connection.sock
-            if request is None:
-                raise StorageError("SeaweedFS connection is not established")
+            connection.putheader("Content-Length", str(content_length))
+            connection.endheaders()
+            connection.send(prefix)
             with source.open("rb") as stream:
                 while chunk := stream.read(1024 * 1024):
-                    request.sendall(chunk)
+                    connection.send(chunk)
+            connection.send(suffix)
+
             response = connection.getresponse()
             body = response.read()
             if response.status >= 400:
@@ -189,7 +198,7 @@ class SeaweedFSStorage:
                 raise StorageError(
                     f"SeaweedFS upload failed with HTTP {response.status}: {message}",
                 )
-        except OSError as exc:
+        except (OSError, http.client.HTTPException) as exc:
             raise StorageError(f"SeaweedFS upload failed: {exc}") from exc
         finally:
             connection.close()

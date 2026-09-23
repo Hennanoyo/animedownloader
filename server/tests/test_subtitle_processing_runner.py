@@ -3,30 +3,13 @@ from pathlib import Path
 from uuid import UUID, uuid7
 
 import pytest
-from animedownloader_media_asset import SubtitleTrackStatus
 from animedownloader_media import FFmpegSubtitleProcessor
+from animedownloader_media_asset import SubtitleTrackStatus
 from animedownloader_worker.subtitle_processing import (
     SubtitleProcessingContext,
-    SubtitleProcessingExecutionError,
     SubtitleProcessingRunner,
     SubtitleTrackContext,
 )
-
-
-@dataclass
-class FakeProcessor:
-    results: dict[UUID, str | Exception]
-    calls: list[tuple[UUID, Path]] = field(default_factory=list)
-
-    async def extract(
-        self,
-        *,
-        media_path: Path,
-        stream_index: int,
-        codec_name: str | None,
-        output_path: Path,
-    ) -> str:
-        raise AssertionError("not used")
 
 
 @dataclass

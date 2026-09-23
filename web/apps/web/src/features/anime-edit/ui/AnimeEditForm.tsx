@@ -12,7 +12,6 @@ import {
   Text,
   TextField,
 } from "react-aria-components";
-import { useNavigate } from "@tanstack/react-router";
 import type {
   Season,
   Weekday,

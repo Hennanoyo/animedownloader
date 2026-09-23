@@ -1,14 +1,16 @@
 from datetime import datetime
 from uuid import UUID
 
-from animedownloader_media_asset import MediaAssetService
+from animedownloader_media_asset import MediaAssetService, MediaThumbnailStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .enums import (
     MediaPreparationJobStatus,
     MediaTranscodingOperation,
     MediaVariantKind,
+    MediaVariantStatus,
 )
+
 from .exceptions import MediaPreparationJobNotFoundError
 from .models import MediaPreparationJob, MediaVariant
 from .repository import MediaProcessingJobRepository
@@ -171,9 +173,9 @@ class MediaPreparationJobService:
             if asset is None:
                 raise MediaPreparationJobNotFoundError(job.media_asset_id)
 
-            if variant.variant_status.value == "processing":
+            if variant.variant_status is MediaVariantStatus.PROCESSING:
                 variant.mark_failed(error_message)
-            if asset.thumbnail_processing_status.value == "processing":
+            if asset.thumbnail_processing_status is MediaThumbnailStatus.PROCESSING:
                 asset.mark_thumbnail_failed(error_message)
 
             job.transition_to(MediaPreparationJobStatus.FAILED)

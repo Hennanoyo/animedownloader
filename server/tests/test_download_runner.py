@@ -17,10 +17,8 @@ from animedownloader_worker.runner import (
 @dataclass
 class FakeState:
     context: DownloadContext
-    transitions: list[str] = field(default_factory=lambda: list[str]())
-    progress: list[tuple[int, int]] = field(
-        default_factory=lambda: list[tuple[int, int]]()
-    )
+    transitions: list[str] = field(default_factory=_string_list)
+    progress: list[tuple[int, int]] = field(default_factory=_progress_list)
     completed: tuple[int, int] | None = None
     failed_message: str | None = None
 
@@ -59,12 +57,8 @@ class FakeState:
 @dataclass
 class FakeTorrentClient:
     torrents: list[TorrentInfo]
-    added: list[tuple[str, str, tuple[str, ...]]] = field(
-        default_factory=lambda: list[tuple[str, str, tuple[str, ...]]]()
-    )
-    info_sequence: list[TorrentInfo] = field(
-        default_factory=lambda: list[TorrentInfo]()
-    )
+    added: list[tuple[str, str, tuple[str, ...]]] = field(default_factory=_added_list)
+    info_sequence: list[TorrentInfo] = field(default_factory=_torrent_list)
 
     async def find_by_tag(self, tag: str) -> TorrentInfo | None:
         if self.torrents:

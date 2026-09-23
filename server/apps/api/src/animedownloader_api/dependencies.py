@@ -61,15 +61,12 @@ async def get_nyaa_client() -> AsyncIterator[NyaaClient]:
         yield client
 
 
-
 async def get_qbittorrent_client(
     request: Request,
 ) -> AsyncIterator[QBittorrentClient]:
     settings: Settings = request.app.state.settings
     api_key = (
-        settings.qbittorrent_api_key.get_secret_value()
-        if settings.qbittorrent_api_key
-        else ""
+        settings.qbittorrent_api_key.get_secret_value() if settings.qbittorrent_api_key else ""
     )
     async with QBittorrentClient(settings.qbittorrent_url, api_key) as client:
         yield client

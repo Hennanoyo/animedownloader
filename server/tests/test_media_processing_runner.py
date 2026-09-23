@@ -157,7 +157,6 @@ async def test_runner_inspects_and_completes(tmp_path: Path) -> None:
     assert state.completed[1].format.format_name == "matroska,webm"
 
 
-
 @pytest.mark.anyio
 async def test_runner_repairs_completed_job_when_media_asset_is_missing(
     tmp_path: Path,
@@ -212,6 +211,7 @@ async def test_runner_skips_completed_job_when_media_asset_exists(
 
     assert inspector.paths == []
     assert state.completed is None
+
 
 @pytest.mark.anyio
 async def test_runner_fails_when_media_file_is_missing(tmp_path: Path) -> None:

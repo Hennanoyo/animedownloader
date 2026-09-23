@@ -153,6 +153,7 @@ class MediaAssetResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
 class MediaProcessingJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -139,10 +139,7 @@ class MediaProcessingRunner:
             context = await self._state.load(job_id)
             job_loaded = True
             persist_failure = context.status is not MediaProcessingJobStatus.COMPLETED
-            if (
-                context.status is MediaProcessingJobStatus.COMPLETED
-                and context.media_asset_exists
-            ):
+            if context.status is MediaProcessingJobStatus.COMPLETED and context.media_asset_exists:
                 return
 
             if context.status is MediaProcessingJobStatus.FAILED:

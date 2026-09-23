@@ -190,7 +190,6 @@ async def test_create_media_processing_job_from_completed_download() -> None:
     dispatcher.enqueue.assert_awaited_once_with(job.id)
 
 
-
 @pytest.mark.anyio
 async def test_manual_media_processing_requeues_completed_job_when_asset_is_missing() -> None:
     service = MagicMock(spec=MediaProcessingJobService)

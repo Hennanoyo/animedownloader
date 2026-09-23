@@ -75,7 +75,8 @@ async def create_media_processing_job_from_download(
         job = await service.retry_job(job.id)
 
     if job.job_status is MediaProcessingJobStatus.COMPLETED:
-        needs_processing = (await media_asset_service.get_for_episode(job.episode_id)) is None
+        asset = await media_asset_service.get_for_episode(job.episode_id)
+        needs_processing = asset is None or not asset.metadata_ready
 
     if needs_processing:
         try:

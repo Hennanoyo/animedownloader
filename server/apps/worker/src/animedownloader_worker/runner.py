@@ -139,7 +139,6 @@ class DownloadRunner:
                 await self._state.mark_downloading(job_id)
 
             save_path = self._download_root / str(job_id)
-            save_path.mkdir(parents=True, exist_ok=True)
             tag = f"{DOWNLOAD_TAG_PREFIX}{job_id}"
 
             torrent = await self._torrent_client.find_by_tag(tag)

@@ -4,20 +4,18 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from uuid import UUID
 from typing import Protocol
+from uuid import UUID
 
 from animedownloader_media import (
-    FFmpegPlayableMediaProcessor,
-    FFprobeInspector,
     MediaProbe,
     PlayableMediaOperation,
     PlayableMediaPlanner,
+    PlayableMediaProcessingResult,
 )
 from animedownloader_media_processing import (
     MediaTranscodingJobService,
     MediaTranscodingJobStatus,
-    MediaTranscodingOperation,
     MediaVariantService,
 )
 from animedownloader_media_asset import MediaAssetService
@@ -39,6 +37,7 @@ class MediaTranscodingContext:
     status: MediaTranscodingJobStatus
     operation: PlayableMediaOperation | None
     variant_id: UUID
+    source_is_current: bool = True
 
 
 class MediaTranscodingStateProtocol(Protocol):
@@ -106,6 +105,10 @@ class MediaTranscodingState:
                 status=job.job_status,
                 operation=job.transcoding_operation,
                 variant_id=variant.id,
+                source_is_current=(
+                    asset.path == job.source_path
+                    and asset.metadata_updated_at == job.source_metadata_updated_at
+                ),
             )
 
     async def mark_processing(
@@ -161,7 +164,7 @@ class PlayableMediaProcessor(Protocol):
         media_path: Path,
         output_path: Path,
         operation: PlayableMediaOperation,
-    ) -> object: ...
+    ) -> PlayableMediaProcessingResult: ...
 
 class MediaTranscodingRunner:
     def __init__(
@@ -187,6 +190,12 @@ class MediaTranscodingRunner:
                 return
 
             source_path = Path(context.source_path)
+            if not context.source_is_current:
+                raise MediaTranscodingExecutionError(
+                    "Media asset source changed after the transcoding job was created; "
+                    "create a new transcoding job",
+                )
+
             probe = await self._inspector.inspect(source_path)
             operation = self._planner.plan(probe)
 

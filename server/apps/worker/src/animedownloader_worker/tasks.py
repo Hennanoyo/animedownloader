@@ -5,6 +5,7 @@ from animedownloader_database import Database, create_database
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
 from animedownloader_media import (
     FFmpegAttachmentProcessor,
+    FFmpegCMAFProcessor,
     FFmpegMediaPreparationProcessor,
     FFmpegPlayableMediaProcessor,
     FFmpegSubtitleProcessor,

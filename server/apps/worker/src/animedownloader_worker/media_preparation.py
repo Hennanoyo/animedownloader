@@ -1,0 +1,383 @@
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Protocol
+from uuid import UUID
+
+from animedownloader_media import (
+    MediaPreparationProcessingResult,
+    MediaProbe,
+    PlayableMediaOperation,
+    PlayableMediaPlanner,
+    PlayableMediaProcessingResult,
+    ThumbnailSpriteResult,
+)
+from animedownloader_media_asset import MediaAssetService
+from animedownloader_media_processing import (
+    MediaPreparationJobService,
+    MediaPreparationJobStatus,
+    MediaTranscodingOperation,
+    MediaVariantService,
+)
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+logger = logging.getLogger(__name__)
+
+
+class MediaPreparationExecutionError(RuntimeError):
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class MediaPreparationContext:
+    job_id: UUID
+    asset_id: UUID
+    source_path: str
+    source_metadata_updated_at: datetime
+    status: MediaPreparationJobStatus
+    operation: MediaTranscodingOperation | None
+    variant_id: UUID
+    playable_ready: bool
+    thumbnail_ready: bool
+    duration_seconds: float | None
+    source_is_current: bool = True
+
+
+class MediaPreparationStateProtocol(Protocol):
+    async def load(self, job_id: UUID) -> MediaPreparationContext: ...
+
+    async def mark_processing(
+        self,
+        job_id: UUID,
+        *,
+        operation: MediaTranscodingOperation | None,
+        playable_required: bool,
+        thumbnail_required: bool,
+    ) -> None: ...
+
+    async def mark_completed(
+        self,
+        job_id: UUID,
+        *,
+        playable_probe: MediaProbe | None,
+        thumbnail: ThumbnailSpriteResult | None,
+    ) -> None: ...
+
+    async def mark_failed(
+        self,
+        job_id: UUID,
+        *,
+        error_message: str,
+    ) -> None: ...
+
+
+class MediaPreparationState:
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+        self._session_factory = session_factory
+
+    async def load(self, job_id: UUID) -> MediaPreparationContext:
+        async with self._session_factory() as session:
+            job = await MediaPreparationJobService(session).get_job(job_id)
+            asset = await MediaAssetService(session).get(job.media_asset_id)
+            if asset is None:
+                raise MediaPreparationExecutionError(
+                    f"Media asset does not exist: {job.media_asset_id}",
+                )
+            if not asset.metadata_ready or asset.metadata_updated_at is None:
+                raise MediaPreparationExecutionError(
+                    f"Media asset metadata is not ready: {asset.id}",
+                )
+
+            variant = await MediaVariantService(session).get(job.variant_id)
+            if variant is None:
+                raise MediaPreparationExecutionError(
+                    f"Media variant does not exist: {job.variant_id}",
+                )
+
+            return MediaPreparationContext(
+                job_id=job.id,
+                asset_id=asset.id,
+                source_path=job.source_path,
+                source_metadata_updated_at=job.source_metadata_updated_at,
+                status=job.job_status,
+                operation=job.transcoding_operation,
+                variant_id=variant.id,
+                playable_ready=variant.is_current(
+                    source_path=job.source_path,
+                    source_metadata_updated_at=job.source_metadata_updated_at,
+                ),
+                thumbnail_ready=asset.thumbnail_ready,
+                duration_seconds=asset.duration_seconds,
+                source_is_current=(
+                    asset.path == job.source_path
+                    and asset.metadata_updated_at == job.source_metadata_updated_at
+                ),
+            )
+
+    async def mark_processing(
+        self,
+        job_id: UUID,
+        *,
+        operation: MediaTranscodingOperation | None,
+        playable_required: bool,
+        thumbnail_required: bool,
+    ) -> None:
+        async with self._session_factory() as session:
+            await MediaPreparationJobService(session).mark_processing(
+                job_id,
+                operation=operation,
+                playable_required=playable_required,
+                thumbnail_required=thumbnail_required,
+            )
+
+    async def mark_completed(
+        self,
+        job_id: UUID,
+        *,
+        playable_probe: MediaProbe | None,
+        thumbnail: ThumbnailSpriteResult | None,
+    ) -> None:
+        async with self._session_factory() as session:
+            service = MediaPreparationJobService(session)
+            video_stream = (
+                next(iter(playable_probe.video_streams), None)
+                if playable_probe is not None
+                else None
+            )
+            audio_stream = (
+                next(iter(playable_probe.audio_streams), None)
+                if playable_probe is not None
+                else None
+            )
+            await service.mark_completed(
+                job_id,
+                playable_output_path=(
+                    str(
+                        playable_probe.path,
+                    )
+                    if playable_probe is not None
+                    else None
+                ),
+                format_name=(
+                    playable_probe.format.format_name
+                    if playable_probe is not None
+                    else None
+                ),
+                duration_seconds=(
+                    playable_probe.format.duration_seconds
+                    if playable_probe is not None
+                    else None
+                ),
+                size_bytes=(
+                    playable_probe.format.size_bytes
+                    if playable_probe is not None
+                    else None
+                ),
+                video_codec=video_stream.codec_name if video_stream is not None else None,
+                audio_codec=audio_stream.codec_name if audio_stream is not None else None,
+                width=video_stream.width if video_stream is not None else None,
+                height=video_stream.height if video_stream is not None else None,
+                frame_rate=video_stream.frame_rate if video_stream is not None else None,
+                thumbnail_sprite_path=(
+                    str(thumbnail.sprite_path) if thumbnail is not None else None
+                ),
+                thumbnail_vtt_path=(
+                    str(thumbnail.vtt_path) if thumbnail is not None else None
+                ),
+            )
+
+    async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
+        async with self._session_factory() as session:
+            await MediaPreparationJobService(session).mark_failed(
+                job_id,
+                error_message=error_message,
+            )
+
+
+class MediaInspector(Protocol):
+    async def inspect(self, path: Path) -> MediaProbe: ...
+
+
+class MediaPreparationProcessor(Protocol):
+    async def process(
+        self,
+        *,
+        media_path: Path,
+        playable_path: Path,
+        sprite_path: Path,
+        vtt_path: Path,
+        duration_seconds: float | None,
+        operation: PlayableMediaOperation,
+    ) -> MediaPreparationProcessingResult: ...
+
+
+class PlayableMediaProcessor(Protocol):
+    async def process(
+        self,
+        *,
+        media_path: Path,
+        output_path: Path,
+        operation: PlayableMediaOperation,
+    ) -> PlayableMediaProcessingResult: ...
+
+
+class ThumbnailProcessor(Protocol):
+    async def generate(
+        self,
+        *,
+        media_path: Path,
+        output_dir: Path,
+        duration_seconds: float | None,
+    ) -> ThumbnailSpriteResult: ...
+
+
+class MediaPreparationRunner:
+    def __init__(
+        self,
+        *,
+        state: MediaPreparationStateProtocol,
+        inspector: MediaInspector,
+        planner: PlayableMediaPlanner,
+        preparation_processor: MediaPreparationProcessor,
+        playable_processor: PlayableMediaProcessor,
+        thumbnail_processor: ThumbnailProcessor,
+        media_root: Path,
+    ) -> None:
+        self._state = state
+        self._inspector = inspector
+        self._planner = planner
+        self._preparation_processor = preparation_processor
+        self._playable_processor = playable_processor
+        self._thumbnail_processor = thumbnail_processor
+        self._media_root = media_root
+
+    async def run(self, job_id: UUID) -> None:
+        context: MediaPreparationContext | None = None
+        try:
+            context = await self._state.load(job_id)
+            if context.status is MediaPreparationJobStatus.COMPLETED:
+                return
+            if not context.source_is_current:
+                raise MediaPreparationExecutionError(
+                    "Media asset source changed after the preparation job was created; "
+                    "create a new preparation job",
+                )
+
+            playable_required = not context.playable_ready
+            thumbnail_required = not context.thumbnail_ready
+            if not playable_required and not thumbnail_required:
+                await self._state.mark_completed(
+                    job_id,
+                    playable_probe=None,
+                    thumbnail=None,
+                )
+                return
+
+            source_probe: MediaProbe | None = None
+            operation: PlayableMediaOperation | None = None
+            if playable_required:
+                source_probe = await self._inspector.inspect(Path(context.source_path))
+                operation = self._planner.plan(source_probe)
+
+            if context.status is MediaPreparationJobStatus.PENDING:
+                await self._state.mark_processing(
+                    job_id,
+                    operation=(
+                        MediaTranscodingOperation(operation.value)
+                        if operation is not None
+                        else None
+                    ),
+                    playable_required=playable_required,
+                    thumbnail_required=thumbnail_required,
+                )
+            elif context.status is MediaPreparationJobStatus.PROCESSING:
+                if (
+                    operation is not None
+                    and context.operation is not None
+                    and context.operation.value != operation.value
+                ):
+                    raise MediaPreparationExecutionError(
+                        "Preparation operation changed while a job was processing: "
+                        f"{context.operation.value} -> {operation.value}",
+                    )
+            else:
+                raise MediaPreparationExecutionError(
+                    "Preparation job cannot be executed from status "
+                    f"{context.status.value}",
+                )
+
+            playable_probe: MediaProbe | None = None
+            thumbnail: ThumbnailSpriteResult | None = None
+            output_dir = self._media_root / "playable" / str(context.asset_id)
+            playable_path = output_dir / f"{job_id}.mp4"
+            thumbnail_dir = self._media_root / "thumbnails" / str(context.asset_id)
+            sprite_path = thumbnail_dir / "sprite.jpg"
+            vtt_path = thumbnail_dir / "sprite.vtt"
+
+            if playable_required and thumbnail_required:
+                if operation is None or source_probe is None:
+                    raise MediaPreparationExecutionError(
+                        "A playable operation is required for combined preparation",
+                    )
+                combined = await self._preparation_processor.process(
+                    media_path=Path(context.source_path),
+                    playable_path=playable_path,
+                    sprite_path=sprite_path,
+                    vtt_path=vtt_path,
+                    duration_seconds=source_probe.format.duration_seconds,
+                    operation=operation,
+                )
+                playable_probe = await self._inspector.inspect(combined.playable.output_path)
+                self._planner.validate(playable_probe)
+                thumbnail = combined.thumbnail
+            elif playable_required:
+                if operation is None:
+                    raise MediaPreparationExecutionError(
+                        "A playable operation is required for playable preparation",
+                    )
+                result = await self._playable_processor.process(
+                    media_path=Path(context.source_path),
+                    output_path=playable_path,
+                    operation=operation,
+                )
+                playable_probe = await self._inspector.inspect(result.output_path)
+                self._planner.validate(playable_probe)
+            else:
+                thumbnail = await self._thumbnail_processor.generate(
+                    media_path=Path(context.source_path),
+                    output_dir=thumbnail_dir,
+                    duration_seconds=context.duration_seconds,
+                )
+
+            await self._state.mark_completed(
+                job_id,
+                playable_probe=playable_probe,
+                thumbnail=thumbnail,
+            )
+        except Exception as exc:
+            if context is not None:
+                try:
+                    await self._state.mark_failed(
+                        job_id,
+                        error_message=_format_error(exc),
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to persist media preparation failure for job %s",
+                        job_id,
+                    )
+            raise
+
+
+def _format_error(exc: Exception) -> str:
+    message = str(exc).strip() or type(exc).__name__
+    return message[:2000]
+
+
+def create_media_preparation_state(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> MediaPreparationState:
+    return MediaPreparationState(session_factory)

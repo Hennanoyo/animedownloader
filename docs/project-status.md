@@ -4,7 +4,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, and chapter/embedded attachment integration.
 
-The current phase is transcoding/remuxing for browser-oriented playable media. PR #23 (thumbnail sprite integration) is merged; PR #24 is the next development step.
+The current phase is shared media preparation for browser-oriented playable media and thumbnail generation. PR #23 and PR #24 are merged; PR #25 is the next development step.
 
 ## Completed
 
@@ -252,41 +252,49 @@ Out of scope:
 
 ### PR #24 — Transcoding / Remuxing
 
-**Next development step.**
+**Merged into `main` as commit `4b77c2d9e09567ed59a43feed806dcf6198c6d79`.**
 
-Goal: create a canonical derived playable media representation only when the downloaded source does not satisfy the target browser playback constraints.
+- Added persistent playable `MediaVariant` output separate from the source `MediaAsset`
+- Added durable transcoding/remux job state and retry history
+- Planned REMUX versus HEVC/AAC TRANSCODE from FFprobe metadata
+- Generated and re-inspected playable MP4 output
+- Protected derived output from stale source revisions
+- Exposed playable media and transcoding job state through the API
+- Verified real FFmpeg transcoding and remuxing in Integration CI and Docker runtime
+
+### PR #25 — Shared Media Preparation
+
+**Current development step.**
+
+Goal: avoid decoding the same source video independently for playable media and thumbnail generation.
 
 Scope:
 
-- Define a derived-media model/state that is separate from the source `MediaAsset` and `MediaProcessingJob`
-- Persist the relationship between the source asset and its derived playable output
-- Inspect the source codec/container/stream properties and make the remux-versus-transcode decision explicitly
-- Remux compatible sources without unnecessary video/audio re-encoding
-- Transcode incompatible video to the project's target HEVC representation
-- Preserve compatible audio/subtitle/chapter/attachment semantics where the chosen output format supports them
-- Re-inspect every generated playable output with FFprobe before marking it ready
-- Persist output path and refreshed media metadata
-- Support retry/failure history without re-downloading the original Episode media
-- Keep source `MediaAsset.path` immutable and treat the derived playable file as a separate artifact
-- Add deterministic FFmpeg fixtures covering at least remux, transcode-required, retry/failure, and metadata-refresh paths
-- Add worker, persistence, API, and PostgreSQL integration coverage for the derived-media lifecycle
+- Replace separate thumbnail/transcoding execution with a shared media preparation job
+- Run playable media generation and thumbnail sprite generation through one FFmpeg process
+- Share the decoded video path during TRANSCODE operations
+- Let REMUX copy compatible video/audio streams while decoding only the thumbnail branch
+- Re-inspect generated playable media before marking the playable variant ready
+- Keep playable and thumbnail artifact state independent so a retry can process only the missing artifact
+- Preserve source path/metadata snapshots and durable preparation retry history
+- Keep subtitle and attachment processing isolated from the shared video preparation path
 
 Design constraints:
 
-- The source media remains the canonical downloaded input; this PR must not replace or mutate it
-- The decision logic should be deterministic and inspectable from persisted metadata
-- FFmpeg execution belongs behind the media/infrastructure adapter rather than being embedded in API or domain code
-- The generated playable artifact must be independently retryable and eventually replaceable by later HLS/DASH packaging
-- Keep the output representation compatible with the subsequent PR #25 packaging work
+- `MediaAsset.path` remains the canonical source
+- `MediaVariant` and thumbnail state remain independently consumable artifacts
+- A successful common preparation pass should produce both derived artifacts from one source read
+- A partial failure must not invalidate an already completed artifact
+- FFmpeg execution remains behind media/infrastructure adapters
 
 Out of scope:
 
-- HLS/DASH manifest and segment generation
+- HLS/DASH packaging
 - SeaweedFS upload/storage migration
 - Player UI
-- Thumbnail generation (completed in PR #23)
 
-### PR #25 — HLS / DASH Packaging
+### PR #26 — HLS / DASH Packaging
+
 
 Goal: derive streaming manifests and segments from the current playable media.
 
@@ -297,7 +305,7 @@ Scope:
 - Keep package state separate from source MediaAsset state
 - Reuse the same encoded media where practical
 
-### PR #26 — SeaweedFS / Media Storage
+### PR #27 — SeaweedFS / Media Storage
 
 Goal: move durable media artifacts from local development storage to SeaweedFS.
 
@@ -308,7 +316,7 @@ Scope:
 - Preserve local filesystem support for development
 - Add upload failure and cleanup handling
 
-### PR #27 — Player / Playback
+### PR #28 — Player / Playback
 
 Goal: expose current media and derived resources to the frontend player.
 

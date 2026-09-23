@@ -9,14 +9,17 @@ from animedownloader_api.app import create_app
 from animedownloader_api.dependencies import (
     get_anime_service,
     get_media_asset_service,
-    get_media_transcoding_job_service,
+    get_media_preparation_job_service,
+    get_media_processing_task_dispatcher,
     get_media_variant_service,
 )
+from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
 from animedownloader_media_asset import MediaAsset, MediaAssetService
 from animedownloader_media_processing import (
-    MediaTranscodingJob,
-    MediaTranscodingJobService,
-    MediaTranscodingJobStatus,
+    MediaPreparationJob,
+    MediaPreparationJobService,
+    MediaPreparationJobStatus,
+    MediaTranscodingOperation,
     MediaVariant,
     MediaVariantKind,
     MediaVariantService,
@@ -28,13 +31,16 @@ def make_client(
     anime_service: AnimeService,
     asset_service: MediaAssetService,
     variant_service: MediaVariantService,
-    job_service: MediaTranscodingJobService,
+    job_service: MediaPreparationJobService,
+    dispatcher: MediaProcessingTaskDispatcher | None = None,
 ) -> httpx.AsyncClient:
     app = create_app()
     app.dependency_overrides[get_anime_service] = lambda: anime_service
     app.dependency_overrides[get_media_asset_service] = lambda: asset_service
     app.dependency_overrides[get_media_variant_service] = lambda: variant_service
-    app.dependency_overrides[get_media_transcoding_job_service] = lambda: job_service
+    app.dependency_overrides[get_media_preparation_job_service] = lambda: job_service
+    if dispatcher is not None:
+        app.dependency_overrides[get_media_processing_task_dispatcher] = lambda: dispatcher
     return httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://testserver",
@@ -81,11 +87,16 @@ async def test_get_episode_playable_media_reports_current_variant() -> None:
     anime_service.get_episode = AsyncMock()
     asset_service = MagicMock(spec=MediaAssetService)
     asset_service.get_for_episode = AsyncMock(return_value=asset)
-    variant_service = MagicMock()
+    variant_service = MagicMock(spec=MediaVariantService)
     variant_service.get_playable_variant = AsyncMock(return_value=variant)
-    job_service = MagicMock(spec=MediaTranscodingJobService)
+    job_service = MagicMock(spec=MediaPreparationJobService)
 
-    async with make_client(anime_service, asset_service, variant_service, job_service) as client:
+    async with make_client(
+        anime_service,
+        asset_service,
+        variant_service,
+        job_service,
+    ) as client:
         response = await client.get(f"/api/episodes/{asset.episode_id}/playable-media")
 
     assert response.status_code == 200
@@ -94,14 +105,14 @@ async def test_get_episode_playable_media_reports_current_variant() -> None:
 
 
 @pytest.mark.anyio
-async def test_get_latest_episode_transcoding_job() -> None:
+async def test_get_latest_media_preparation_job() -> None:
     asset = make_asset()
-    job = MediaTranscodingJob(
+    job = MediaPreparationJob(
         id=uuid7(),
         media_asset_id=asset.id,
         variant_id=uuid7(),
-        status=MediaTranscodingJobStatus.PROCESSING.value,
-        operation="transcode",
+        status=MediaPreparationJobStatus.PROCESSING.value,
+        operation=MediaTranscodingOperation.TRANSCODE.value,
         source_path=asset.path,
         source_metadata_updated_at=asset.metadata_updated_at,
         attempt_count=1,
@@ -113,15 +124,21 @@ async def test_get_latest_episode_transcoding_job() -> None:
     anime_service.get_episode = AsyncMock()
     asset_service = MagicMock(spec=MediaAssetService)
     asset_service.get_for_episode = AsyncMock(return_value=asset)
-    variant_service = MagicMock()
-    job_service = MagicMock(spec=MediaTranscodingJobService)
+    variant_service = MagicMock(spec=MediaVariantService)
+    job_service = MagicMock(spec=MediaPreparationJobService)
     job_service.get_latest_job = AsyncMock(return_value=job)
 
-    async with make_client(anime_service, asset_service, variant_service, job_service) as client:
+    async with make_client(
+        anime_service,
+        asset_service,
+        variant_service,
+        job_service,
+    ) as client:
         response = await client.get(
-            f"/api/episodes/{asset.episode_id}/playable-media-transcoding-jobs/latest",
+            f"/api/episodes/{asset.episode_id}/media-preparation-jobs/latest",
         )
 
     assert response.status_code == 200
     assert response.json()["id"] == str(job.id)
     assert response.json()["status"] == "processing"
+    assert response.json()["operation"] == "transcode"

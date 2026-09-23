@@ -7,20 +7,39 @@ Convert downloaded anime media into browser-oriented streaming assets while pres
 ## Pipeline
 
 ```
-Source MKV
+Source media
   ↓
-Inspect (ffprobe / media tooling)
+Inspect (ffprobe)
   ↓
-Decide whether video encoding is required
-  ├─ acceptable HEVC → remux/package where possible
-  └─ otherwise       → transcode to HEVC
+Persist current MediaAsset metadata
   ↓
-CMAF/fMP4 media assets
+MediaPreparationJob
+  ├─ playable media
+  └─ thumbnail sprite / WebVTT
+  ↓
+Playable MediaVariant
+  ↓
+CMAF/fMP4 packaging
   ├─ HLS manifest (.m3u8)
   └─ DASH manifest (.mpd)
 ```
 
-HLS and DASH should reference the same underlying encoded media assets whenever practical. A separate video encode must not be introduced merely because two manifests are required.
+The downloaded `MediaAsset.path` remains the canonical source. Derived playable media and thumbnails are separate artifacts and must not mutate the source.
+
+## Media Preparation
+
+Playable media and thumbnails are derived from the same source in a shared FFmpeg execution whenever both are needed.
+
+For a TRANSCODE operation, the source video is decoded once and split into:
+
+- a playable branch encoded to HEVC
+- a thumbnail branch sampled, scaled, padded, and tiled into a sprite
+
+For a REMUX operation, compatible video/audio streams are copied directly into MP4 while the thumbnail branch is decoded for frame extraction.
+
+The preparation job records durable execution state and a source path/metadata snapshot. Playable and thumbnail artifact state remains independent so retries can process only the missing artifact after a partial failure.
+
+The generated playable MP4 is re-inspected with FFprobe before the `MediaVariant` is marked ready.
 
 ## Video
 
@@ -42,23 +61,29 @@ Other subtitle formats should be normalized to an ASS representation suitable fo
 
 The normalization step must not accidentally discard important subtitle semantics. Embedded font references and required MKV attachments must be preserved.
 
-## Chapters and Metadata
+Subtitle processing is kept separate from the shared video preparation process because subtitle extraction/normalization has different per-track state and retry semantics.
+
+## Chapters and Attachments
 
 Relevant source metadata and chapter information should be extracted and persisted as structured artifacts/metadata.
 
+Embedded attachments are extracted separately and reusable font resources are content-addressed by SHA-256.
+
 ## Thumbnails
 
-Generate a thumbnail sprite together with timing information suitable for hover/seek previews in the React player.
+Generate a thumbnail sprite together with timing information suitable for hover/seek previews.
 
-A sprite image plus WebVTT timing/region metadata is the preferred conceptual representation.
+The sprite image plus WebVTT timing/region metadata is the preferred conceptual representation.
+
+Thumbnail generation is part of the shared media preparation pass when a playable artifact is also required. If the playable artifact is already current, thumbnail-only retry uses the thumbnail processor without regenerating the playable file.
 
 ## Outputs
 
 A media item may expose assets such as:
 
 - derived playable MP4 representation
-- HLS manifest
-- DASH manifest
+- HLS manifest (.m3u8)
+- DASH manifest (.mpd)
 - CMAF/fMP4 segments
 - normalized ASS subtitle files
 - reusable extracted subtitle fonts (content-addressed by SHA-256)

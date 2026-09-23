@@ -3,27 +3,27 @@ from uuid import UUID
 
 from animedownloader_media_asset import MediaAssetService
 from animedownloader_media_processing import (
-    MediaTranscodingJob,
-    MediaTranscodingJobService,
+    MediaPreparationJob,
+    MediaPreparationJobService,
 )
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from animedownloader_api.dependencies import (
     get_media_asset_service,
+    get_media_preparation_job_service,
     get_media_processing_task_dispatcher,
-    get_media_transcoding_job_service,
 )
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
-from animedownloader_api.schemas import MediaTranscodingJobResponse
+from animedownloader_api.schemas import MediaPreparationJobResponse
 
 router = APIRouter(
-    prefix="/api/media-transcoding-jobs",
-    tags=["media-transcoding-jobs"],
+    prefix="/api/media-preparation-jobs",
+    tags=["media-preparation-jobs"],
 )
 
-MediaTranscodingJobServiceDependency = Annotated[
-    MediaTranscodingJobService,
-    Depends(get_media_transcoding_job_service),
+MediaPreparationJobServiceDependency = Annotated[
+    MediaPreparationJobService,
+    Depends(get_media_preparation_job_service),
 ]
 MediaAssetServiceDependency = Annotated[
     MediaAssetService,
@@ -35,30 +35,30 @@ MediaProcessingTaskDispatcherDependency = Annotated[
 ]
 
 
-@router.get("/{job_id}", response_model=MediaTranscodingJobResponse)
-async def get_media_transcoding_job(
+@router.get("/{job_id}", response_model=MediaPreparationJobResponse)
+async def get_media_preparation_job(
     job_id: UUID,
-    service: MediaTranscodingJobServiceDependency,
-) -> MediaTranscodingJob:
+    service: MediaPreparationJobServiceDependency,
+) -> MediaPreparationJob:
     return await service.get_job(job_id)
 
 
 @router.post(
     "/{job_id}/retry",
-    response_model=MediaTranscodingJobResponse,
+    response_model=MediaPreparationJobResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def retry_media_transcoding_job(
+async def retry_media_preparation_job(
     job_id: UUID,
-    service: MediaTranscodingJobServiceDependency,
+    service: MediaPreparationJobServiceDependency,
     asset_service: MediaAssetServiceDependency,
     dispatcher: MediaProcessingTaskDispatcherDependency,
-) -> MediaTranscodingJob:
+) -> MediaPreparationJob:
     job = await service.get_job(job_id)
     if job.status in {"pending", "processing"}:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Media transcoding job is already active",
+            detail="Media preparation job is already active",
         )
 
     asset = await asset_service.get(job.media_asset_id)
@@ -77,23 +77,24 @@ async def retry_media_transcoding_job(
         media_asset_id=asset.id,
         source_path=asset.path,
         source_metadata_updated_at=asset.metadata_updated_at,
+        thumbnail_ready=asset.thumbnail_ready,
     )
     if new_job is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A current or active playable media job already exists",
+            detail="A current or active media preparation job already exists",
         )
 
     try:
-        await dispatcher.enqueue_transcoding(new_job.id)
+        await dispatcher.enqueue_preparation(new_job.id)
     except Exception as exc:
         await service.mark_failed(
             new_job.id,
-            error_message="Failed to enqueue media transcoding task.",
+            error_message="Failed to enqueue media preparation task.",
         )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Media transcoding task queue is temporarily unavailable",
+            detail="Media preparation task queue is temporarily unavailable",
         ) from exc
 
     return new_job

@@ -3,8 +3,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .enums import MediaTranscodingJobStatus
-from .models import MediaProcessingJob, MediaTranscodingJob, MediaVariant
+from .enums import MediaPreparationJobStatus
+from .models import MediaPreparationJob, MediaProcessingJob, MediaVariant
 
 
 class MediaProcessingJobRepository:
@@ -55,41 +55,42 @@ class MediaProcessingJobRepository:
         await self.session.flush()
         return variant
 
-    async def get_transcoding_job(self, job_id: UUID) -> MediaTranscodingJob | None:
-        return await self.session.get(MediaTranscodingJob, job_id)
+    async def get_preparation_job(self, job_id: UUID) -> MediaPreparationJob | None:
+        return await self.session.get(MediaPreparationJob, job_id)
 
-    async def get_latest_transcoding_job(
+    async def get_latest_preparation_job(
         self,
         media_asset_id: UUID,
-    ) -> MediaTranscodingJob | None:
+    ) -> MediaPreparationJob | None:
         return await self.session.scalar(
-            select(MediaTranscodingJob)
-            .where(MediaTranscodingJob.media_asset_id == media_asset_id)
-            .order_by(MediaTranscodingJob.created_at.desc()),
+            select(MediaPreparationJob)
+            .where(MediaPreparationJob.media_asset_id == media_asset_id)
+            .order_by(MediaPreparationJob.created_at.desc()),
         )
 
-    async def get_active_transcoding_job(
+    async def get_active_preparation_job(
         self,
         media_asset_id: UUID,
-    ) -> MediaTranscodingJob | None:
+    ) -> MediaPreparationJob | None:
         return await self.session.scalar(
-            select(MediaTranscodingJob)
+            select(MediaPreparationJob)
             .where(
-                MediaTranscodingJob.media_asset_id == media_asset_id,
-                MediaTranscodingJob.status.in_(
+                MediaPreparationJob.media_asset_id == media_asset_id,
+                MediaPreparationJob.status.in_(
                     (
-                        MediaTranscodingJobStatus.PENDING.value,
-                        MediaTranscodingJobStatus.PROCESSING.value,
+                        MediaPreparationJobStatus.PENDING.value,
+                        MediaPreparationJobStatus.PROCESSING.value,
                     ),
                 ),
             )
-            .order_by(MediaTranscodingJob.created_at.desc()),
+            .order_by(MediaPreparationJob.created_at.desc()),
         )
 
-    async def add_transcoding_job(
+    async def add_preparation_job(
         self,
-        job: MediaTranscodingJob,
-    ) -> MediaTranscodingJob:
+        job: MediaPreparationJob,
+    ) -> MediaPreparationJob:
         self.session.add(job)
         await self.session.flush()
         return job
+

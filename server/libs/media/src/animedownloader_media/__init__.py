@@ -20,6 +20,11 @@ from .models import (
     MediaStreamType,
 )
 from .parser import parse_ffprobe_json
+from .preparation import (
+    FFmpegMediaPreparationProcessingError,
+    FFmpegMediaPreparationProcessor,
+    MediaPreparationProcessingResult,
+)
 from .playback import (
     DEFAULT_PLAYABLE_MEDIA_PROFILE,
     PlayableMediaOperation,
@@ -40,6 +45,8 @@ __all__ = [
     "FFmpegCommandResult",
     "FFmpegPlayableMediaProcessingError",
     "FFmpegPlayableMediaProcessor",
+    "FFmpegMediaPreparationProcessingError",
+    "FFmpegMediaPreparationProcessor",
     "FFmpegRunner",
     "FFmpegSubtitleProcessor",
     "FFmpegThumbnailProcessingError",
@@ -49,6 +56,7 @@ __all__ = [
     "MediaFormat",
     "MediaProbe",
     "MediaProbeError",
+    "MediaPreparationProcessingResult",
     "MediaStream",
     "MediaStreamType",
     "PlayableMediaOperation",

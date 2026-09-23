@@ -152,7 +152,9 @@ async def test_runner_inspects_and_completes(tmp_path: Path) -> None:
     assert inspector.paths == [media_path]
     assert state.completed is not None
     assert state.completed[0] == str(media_path)
-    assert state.completed[1]["format"]["format_name"] == "matroska,webm"
+    format_metadata = state.completed[1]["format"]
+    assert isinstance(format_metadata, dict)
+    assert format_metadata["format_name"] == "matroska,webm"
 
 
 @pytest.mark.anyio

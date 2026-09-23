@@ -93,7 +93,7 @@ export default function AnimeDetailPage() {
       ) : null}
 
       {!isEditing ? (
-      <section className={styles.panel} aria-labelledby="episodes-heading">
+        <section className={styles.panel} aria-labelledby="episodes-heading">
         <div className={styles.panelHeader}>
           <div>
             <p className={styles.kicker}>Episodes</p>
@@ -155,7 +155,7 @@ export default function AnimeDetailPage() {
             </table>
           </div>
         )}
-      </section>
+        </section>
       ) : null}
     </main>
   );

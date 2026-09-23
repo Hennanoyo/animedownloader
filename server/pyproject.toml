@@ -44,6 +44,7 @@ executionEnvironments = [
         "libs/media/src",
         "libs/nyaa/src",
         "libs/qbittorrent/src",
+        "libs/storage/src",
         "libs/torrent/src",
     ] },
 ]

@@ -45,14 +45,17 @@ async def test_local_storage_supports_legacy_absolute_paths(tmp_path: Path) -> N
     assert destination.read_bytes() == b"legacy"
 
 
-def test_storage_rejects_unsafe_keys(tmp_path: Path) -> None:
+@pytest.mark.anyio
+async def test_storage_rejects_unsafe_keys(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path, "http://localhost:8888")
+    source = tmp_path / "source.bin"
+    source.write_bytes(b"content")
 
     with pytest.raises(StorageError):
-        storage._resolve_key("../escape")
+        await storage.put_file(source, "../escape")
 
     with pytest.raises(StorageError):
-        storage._resolve_key("/absolute")
+        await storage.put_file(source, "/absolute")
 
 
 @pytest.mark.anyio

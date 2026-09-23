@@ -9,11 +9,6 @@ from animedownloader_anime import (
 from animedownloader_config import Settings
 from animedownloader_database import create_database
 from animedownloader_download import DownloadJobNotFoundError
-
-from animedownloader_api.task_queue import (
-    DownloadTaskDispatcher,
-    create_task_broker,
-)
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -23,6 +18,10 @@ from animedownloader_api.routes import (
     download_jobs_router,
     episodes_router,
     releases_router,
+)
+from animedownloader_api.task_queue import (
+    DownloadTaskDispatcher,
+    create_task_broker,
 )
 
 

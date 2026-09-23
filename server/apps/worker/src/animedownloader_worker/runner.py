@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -180,13 +181,11 @@ class DownloadRunner:
 
                 await self._sleep(self._poll_interval)
         except Exception as exc:
-            try:
+            with suppress(Exception):
                 await self._state.mark_failed(
                     job_id,
                     error_message=_format_error(exc),
                 )
-            except Exception:
-                pass
             raise
 
     async def _wait_for_torrent(self, tag: str) -> TorrentInfo:

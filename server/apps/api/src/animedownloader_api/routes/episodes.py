@@ -3,7 +3,6 @@ from uuid import UUID
 
 from animedownloader_anime import AnimeService, Episode, EpisodeUpdateData
 from animedownloader_download import ActiveDownloadJobError, DownloadJob, DownloadJobService
-
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from animedownloader_api.dependencies import (

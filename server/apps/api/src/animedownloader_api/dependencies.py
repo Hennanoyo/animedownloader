@@ -10,6 +10,8 @@ from animedownloader_nyaa import NyaaClient
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from animedownloader_api.task_queue import DownloadTaskDispatcher
+
 
 async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:
     database: Database = request.app.state.database

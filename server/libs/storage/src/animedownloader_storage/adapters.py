@@ -163,7 +163,7 @@ class SeaweedFSStorage:
             content_type or mimetypes.guess_type(source.name)[0] or "application/octet-stream"
         )
         boundary = f"----animedownloader-{id(source):x}"
-        crlf = "\\r\\n"
+        crlf = "\r\n"
         prefix = (
             f"--{boundary}{crlf}"
             f'Content-Disposition: form-data; name="file"; filename="{source.name}"{crlf}'

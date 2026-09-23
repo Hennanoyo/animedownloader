@@ -10,7 +10,6 @@ from .enums import (
     MediaVariantKind,
     MediaVariantStatus,
 )
-
 from .exceptions import MediaPreparationJobNotFoundError
 from .models import MediaPreparationJob, MediaVariant
 from .repository import MediaProcessingJobRepository

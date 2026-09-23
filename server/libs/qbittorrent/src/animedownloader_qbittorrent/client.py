@@ -147,16 +147,12 @@ class QBittorrentClient:
         **kwargs: object,
     ) -> httpx.Response:
         if self._http_client is None:
-            raise RuntimeError(
-                "QBittorrentClient must be used as an async context manager"
-            )
+            raise RuntimeError("QBittorrentClient must be used as an async context manager")
 
         try:
             response = await self._http_client.request(method, path, **kwargs)
         except httpx.RequestError as exc:
-            raise QBittorrentConnectionError(
-                "qBittorrent API request failed"
-            ) from exc
+            raise QBittorrentConnectionError("qBittorrent API request failed") from exc
 
         if response.status_code in {401, 403}:
             raise QBittorrentAuthenticationError(
@@ -200,9 +196,7 @@ class QBittorrentClient:
         total_bytes = cls._require_int(payload, "size")
         save_path = cls._require_string(payload, "save_path")
         tags = frozenset(
-            tag.strip()
-            for tag in cls._require_string(payload, "tags").split(",")
-            if tag.strip()
+            tag.strip() for tag in cls._require_string(payload, "tags").split(",") if tag.strip()
         )
 
         return TorrentInfo(
@@ -220,25 +214,19 @@ class QBittorrentClient:
     def _require_string(payload: dict[str, object], field: str) -> str:
         value = payload.get(field)
         if not isinstance(value, str):
-            raise QBittorrentAPIError(
-                f"qBittorrent torrent field '{field}' is missing or invalid"
-            )
+            raise QBittorrentAPIError(f"qBittorrent torrent field '{field}' is missing or invalid")
         return value
 
     @staticmethod
     def _require_int(payload: dict[str, object], field: str) -> int:
         value = payload.get(field)
         if isinstance(value, bool) or not isinstance(value, int):
-            raise QBittorrentAPIError(
-                f"qBittorrent torrent field '{field}' is missing or invalid"
-            )
+            raise QBittorrentAPIError(f"qBittorrent torrent field '{field}' is missing or invalid")
         return value
 
     @staticmethod
     def _require_float(payload: dict[str, object], field: str) -> float:
         value = payload.get(field)
         if isinstance(value, bool) or not isinstance(value, (float, int)):
-            raise QBittorrentAPIError(
-                f"qBittorrent torrent field '{field}' is missing or invalid"
-            )
+            raise QBittorrentAPIError(f"qBittorrent torrent field '{field}' is missing or invalid")
         return float(value)

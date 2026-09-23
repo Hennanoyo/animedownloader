@@ -21,6 +21,7 @@ def upgrade() -> None:
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column("episode_id", sa.UUID(), nullable=False),
         sa.Column("download_job_id", sa.UUID(), nullable=True),
+        sa.Column("download_directory", sa.String(length=64), nullable=False),
         sa.Column(
             "status",
             sa.String(length=32),

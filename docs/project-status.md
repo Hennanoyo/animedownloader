@@ -57,6 +57,25 @@ Merged into `main` as commit `a8610bb1cb39c508b64e9d9111b67b39412fc32f`.
 
 CI passed for PR #8 with Backend, Frontend, and Integration checks.
 
+### PR #9 — qBittorrent Pending Add Handling
+
+Merged into `main`.
+
+- Accepted qBittorrent v5.2 pending torrent-add responses
+- Added adapter coverage for pending and mixed add-response payloads
+
+### PR #10 — qBittorrent Environment and Download Path Fixes
+
+Merged into `main` as commit `ce2a9f4d646c70d684603949f23fcccb6fcc302d`.
+
+- Loaded `QBITTORRENT_API_KEY` from `server/.env` through Pydantic Settings
+- Aligned the shared download volume to `/downloads` for API/Worker/qBittorrent
+- Let qBittorrent create and own per-job download directories
+- Removed completed torrents after successful download without deleting downloaded files
+- Allowed both `localhost:5173` and `127.0.0.1:5173` CORS origins
+- Restored Nyaa client lifecycle management in the release-search dependency
+- Updated development, devcontainer, and CI configuration for the new path/origins
+
 ## Current Workflow
 
 ```

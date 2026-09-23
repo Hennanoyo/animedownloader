@@ -30,6 +30,14 @@ class DownloadJobRepository:
         )
         return result
 
+    async def get_latest_for_episode(self, episode_id: UUID) -> DownloadJob | None:
+        result = await self.session.scalar(
+            select(DownloadJob)
+            .where(DownloadJob.episode_id == episode_id)
+            .order_by(DownloadJob.created_at.desc())
+        )
+        return result
+
     async def add(self, job: DownloadJob) -> DownloadJob:
         self.session.add(job)
         await self.session.flush()

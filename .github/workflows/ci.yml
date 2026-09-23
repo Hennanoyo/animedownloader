@@ -161,7 +161,7 @@ jobs:
       - name: Verify deterministic media fixture and thumbnail generation
         run: |
           docker compose exec -T worker python3 tests/fixtures/media/generate.py /tmp/animedownloader-fixture.mkv
-          docker compose exec -T worker uv run --package animedownloader-worker python3 - <<'PY
+          docker compose exec -T worker uv run --package animedownloader-worker python3 - <<'PY'
           import asyncio
           from pathlib import Path
 

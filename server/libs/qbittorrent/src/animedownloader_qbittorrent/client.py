@@ -92,11 +92,7 @@ class QBittorrentClient:
             data["tags"] = ",".join(normalized_tags)
 
         response = await self._request("POST", "/torrents/add", data=data)
-        body = response.text.strip().lower()
-        if body not in {"", "ok."}:
-            raise QBittorrentAddError(
-                f"qBittorrent rejected torrent add request: {response.text.strip()}"
-            )
+        self._validate_add_response(response)
 
     async def get(self, torrent_id: str) -> TorrentInfo | None:
         response = await self._request(
@@ -179,6 +175,39 @@ class QBittorrentClient:
             ) from exc
 
         return response
+
+    @classmethod
+    def _validate_add_response(cls, response: httpx.Response) -> None:
+        body = response.text.strip()
+        if body.lower() in {"", "ok."}:
+            return
+
+        try:
+            raw_payload: object = response.json()
+        except ValueError as exc:
+            raise QBittorrentAddError(
+                f"qBittorrent returned an invalid torrent add response: {body}"
+            ) from exc
+
+        if not isinstance(raw_payload, dict):
+            raise QBittorrentAddError(
+                "qBittorrent returned an invalid torrent add response"
+            )
+
+        payload = cast(dict[str, object], raw_payload)
+        success_count = cls._require_int(payload, "success_count")
+        pending_count = cls._require_int(payload, "pending_count")
+        failure_count = cls._require_int(payload, "failure_count")
+
+        if success_count > 0 or pending_count > 0:
+            return
+
+        raise QBittorrentAddError(
+            "qBittorrent rejected torrent add request: "
+            f"{body}"
+            if failure_count > 0
+            else f"qBittorrent returned an unexpected torrent add response: {body}"
+        )
 
     @staticmethod
     def _decode_torrent_list(response: httpx.Response) -> list[dict[str, object]]:

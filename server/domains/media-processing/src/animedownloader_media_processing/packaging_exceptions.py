@@ -1,23 +1,23 @@
 from uuid import UUID
 
+from .exceptions import (
+    InvalidMediaPackagingJobTransitionError,
+    MediaPackagingJobError,
+)
 
-class MediaPackagingJobNotFoundError(LookupError):
+
+class MediaPackagingJobNotFoundError(MediaPackagingJobError):
     def __init__(self, job_id: UUID) -> None:
         super().__init__(f"Media packaging job not found: {job_id}")
 
 
-class MediaStreamingPackageNotFoundError(LookupError):
+class MediaStreamingPackageNotFoundError(MediaPackagingJobError):
     def __init__(self, package_id: UUID) -> None:
         super().__init__(f"Media streaming package not found: {package_id}")
 
 
-class MediaStreamingVariantNotFoundError(LookupError):
+class MediaStreamingVariantNotFoundError(MediaPackagingJobError):
     def __init__(self, variant_id: UUID) -> None:
         super().__init__(f"Playable media variant not found: {variant_id}")
 
 
-class InvalidMediaPackagingJobTransitionError(ValueError):
-    def __init__(self, current: str, target: str) -> None:
-        super().__init__(
-            f"Invalid media packaging job transition: {current} -> {target}",
-        )

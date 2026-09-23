@@ -103,6 +103,15 @@ class DownloadJob(Base):
             DownloadJobStatus.CANCELLED: set(),
         }
 
+        if target is current:
+            if downloaded_bytes is not None:
+                self.downloaded_bytes = downloaded_bytes
+            if total_bytes is not None:
+                self.total_bytes = total_bytes
+            if target is DownloadJobStatus.FAILED and error_message:
+                self.error_message = error_message
+            return
+
         if target not in allowed[current]:
             raise InvalidDownloadJobTransitionError(current, target)
 

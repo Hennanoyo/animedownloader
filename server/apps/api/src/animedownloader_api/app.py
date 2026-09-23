@@ -19,16 +19,26 @@ from animedownloader_api.routes import (
     episodes_router,
     releases_router,
 )
+from animedownloader_api.task_queue import (
+    DownloadTaskDispatcher,
+    create_task_broker,
+)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     app_settings = settings or Settings()
     database = create_database(app_settings.database_url)
+    task_broker = create_task_broker(app_settings.redis_url)
+    task_dispatcher = DownloadTaskDispatcher(task_broker)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
-        yield
-        await database.dispose()
+        await task_broker.startup()
+        try:
+            yield
+        finally:
+            await task_broker.shutdown()
+            await database.dispose()
 
     app = FastAPI(
         title="AnimeDownloader API",
@@ -36,6 +46,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.database = database
+    app.state.download_task_dispatcher = task_dispatcher
 
     app.add_middleware(
         CORSMiddleware,

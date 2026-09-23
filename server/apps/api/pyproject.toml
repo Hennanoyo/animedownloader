@@ -12,6 +12,8 @@ dependencies = [
     "animedownloader-nyaa",
     "animedownloader-releases",
     "fastapi[standard]>=0.141,<0.142",
+    "taskiq>=0.12,<0.13",
+    "taskiq-redis>=1.2,<1.3",
 ]
 
 [tool.uv.sources]

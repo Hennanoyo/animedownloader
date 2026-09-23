@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Protocol, cast
 from uuid import UUID
 
-from animedownloader_media import FFprobeInspector, MediaProbe
+from animedownloader_media import MediaProbe
 from animedownloader_media_processing import (
     MediaProcessingJobService,
     MediaProcessingJobStatus,

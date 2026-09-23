@@ -88,7 +88,7 @@ def get_media_variant_service(
     return MediaVariantService(session)
 
 
-def get_media_packaging_service(
+def get_media_streaming_package_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> MediaStreamingPackageService:
     return MediaStreamingPackageService(session)

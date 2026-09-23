@@ -19,11 +19,17 @@ from animedownloader_media_processing import (
     MediaTranscodingJobStatus,
     MediaVariant,
     MediaVariantKind,
+    MediaVariantService,
     MediaVariantStatus,
 )
 
 
-def make_client(anime_service, asset_service, variant_service, job_service):
+def make_client(
+    anime_service: AnimeService,
+    asset_service: MediaAssetService,
+    variant_service: MediaVariantService,
+    job_service: MediaTranscodingJobService,
+) -> httpx.AsyncClient:
     app = create_app()
     app.dependency_overrides[get_anime_service] = lambda: anime_service
     app.dependency_overrides[get_media_asset_service] = lambda: asset_service

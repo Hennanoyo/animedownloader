@@ -78,11 +78,11 @@ def test_media_preparation_job_tracks_operation_and_attempts() -> None:
         attempt_count=0,
     )
 
-    assert job.job_status is MediaTranscodingJobStatus.PENDING
+    assert job.job_status is MediaPreparationJobStatus.PENDING
     assert job.transcoding_operation is None
 
     job.operation = MediaTranscodingOperation.TRANSCODE.value
-    job.transition_to(MediaTranscodingJobStatus.PROCESSING)
+    job.transition_to(MediaPreparationJobStatus.PROCESSING)
 
     assert job.job_status is MediaTranscodingJobStatus.PROCESSING
     assert job.transcoding_operation is MediaTranscodingOperation.TRANSCODE

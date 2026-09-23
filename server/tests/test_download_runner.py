@@ -30,6 +30,10 @@ def _torrent_list() -> list[TorrentInfo]:
     return []
 
 
+def _removed_list() -> list[tuple[str, bool]]:
+    return []
+
+
 @dataclass
 class FakeState:
     context: DownloadContext
@@ -75,6 +79,7 @@ class FakeTorrentClient:
     torrents: list[TorrentInfo]
     added: list[tuple[str, str, tuple[str, ...]]] = field(default_factory=_added_list)
     info_sequence: list[TorrentInfo] = field(default_factory=_torrent_list)
+    removed: list[tuple[str, bool]] = field(default_factory=_removed_list)
 
     async def find_by_tag(self, tag: str) -> TorrentInfo | None:
         if self.torrents:
@@ -104,7 +109,10 @@ class FakeTorrentClient:
         *,
         delete_files: bool = False,
     ) -> None:
-        raise NotImplementedError
+        self.removed.append((torrent_id, delete_files))
+
+    def reset(self) -> None:
+        self.removed.clear()
 
 
 def make_torrent(status: TorrentStatus, progress: float, downloaded: int) -> TorrentInfo:
@@ -115,7 +123,7 @@ def make_torrent(status: TorrentStatus, progress: float, downloaded: int) -> Tor
         progress=progress,
         downloaded_bytes=downloaded,
         total_bytes=1000,
-        save_path="/data/downloads/job",
+        save_path="/downloads/job",
         tags=frozenset(),
     )
 
@@ -159,6 +167,7 @@ async def test_download_runner_starts_download_and_persists_completion(tmp_path:
     ]
     assert state.progress == [(500, 1000), (1000, 1000)]
     assert state.completed == (1000, 1000)
+    assert client.removed == [("torrent-1", False)]
 
 
 @pytest.mark.anyio
@@ -181,6 +190,7 @@ async def test_download_runner_reuses_existing_torrent(tmp_path: Path) -> None:
     await runner.run(job_id)
 
     assert client.added == []
+    assert client.removed == [("torrent-1", False)]
     assert state.completed == (1000, 1000)
 
 
@@ -211,3 +221,4 @@ async def test_download_runner_marks_failed_on_torrent_error(tmp_path: Path) -> 
         await runner.run(job_id)
 
     assert state.failed_message == "qBittorrent reported an error for torrent torrent-1"
+    assert client.removed == []

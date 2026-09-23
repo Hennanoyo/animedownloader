@@ -2,14 +2,13 @@ from collections.abc import AsyncIterator
 from typing import Annotated
 
 from animedownloader_anime import AnimeService
+from animedownloader_config import Settings
 from animedownloader_database import Database
 from animedownloader_download import DownloadJobService
 from animedownloader_nyaa import NyaaClient
 from animedownloader_qbittorrent import QBittorrentClient
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from animedownloader_config import Settings
 
 from animedownloader_api.task_queue import DownloadTaskDispatcher
 

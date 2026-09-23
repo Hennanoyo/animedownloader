@@ -2,6 +2,7 @@ from typing import Annotated
 from uuid import UUID
 
 from animedownloader_download import DownloadJob, DownloadJobService
+from animedownloader_qbittorrent import QBittorrentClient
 from fastapi import APIRouter, Depends
 
 from animedownloader_api.dependencies import (
@@ -9,7 +10,6 @@ from animedownloader_api.dependencies import (
     get_qbittorrent_client,
 )
 from animedownloader_api.download_control import DownloadControlService
-from animedownloader_qbittorrent import QBittorrentClient
 from animedownloader_api.schemas import DownloadJobResponse
 
 router = APIRouter(prefix="/api/download-jobs", tags=["download-jobs"])

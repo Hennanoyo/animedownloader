@@ -190,9 +190,7 @@ class QBittorrentClient:
             ) from exc
 
         if not isinstance(raw_payload, dict):
-            raise QBittorrentAddError(
-                "qBittorrent returned an invalid torrent add response"
-            )
+            raise QBittorrentAddError("qBittorrent returned an invalid torrent add response")
 
         payload = cast(dict[str, object], raw_payload)
         success_count = cls._require_int(payload, "success_count")
@@ -202,11 +200,11 @@ class QBittorrentClient:
         if success_count > 0 or pending_count > 0:
             return
 
+        if failure_count > 0:
+            raise QBittorrentAddError(f"qBittorrent rejected torrent add request: {body}")
+
         raise QBittorrentAddError(
-            "qBittorrent rejected torrent add request: "
-            f"{body}"
-            if failure_count > 0
-            else f"qBittorrent returned an unexpected torrent add response: {body}"
+            f"qBittorrent returned an unexpected torrent add response: {body}"
         )
 
     @staticmethod

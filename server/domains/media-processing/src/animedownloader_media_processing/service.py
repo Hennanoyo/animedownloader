@@ -89,6 +89,7 @@ class MediaProcessingJobService:
             job = MediaProcessingJob(
                 episode_id=episode_id,
                 download_job_id=download_job_id,
+                download_directory=str(download_job_id),
             )
             await self.jobs.add(job)
 

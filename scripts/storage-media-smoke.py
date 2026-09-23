@@ -40,6 +40,80 @@ def http_get(api_url: str, path: str) -> object:
         raise SmokeTestError(f"Cannot reach API at {api_url}: {exc}") from exc
 
 
+def _require_object(payload: object, label: str) -> dict[str, object]:
+    if payload is None:
+        raise SmokeTestError(f"{label} returned no job")
+    if not isinstance(payload, dict):
+        raise SmokeTestError(f"Unexpected {label} response: {payload!r}")
+    return payload
+
+
+def _validate_preparation_payload(payload: object) -> dict[str, object] | None:
+    if payload is None:
+        return None
+
+    preparation = _require_object(
+        payload,
+        "media-preparation-jobs/latest",
+    )
+    fields = set(preparation)
+    if {
+        "download_job_id",
+        "media_path",
+        "probe_metadata",
+    }.issubset(fields) and "media_asset_id" not in fields:
+        raise SmokeTestError(
+            "GET /media-preparation-jobs/latest returned a "
+            "MediaProcessingJob-shaped payload. "
+            "Check the running API image/source and the requested endpoint.",
+        )
+
+    required = {
+        "media_asset_id",
+        "variant_id",
+        "status",
+        "source_path",
+        "source_metadata_updated_at",
+    }
+    missing = sorted(required - fields)
+    if missing:
+        raise SmokeTestError(
+            "GET /media-preparation-jobs/latest returned an unexpected payload; "
+            f"missing fields: {', '.join(missing)}",
+        )
+    return preparation
+
+
+def _state_summary(
+    *,
+    playable: dict[str, object] | None,
+    preparation: dict[str, object] | None,
+    processing: dict[str, object] | None,
+) -> str:
+    def describe(
+        payload: dict[str, object] | None,
+        *,
+        include_current: bool = False,
+    ) -> str:
+        if payload is None:
+            return "none"
+        status = str(payload.get("status"))
+        error = payload.get("error_message")
+        summary = status
+        if include_current:
+            summary += f", current={payload.get('current')}"
+        if error:
+            summary += f", error={error!r}"
+        return summary
+
+    return (
+        "  state: "
+        f"processing={describe(processing)}, "
+        f"preparation={describe(preparation)}, "
+        f"playable={describe(playable, include_current=True)}"
+    )
+
+
 def wait_for_playable(
     *,
     api_url: str,
@@ -47,22 +121,88 @@ def wait_for_playable(
     timeout_seconds: float,
 ) -> dict[str, object]:
     deadline = time.monotonic() + timeout_seconds
-    last_status: str | None = None
+    last_signature: tuple[object, ...] | None = None
 
     while time.monotonic() < deadline:
-        payload = http_get(api_url, f"/api/episodes/{episode_id}/playable-media")
-        if payload is not None:
-            if not isinstance(payload, dict):
-                raise SmokeTestError(f"Unexpected playable-media response: {payload!r}")
+        processing = http_get(
+            api_url,
+            f"/api/episodes/{episode_id}/media-processing-jobs/latest",
+        )
+        preparation = _validate_preparation_payload(
+            http_get(
+                api_url,
+                f"/api/episodes/{episode_id}/media-preparation-jobs/latest",
+            ),
+        )
+        playable_payload = http_get(
+            api_url,
+            f"/api/episodes/{episode_id}/playable-media",
+        )
+        playable = (
+            _require_object(playable_payload, "playable-media")
+            if playable_payload is not None
+            else None
+        )
 
-            status = str(payload.get("status"))
-            current = payload.get("current")
-            if status == "completed" and current is True and payload.get("path"):
-                return payload
+        signature = (
+            processing.get("status") if isinstance(processing, dict) else None,
+            processing.get("attempt_count") if isinstance(processing, dict) else None,
+            processing.get("error_message") if isinstance(processing, dict) else None,
+            preparation.get("status") if preparation is not None else None,
+            preparation.get("attempt_count") if preparation is not None else None,
+            preparation.get("operation") if preparation is not None else None,
+            preparation.get("error_message") if preparation is not None else None,
+            playable.get("status") if playable is not None else None,
+            playable.get("current") if playable is not None else None,
+            playable.get("error_message") if playable is not None else None,
+        )
+        if signature != last_signature:
+            print(
+                _state_summary(
+                    processing=processing if isinstance(processing, dict) else None,
+                    preparation=preparation,
+                    playable=playable,
+                ),
+            )
+            last_signature = signature
 
-            if status != last_status:
-                print(f"  playable media: {status}, current={current}")
-                last_status = status
+        if isinstance(processing, dict) and processing.get("status") == "failed":
+            raise SmokeTestError(
+                "Media processing job failed: "
+                f"{processing.get('error_message') or 'unknown error'}",
+            )
+
+        if preparation is not None and preparation.get("status") == "failed":
+            raise SmokeTestError(
+                "Media preparation job failed: "
+                f"{preparation.get('error_message') or 'unknown error'}",
+            )
+
+        if playable is not None:
+            status = playable.get("status")
+            current = playable.get("current")
+            path = playable.get("path")
+            if status == "failed":
+                raise SmokeTestError(
+                    "Playable media variant failed: "
+                    f"{playable.get('error_message') or 'unknown error'}",
+                )
+            if status == "completed" and current is True and path:
+                return playable
+
+        if (
+            preparation is not None
+            and preparation.get("status") == "completed"
+            and (
+                playable is None
+                or playable.get("status") != "completed"
+                or playable.get("current") is not True
+            )
+        ):
+            raise SmokeTestError(
+                "Media preparation is completed but playable media is not current. "
+                f"preparation={preparation!r}, playable={playable!r}",
+            )
 
         time.sleep(2)
 

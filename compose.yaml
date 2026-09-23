@@ -17,7 +17,7 @@ services:
         uvicorn animedownloader_api.app:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - .:/app
-      - downloads:/data/downloads
+      - downloads:/downloads
       - media:/data/media
     environment:
       ENVIRONMENT: development
@@ -26,7 +26,7 @@ services:
       STORAGE_INTERNAL_URL: http://storage:8888
       STORAGE_PUBLIC_URL: http://localhost:8888
       CORS_ORIGINS_RAW: http://localhost:5173
-      DOWNLOAD_ROOT: /data/downloads
+      DOWNLOAD_ROOT: /downloads
       MEDIA_ROOT: /data/media
     ports:
       - "8000:8000"
@@ -81,7 +81,7 @@ services:
         animedownloader_worker.tasks
     volumes:
       - .:/app
-      - downloads:/data/downloads
+      - downloads:/downloads
       - media:/data/media
     environment:
       ENVIRONMENT: development
@@ -89,7 +89,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       STORAGE_INTERNAL_URL: http://storage:8888
       STORAGE_PUBLIC_URL: http://localhost:8888
-      DOWNLOAD_ROOT: /data/downloads
+      DOWNLOAD_ROOT: /downloads
       MEDIA_ROOT: /data/media
       QBITTORRENT_URL: http://qbittorrent:8080
     depends_on:
@@ -111,7 +111,7 @@ services:
       QBT_WEBUI_PORT: 8080
     volumes:
       - qbittorrent-config:/config
-      - downloads:/data/downloads
+      - downloads:/downloads
     ports:
       - "8080:8080"
       - "6881:6881/tcp"

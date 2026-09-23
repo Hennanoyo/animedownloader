@@ -247,7 +247,6 @@ def build_subtitle_track_metadata(
     )
 
 
-
 def build_chapter_metadata(
     probe: MediaProbe,
 ) -> tuple[MediaChapterMetadata, ...]:
@@ -299,6 +298,7 @@ def _stream_tag(stream: MediaStream, key: str) -> str | None:
         if tag_key.casefold() == key:
             return value
     return None
+
 
 def _primary_stream(streams: tuple[MediaStream, ...]) -> MediaStream | None:
     if not streams:

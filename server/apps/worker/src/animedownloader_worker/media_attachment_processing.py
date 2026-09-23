@@ -212,12 +212,7 @@ class MediaAttachmentProcessingRunner:
                 if attachment.is_font:
                     sha256 = _sha256(output_path)
                     extension = output_path.suffix or ".bin"
-                    font_path = (
-                        self._media_root
-                        / "fonts"
-                        / sha256[:2]
-                        / f"{sha256}{extension}"
-                    )
+                    font_path = self._media_root / "fonts" / sha256[:2] / f"{sha256}{extension}"
                     font_path.parent.mkdir(parents=True, exist_ok=True)
                     if font_path.exists():
                         output_path.unlink()
@@ -258,12 +253,7 @@ class MediaAttachmentProcessingRunner:
         filename = Path(
             attachment.filename or f"attachment-{attachment.attachment_index}",
         ).name
-        return (
-            self._media_root
-            / "attachments"
-            / str(asset_id)
-            / f"{attachment.id}-{filename}"
-        )
+        return self._media_root / "attachments" / str(asset_id) / f"{attachment.id}-{filename}"
 
 
 def _sha256(path: Path) -> str:

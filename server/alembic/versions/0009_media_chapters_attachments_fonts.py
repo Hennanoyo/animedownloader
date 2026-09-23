@@ -60,8 +60,12 @@ def upgrade() -> None:
         sa.Column("sha256", sa.String(length=64), nullable=False),
         sa.Column("path", sa.String(length=2000), nullable=False),
         sa.Column("size_bytes", sa.BigInteger(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("sha256", name="uq_media_fonts_sha256"),
     )
@@ -82,8 +86,12 @@ def upgrade() -> None:
         sa.Column("font_id", sa.UUID(), nullable=True),
         sa.Column("status", sa.String(length=32), server_default="pending", nullable=False),
         sa.Column("error_message", sa.String(length=2000), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.ForeignKeyConstraint(["font_id"], ["media_fonts.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["media_asset_id"], ["media_assets.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),

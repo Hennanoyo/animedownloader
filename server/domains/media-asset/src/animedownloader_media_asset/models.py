@@ -111,8 +111,7 @@ class MediaAsset(Base):
         if self.subtitle_tracks_processed_at is None:
             return False
         return all(
-            track.status == SubtitleTrackStatus.COMPLETED.value
-            for track in self.subtitle_tracks
+            track.status == SubtitleTrackStatus.COMPLETED.value for track in self.subtitle_tracks
         )
 
     @property
@@ -147,15 +146,10 @@ class MediaAsset(Base):
         self,
         tracks: tuple[SubtitleTrackMetadata, ...],
     ) -> None:
-        existing = {
-            track.stream_index: track
-            for track in self.subtitle_tracks
-        }
+        existing = {track.stream_index: track for track in self.subtitle_tracks}
         incoming = {track.stream_index for track in tracks}
         self.subtitle_tracks = [
-            track
-            for track in self.subtitle_tracks
-            if track.stream_index in incoming
+            track for track in self.subtitle_tracks if track.stream_index in incoming
         ]
 
         for track in tracks:
@@ -182,16 +176,9 @@ class MediaAsset(Base):
         self,
         chapters: tuple[MediaChapterMetadata, ...],
     ) -> None:
-        existing = {
-            chapter.chapter_index: chapter
-            for chapter in self.chapters
-        }
+        existing = {chapter.chapter_index: chapter for chapter in self.chapters}
         incoming = {chapter.chapter_index for chapter in chapters}
-        self.chapters = [
-            chapter
-            for chapter in self.chapters
-            if chapter.chapter_index in incoming
-        ]
+        self.chapters = [chapter for chapter in self.chapters if chapter.chapter_index in incoming]
 
         for chapter in chapters:
             current = existing.get(chapter.chapter_index)
@@ -210,15 +197,10 @@ class MediaAsset(Base):
         self,
         attachments: tuple[MediaAttachmentMetadata, ...],
     ) -> None:
-        existing = {
-            attachment.attachment_index: attachment
-            for attachment in self.attachments
-        }
+        existing = {attachment.attachment_index: attachment for attachment in self.attachments}
         incoming = {attachment.attachment_index for attachment in attachments}
         self.attachments = [
-            attachment
-            for attachment in self.attachments
-            if attachment.attachment_index in incoming
+            attachment for attachment in self.attachments if attachment.attachment_index in incoming
         ]
 
         for attachment in attachments:
@@ -246,8 +228,7 @@ class MediaAsset(Base):
 
     def mark_subtitle_processing_complete(self) -> None:
         if not all(
-            track.status == SubtitleTrackStatus.COMPLETED.value
-            for track in self.subtitle_tracks
+            track.status == SubtitleTrackStatus.COMPLETED.value for track in self.subtitle_tracks
         ):
             return
         self.subtitle_tracks_processed_at = datetime.now(UTC)
@@ -373,9 +354,7 @@ class MediaChapter(Base):
 
 class MediaFont(Base):
     __tablename__ = "media_fonts"
-    __table_args__ = (
-        UniqueConstraint("sha256", name="uq_media_fonts_sha256"),
-    )
+    __table_args__ = (UniqueConstraint("sha256", name="uq_media_fonts_sha256"),)
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     name: Mapped[str] = mapped_column(String(500))

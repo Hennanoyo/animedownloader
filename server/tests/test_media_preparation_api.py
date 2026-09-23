@@ -10,6 +10,7 @@ from animedownloader_api.dependencies import (
     get_anime_service,
     get_media_asset_service,
     get_media_preparation_job_service,
+    get_media_processing_task_dispatcher,
     get_media_variant_service,
 )
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
@@ -39,9 +40,7 @@ def make_client(
     app.dependency_overrides[get_media_variant_service] = lambda: variant_service
     app.dependency_overrides[get_media_preparation_job_service] = lambda: job_service
     if dispatcher is not None:
-        app.dependency_overrides[
-            "get_media_processing_task_dispatcher"
-        ] = lambda: dispatcher
+        app.dependency_overrides[get_media_processing_task_dispatcher] = lambda: dispatcher
     return httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://testserver",

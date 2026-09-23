@@ -324,6 +324,7 @@ dependencies = [
     { name = "animedownloader-config" },
     { name = "animedownloader-download" },
     { name = "animedownloader-media" },
+    { name = "animedownloader-media-asset" },
     { name = "animedownloader-media-processing" },
     { name = "animedownloader-qbittorrent" },
     { name = "animedownloader-torrent" },

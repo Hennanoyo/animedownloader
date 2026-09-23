@@ -69,9 +69,9 @@ async def test_seaweedfs_storage_round_trip(tmp_path: Path) -> None:
             boundary = content_type.split("boundary=", 1)[1].encode("ascii")
             size = int(self.headers.get("Content-Length", "0"))
             body = self.rfile.read(size)
-            content_start_marker = b"\\r\\n\\r\\n"
+            content_start_marker = b"\r\n\r\n"
             content_start = body.index(content_start_marker) + len(content_start_marker)
-            content_end = body.index(b"\\r\\n--" + boundary, content_start)
+            content_end = body.index(b"\r\n--" + boundary, content_start)
             values[self.path] = body[content_start:content_end]
             self.send_response(201)
             self.end_headers()

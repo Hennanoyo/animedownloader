@@ -67,6 +67,8 @@ Backend environment overrides are optional. When needed:
 cp /app/server/.env.example /app/server/.env
 ```
 
+The Worker reads `QBITTORRENT_API_KEY` from `server/.env`. The qBittorrent WebUI is only needed to generate the API key; the application does not use the WebUI for download execution.
+
 Do not commit `server/.env`.
 
 ## Frontend Conventions

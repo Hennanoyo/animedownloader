@@ -9,7 +9,6 @@ from animedownloader_media_processing import (
     MediaProcessingJobService,
     MediaTranscodingJob,
     MediaTranscodingJobService,
-    MediaVariant,
     MediaVariantService,
 )
 from fastapi import APIRouter, Depends, HTTPException, Response, status

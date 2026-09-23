@@ -112,9 +112,9 @@ Merged into `main` as commit `d057a4d7c14a36caff36a25779af87abec5951b4`.
 
 ### PR #14 — Media Inspection Infrastructure
 
-Merged into \`main\` as commit \`19ae042137a5dffd2b54fd4a16a7a1433521822f\`.
+Merged into `main` as commit `19ae042137a5dffd2b54fd4a16a7a1433521822f`.
 
-- Added the \`animedownloader-media\` technical library
+- Added the `animedownloader-media` technical library
 - Added async FFprobe execution without a shell
 - Added typed parsing for format, stream, attachment, and chapter metadata
 - Added deterministic inspector tests with a fake process runner

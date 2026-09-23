@@ -130,7 +130,7 @@ class DownloadJob(Base):
             self.total_bytes = total_bytes
 
         if target is DownloadJobStatus.DOWNLOADING:
-            if current is DownloadJobStatus.PENDING:
+            if self.started_at is None:
                 self.started_at = now
                 self.attempt_count += 1
             self.error_message = None

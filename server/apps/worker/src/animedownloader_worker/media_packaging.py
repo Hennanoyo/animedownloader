@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
-import shutil
+import mimetypes
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Protocol
 from uuid import UUID
 
@@ -16,6 +17,7 @@ from animedownloader_media import (
     make_representation_metadata,
 )
 from animedownloader_media_asset import MediaAssetService
+from animedownloader_storage import Storage
 from animedownloader_media_processing import (
     MediaPackagingJobStatus,
     MediaStreamingPackageService,
@@ -167,10 +169,12 @@ class MediaPackagingRunner:
         state: MediaPackagingStateProtocol,
         processor: CMAFPackagingProcessor,
         media_root: Path,
+        storage: Storage,
     ) -> None:
         self._state = state
         self._processor = processor
         self._media_root = media_root
+        self._storage = storage
 
     async def run(self, job_id: UUID) -> None:
         context: MediaPackagingContext | None = None
@@ -197,41 +201,55 @@ class MediaPackagingRunner:
                 )
 
             quality = f"{context.height}p"
-            package_root = self._media_root / "streaming" / str(context.variant_id)
-            shutil.rmtree(package_root, ignore_errors=True)
-            representation_dir = package_root / quality
+            package_root_key = f"streaming/{context.variant_id}"
 
-            packaged = await self._processor.process(
-                media_path=Path(context.source_path),
-                output_dir=representation_dir,
-            )
-            representation = make_representation_metadata(
-                quality=quality,
-                width=context.width,
-                height=context.height,
-                size_bytes=context.size_bytes,
-                duration_seconds=context.duration_seconds,
-                video_codec=context.video_codec,
-                audio_codec=context.audio_codec,
-                segments=packaged.segments,
-            )
-            package_root.mkdir(parents=True, exist_ok=True)
-            (package_root / "master.m3u8").write_text(
-                build_hls_master_playlist((representation,)),
-                encoding="utf-8",
-            )
-            (package_root / "manifest.mpd").write_text(
-                build_dash_manifest(
-                    (representation,),
-                    media_presentation_duration_seconds=representation.duration_seconds,
-                ),
-                encoding="utf-8",
-            )
+            with TemporaryDirectory(prefix="animedownloader-packaging-") as staging_dir:
+                staging_root = Path(staging_dir)
+                source_path = staging_root / "source.mp4"
+                package_root = staging_root / "streaming" / str(context.variant_id)
+                representation_dir = package_root / quality
+
+                await self._storage.materialize(
+                    context.source_path,
+                    source_path,
+                )
+                packaged = await self._processor.process(
+                    media_path=source_path,
+                    output_dir=representation_dir,
+                )
+                representation = make_representation_metadata(
+                    quality=quality,
+                    width=context.width,
+                    height=context.height,
+                    size_bytes=context.size_bytes,
+                    duration_seconds=context.duration_seconds,
+                    video_codec=context.video_codec,
+                    audio_codec=context.audio_codec,
+                    segments=packaged.segments,
+                )
+                package_root.mkdir(parents=True, exist_ok=True)
+                (package_root / "master.m3u8").write_text(
+                    build_hls_master_playlist((representation,)),
+                    encoding="utf-8",
+                )
+                (package_root / "manifest.mpd").write_text(
+                    build_dash_manifest(
+                        (representation,),
+                        media_presentation_duration_seconds=representation.duration_seconds,
+                    ),
+                    encoding="utf-8",
+                )
+
+                await _upload_tree(
+                    self._storage,
+                    package_root,
+                    package_root_key,
+                )
 
             await self._state.mark_completed(
                 job_id,
                 representation=representation,
-                package_root_key=f"streaming/{context.variant_id}",
+                package_root_key=package_root_key,
             )
         except Exception as exc:
             if context is not None:
@@ -246,6 +264,24 @@ class MediaPackagingRunner:
                         job_id,
                     )
             raise
+
+
+
+async def _upload_tree(
+    storage: Storage,
+    root: Path,
+    object_prefix: str,
+) -> None:
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(root).as_posix()
+        content_type = mimetypes.guess_type(path.name)[0]
+        await storage.put_file(
+            path,
+            f"{object_prefix}/{relative}",
+            content_type=content_type,
+        )
 
 
 def _format_error(exc: Exception) -> str:

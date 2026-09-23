@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection infrastructure, and the first persistent post-download processing stage. The next slice turns inspected files into application-level media records before conversion and delivery features are added.
+The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection infrastructure, and the first persistent post-download media pipeline stages. The current slice records the user-facing metadata of the current MediaAsset before conversion and delivery features are added.
 
 ## Completed
 

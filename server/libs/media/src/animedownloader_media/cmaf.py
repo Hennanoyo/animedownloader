@@ -99,7 +99,7 @@ class FFmpegCMAFProcessor:
                 "-hls_fmp4_init_filename",
                 "init.mp4",
                 "-hls_segment_filename",
-                "s/%05d.m4s",
+                str(output_dir / "s" / "%05d.m4s"),
                 "-start_number",
                 "0",
                 str(playlist_path),

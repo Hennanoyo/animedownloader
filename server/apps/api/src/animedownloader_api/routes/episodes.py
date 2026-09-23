@@ -2,16 +2,16 @@ from typing import Annotated
 from uuid import UUID
 
 from animedownloader_anime import AnimeService, Episode, EpisodeUpdateData
-from animedownloader_media_asset import MediaAsset, MediaAssetService
 from animedownloader_download import ActiveDownloadJobError, DownloadJob, DownloadJobService
+from animedownloader_media_asset import MediaAsset, MediaAssetService
 from animedownloader_media_processing import MediaProcessingJob, MediaProcessingJobService
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from animedownloader_api.dependencies import (
     get_anime_service,
-    get_media_asset_service,
     get_download_job_service,
     get_download_task_dispatcher,
+    get_media_asset_service,
     get_media_processing_job_service,
 )
 from animedownloader_api.schemas import (

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     media_root: Path = Path("/data/media")
     qbittorrent_url: str = "http://qbittorrent:8080"
     qbittorrent_api_key: SecretStr | None = None
+    ffmpeg_timeout_seconds: float = 1800.0
 
     model_config = SettingsConfigDict(
         env_file="/app/server/.env",
@@ -26,6 +27,13 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
+    @field_validator("ffmpeg_timeout_seconds")
+    @classmethod
+    def validate_ffmpeg_timeout(cls, value: float) -> float:
+        if value <= 0:
+            raise ValueError("ffmpeg_timeout_seconds must be positive")
+        return value
 
     @property
     def cors_origins(self) -> list[str]:

@@ -73,8 +73,8 @@ The pre-commit/PR validation flow is mandatory:
 
 1. Make the smallest coherent code change.
 2. Run the relevant automatic formatter before committing:
-   - Backend changes: `just server-format` (or `just format` for the repository-wide formatting entry point).
-   - Frontend-only changes: use the repository's frontend formatter when one exists; currently there is no dedicated frontend formatter target, so proceed to `just web-check`.
+   - Backend changes: `just server-format`.
+   - Frontend changes: run `just web-format`.
 3. Run the complete required check target after formatting:
    - Frontend-only changes: `just web-check`.
    - Backend-only changes: `just server-check`.
@@ -84,7 +84,7 @@ The pre-commit/PR validation flow is mandatory:
 6. When a pull request receives a CI failure, reproduce the failing check locally using the relevant `just` target before making further feature changes.
 7. After any CI-driven fix, rerun the corresponding local `just` target, commit the fix, and verify that the new commit starts a fresh CI run.
 
-The `check` targets are verification-only: they must not modify source files. Automatic formatting belongs in the `format`/workspace-format targets before `check`.
+The `check` targets are verification-only: they must not modify source files. Automatic fixes belong in the `format`/workspace-format targets before `check`. Frontend `web-format` uses ESLint automatic fixes; backend `server-format` uses Ruff formatting.
 
 Keep the local validation command aligned with the `justfile` rather than duplicating its individual commands in this document.
 

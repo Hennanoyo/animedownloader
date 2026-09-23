@@ -29,8 +29,8 @@ from animedownloader_api.routes import (
     download_jobs_router,
     episodes_router,
     media_processing_jobs_router,
-    releases_router,
     media_transcoding_jobs_router,
+    releases_router,
 )
 from animedownloader_api.task_queue import (
     DownloadTaskDispatcher,

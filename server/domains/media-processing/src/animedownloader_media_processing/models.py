@@ -243,8 +243,8 @@ class MediaVariant(Base):
 class MediaPreparationJob(Base):
     __tablename__ = "media_preparation_jobs"
     __table_args__ = (
-        Index("ix_media_transcoding_jobs_media_asset_id", "media_asset_id"),
-        Index("ix_media_transcoding_jobs_variant_id", "variant_id"),
+        Index("ix_media_preparation_jobs_media_asset_id", "media_asset_id"),
+        Index("ix_media_preparation_jobs_variant_id", "variant_id"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
@@ -256,8 +256,8 @@ class MediaPreparationJob(Base):
     )
     status: Mapped[str] = mapped_column(
         String(32),
-        default=MediaTranscodingJobStatus.PENDING.value,
-        server_default=MediaTranscodingJobStatus.PENDING.value,
+        default=MediaPreparationJobStatus.PENDING.value,
+        server_default=MediaPreparationJobStatus.PENDING.value,
     )
     operation: Mapped[str | None] = mapped_column(String(32))
     source_path: Mapped[str] = mapped_column(String(2000))
@@ -293,11 +293,11 @@ class MediaPreparationJob(Base):
             return None
         return MediaTranscodingOperation(self.operation)
 
-    def transition_to(self, target: MediaTranscodingJobStatus) -> None:
+    def transition_to(self, target: MediaPreparationJobStatus) -> None:
         current = self.job_status
         allowed: dict[
             MediaPreparationJobStatus,
-            set[MediaTranscodingJobStatus],
+            set[MediaPreparationJobStatus],
         ] = {
             MediaPreparationJobStatus.PENDING: {
                 MediaPreparationJobStatus.PROCESSING,
@@ -305,7 +305,7 @@ class MediaPreparationJob(Base):
             },
             MediaPreparationJobStatus.PROCESSING: {
                 MediaPreparationJobStatus.COMPLETED,
-                MediaTranscodingJobStatus.FAILED,
+                MediaPreparationJobStatus.FAILED,
             },
             MediaPreparationJobStatus.COMPLETED: set(),
             MediaPreparationJobStatus.FAILED: set(),

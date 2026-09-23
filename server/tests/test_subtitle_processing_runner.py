@@ -131,13 +131,10 @@ async def test_runner_keeps_failed_track_retryable(tmp_path: Path) -> None:
     )
     state = FakeState(context)
     processor = StubProcessor({track_id: RuntimeError("convert failed")})
-    processor.track_by_path = {
-        tmp_path / "subtitles" / str(context.asset_id) / f"{track_id}.ass": track_id,
-    }
     runner = SubtitleProcessingRunner(
         state=state,
         processor=processor,
-        media_root=tmp_path,
+        storage=LocalStorage(tmp_path / "storage", "http://localhost:8888"),
     )
 
     await runner.run(context.asset_id)

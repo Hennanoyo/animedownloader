@@ -9,8 +9,8 @@ from animedownloader_media_processing import (
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from animedownloader_api.dependencies import (
-    get_media_streaming_package_service,
     get_media_processing_task_dispatcher,
+    get_media_streaming_package_service,
     get_media_variant_service,
 )
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher

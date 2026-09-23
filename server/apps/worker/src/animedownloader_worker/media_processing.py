@@ -7,6 +7,7 @@ from typing import Protocol, cast
 from uuid import UUID
 
 from animedownloader_media import MediaProbe
+from animedownloader_media_asset import MediaAssetService
 from animedownloader_media_processing import (
     MediaProcessingJobService,
     MediaProcessingJobStatus,
@@ -53,7 +54,7 @@ class MediaProcessingStateProtocol(Protocol):
         job_id: UUID,
         *,
         media_path: str,
-        probe_metadata: dict[str, object],
+        probe: MediaProbe,
     ) -> None: ...
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None: ...
@@ -65,9 +66,11 @@ class MediaProcessingContext:
         *,
         status: MediaProcessingJobStatus,
         download_directory: str,
+        media_asset_exists: bool = False,
     ) -> None:
         self.status = status
         self.download_directory = download_directory
+        self.media_asset_exists = media_asset_exists
 
 
 class MediaProcessingState:
@@ -77,9 +80,13 @@ class MediaProcessingState:
     async def load(self, job_id: UUID) -> MediaProcessingContext:
         async with self._session_factory() as session:
             job = await MediaProcessingJobService(session).get_job(job_id)
+            media_asset_exists = (
+                await MediaAssetService(session).get_for_episode(job.episode_id)
+            ) is not None
             return MediaProcessingContext(
                 status=job.job_status,
                 download_directory=job.download_directory,
+                media_asset_exists=media_asset_exists,
             )
 
     async def mark_processing(self, job_id: UUID) -> None:
@@ -91,14 +98,19 @@ class MediaProcessingState:
         job_id: UUID,
         *,
         media_path: str,
-        probe_metadata: dict[str, object],
+        probe: MediaProbe,
     ) -> None:
-        async with self._session_factory() as session:
-            await MediaProcessingJobService(session).mark_completed(
-                job_id,
+        async with self._session_factory() as session, session.begin():
+            processing_service = MediaProcessingJobService(session)
+            job = await processing_service.get_job(job_id)
+            await MediaAssetService(session).upsert(
+                episode_id=job.episode_id,
+                processing_job_id=job.id,
                 media_path=media_path,
-                probe_metadata=probe_metadata,
             )
+            job.media_path = media_path
+            job.probe_metadata = _serialize_probe(probe)
+            job.transition_to(MediaProcessingJobStatus.COMPLETED)
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
         async with self._session_factory() as session:
@@ -122,10 +134,12 @@ class MediaProcessingRunner:
 
     async def run(self, job_id: UUID) -> None:
         job_loaded = False
+        persist_failure = False
         try:
             context = await self._state.load(job_id)
             job_loaded = True
-            if context.status is MediaProcessingJobStatus.COMPLETED:
+            persist_failure = context.status is not MediaProcessingJobStatus.COMPLETED
+            if context.status is MediaProcessingJobStatus.COMPLETED and context.media_asset_exists:
                 return
 
             if context.status is MediaProcessingJobStatus.FAILED:
@@ -144,10 +158,10 @@ class MediaProcessingRunner:
             await self._state.mark_completed(
                 job_id,
                 media_path=str(media_path),
-                probe_metadata=_serialize_probe(probe),
+                probe=probe,
             )
         except Exception as exc:
-            if job_loaded:
+            if job_loaded and persist_failure:
                 try:
                     await self._state.mark_failed(
                         job_id,

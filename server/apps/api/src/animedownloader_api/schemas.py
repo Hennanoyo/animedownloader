@@ -143,6 +143,17 @@ class DownloadJobResponse(BaseModel):
     updated_at: datetime
 
 
+class MediaAssetResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    episode_id: UUID
+    processing_job_id: UUID | None
+    path: str
+    created_at: datetime
+    updated_at: datetime
+
+
 class MediaProcessingJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

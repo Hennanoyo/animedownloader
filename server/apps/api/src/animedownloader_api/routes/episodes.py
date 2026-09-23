@@ -3,6 +3,7 @@ from uuid import UUID
 
 from animedownloader_anime import AnimeService, Episode, EpisodeUpdateData
 from animedownloader_download import ActiveDownloadJobError, DownloadJob, DownloadJobService
+from animedownloader_media_asset import MediaAsset, MediaAssetService
 from animedownloader_media_processing import MediaProcessingJob, MediaProcessingJobService
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
@@ -10,12 +11,14 @@ from animedownloader_api.dependencies import (
     get_anime_service,
     get_download_job_service,
     get_download_task_dispatcher,
+    get_media_asset_service,
     get_media_processing_job_service,
 )
 from animedownloader_api.schemas import (
     DownloadJobResponse,
     EpisodeResponse,
     EpisodeUpdate,
+    MediaAssetResponse,
     MediaProcessingJobResponse,
 )
 from animedownloader_api.task_queue import DownloadTaskDispatcher
@@ -29,6 +32,10 @@ DownloadJobServiceDependency = Annotated[
 DownloadTaskDispatcherDependency = Annotated[
     DownloadTaskDispatcher,
     Depends(get_download_task_dispatcher),
+]
+MediaAssetServiceDependency = Annotated[
+    MediaAssetService,
+    Depends(get_media_asset_service),
 ]
 MediaProcessingJobServiceDependency = Annotated[
     MediaProcessingJobService,
@@ -53,6 +60,19 @@ async def get_latest_episode_download_job(
     service: DownloadJobServiceDependency,
 ) -> DownloadJob | None:
     return await service.get_latest_job(episode_id)
+
+
+@router.get(
+    "/{episode_id}/media",
+    response_model=MediaAssetResponse | None,
+)
+async def get_episode_media(
+    episode_id: UUID,
+    anime_service: AnimeServiceDependency,
+    media_service: MediaAssetServiceDependency,
+) -> MediaAsset | None:
+    await anime_service.get_episode(episode_id)
+    return await media_service.get_for_episode(episode_id)
 
 
 @router.get(

@@ -30,7 +30,7 @@ def _paths() -> list[Path]:
 class FakeState:
     context: MediaProcessingContext
     transitions: list[str] = field(default_factory=_strings)
-    completed: tuple[str, dict[str, object]] | None = None
+    completed: tuple[str, MediaProbe] | None = None
     failed_message: str | None = None
 
     async def load(self, job_id: UUID) -> MediaProcessingContext:
@@ -41,6 +41,7 @@ class FakeState:
         self.context = MediaProcessingContext(
             status=MediaProcessingJobStatus.PROCESSING,
             download_directory=self.context.download_directory,
+            media_asset_exists=self.context.media_asset_exists,
         )
 
     async def mark_completed(
@@ -48,12 +49,13 @@ class FakeState:
         job_id: UUID,
         *,
         media_path: str,
-        probe_metadata: dict[str, object],
+        probe: MediaProbe,
     ) -> None:
-        self.completed = (media_path, probe_metadata)
+        self.completed = (media_path, probe)
         self.context = MediaProcessingContext(
             status=MediaProcessingJobStatus.COMPLETED,
             download_directory=self.context.download_directory,
+            media_asset_exists=True,
         )
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
@@ -61,6 +63,7 @@ class FakeState:
         self.context = MediaProcessingContext(
             status=MediaProcessingJobStatus.FAILED,
             download_directory=self.context.download_directory,
+            media_asset_exists=self.context.media_asset_exists,
         )
 
 
@@ -151,9 +154,63 @@ async def test_runner_inspects_and_completes(tmp_path: Path) -> None:
     assert inspector.paths == [media_path]
     assert state.completed is not None
     assert state.completed[0] == str(media_path)
-    format_metadata = state.completed[1]["format"]
-    assert isinstance(format_metadata, dict)
-    assert format_metadata["format_name"] == "matroska,webm"
+    assert state.completed[1].format.format_name == "matroska,webm"
+
+
+@pytest.mark.anyio
+async def test_runner_repairs_completed_job_when_media_asset_is_missing(
+    tmp_path: Path,
+) -> None:
+    job_id = uuid7()
+    download_job_id = uuid7()
+    media_path = tmp_path / str(download_job_id) / "episode.mkv"
+    media_path.parent.mkdir()
+    media_path.touch()
+
+    state = FakeState(
+        MediaProcessingContext(
+            status=MediaProcessingJobStatus.COMPLETED,
+            download_directory=str(download_job_id),
+        )
+    )
+    inspector = FakeInspector(make_probe(media_path))
+    runner = MediaProcessingRunner(
+        state=state,
+        inspector=inspector,
+        download_root=tmp_path,
+    )
+
+    await runner.run(job_id)
+
+    assert inspector.paths == [media_path]
+    assert state.completed is not None
+    assert state.completed[0] == str(media_path)
+
+
+@pytest.mark.anyio
+async def test_runner_skips_completed_job_when_media_asset_exists(
+    tmp_path: Path,
+) -> None:
+    job_id = uuid7()
+    download_job_id = uuid7()
+    state = FakeState(
+        MediaProcessingContext(
+            status=MediaProcessingJobStatus.COMPLETED,
+            download_directory=str(download_job_id),
+            media_asset_exists=True,
+        )
+    )
+    inspector = FakeInspector(make_probe(tmp_path / "unused.mkv"))
+    runner = MediaProcessingRunner(
+        state=state,
+        inspector=inspector,
+        download_root=tmp_path,
+    )
+
+    await runner.run(job_id)
+
+    assert inspector.paths == []
+    assert state.completed is None
 
 
 @pytest.mark.anyio

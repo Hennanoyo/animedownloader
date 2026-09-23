@@ -6,6 +6,7 @@ from animedownloader_download import (
     DownloadJobService,
     DownloadJobStatus,
 )
+from animedownloader_media_asset import MediaAssetService
 from animedownloader_media_processing import (
     MediaProcessingJob,
     MediaProcessingJobService,
@@ -15,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from animedownloader_api.dependencies import (
     get_download_job_service,
+    get_media_asset_service,
     get_media_processing_job_service,
     get_media_processing_task_dispatcher,
 )
@@ -38,7 +40,10 @@ DownloadJobServiceDependency = Annotated[
     DownloadJobService,
     Depends(get_download_job_service),
 ]
-
+MediaAssetServiceDependency = Annotated[
+    MediaAssetService,
+    Depends(get_media_asset_service),
+]
 
 
 @router.post(
@@ -51,6 +56,7 @@ async def create_media_processing_job_from_download(
     service: MediaProcessingJobServiceDependency,
     dispatcher: MediaProcessingTaskDispatcherDependency,
     download_service: DownloadJobServiceDependency,
+    media_asset_service: MediaAssetServiceDependency,
 ) -> MediaProcessingJob:
     download_job: DownloadJob = await download_service.get_job(download_job_id)
     if download_job.job_status is not DownloadJobStatus.COMPLETED:
@@ -60,17 +66,26 @@ async def create_media_processing_job_from_download(
         )
     job = await service.create_for_download_job(download_job.id)
 
+    needs_processing = job.job_status in {
+        MediaProcessingJobStatus.PENDING,
+        MediaProcessingJobStatus.FAILED,
+    }
+
     if job.job_status is MediaProcessingJobStatus.FAILED:
         job = await service.retry_job(job.id)
 
-    if job.job_status is MediaProcessingJobStatus.PENDING:
+    if job.job_status is MediaProcessingJobStatus.COMPLETED:
+        needs_processing = (await media_asset_service.get_for_episode(job.episode_id)) is None
+
+    if needs_processing:
         try:
             await dispatcher.enqueue(job.id)
         except Exception as exc:
-            await service.mark_failed(
-                job.id,
-                error_message="Failed to enqueue media processing task.",
-            )
+            if job.job_status is MediaProcessingJobStatus.PENDING:
+                await service.mark_failed(
+                    job.id,
+                    error_message="Failed to enqueue media processing task.",
+                )
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Media processing task queue is temporarily unavailable",

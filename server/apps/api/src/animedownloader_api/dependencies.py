@@ -5,6 +5,7 @@ from animedownloader_anime import AnimeService
 from animedownloader_config import Settings
 from animedownloader_database import Database
 from animedownloader_download import DownloadJobService
+from animedownloader_media_asset import MediaAssetService
 from animedownloader_media_processing import MediaProcessingJobService
 from animedownloader_nyaa import NyaaClient
 from animedownloader_qbittorrent import QBittorrentClient
@@ -37,6 +38,12 @@ def get_download_task_dispatcher(request: Request) -> DownloadTaskDispatcher:
     return request.app.state.download_task_dispatcher
 
 
+def get_media_asset_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> MediaAssetService:
+    return MediaAssetService(session)
+
+
 def get_media_processing_job_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> MediaProcessingJobService:
@@ -54,15 +61,12 @@ async def get_nyaa_client() -> AsyncIterator[NyaaClient]:
         yield client
 
 
-
 async def get_qbittorrent_client(
     request: Request,
 ) -> AsyncIterator[QBittorrentClient]:
     settings: Settings = request.app.state.settings
     api_key = (
-        settings.qbittorrent_api_key.get_secret_value()
-        if settings.qbittorrent_api_key
-        else ""
+        settings.qbittorrent_api_key.get_secret_value() if settings.qbittorrent_api_key else ""
     )
     async with QBittorrentClient(settings.qbittorrent_url, api_key) as client:
         yield client

@@ -175,18 +175,20 @@ Merged into `main` as commit `57e04d490933aca6dc26871dd69e7ee160b5dce6`.
 - Added a manual trigger for processing an existing completed DownloadJob
 - Verified Backend, Frontend, and Integration CI successfully
 
-The processing job remains the execution/history record. The next step is to define the application-level media record that represents the usable media attached to an Episode.
+The processing job remains the execution/history record. The current slice defines the application-level media record that represents the usable media attached to an Episode.
 
-### Next PR — Media Asset / Episode Integration
+### PR #18 — Media Asset / Episode Integration
+
+This PR is in development on `feature/media-asset-integration`.
 
 Scope:
 
-- Add a persistent media entity representing the usable media for an Episode
-- Materialize the successful FFprobe result into that media entity
-- Define the canonical media path and core metadata used by the rest of the application
-- Expose Episode media information through the API
-- Decide how existing `download_status` / `conversion_status` fields map to the new media lifecycle
+- Add a persistent `MediaAsset` entity with one canonical asset per Episode
+- Materialize the successful processing output path into the Episode media asset
+- Keep MediaAsset metadata minimal; detailed probe data is not duplicated into the asset
+- Expose Episode media information through `GET /api/episodes/{episode_id}/media`
 - Keep DownloadJob and MediaProcessingJob as execution/history records rather than the primary media representation
+- Make media asset materialization part of the same transaction as processing completion
 
 Explicitly out of scope:
 

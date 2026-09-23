@@ -36,6 +36,7 @@ executionEnvironments = [
         "apps/api/src",
         "domains/anime/src",
         "domains/download/src",
+        "domains/media-asset/src",
         "domains/media-processing/src",
         "domains/releases/src",
         "libs/config/src",

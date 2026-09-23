@@ -10,6 +10,7 @@ members = [
     "animedownloader-database",
     "animedownloader-download",
     "animedownloader-media",
+    "animedownloader-media-asset",
     "animedownloader-media-processing",
     "animedownloader-nyaa",
     "animedownloader-qbittorrent",
@@ -142,6 +143,7 @@ dependencies = [
     { name = "animedownloader-config" },
     { name = "animedownloader-database" },
     { name = "animedownloader-download" },
+    { name = "animedownloader-media-asset" },
     { name = "animedownloader-media-processing" },
     { name = "animedownloader-nyaa" },
     { name = "animedownloader-releases" },
@@ -157,6 +159,7 @@ requires-dist = [
     { name = "animedownloader-config", editable = "libs/config" },
     { name = "animedownloader-database", editable = "libs/database" },
     { name = "animedownloader-download", editable = "domains/download" },
+    { name = "animedownloader-media-asset", editable = "domains/media-asset" },
     { name = "animedownloader-media-processing", editable = "domains/media-processing" },
     { name = "animedownloader-nyaa", editable = "libs/nyaa" },
     { name = "animedownloader-releases", editable = "domains/releases" },
@@ -215,6 +218,19 @@ requires-dist = [
 name = "animedownloader-media"
 version = "0.1.0"
 source = { editable = "libs/media" }
+
+[[package]]
+name = "animedownloader-media-asset"
+version = "0.1.0"
+source = { editable = "domains/media-asset" }
+dependencies = [
+    { name = "animedownloader-database" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "animedownloader-database", editable = "libs/database" },
+]
 
 [[package]]
 name = "animedownloader-media-processing"
@@ -306,6 +322,7 @@ dependencies = [
     { name = "animedownloader-config" },
     { name = "animedownloader-download" },
     { name = "animedownloader-media" },
+    { name = "animedownloader-media-asset" },
     { name = "animedownloader-media-processing" },
     { name = "animedownloader-qbittorrent" },
     { name = "animedownloader-torrent" },
@@ -318,6 +335,7 @@ requires-dist = [
     { name = "animedownloader-config", editable = "libs/config" },
     { name = "animedownloader-download", editable = "domains/download" },
     { name = "animedownloader-media", editable = "libs/media" },
+    { name = "animedownloader-media-asset", editable = "domains/media-asset" },
     { name = "animedownloader-media-processing", editable = "domains/media-processing" },
     { name = "animedownloader-qbittorrent", editable = "libs/qbittorrent" },
     { name = "animedownloader-torrent", editable = "libs/torrent" },

@@ -31,7 +31,6 @@ async def get_download_job(
     return await service.get_job(job_id)
 
 
-
 @router.post("/{job_id}/pause", response_model=DownloadJobResponse)
 async def pause_download_job(
     job_id: UUID,

@@ -272,8 +272,11 @@ async def main() -> int:
             "Episode has no playable media variant. "
             "Run media preparation first.",
         )
-    if playable.get("ready") is not True or playable.get("current") is not True:
-        raise SmokeTestError("Playable media is not current and ready")
+    if (
+        playable.get("status") != "completed"
+        or playable.get("current") is not True
+    ):
+        raise SmokeTestError("Playable media is not current and completed")
     print(
         "  playable media: "
         f"{playable.get('width')}x{playable.get('height')} "

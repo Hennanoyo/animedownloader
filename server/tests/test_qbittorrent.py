@@ -66,7 +66,7 @@ async def test_add_torrent_pending() -> None:
 
 @pytest.mark.anyio
 async def test_add_torrent_failure() -> None:
-    response_body = {
+    response_body: dict[str, object] = {
         "added_torrent_ids": [],
         "failure_count": 1,
         "pending_count": 0,

@@ -16,11 +16,19 @@ logs service="":
 web-install:
   cd web && pnpm install
 
+web-format:
+  cd web && pnpm format
+
 web-check:
   cd web && pnpm lint && pnpm typecheck && pnpm test
 
 server-sync:
   cd server && uv sync --all-packages
+
+server-format:
+  cd server && uv run ruff format .
+
+format: web-format server-format
 
 server-check:
   cd server && uv run ruff check .

@@ -24,6 +24,9 @@ class DownloadJobService:
     async def get_active_job(self, episode_id: UUID) -> DownloadJob | None:
         return await self.jobs.get_active_for_episode(episode_id)
 
+    async def get_latest_job(self, episode_id: UUID) -> DownloadJob | None:
+        return await self.jobs.get_latest_for_episode(episode_id)
+
     async def create_job(self, episode_id: UUID) -> DownloadJob:
         await self.session.rollback()
         try:

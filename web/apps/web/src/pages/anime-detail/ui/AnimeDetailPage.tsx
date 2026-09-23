@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { Button } from "react-aria-components";
 import type { Anime } from "../../../entities/anime/model/types";
-import { ApiRequestError } from "../../../shared/api/client";
 import { useAnimeDetail } from "../../../features/anime-detail/model/useAnimeDetail";
 import { useDeleteAnime } from "../../../features/anime-edit/model/useEditAnime";
 import AnimeEditForm from "../../../features/anime-edit/ui/AnimeEditForm";
+import EpisodeDownloadControl from "../../../features/episode-download/ui/EpisodeDownloadControl";
+import { ApiRequestError } from "../../../shared/api/client";
 import styles from "./AnimeDetailPage.module.scss";
 
 export default function AnimeDetailPage() {
@@ -138,9 +139,7 @@ export default function AnimeDetailPage() {
                     <td>{formatCount(episode.leechers)}</td>
                     <td>{formatCount(episode.downloads)}</td>
                     <td>
-                      <span className={styles.status}>
-                        {formatLabel(episode.download_status)}
-                      </span>
+                      <EpisodeDownloadControl episodeId={episode.id} />
                     </td>
                     <td>
                       <span className={styles.status}>

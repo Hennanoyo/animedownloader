@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 import logging
+from dataclasses import asdict
 from pathlib import Path
 from typing import Protocol, cast
 from uuid import UUID
@@ -41,6 +41,22 @@ class MediaProcessingExecutionError(RuntimeError):
 
 class MediaInspector(Protocol):
     async def inspect(self, path: Path) -> MediaProbe: ...
+
+
+class MediaProcessingStateProtocol(Protocol):
+    async def load(self, job_id: UUID) -> MediaProcessingContext: ...
+
+    async def mark_processing(self, job_id: UUID) -> None: ...
+
+    async def mark_completed(
+        self,
+        job_id: UUID,
+        *,
+        media_path: str,
+        probe_metadata: dict[str, object],
+    ) -> None: ...
+
+    async def mark_failed(self, job_id: UUID, *, error_message: str) -> None: ...
 
 
 class MediaProcessingContext:
@@ -96,7 +112,7 @@ class MediaProcessingRunner:
     def __init__(
         self,
         *,
-        state: MediaProcessingState,
+        state: MediaProcessingStateProtocol,
         inspector: MediaInspector,
         download_root: Path,
     ) -> None:

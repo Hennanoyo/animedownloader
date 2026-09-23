@@ -88,15 +88,6 @@ class MediaTranscodingState:
                     f"Media variant does not exist: {job.variant_id}",
                 )
 
-            if (
-                asset.path != job.source_path
-                or asset.metadata_updated_at != job.source_metadata_updated_at
-            ):
-                raise MediaTranscodingExecutionError(
-                    "Media asset source changed after the transcoding job was created; "
-                    "create a new transcoding job",
-                )
-
             return MediaTranscodingContext(
                 job_id=job.id,
                 asset_id=asset.id,

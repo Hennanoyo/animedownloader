@@ -28,6 +28,39 @@ class MediaProcessingJobService:
     async def get_latest_job(self, episode_id: UUID) -> MediaProcessingJob | None:
         return await self.jobs.get_latest_for_episode(episode_id)
 
+    async def create_for_download_job(
+        self,
+        download_job_id: UUID,
+    ) -> MediaProcessingJob:
+        await self.session.rollback()
+        async with self.session.begin():
+            download_job = await self.session.get(DownloadJob, download_job_id)
+            if download_job is None:
+                raise DownloadJobNotFoundError(download_job_id)
+
+            if download_job.job_status is not DownloadJobStatus.COMPLETED:
+                raise ValueError(
+                    "Media processing requires a completed download job",
+                )
+
+            existing = await self.jobs.get_by_download_job(download_job_id)
+            if existing is not None:
+                return existing
+
+            episode = await self.session.get(Episode, download_job.episode_id)
+            if episode is None:
+                raise EpisodeNotFoundError(download_job.episode_id)
+
+            job = MediaProcessingJob(
+                episode_id=episode.id,
+                download_job_id=download_job.id,
+                download_directory=str(download_job.id),
+            )
+            await self.jobs.add(job)
+
+        await self.session.refresh(job)
+        return job
+
     async def create_job(
         self,
         episode_id: UUID,

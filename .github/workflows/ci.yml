@@ -162,9 +162,9 @@ jobs:
 
       - name: Verify shared download volume
         run: |
-          docker compose exec -T qbittorrent sh -c 'touch /data/downloads/.ci-volume-check'
-          docker compose exec -T worker sh -c 'test -f /data/downloads/.ci-volume-check'
-          docker compose exec -T worker sh -c 'rm /data/downloads/.ci-volume-check'
+          docker compose exec -T qbittorrent sh -c 'touch /downloads/.ci-volume-check'
+          docker compose exec -T worker sh -c 'test -f /downloads/.ci-volume-check'
+          docker compose exec -T worker sh -c 'rm /downloads/.ci-volume-check'
 
       - name: Verify Anime CRUD against PostgreSQL
         run: |

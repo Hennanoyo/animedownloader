@@ -3,6 +3,7 @@ from uuid import UUID
 
 from animedownloader_anime import ConversionStatus, DownloadStatus, Season, Weekday
 from animedownloader_download import DownloadJobStatus
+from animedownloader_media_processing import MediaProcessingJobStatus
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 
@@ -148,7 +149,7 @@ class MediaProcessingJobResponse(BaseModel):
     id: UUID
     episode_id: UUID
     download_job_id: UUID | None
-    status: str
+    status: MediaProcessingJobStatus
     media_path: str | None
     probe_metadata: dict[str, object] | None
     attempt_count: int

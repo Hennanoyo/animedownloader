@@ -6,9 +6,7 @@ from taskiq_redis import RedisStreamBroker
 
 
 async def _download_task_placeholder(job_id: str) -> None:
-    raise RuntimeError(
-        f"Download task {job_id} must be executed by the worker application"
-    )
+    raise RuntimeError(f"Download task {job_id} must be executed by the worker application")
 
 
 class DownloadTaskDispatcher:

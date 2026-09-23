@@ -53,9 +53,7 @@ async def test_create_download_job_enqueues_task() -> None:
     dispatcher.enqueue = AsyncMock()
 
     async with make_client(service, dispatcher) as client:
-        response = await client.post(
-            "/api/episodes/" + str(job.episode_id) + "/download-jobs"
-        )
+        response = await client.post("/api/episodes/" + str(job.episode_id) + "/download-jobs")
 
     assert response.status_code == 201
     assert response.json()["id"] == str(job.id)
@@ -69,14 +67,10 @@ async def test_duplicate_download_job_returns_409() -> None:
     dispatcher = MagicMock(spec=DownloadTaskDispatcher)
     episode_id = uuid7()
     active_job_id = uuid7()
-    service.create_job = AsyncMock(
-        side_effect=ActiveDownloadJobError(episode_id, active_job_id)
-    )
+    service.create_job = AsyncMock(side_effect=ActiveDownloadJobError(episode_id, active_job_id))
 
     async with make_client(service, dispatcher) as client:
-        response = await client.post(
-            "/api/episodes/" + str(episode_id) + "/download-jobs"
-        )
+        response = await client.post("/api/episodes/" + str(episode_id) + "/download-jobs")
 
     assert response.status_code == 409
     assert str(active_job_id) in response.json()["detail"]

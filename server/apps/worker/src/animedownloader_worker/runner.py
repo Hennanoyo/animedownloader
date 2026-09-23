@@ -61,9 +61,7 @@ class PostgresDownloadState:
             job = await service.get_job(job_id)
             episode = await session.get(Episode, job.episode_id)
             if episode is None:
-                raise DownloadExecutionError(
-                    f"Episode not found for download job: {job_id}"
-                )
+                raise DownloadExecutionError(f"Episode not found for download job: {job_id}")
             return DownloadContext(
                 status=job.job_status,
                 torrent_url=episode.torrent_url,

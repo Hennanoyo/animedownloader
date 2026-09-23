@@ -143,6 +143,22 @@ class DownloadJobResponse(BaseModel):
     updated_at: datetime
 
 
+class SubtitleTrackResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    media_asset_id: UUID
+    stream_index: int | None
+    language: str | None
+    title: str | None
+    codec_name: str | None
+    source_path: str | None
+    is_default: bool
+    is_forced: bool
+    created_at: datetime
+    updated_at: datetime
+
+
 class MediaAssetResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -159,6 +175,8 @@ class MediaAssetResponse(BaseModel):
     height: int | None
     frame_rate: str | None
     metadata_updated_at: datetime | None
+    subtitle_tracks_updated_at: datetime | None
+    subtitle_tracks: list[SubtitleTrackResponse]
     created_at: datetime
     updated_at: datetime
 

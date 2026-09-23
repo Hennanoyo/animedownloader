@@ -1,12 +1,6 @@
 import { z } from "zod";
-import {
-  getJson,
-  postJson,
-} from "../../../shared/api/client";
-import type {
-  DownloadJob,
-  DownloadJobStatus,
-} from "../model/types";
+import { getJson, postJson } from "../../../shared/api/client";
+import type { DownloadJob } from "../model/types";
 
 const downloadJobSchema = z.object({
   id: z.uuid(),
@@ -64,7 +58,11 @@ export async function createEpisodeDownloadJob(
   signal?: AbortSignal,
 ): Promise<DownloadJob> {
   return parseDownloadJob(
-    await postJson("/api/episodes/" + episodeId + "/download-jobs", {}, { signal }),
+    await postJson(
+      "/api/episodes/" + episodeId + "/download-jobs",
+      {},
+      { signal },
+    ),
   );
 }
 

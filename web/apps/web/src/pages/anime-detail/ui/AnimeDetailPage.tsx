@@ -1,11 +1,18 @@
-import { Link, useParams } from "@tanstack/react-router";
+import { useState } from "react";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { Button } from "react-aria-components";
+import type { Anime } from "../../../entities/anime/model/types";
 import { ApiRequestError } from "../../../shared/api/client";
 import { useAnimeDetail } from "../../../features/anime-detail/model/useAnimeDetail";
+import { useDeleteAnime } from "../../../features/anime-edit/model/useEditAnime";
+import AnimeEditForm from "../../../features/anime-edit/ui/AnimeEditForm";
 import styles from "./AnimeDetailPage.module.scss";
 
 export default function AnimeDetailPage() {
   const { animeId } = useParams({ from: "/animes/$animeId" });
   const query = useAnimeDetail(animeId);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   if (query.isPending) {
     return (
@@ -38,7 +45,7 @@ export default function AnimeDetailPage() {
     );
   }
 
-  const { data: anime } = query;
+  const anime = query.data;
 
   return (
     <main className={styles.page}>
@@ -46,20 +53,41 @@ export default function AnimeDetailPage() {
         ← Back to anime
       </Link>
 
-      <header className={styles.header}>
-        <div>
-          <p className={styles.kicker}>Anime detail</p>
-          <h1>{anime.title}</h1>
-          <p className={styles.schedule}>
-            {anime.year} · {formatLabel(anime.season)} ·{" "}
-            {formatLabel(anime.weekday)} ·{" "}
-            {anime.air_time ?? "Time not set"} ({anime.timezone})
-          </p>
-        </div>
-        <span className={styles.episodeCount}>
-          {anime.episodes.length} episodes
-        </span>
-      </header>
+      {isEditing ? (
+        <section className={styles.editPanel} aria-labelledby="edit-heading">
+          <div className={styles.panelHeader}>
+            <div>
+              <p className={styles.kicker}>Anime management</p>
+              <h1 id="edit-heading">Edit anime</h1>
+              <p className={styles.panelDescription}>
+                Update the anime schedule and display information. Episodes
+                remain unchanged.
+              </p>
+            </div>
+          </div>
+          <AnimeEditForm
+            anime={anime}
+            onCancel={() => setIsEditing(false)}
+            onSaved={() => setIsEditing(false)}
+          />
+        </section>
+      ) : (
+        <AnimeHeader
+          anime={anime}
+          onDeleteConfirm={() => setIsDeleteConfirmOpen(true)}
+          onEdit={() => {
+            setIsEditing(true);
+            setIsDeleteConfirmOpen(false);
+          }}
+        />
+      )}
+
+      {!isEditing && isDeleteConfirmOpen ? (
+        <DeleteAnimeConfirmation
+          anime={anime}
+          onCancel={() => setIsDeleteConfirmOpen(false)}
+        />
+      ) : null}
 
       <section className={styles.panel} aria-labelledby="episodes-heading">
         <div className={styles.panelHeader}>
@@ -127,6 +155,102 @@ export default function AnimeDetailPage() {
         )}
       </section>
     </main>
+  );
+}
+
+interface AnimeHeaderProps {
+  anime: Anime;
+  onDeleteConfirm: () => void;
+  onEdit: () => void;
+}
+
+function AnimeHeader({
+  anime,
+  onDeleteConfirm,
+  onEdit,
+}: AnimeHeaderProps) {
+  return (
+    <header className={styles.header}>
+      <div>
+        <p className={styles.kicker}>Anime detail</p>
+        <h1>{anime.title}</h1>
+        <p className={styles.schedule}>
+          {anime.year} · {formatLabel(anime.season)} ·{" "}
+          {formatLabel(anime.weekday)} ·{" "}
+          {anime.air_time ?? "Time not set"} ({anime.timezone})
+        </p>
+      </div>
+      <div className={styles.headerActions}>
+        <span className={styles.episodeCount}>
+          {anime.episodes.length} episodes
+        </span>
+        <Button className={styles.secondaryButton} onPress={onEdit}>
+          Edit
+        </Button>
+        <Button className={styles.dangerButton} onPress={onDeleteConfirm}>
+          Delete
+        </Button>
+      </div>
+    </header>
+  );
+}
+
+interface DeleteAnimeConfirmationProps {
+  anime: Anime;
+  onCancel: () => void;
+}
+
+function DeleteAnimeConfirmation({
+  anime,
+  onCancel,
+}: DeleteAnimeConfirmationProps) {
+  const navigate = useNavigate();
+  const mutation = useDeleteAnime(anime.id);
+
+  async function handleDelete() {
+    await mutation.mutateAsync();
+    await navigate({ to: "/animes" });
+  }
+
+  return (
+    <section
+      className={styles.deletePanel}
+      role="alertdialog"
+      aria-labelledby="delete-heading"
+      aria-describedby="delete-description"
+    >
+      <div>
+        <p className={styles.kicker}>Delete anime</p>
+        <h2 id="delete-heading">Delete {anime.title}?</h2>
+        <p id="delete-description">
+          This permanently removes the anime and its episodes. This action
+          cannot be undone.
+        </p>
+      </div>
+
+      {mutation.isError ? (
+        <p className={styles.deleteError} role="alert">
+          Failed to delete anime: {mutation.error.message}
+        </p>
+      ) : null}
+
+      <div className={styles.headerActions}>
+        <Button
+          className={styles.secondaryButton}
+          onPress={onCancel}
+          isDisabled={mutation.isPending}
+        >
+          Cancel
+        </Button>
+        <Button
+          className={styles.dangerButton}
+          onPress={() => void handleDelete()}
+          isDisabled={mutation.isPending}
+        >
+          {mutation.isPending ? "Deleting..." : "Delete anime"}
+        </Button>
+      </div>
+    </section>
   );
 }
 

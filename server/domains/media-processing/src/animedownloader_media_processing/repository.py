@@ -94,23 +94,3 @@ class MediaProcessingJobRepository:
         await self.session.flush()
         return job
 
-    async def get_transcoding_job(self, job_id: UUID) -> MediaTranscodingJob | None:
-        return await self.get_preparation_job(job_id)
-
-    async def get_latest_transcoding_job(
-        self,
-        media_asset_id: UUID,
-    ) -> MediaTranscodingJob | None:
-        return await self.get_latest_preparation_job(media_asset_id)
-
-    async def get_active_transcoding_job(
-        self,
-        media_asset_id: UUID,
-    ) -> MediaTranscodingJob | None:
-        return await self.get_active_preparation_job(media_asset_id)
-
-    async def add_transcoding_job(
-        self,
-        job: MediaTranscodingJob,
-    ) -> MediaTranscodingJob:
-        return await self.add_preparation_job(job)

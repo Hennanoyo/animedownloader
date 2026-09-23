@@ -37,6 +37,17 @@ async def get_episode(
     return await service.get_episode(episode_id)
 
 
+@router.get(
+    "/{episode_id}/download-jobs/latest",
+    response_model=DownloadJobResponse | None,
+)
+async def get_latest_episode_download_job(
+    episode_id: UUID,
+    service: DownloadJobServiceDependency,
+) -> DownloadJob | None:
+    return await service.get_latest_job(episode_id)
+
+
 @router.patch("/{episode_id}", response_model=EpisodeResponse)
 async def update_episode(
     episode_id: UUID,

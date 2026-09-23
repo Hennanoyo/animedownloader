@@ -5,11 +5,13 @@ from animedownloader_anime import AnimeService
 from animedownloader_config import Settings
 from animedownloader_database import Database
 from animedownloader_download import DownloadJobService
+from animedownloader_media_processing import MediaProcessingJobService
 from animedownloader_nyaa import NyaaClient
 from animedownloader_qbittorrent import QBittorrentClient
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
 from animedownloader_api.task_queue import DownloadTaskDispatcher
 
 
@@ -33,6 +35,18 @@ def get_download_job_service(
 
 def get_download_task_dispatcher(request: Request) -> DownloadTaskDispatcher:
     return request.app.state.download_task_dispatcher
+
+
+def get_media_processing_job_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> MediaProcessingJobService:
+    return MediaProcessingJobService(session)
+
+
+def get_media_processing_task_dispatcher(
+    request: Request,
+) -> MediaProcessingTaskDispatcher:
+    return request.app.state.media_processing_task_dispatcher
 
 
 async def get_nyaa_client() -> AsyncIterator[NyaaClient]:

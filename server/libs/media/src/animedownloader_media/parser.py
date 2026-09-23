@@ -32,19 +32,23 @@ def parse_ffprobe_json(payload: str | bytes, source: Path) -> MediaProbe:
             f"FFprobe streams and chapters must be arrays for {source}"
         )
 
+    streams: list[MediaStream] = []
+    for position, raw_item in enumerate(raw_streams):
+        item = _mapping(raw_item)
+        if item is not None:
+            streams.append(_parse_stream(item, source, position))
+
+    chapters: list[MediaChapter] = []
+    for position, raw_item in enumerate(raw_chapters):
+        item = _mapping(raw_item)
+        if item is not None:
+            chapters.append(_parse_chapter(item, source, position))
+
     return MediaProbe(
         path=str(source),
         format=_parse_format(raw_format),
-        streams=tuple(
-            _parse_stream(item, source, position)
-            for position, item in enumerate(raw_streams)
-            if (item := _mapping(item)) is not None
-        ),
-        chapters=tuple(
-            _parse_chapter(item, source, position)
-            for position, item in enumerate(raw_chapters)
-            if (item := _mapping(item)) is not None
-        ),
+        streams=tuple(streams),
+        chapters=tuple(chapters),
     )
 
 

@@ -98,7 +98,8 @@ class SubprocessFFmpegRunner:
                 returncode=returncode,
             )
         except TimeoutError as exc:
-            process.kill()
+            if process.returncode is None:
+                process.kill()
             await communication
             elapsed = time.monotonic() - started_at
             logger.error(
@@ -113,7 +114,8 @@ class SubprocessFFmpegRunner:
                 f"{self._timeout_seconds:.1f}s: {shlex.join(command)}",
             ) from exc
         except asyncio.CancelledError:
-            process.kill()
+            if process.returncode is None:
+                process.kill()
             await communication
             logger.warning("FFmpeg cancelled: pid=%s", process.pid)
             raise

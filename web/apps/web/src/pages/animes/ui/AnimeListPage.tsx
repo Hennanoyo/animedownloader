@@ -33,13 +33,27 @@ export default function AnimeListPage() {
           <article className={styles.card} key={anime.id}>
             <div className={styles.cardHeader}>
               <div>
-                <h2>{anime.title}</h2>
+                <h2>
+                  <Link
+                    className={styles.titleLink}
+                    to="/animes/$animeId"
+                    params={{ animeId: anime.id }}
+                  >
+                    {anime.title}
+                  </Link>
+                </h2>
                 <p>
                   {anime.year} · {anime.season} · {anime.weekday} ·{" "}
                   {anime.air_time ?? "time not set"} ({anime.timezone})
                 </p>
               </div>
-              <span>{anime.episodes.length} episodes</span>
+              <Link
+                className={styles.detailLink}
+                to="/animes/$animeId"
+                params={{ animeId: anime.id }}
+              >
+                {anime.episodes.length} episodes · View details
+              </Link>
             </div>
 
             <div className={styles.episodes}>

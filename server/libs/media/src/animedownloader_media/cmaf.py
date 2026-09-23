@@ -110,7 +110,6 @@ class FFmpegCMAFProcessor:
         raw_playlist = playlist_path.read_text(encoding="utf-8")
         playlist = parse_cmaf_media_playlist(raw_playlist)
         normalized_playlist, normalized_segments = _normalize_segment_uris(
-            playlist_path=playlist_path,
             content=raw_playlist,
             segments=playlist.segments,
         )
@@ -123,7 +122,7 @@ class FFmpegCMAFProcessor:
                 f"{init_segment_path}",
             )
 
-        for segment in playlist.segments:
+        for segment in normalized_segments:
             segment_path = _resolve_playlist_path(playlist_path, segment.uri)
             if not segment_path.is_file():
                 raise CMAFPackagingError(
@@ -189,7 +188,6 @@ def parse_cmaf_media_playlist(content: str) -> CMAFMediaPlaylist:
 
 def _normalize_segment_uris(
     *,
-    playlist_path: Path,
     content: str,
     segments: Sequence[CMAFMediaSegment],
 ) -> tuple[str, tuple[CMAFMediaSegment, ...]]:

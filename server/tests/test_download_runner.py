@@ -14,6 +14,22 @@ from animedownloader_worker.runner import (
 )
 
 
+def _string_list() -> list[str]:
+    return []
+
+
+def _progress_list() -> list[tuple[int, int]]:
+    return []
+
+
+def _added_list() -> list[tuple[str, str, tuple[str, ...]]]:
+    return []
+
+
+def _torrent_list() -> list[TorrentInfo]:
+    return []
+
+
 @dataclass
 class FakeState:
     context: DownloadContext

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import math
 import tempfile
-from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -201,17 +200,14 @@ def _write_webvtt(
     columns: int,
 ) -> None:
     lines = ["WEBVTT", ""]
-    capacity = columns
     for index in range(frame_count):
         start = index * interval_seconds
         end = min(start + interval_seconds, duration_seconds)
         if end <= start:
             end = start + interval_seconds
 
-        sprite_index = index // (columns * capacity)
-        cell_index = index % (columns * capacity)
-        column = cell_index % columns
-        row = cell_index // columns
+        column = index % columns
+        row = index // columns
         x = column * width
         y = row * height
 
@@ -222,11 +218,6 @@ def _write_webvtt(
                 "",
             ),
         )
-
-        if sprite_index != 0:
-            raise FFmpegThumbnailProcessingError(
-                "Thumbnail sprite generation produced more than one sprite",
-            )
 
     path.write_text("\n".join(lines), encoding="utf-8")
 

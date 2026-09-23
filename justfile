@@ -19,6 +19,9 @@ media-smoke episode_id timeout="180":
 storage-smoke:
   docker compose exec -T worker uv run --package animedownloader-worker python3 /app/scripts/storage-smoke.py
 
+storage-media-smoke episode_id timeout="300":
+  docker compose exec -T worker uv run --package animedownloader-worker python3 /app/scripts/storage-media-smoke.py {{episode_id}} --timeout {{timeout}}
+
 web-install:
   cd web && pnpm install
 

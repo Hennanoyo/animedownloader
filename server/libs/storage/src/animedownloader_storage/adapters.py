@@ -11,11 +11,12 @@ from .exceptions import StorageError, StorageObjectNotFoundError
 
 
 def _validate_object_key(object_key: str) -> str:
+    if not object_key or Path(object_key).is_absolute():
+        raise StorageError(f"Invalid storage object key: {object_key}")
     key = object_key.strip("/")
     if not key:
         raise StorageError("Storage object key must not be empty")
-    parts = Path(key).parts
-    if Path(key).is_absolute() or ".." in parts:
+    if ".." in Path(key).parts:
         raise StorageError(f"Invalid storage object key: {object_key}")
     return key
 

@@ -45,6 +45,13 @@ async def test_extract_attachment_uses_attachment_stream_specifier(
             str(output_path),
             "-i",
             str(tmp_path / "episode.mkv"),
+            "-map",
+            "0:t:1",
+            "-c",
+            "copy",
+            "-f",
+            "null",
+            "-",
         ),
     ]
     assert output_path.read_bytes() == b"font-data"

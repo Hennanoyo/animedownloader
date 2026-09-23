@@ -3,15 +3,15 @@ from uuid import uuid7
 
 import pytest
 from animedownloader_media_processing import (
-    MediaTranscodingJob,
-    MediaTranscodingJobStatus,
+    MediaPreparationJob,
+    MediaPreparationJobStatus,
     MediaTranscodingOperation,
     MediaVariant,
     MediaVariantKind,
     MediaVariantStatus,
 )
 from animedownloader_media_processing.exceptions import (
-    InvalidMediaTranscodingJobTransitionError,
+    InvalidMediaPreparationJobTransitionError,
 )
 
 
@@ -68,13 +68,13 @@ def test_media_variant_failure_clears_output() -> None:
     assert variant.error_message == "encoder failed"
 
 
-def test_media_transcoding_job_tracks_operation_and_attempts() -> None:
-    job = MediaTranscodingJob(
+def test_media_preparation_job_tracks_operation_and_attempts() -> None:
+    job = MediaPreparationJob(
         media_asset_id=uuid7(),
         variant_id=uuid7(),
         source_path="/downloads/source.mkv",
         source_metadata_updated_at=datetime(2026, 9, 24, tzinfo=UTC),
-        status=MediaTranscodingJobStatus.PENDING.value,
+        status=MediaPreparationJobStatus.PENDING.value,
         attempt_count=0,
     )
 
@@ -94,7 +94,7 @@ def test_media_transcoding_job_tracks_operation_and_attempts() -> None:
     assert job.completed_at is not None
 
 
-def test_failed_transcoding_job_cannot_be_reused_in_place() -> None:
+def test_failed_preparation_job_cannot_be_reused_in_place() -> None:
     job = MediaTranscodingJob(
         media_asset_id=uuid7(),
         variant_id=uuid7(),
@@ -103,5 +103,5 @@ def test_failed_transcoding_job_cannot_be_reused_in_place() -> None:
         status=MediaTranscodingJobStatus.FAILED.value,
     )
 
-    with pytest.raises(InvalidMediaTranscodingJobTransitionError):
+    with pytest.raises(InvalidMediaPreparationJobTransitionError):
         job.transition_to(MediaTranscodingJobStatus.PENDING)

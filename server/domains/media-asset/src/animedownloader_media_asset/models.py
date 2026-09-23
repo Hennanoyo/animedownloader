@@ -18,6 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from .enums import SubtitleTrackStatus
 from .metadata import MediaAssetMetadata, SubtitleTrackMetadata
 
 
@@ -54,6 +55,9 @@ class MediaAsset(Base):
     subtitle_tracks_updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
     )
+    subtitle_tracks_processed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -77,6 +81,15 @@ class MediaAsset(Base):
     @property
     def subtitle_tracks_ready(self) -> bool:
         return self.subtitle_tracks_updated_at is not None
+
+    @property
+    def subtitle_processing_ready(self) -> bool:
+        if self.subtitle_tracks_processed_at is None:
+            return False
+        return all(
+            track.status == SubtitleTrackStatus.COMPLETED.value
+            for track in self.subtitle_tracks
+        )
 
     def update_metadata(self, metadata: MediaAssetMetadata) -> None:
         self.format_name = metadata.format_name
@@ -106,6 +119,15 @@ class MediaAsset(Base):
             for track in tracks
         ]
         self.subtitle_tracks_updated_at = datetime.now(UTC)
+        self.subtitle_tracks_processed_at = None
+
+    def mark_subtitle_processing_complete(self) -> None:
+        if not all(
+            track.status == SubtitleTrackStatus.COMPLETED.value
+            for track in self.subtitle_tracks
+        ):
+            return
+        self.subtitle_tracks_processed_at = datetime.now(UTC)
 
 
 class SubtitleTrack(Base):
@@ -128,6 +150,14 @@ class SubtitleTrack(Base):
     title: Mapped[str | None] = mapped_column(String(500))
     codec_name: Mapped[str | None] = mapped_column(String(64))
     source_path: Mapped[str | None] = mapped_column(String(2000))
+    normalized_path: Mapped[str | None] = mapped_column(String(2000))
+    normalized_format: Mapped[str | None] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(
+        String(32),
+        default=SubtitleTrackStatus.PENDING.value,
+        server_default=SubtitleTrackStatus.PENDING.value,
+    )
+    error_message: Mapped[str | None] = mapped_column(String(2000))
     is_default: Mapped[bool] = mapped_column(
         Boolean,
         default=False,
@@ -151,3 +181,34 @@ class SubtitleTrack(Base):
     media_asset: Mapped[MediaAsset] = relationship(
         back_populates="subtitle_tracks",
     )
+
+    @property
+    def processing_status(self) -> SubtitleTrackStatus:
+        return SubtitleTrackStatus(self.status)
+
+    def mark_processing(self) -> None:
+        self.status = SubtitleTrackStatus.PROCESSING.value
+        self.normalized_path = None
+        self.normalized_format = None
+        self.error_message = None
+
+    def mark_completed(
+        self,
+        *,
+        normalized_path: str,
+        normalized_format: str,
+    ) -> None:
+        self.status = SubtitleTrackStatus.COMPLETED.value
+        self.normalized_path = normalized_path
+        self.normalized_format = normalized_format
+        self.error_message = None
+
+    def mark_failed(self, error_message: str) -> None:
+        self.status = SubtitleTrackStatus.FAILED.value
+        self.error_message = error_message[:2000]
+
+    def retry(self) -> None:
+        self.status = SubtitleTrackStatus.PENDING.value
+        self.normalized_path = None
+        self.normalized_format = None
+        self.error_message = None

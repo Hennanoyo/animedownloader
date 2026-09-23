@@ -252,6 +252,8 @@ async def test_manual_media_processing_requeues_completed_job_when_asset_metadat
     )
     stale_asset = MagicMock()
     stale_asset.metadata_ready = False
+    stale_asset.subtitle_tracks_ready = True
+    stale_asset.subtitle_processing_ready = False
     download_service.get_job = AsyncMock(return_value=download_job)
     service.create_for_download_job = AsyncMock(return_value=job)
     media_asset_service.get_for_episode = AsyncMock(return_value=stale_asset)

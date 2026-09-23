@@ -159,7 +159,7 @@ Browser
   → Browser polls and controls DownloadJob
 ```
 
-## Current Phase — Media Metadata Integration
+## Current Phase — Subtitle Extraction / Normalization
 
 ### PR #17 — Media Processing Jobs
 
@@ -287,7 +287,7 @@ The next features continue to build the current MediaAsset representation withou
 
 ### PR #20 — Subtitle Track Integration
 
-In development on `feature/subtitle-track-integration`.
+Merged into `main` as commit `7c680f24f0f09d08d758141a865c4cc031032e1f`.
 
 Goal: represent subtitle tracks as part of the current media asset without implementing extraction yet.
 
@@ -295,6 +295,7 @@ Scope:
 
 - Add a persistent subtitle-track entity associated with MediaAsset
 - Materialize current embedded subtitle-stream metadata from FFprobe during media processing
+- Add persistent current subtitle-track metadata and MediaAsset relationship
 - Store track language, title, default/forced flags, codec or format, and source/path information needed by later extraction/normalization stages
 - Define the relationship between MediaAsset and its current subtitle tracks
 - Extend the media API with current subtitle-track information
@@ -309,14 +310,20 @@ Out of scope:
 
 ### PR #21 — Subtitle Extraction / Normalization
 
+In development on `feature/subtitle-extraction-normalization`.
+
 Goal: materialize embedded or external subtitle sources into a normalized application representation.
 
 Scope:
 
 - Extract subtitle tracks discovered by FFprobe
 - Normalize supported subtitle formats
-- Persist normalized subtitle artifacts and processing status
+- Extract embedded text subtitle tracks through FFmpeg
+- Preserve ASS/SSA streams without re-encoding
+- Normalize supported text subtitle formats to ASS
+- Persist normalized subtitle artifacts and per-track processing status
 - Make extraction retryable without re-downloading the video
+- Keep per-track subtitle failures independent from MediaProcessingJob terminal state
 - Update current MediaAsset subtitle-track state atomically
 
 Out of scope:
@@ -386,7 +393,7 @@ Scope:
 
 ## Planned Follow-up
 
-After PR #20, immediate next work is PR #21, focused on subtitle extraction and normalization. Extraction and normalization remain separate from track persistence so the current MediaAsset representation can stabilize before introducing processing logic.
+After PR #21, immediate next work is PR #22, focused on chapter, attachment, and thumbnail-sprite metadata integration.
 
 ## Handoff Notes
 

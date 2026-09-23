@@ -31,6 +31,7 @@ def make_asset(episode_id: UUID) -> MediaAsset:
         frame_rate="24000/1001",
         metadata_updated_at=now,
         subtitle_tracks_updated_at=now,
+        subtitle_tracks_processed_at=None,
         created_at=now,
         updated_at=now,
     )
@@ -43,6 +44,10 @@ def make_asset(episode_id: UUID) -> MediaAsset:
             title="Japanese",
             codec_name="ass",
             source_path=None,
+            normalized_path=None,
+            normalized_format=None,
+            status="pending",
+            error_message=None,
             is_default=True,
             is_forced=False,
             created_at=now,
@@ -56,6 +61,10 @@ def make_asset(episode_id: UUID) -> MediaAsset:
             title="English",
             codec_name="ass",
             source_path=None,
+            normalized_path=None,
+            normalized_format=None,
+            status="pending",
+            error_message=None,
             is_default=False,
             is_forced=False,
             created_at=now,
@@ -120,6 +129,7 @@ async def test_get_episode_media_returns_asset() -> None:
     assert payload.frame_rate == "24000/1001"
     assert payload.metadata_updated_at == asset.metadata_updated_at
     assert payload.subtitle_tracks_updated_at == asset.subtitle_tracks_updated_at
+    assert payload.subtitle_tracks_processed_at is None
     assert len(payload.subtitle_tracks) == 2
     assert payload.subtitle_tracks[0].stream_index == 2
     assert payload.subtitle_tracks[0].language == "jpn"

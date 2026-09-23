@@ -355,6 +355,11 @@ jobs:
               assert media_asset["subtitle_tracks"][0]["codec_name"] == "ass"
               assert media_asset["subtitle_tracks"][0]["is_default"] is True
               assert media_asset["subtitle_tracks"][0]["is_forced"] is False
+              assert media_asset["subtitle_tracks"][0]["status"] == "pending"
+              assert media_asset["subtitle_tracks"][0]["normalized_path"] is None
+              assert media_asset["subtitle_tracks"][0]["normalized_format"] is None
+              assert media_asset["subtitle_tracks"][0]["error_message"] is None
+              assert media_asset["subtitle_tracks_processed_at"] is None
 
               updated_episode = client.patch(
                   "/api/episodes/" + episode_ids[0],

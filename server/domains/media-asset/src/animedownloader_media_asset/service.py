@@ -2,6 +2,8 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .enums import SubtitleTrackStatus
+from .exceptions import MediaAssetValidationError
 from .metadata import MediaAssetMetadata, SubtitleTrackMetadata
 from .models import MediaAsset
 from .repository import MediaAssetRepository
@@ -12,8 +14,23 @@ class MediaAssetService:
         self.session = session
         self.assets = MediaAssetRepository(session)
 
+    async def get(self, asset_id: UUID) -> MediaAsset | None:
+        return await self.assets.get(asset_id)
+
     async def get_for_episode(self, episode_id: UUID) -> MediaAsset | None:
         return await self.assets.get_for_episode(episode_id)
+
+    async def retry_failed_subtitle_tracks(self, asset_id: UUID) -> MediaAsset:
+        asset = await self.assets.get(asset_id)
+        if asset is None:
+            raise MediaAssetValidationError(f"Media asset not found: {asset_id}")
+
+        for track in asset.subtitle_tracks:
+            if track.processing_status is SubtitleTrackStatus.FAILED:
+                track.retry()
+
+        asset.subtitle_tracks_processed_at = None
+        return asset
 
     async def upsert(
         self,

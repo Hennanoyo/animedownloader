@@ -5,6 +5,7 @@ from .ffmpeg import (
     FFmpegPlayableMediaProcessingError,
     FFmpegPlayableMediaProcessor,
     FFmpegRunner,
+    PlayableMediaProcessingResult,
     FFmpegSubtitleProcessor,
     SubprocessFFmpegRunner,
     SubtitleProcessingError,

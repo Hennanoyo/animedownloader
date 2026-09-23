@@ -154,9 +154,14 @@ class QBittorrentClient:
         try:
             response = await self._http_client.request(
                 method,
-                path,
+                f"{self._base_url}{path}",
                 data=data,
                 params=params,
+                headers={
+                    "Authorization": f"Bearer {self._api_key}",
+                    "User-Agent": USER_AGENT,
+                    "Accept": "application/json",
+                },
             )
         except httpx.RequestError as exc:
             raise QBittorrentConnectionError("qBittorrent API request failed") from exc

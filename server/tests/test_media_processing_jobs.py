@@ -17,6 +17,7 @@ def make_job(
         id=uuid7(),
         episode_id=uuid7(),
         download_job_id=uuid7(),
+        download_directory=str(uuid7()),
         status=status.value,
         media_path=None,
         probe_metadata=None,

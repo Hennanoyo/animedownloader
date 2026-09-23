@@ -135,9 +135,11 @@ class MediaProcessingRunner:
 
     async def run(self, job_id: UUID) -> None:
         job_loaded = False
+        persist_failure = False
         try:
             context = await self._state.load(job_id)
             job_loaded = True
+            persist_failure = context.status is not MediaProcessingJobStatus.COMPLETED
             if (
                 context.status is MediaProcessingJobStatus.COMPLETED
                 and context.media_asset_exists
@@ -163,7 +165,7 @@ class MediaProcessingRunner:
                 probe=probe,
             )
         except Exception as exc:
-            if job_loaded and context.status is not MediaProcessingJobStatus.COMPLETED:
+            if job_loaded and persist_failure:
                 try:
                     await self._state.mark_failed(
                         job_id,

@@ -1,7 +1,11 @@
 from typing import Annotated
 from uuid import UUID
 
-from animedownloader_download import DownloadJob, DownloadJobService
+from animedownloader_download import (
+    DownloadJob,
+    DownloadJobService,
+    DownloadJobStatus,
+)
 from animedownloader_media_processing import (
     MediaProcessingJob,
     MediaProcessingJobService,
@@ -49,6 +53,11 @@ async def create_media_processing_job_from_download(
     download_service: DownloadJobServiceDependency,
 ) -> MediaProcessingJob:
     download_job: DownloadJob = await download_service.get_job(download_job_id)
+    if download_job.job_status is not DownloadJobStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Media processing requires a completed download job",
+        )
     job = await service.create_for_download_job(download_job.id)
 
     if job.job_status is MediaProcessingJobStatus.FAILED:

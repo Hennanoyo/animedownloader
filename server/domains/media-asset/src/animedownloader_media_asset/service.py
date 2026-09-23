@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from animedownloader_media import MediaProbe, MediaStream, MediaStreamType
+from animedownloader_media import MediaProbe, MediaStream
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .exceptions import MediaAssetValidationError

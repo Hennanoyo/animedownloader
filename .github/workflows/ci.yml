@@ -232,6 +232,12 @@ jobs:
               assert episodes.status_code == 200, episodes.text
               assert len(episodes.json()) == 2
 
+              media_processing = client.get(
+                  "/api/episodes/" + episode_ids[0] + "/media-processing-jobs/latest"
+              )
+              assert media_processing.status_code == 200, media_processing.text
+              assert media_processing.json() is None
+
               updated_episode = client.patch(
                   "/api/episodes/" + episode_ids[0],
                   json={

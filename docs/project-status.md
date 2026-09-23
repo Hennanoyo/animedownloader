@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The project has completed Anime/Episode management, persistent torrent download execution, download controls, and media inspection infrastructure. The next slice begins the post-download media processing pipeline.
+The project has completed Anime/Episode management, persistent torrent download execution, download controls, and media inspection infrastructure. The current slice establishes persistent post-download media processing and FFprobe inspection.
 
 ## Completed
 
@@ -161,16 +161,26 @@ Browser
 
 ## Current Phase — Media Processing Job
 
-The next PR starts the media pipeline after a torrent reaches `COMPLETED`. This phase establishes persistent processing state and automatic FFprobe inspection without adding transcoding or publishing yet.
+PR #17 establishes the first post-download processing stage.
 
-### Next PR Scope
+### PR #17 Scope
 
-- Add a persistent `MediaProcessingJob` model and state machine
-- Create or enqueue a media-processing job when a DownloadJob completes
+- Add persistent `MediaProcessingJob` state and transitions
+- Create a processing job after `DownloadJob.COMPLETED`
 - Run FFprobe inspection through the existing `animedownloader-media` library
-- Persist normalized media metadata needed by later pipeline stages
-- Expose processing status and inspection metadata through the API
-- Add focused worker, API, migration, and integration coverage
+- Persist the media path and structured probe metadata
+- Expose processing status and latest Episode processing state through the API
+- Retry failed inspection without re-downloading
+- Keep processing state independent from terminal DownloadJob state
+
+### Processing Rules
+
+- DownloadJob remains the source of truth for torrent acquisition state
+- MediaProcessingJob owns post-download processing state
+- FFprobe inspection is the first processing step
+- Failed inspection is retryable without re-downloading the torrent
+- DownloadJob remains COMPLETED when media processing fails
+- Deleting a DownloadJob does not delete MediaProcessingJob history
 
 ### Explicitly Out of Scope
 
@@ -181,17 +191,9 @@ The next PR starts the media pipeline after a torrent reaches `COMPLETED`. This 
 - Player/playback UI
 - Media file deletion or retention policy changes
 
-### Processing Rules
-
-- DownloadJob remains the source of truth for torrent acquisition state
-- MediaProcessingJob owns post-download processing state
-- FFprobe inspection is the first processing step
-- Failed inspection is retryable without re-downloading the torrent
-- Media processing must not block or alter successful DownloadJob terminal state
-
 ## Planned Follow-up
 
-After media-processing state and inspection:
+After PR #17:
 
 - subtitle normalization
 - transcoding/remuxing

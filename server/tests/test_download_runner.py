@@ -179,6 +179,65 @@ async def test_download_runner_starts_download_and_persists_completion(tmp_path:
 
 
 @pytest.mark.anyio
+async def test_download_runner_notifies_after_completion(tmp_path: Path) -> None:
+    job_id = uuid7()
+    state = FakeState(
+        DownloadContext(
+            status=DownloadJobStatus.DOWNLOADING,
+            torrent_url="https://example.com/episode.torrent",
+        )
+    )
+    client = FakeTorrentClient(
+        torrents=[],
+        info_sequence=[make_torrent(TorrentStatus.SEEDING, 1.0, 1000)],
+    )
+    completed: list[UUID] = []
+
+    async def on_completed(completed_job_id: UUID) -> None:
+        completed.append(completed_job_id)
+
+    runner = DownloadRunner(
+        state=state,
+        torrent_client=client,
+        download_root=tmp_path,
+        on_completed=on_completed,
+        poll_interval=0,
+    )
+    await runner.run(job_id)
+
+    assert completed == [job_id]
+
+
+@pytest.mark.anyio
+async def test_download_runner_ignores_media_processing_enqueue_failure(tmp_path: Path) -> None:
+    job_id = uuid7()
+    state = FakeState(
+        DownloadContext(
+            status=DownloadJobStatus.DOWNLOADING,
+            torrent_url="https://example.com/episode.torrent",
+        )
+    )
+    client = FakeTorrentClient(
+        torrents=[],
+        info_sequence=[make_torrent(TorrentStatus.SEEDING, 1.0, 1000)],
+    )
+
+    async def on_completed(_: UUID) -> None:
+        raise RuntimeError("redis unavailable")
+
+    runner = DownloadRunner(
+        state=state,
+        torrent_client=client,
+        download_root=tmp_path,
+        on_completed=on_completed,
+        poll_interval=0,
+    )
+    await runner.run(job_id)
+
+    assert state.completed == (1000, 1000)
+
+
+@pytest.mark.anyio
 async def test_download_runner_reuses_existing_torrent(tmp_path: Path) -> None:
     job_id = uuid7()
     state = FakeState(

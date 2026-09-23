@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The project is in the Download Job control phase. Anime/Episode management, torrent download execution, and media inspection infrastructure are complete; the current slice adds pause/resume, cancel, and download-record deletion.
+The project has completed Anime/Episode management, persistent torrent download execution, download controls, and media inspection infrastructure. The next slice begins the post-download media processing pipeline.
 
 ## Completed
 
@@ -109,7 +109,6 @@ Merged into `main` as commit `d057a4d7c14a36caff36a25779af87abec5951b4`.
 - Added the Episode latest DownloadJob API endpoint
 - Added API and frontend response coverage
 
-
 ### PR #14 — Media Inspection Infrastructure
 
 Merged into `main` as commit `19ae042137a5dffd2b54fd4a16a7a1433521822f`.
@@ -120,6 +119,28 @@ Merged into `main` as commit `19ae042137a5dffd2b54fd4a16a7a1433521822f`.
 - Added deterministic inspector tests with a fake process runner
 - Registered the media package in the backend image and uv workspace
 
+### PR #15 — Episode Management and Release Reuse
+
+Merged into `main` as commit `1adf634e60d66900426a5fe0e9e934b879c626a2`.
+
+- Added Episode add/edit/delete operations from Anime detail
+- Reused the existing Nyaa release picker for Episode creation
+- Added Episode CRUD API and frontend mutations
+- Updated frontend query caches after Episode mutations
+- Added API and frontend coverage
+
+### PR #16 — Download Job Controls
+
+Merged into `main` as commit `9773b092a72856dff3907079d74f2da5259beb65`.
+
+- Added persistent `paused` DownloadJob status
+- Added qBittorrent pause/resume controls behind `TorrentClient`
+- Added active-job cancel with partial torrent-data removal
+- Added terminal DownloadJob record deletion while retaining completed media files
+- Kept paused jobs active and unique per Episode
+- Reconciled worker behavior with pause/cancel state changes
+- Added API, worker, torrent adapter, and frontend coverage
+
 ## Current Workflow
 
 ```
@@ -129,41 +150,49 @@ Browser
   → create Anime + Episodes
   → PostgreSQL
   → Anime detail
-  → edit/delete Anime
+  → edit/delete Anime or Episode
   → create persistent DownloadJob
   → enqueue Taskiq task
   → worker
   → TorrentClient / qBittorrent
   → persist DownloadJob progress/state
-  → Browser polls persistent DownloadJob state
+  → Browser polls and controls DownloadJob
 ```
 
-## Current Phase — Download Job Control
+## Current Phase — Media Processing Job
 
-The next PR extends the existing Episode download UI and persistent DownloadJob workflow with explicit user controls.
+The next PR starts the media pipeline after a torrent reaches `COMPLETED`. This phase establishes persistent processing state and automatic FFprobe inspection without adding transcoding or publishing yet.
 
 ### Next PR Scope
 
-- Pause and resume a pending/downloading Episode job
-- Cancel an active job and remove its partial torrent data
-- Delete terminal DownloadJob records without deleting completed media files
-- Keep PostgreSQL as the persistent state source of truth
-- Keep qBittorrent behind the TorrentClient adapter
-- Preserve retry/redownload behavior
-- Keep media inspection and later media pipeline stages out of scope
+- Add a persistent `MediaProcessingJob` model and state machine
+- Create or enqueue a media-processing job when a DownloadJob completes
+- Run FFprobe inspection through the existing `animedownloader-media` library
+- Persist normalized media metadata needed by later pipeline stages
+- Expose processing status and inspection metadata through the API
+- Add focused worker, API, migration, and integration coverage
 
-### Download Control Rules
+### Explicitly Out of Scope
 
-- Paused jobs remain active and prevent another job from being created for the same Episode
-- Resume does not increment the DownloadJob attempt count
-- Cancel is terminal and removes the associated qBittorrent torrent and partial download data
-- Terminal job deletion removes the Job history; completed media files are retained
+- Subtitle normalization
+- Transcoding or remuxing
+- HLS/DASH packaging
+- SeaweedFS upload
+- Player/playback UI
+- Media file deletion or retention policy changes
+
+### Processing Rules
+
+- DownloadJob remains the source of truth for torrent acquisition state
+- MediaProcessingJob owns post-download processing state
+- FFprobe inspection is the first processing step
+- Failed inspection is retryable without re-downloading the torrent
+- Media processing must not block or alter successful DownloadJob terminal state
 
 ## Planned Follow-up
 
-After download controls, continue the media pipeline as separate focused phases:
+After media-processing state and inspection:
 
-- persist media-processing job state and trigger inspection after download
 - subtitle normalization
 - transcoding/remuxing
 - HLS/DASH packaging

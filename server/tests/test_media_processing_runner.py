@@ -41,7 +41,7 @@ class FakeState:
         self.transitions.append("processing")
         self.context = MediaProcessingContext(
             status=MediaProcessingJobStatus.PROCESSING,
-            download_job_id=self.context.download_job_id,
+            download_directory=self.context.download_directory,
         )
 
     async def mark_completed(
@@ -54,14 +54,14 @@ class FakeState:
         self.completed = (media_path, probe_metadata)
         self.context = MediaProcessingContext(
             status=MediaProcessingJobStatus.COMPLETED,
-            download_job_id=self.context.download_job_id,
+            download_directory=self.context.download_directory,
         )
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
         self.failed_message = error_message
         self.context = MediaProcessingContext(
             status=MediaProcessingJobStatus.FAILED,
-            download_job_id=self.context.download_job_id,
+            download_directory=self.context.download_directory,
         )
 
 
@@ -162,7 +162,7 @@ async def test_runner_fails_when_media_file_is_missing(tmp_path: Path) -> None:
     state = FakeState(
         MediaProcessingContext(
             status=MediaProcessingJobStatus.PENDING,
-            download_job_id=download_job_id,
+            download_directory=str(download_job_id),
         )
     )
     inspector = FakeInspector(make_probe(tmp_path / "unused.mkv"))
@@ -190,7 +190,7 @@ async def test_runner_marks_probe_failure(tmp_path: Path) -> None:
     state = FakeState(
         MediaProcessingContext(
             status=MediaProcessingJobStatus.PENDING,
-            download_job_id=download_job_id,
+            download_directory=str(download_job_id),
         )
     )
     inspector = FakeInspector(RuntimeError("invalid media"))
@@ -218,7 +218,7 @@ async def test_runner_rejects_multiple_media_files(tmp_path: Path) -> None:
     state = FakeState(
         MediaProcessingContext(
             status=MediaProcessingJobStatus.PENDING,
-            download_job_id=download_job_id,
+            download_directory=str(download_job_id),
         )
     )
     inspector = FakeInspector(make_probe(root / "episode-1.mkv"))

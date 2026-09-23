@@ -38,7 +38,7 @@ class FakeState:
         self.failed.append((track_id, error_message))
 
     async def mark_asset_complete(self, asset_id: UUID) -> None:
-        self.asset_completed = True
+        self.asset_completed = not self.failed
 
 
 class StubProcessor(FFmpegSubtitleProcessor):

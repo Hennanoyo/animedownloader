@@ -7,8 +7,8 @@ from animedownloader_database import Database
 from animedownloader_download import DownloadJobService
 from animedownloader_media_asset import MediaAssetService
 from animedownloader_media_processing import (
+    MediaPreparationJobService,
     MediaProcessingJobService,
-    MediaTranscodingJobService,
     MediaVariantService,
 )
 from animedownloader_nyaa import NyaaClient
@@ -75,10 +75,10 @@ async def get_qbittorrent_client(
     async with QBittorrentClient(settings.qbittorrent_url, api_key) as client:
         yield client
 
-def get_media_transcoding_job_service(
+def get_media_preparation_job_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
-) -> MediaTranscodingJobService:
-    return MediaTranscodingJobService(session)
+) -> MediaPreparationJobService:
+    return MediaPreparationJobService(session)
 
 
 def get_media_variant_service(

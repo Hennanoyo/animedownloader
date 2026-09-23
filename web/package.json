@@ -9,6 +9,7 @@
     "dev": "pnpm --filter @animedownloader/web dev",
     "build": "pnpm --filter @animedownloader/web build",
     "lint": "eslint .",
+    "format": "eslint . --fix",
     "typecheck": "tsc -b",
     "test": "pnpm --filter @animedownloader/web test"
   },

@@ -66,9 +66,11 @@ class MediaProcessingContext:
         *,
         status: MediaProcessingJobStatus,
         download_directory: str,
+        media_asset_exists: bool = False,
     ) -> None:
         self.status = status
         self.download_directory = download_directory
+        self.media_asset_exists = media_asset_exists
 
 
 class MediaProcessingState:
@@ -78,9 +80,13 @@ class MediaProcessingState:
     async def load(self, job_id: UUID) -> MediaProcessingContext:
         async with self._session_factory() as session:
             job = await MediaProcessingJobService(session).get_job(job_id)
+            media_asset_exists = (
+                await MediaAssetService(session).get_for_episode(job.episode_id)
+            ) is not None
             return MediaProcessingContext(
                 status=job.job_status,
                 download_directory=job.download_directory,
+                media_asset_exists=media_asset_exists,
             )
 
     async def mark_processing(self, job_id: UUID) -> None:
@@ -132,7 +138,10 @@ class MediaProcessingRunner:
         try:
             context = await self._state.load(job_id)
             job_loaded = True
-            if context.status is MediaProcessingJobStatus.COMPLETED:
+            if (
+                context.status is MediaProcessingJobStatus.COMPLETED
+                and context.media_asset_exists
+            ):
                 return
 
             if context.status is MediaProcessingJobStatus.FAILED:

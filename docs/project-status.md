@@ -323,6 +323,7 @@ Scope:
 - Normalize supported text subtitle formats to ASS
 - Persist normalized subtitle artifacts and per-track processing status
 - Make extraction retryable without re-downloading the video
+- Keep per-track subtitle failures independent from MediaProcessingJob terminal state
 - Update current MediaAsset subtitle-track state atomically
 
 Out of scope:

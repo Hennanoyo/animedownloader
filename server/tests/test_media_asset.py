@@ -1,7 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock
-
-from animedownloader_media_asset import MediaAssetService
 from uuid import uuid7
+
+import pytest
+from animedownloader_media_asset import MediaAssetService
 
 
 def make_service() -> MediaAssetService:

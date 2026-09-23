@@ -1,10 +1,9 @@
 from .errors import MediaProbeError
 from .ffmpeg import (
     FFmpegAttachmentProcessor,
+    FFmpegCommandResult,
     FFmpegPlayableMediaProcessingError,
     FFmpegPlayableMediaProcessor,
-    PlayableMediaProcessingResult,
-    FFmpegCommandResult,
     FFmpegRunner,
     FFmpegSubtitleProcessor,
     SubprocessFFmpegRunner,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 from .errors import MediaProbeError
 from .models import MediaChapter, MediaFormat, MediaProbe, MediaStream, MediaStreamType
@@ -11,22 +11,26 @@ from .models import MediaChapter, MediaFormat, MediaProbe, MediaStream, MediaStr
 
 def parse_ffprobe_json(payload: str | bytes, source: Path) -> MediaProbe:
     try:
-        data = json.loads(payload)
+        data = _mapping(json.loads(payload))
     except json.JSONDecodeError as exc:
         raise MediaProbeError(f"Invalid FFprobe JSON for {source}: {exc.msg}") from exc
 
-    if not isinstance(data, Mapping):
+    if data is None:
         raise MediaProbeError(f"FFprobe output must be a JSON object for {source}")
 
-    raw_format = data.get("format")
-    if not isinstance(raw_format, Mapping):
-        raise MediaProbeError(f"FFprobe output does not contain a valid format object for {source}")
+    raw_format = _mapping(data.get("format"))
+    if raw_format is None:
+        raise MediaProbeError(
+            f"FFprobe output does not contain a valid format object for {source}"
+        )
 
-    raw_streams = data.get("streams", [])
-    raw_chapters = data.get("chapters", [])
+    raw_streams = _list(data.get("streams", []))
+    raw_chapters = _list(data.get("chapters", []))
 
-    if not isinstance(raw_streams, list) or not isinstance(raw_chapters, list):
-        raise MediaProbeError(f"FFprobe streams and chapters must be arrays for {source}")
+    if raw_streams is None or raw_chapters is None:
+        raise MediaProbeError(
+            f"FFprobe streams and chapters must be arrays for {source}"
+        )
 
     return MediaProbe(
         path=str(source),
@@ -34,17 +38,17 @@ def parse_ffprobe_json(payload: str | bytes, source: Path) -> MediaProbe:
         streams=tuple(
             _parse_stream(item, source, position)
             for position, item in enumerate(raw_streams)
-            if isinstance(item, Mapping)
+            if (item := _mapping(item)) is not None
         ),
         chapters=tuple(
             _parse_chapter(item, source, position)
             for position, item in enumerate(raw_chapters)
-            if isinstance(item, Mapping)
+            if (item := _mapping(item)) is not None
         ),
     )
 
 
-def _parse_format(data: Mapping[str, Any]) -> MediaFormat:
+def _parse_format(data: Mapping[str, object]) -> MediaFormat:
     return MediaFormat(
         filename=_string(data.get("filename")),
         format_name=_string(data.get("format_name")),
@@ -58,7 +62,7 @@ def _parse_format(data: Mapping[str, Any]) -> MediaFormat:
 
 
 def _parse_stream(
-    data: Mapping[str, Any],
+    data: Mapping[str, object],
     source: Path,
     position: int,
 ) -> MediaStream:
@@ -66,10 +70,7 @@ def _parse_stream(
     if stream_index is None:
         stream_index = position
 
-    disposition = data.get("disposition")
-    if not isinstance(disposition, Mapping):
-        disposition = {}
-
+    disposition = _mapping(data.get("disposition")) or {}
     tags = _parse_tags(data.get("tags"))
 
     return MediaStream(
@@ -97,7 +98,7 @@ def _parse_stream(
 
 
 def _parse_chapter(
-    data: Mapping[str, Any],
+    data: Mapping[str, object],
     source: Path,
     position: int,
 ) -> MediaChapter:
@@ -108,9 +109,7 @@ def _parse_chapter(
             f"Chapter {position} in FFprobe output is missing timing information for {source}"
         )
 
-    tags = data.get("tags")
-    if not isinstance(tags, Mapping):
-        tags = {}
+    tags = _mapping(data.get("tags")) or {}
 
     return MediaChapter(
         id=_int(data.get("id")),
@@ -120,7 +119,7 @@ def _parse_chapter(
     )
 
 
-def _stream_type(value: Any) -> MediaStreamType:
+def _stream_type(value: object) -> MediaStreamType:
     raw = _string(value)
     if raw is None:
         return MediaStreamType.UNKNOWN
@@ -130,15 +129,16 @@ def _stream_type(value: Any) -> MediaStreamType:
         return MediaStreamType.UNKNOWN
 
 
-def _parse_tags(value: Any) -> tuple[tuple[str, str], ...]:
-    if not isinstance(value, Mapping):
+def _parse_tags(value: object) -> tuple[tuple[str, str], ...]:
+    mapping = _mapping(value)
+    if mapping is None:
         return ()
 
-    items = []
-    for key, raw_value in value.items():
-        value = _string(raw_value)
-        if value is not None:
-            items.append((str(key), value))
+    items: list[tuple[str, str]] = []
+    for key, raw_value in mapping.items():
+        string_value = _string(raw_value)
+        if string_value is not None:
+            items.append((key, string_value))
     return tuple(items)
 
 
@@ -149,11 +149,23 @@ def _tag_value(tags: tuple[tuple[str, str], ...], key: str) -> str | None:
     return None
 
 
-def _string(value: Any) -> str | None:
+def _mapping(value: object) -> Mapping[str, object] | None:
+    if not isinstance(value, Mapping):
+        return None
+    return cast(Mapping[str, object], value)
+
+
+def _list(value: object) -> list[object] | None:
+    if not isinstance(value, list):
+        return None
+    return cast(list[object], value)
+
+
+def _string(value: object) -> str | None:
     return value if isinstance(value, str) else None
 
 
-def _int(value: Any) -> int | None:
+def _int(value: object) -> int | None:
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -166,7 +178,7 @@ def _int(value: Any) -> int | None:
     return None
 
 
-def _float(value: Any) -> float | None:
+def _float(value: object) -> float | None:
     if isinstance(value, bool):
         return None
     if isinstance(value, int | float):

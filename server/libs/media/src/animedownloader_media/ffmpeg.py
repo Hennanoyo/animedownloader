@@ -187,6 +187,13 @@ class FFmpegAttachmentProcessor:
                 str(output_path),
                 "-i",
                 str(media_path),
+                "-map",
+                f"0:t:{attachment_index}",
+                "-c",
+                "copy",
+                "-f",
+                "null",
+                "-",
             ),
         )
         if result.returncode != 0:

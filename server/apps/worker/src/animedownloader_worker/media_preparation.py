@@ -270,7 +270,10 @@ class MediaPreparationRunner:
                 await self._state.mark_completed(
                     job_id,
                     playable_probe=None,
+                    playable_output_key=None,
                     thumbnail=None,
+                    thumbnail_sprite_key=None,
+                    thumbnail_vtt_key=None,
                 )
                 return
 

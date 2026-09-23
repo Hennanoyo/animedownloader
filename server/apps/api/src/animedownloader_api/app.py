@@ -15,7 +15,9 @@ from animedownloader_download import (
 )
 from animedownloader_media_processing import (
     InvalidMediaProcessingJobTransitionError,
+    InvalidMediaTranscodingJobTransitionError,
     MediaProcessingJobNotFoundError,
+    MediaTranscodingJobNotFoundError,
 )
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,6 +29,7 @@ from animedownloader_api.routes import (
     download_jobs_router,
     episodes_router,
     media_processing_jobs_router,
+    media_transcoding_jobs_router,
     releases_router,
 )
 from animedownloader_api.task_queue import (
@@ -74,8 +77,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_exception_handler(DownloadJobNotFoundError, _not_found_handler)
     app.add_exception_handler(InvalidDownloadJobTransitionError, _duplicate_episode_handler)
     app.add_exception_handler(MediaProcessingJobNotFoundError, _not_found_handler)
+    app.add_exception_handler(MediaTranscodingJobNotFoundError, _not_found_handler)
     app.add_exception_handler(
         InvalidMediaProcessingJobTransitionError,
+        _duplicate_episode_handler,
+    )
+    app.add_exception_handler(
+        InvalidMediaTranscodingJobTransitionError,
         _duplicate_episode_handler,
     )
     app.add_exception_handler(DuplicateEpisodeError, _duplicate_episode_handler)
@@ -83,8 +91,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(episodes_router)
     app.include_router(download_jobs_router)
     app.include_router(media_processing_jobs_router)
+    app.include_router(media_transcoding_jobs_router)
     app.include_router(releases_router)
-
     @app.get("/api/health")
     async def health() -> dict[str, str]:
         return {"status": "ok", "service": "api"}

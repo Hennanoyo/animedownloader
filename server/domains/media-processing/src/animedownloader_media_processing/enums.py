@@ -6,3 +6,26 @@ class MediaProcessingJobStatus(StrEnum):
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class MediaVariantKind(StrEnum):
+    PLAYABLE = "playable"
+
+
+class MediaVariantStatus(StrEnum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class MediaTranscodingOperation(StrEnum):
+    REMUX = "remux"
+    TRANSCODE = "transcode"
+
+
+class MediaTranscodingJobStatus(StrEnum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"

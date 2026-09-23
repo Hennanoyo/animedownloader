@@ -5,9 +5,11 @@ from animedownloader_database import Database, create_database
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
 from animedownloader_media import (
     FFmpegAttachmentProcessor,
+    FFmpegPlayableMediaProcessor,
     FFmpegSubtitleProcessor,
     FFmpegThumbnailSpriteProcessor,
     FFprobeInspector,
+    PlayableMediaPlanner,
 )
 from animedownloader_media_asset import (
     MEDIA_ATTACHMENT_PROCESSING_TASK_NAME,
@@ -17,8 +19,10 @@ from animedownloader_media_asset import (
 )
 from animedownloader_media_processing import (
     MEDIA_PROCESSING_TASK_NAME,
+    MEDIA_TRANSCODING_TASK_NAME,
     MediaProcessingJobService,
     MediaProcessingJobStatus,
+    MediaTranscodingJobService,
 )
 from animedownloader_qbittorrent import QBittorrentClient
 
@@ -32,6 +36,7 @@ from .media_thumbnail_processing import (
     MediaThumbnailProcessingRunner,
     create_media_thumbnail_processing_state,
 )
+from .media_transcoding import MediaTranscodingRunner, create_media_transcoding_state
 from .runner import DownloadRunner, create_download_state
 from .subtitle_processing import (
     SubtitleProcessingRunner,
@@ -82,6 +87,7 @@ async def process_media_job(job_id: str) -> None:
         await _enqueue_subtitle_processing(database, parsed_job_id)
         await _enqueue_media_attachment_processing(database, parsed_job_id)
         await _enqueue_media_thumbnail_processing(database, parsed_job_id)
+        await _enqueue_media_transcoding(database, parsed_job_id)
     finally:
         await database.dispose()
 
@@ -189,3 +195,45 @@ async def _enqueue_media_thumbnail_processing(
         return
 
     await process_media_thumbnail.kiq(str(asset.id))
+
+@broker.task(task_name=MEDIA_TRANSCODING_TASK_NAME)
+async def process_media_transcoding(job_id: str) -> None:
+    settings = Settings()
+    database = create_database(settings.database_url)
+    try:
+        runner = MediaTranscodingRunner(
+            state=create_media_transcoding_state(database.session_factory),
+            inspector=FFprobeInspector(),
+            planner=PlayableMediaPlanner(),
+            processor=FFmpegPlayableMediaProcessor(),
+            media_root=settings.media_root,
+        )
+        await runner.run(UUID(job_id))
+    finally:
+        await database.dispose()
+
+
+async def _enqueue_media_transcoding(
+    database: Database,
+    media_processing_job_id: UUID,
+) -> None:
+    async with database.session_factory() as session:
+        processing_job = await MediaProcessingJobService(session).get_job(
+            media_processing_job_id,
+        )
+        asset = await MediaAssetService(session).get_for_episode(
+            processing_job.episode_id,
+        )
+        if asset is None or asset.metadata_updated_at is None:
+            return
+
+        transcoding_job = await MediaTranscodingJobService(session).create_job(
+            media_asset_id=asset.id,
+            source_path=asset.path,
+            source_metadata_updated_at=asset.metadata_updated_at,
+        )
+
+    if transcoding_job is None:
+        return
+
+    await process_media_transcoding.kiq(str(transcoding_job.id))

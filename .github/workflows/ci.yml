@@ -158,35 +158,76 @@ jobs:
           docker compose exec -T worker sh -c 'test -f /downloads/.ci-volume-check'
           docker compose exec -T worker sh -c 'rm /downloads/.ci-volume-check'
 
-      - name: Verify deterministic media fixture and thumbnail generation
+      - name: Verify deterministic media fixture, thumbnails, and playable media
         run: |
           docker compose exec -T worker python3 tests/fixtures/media/generate.py /tmp/animedownloader-fixture.mkv
           docker compose exec -T worker uv run --package animedownloader-worker python3 - <<'PY'
           import asyncio
           from pathlib import Path
 
-          from animedownloader_media import FFmpegThumbnailSpriteProcessor
+          from animedownloader_media import (
+              FFmpegPlayableMediaProcessor,
+              FFmpegThumbnailSpriteProcessor,
+              FFprobeInspector,
+              PlayableMediaOperation,
+              PlayableMediaPlanner,
+          )
 
           async def main() -> None:
               fixture = Path("/tmp/animedownloader-fixture.mkv")
-              output_dir = Path("/tmp/animedownloader-thumbnails")
-              result = await FFmpegThumbnailSpriteProcessor().generate(
+              thumbnail_dir = Path("/tmp/animedownloader-thumbnails")
+              playable_dir = Path("/tmp/animedownloader-playable")
+
+              thumbnail_result = await FFmpegThumbnailSpriteProcessor().generate(
                   media_path=fixture,
-                  output_dir=output_dir,
+                  output_dir=thumbnail_dir,
                   duration_seconds=12.0,
               )
-              assert result.sprite_path.is_file()
-              assert result.vtt_path.is_file()
-              assert result.frame_count == 3
-              assert "WEBVTT" in result.vtt_path.read_text(encoding="utf-8")
+              assert thumbnail_result.sprite_path.is_file()
+              assert thumbnail_result.vtt_path.is_file()
+              assert thumbnail_result.frame_count == 3
+              assert "WEBVTT" in thumbnail_result.vtt_path.read_text(encoding="utf-8")
+
+              inspector = FFprobeInspector()
+              planner = PlayableMediaPlanner()
+              processor = FFmpegPlayableMediaProcessor()
+
+              source_probe = await inspector.inspect(fixture)
+              assert planner.plan(source_probe) is PlayableMediaOperation.TRANSCODE
+
+              transcoded = await processor.process(
+                  media_path=fixture,
+                  output_path=playable_dir / "transcoded.mp4",
+                  operation=PlayableMediaOperation.TRANSCODE,
+              )
+              transcoded_probe = await inspector.inspect(transcoded.output_path)
+              planner.validate(transcoded_probe)
+
+              assert transcoded_probe.video_streams[0].codec_name == "hevc"
+              assert all(
+                  stream.codec_name == "aac"
+                  for stream in transcoded_probe.audio_streams
+              )
+              assert planner.plan(transcoded_probe) is PlayableMediaOperation.REMUX
+
+              remuxed = await processor.process(
+                  media_path=transcoded.output_path,
+                  output_path=playable_dir / "remuxed.mp4",
+                  operation=PlayableMediaOperation.REMUX,
+              )
+              remuxed_probe = await inspector.inspect(remuxed.output_path)
+              planner.validate(remuxed_probe)
+              assert remuxed_probe.video_streams[0].codec_name == "hevc"
+
               print(
-                  f"thumbnail fixture verified: {result.frame_count} frames, "
-                  f"interval={result.interval_seconds:.3f}s"
+                  "playable fixture verified: "
+                  f"transcode={transcoded.output_path.name}, "
+                  f"remux={remuxed.output_path.name}"
               )
 
           asyncio.run(main())
           PY
-          docker compose exec -T worker rm -rf /tmp/animedownloader-fixture.mkv /tmp/animedownloader-thumbnails
+          docker compose exec -T worker rm -rf             /tmp/animedownloader-fixture.mkv             /tmp/animedownloader-thumbnails             /tmp/animedownloader-playable
 
       - name: Verify Anime CRUD against PostgreSQL
         run: |

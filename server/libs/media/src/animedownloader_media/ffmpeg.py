@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+from .playback import PlayableMediaOperation
+
 
 @dataclass(frozen=True, slots=True)
 class FFmpegCommandResult:
@@ -207,3 +209,88 @@ class FFmpegAttachmentProcessor:
             raise FFmpegAttachmentProcessingError(
                 f"FFmpeg completed without creating attachment output: {output_path}",
             )
+
+class FFmpegPlayableMediaProcessingError(RuntimeError):
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class PlayableMediaProcessingResult:
+    output_path: Path
+    operation: PlayableMediaOperation
+
+
+class FFmpegPlayableMediaProcessor:
+    def __init__(
+        self,
+        *,
+        executable: str = "ffmpeg",
+        runner: FFmpegRunner | None = None,
+    ) -> None:
+        self._executable = executable
+        self._runner = runner or SubprocessFFmpegRunner()
+
+    async def process(
+        self,
+        *,
+        media_path: Path,
+        output_path: Path,
+        operation: PlayableMediaOperation,
+    ) -> PlayableMediaProcessingResult:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if operation is PlayableMediaOperation.REMUX:
+            video_codec = "copy"
+            audio_codec = "copy"
+        else:
+            video_codec = "libx265"
+            audio_codec = "aac"
+
+        result = await self._runner.run(
+            (
+                self._executable,
+                "-v",
+                "error",
+                "-y",
+                "-i",
+                str(media_path),
+                "-map",
+                "0:v:0",
+                "-map",
+                "0:a?",
+                "-map_chapters",
+                "0",
+                "-sn",
+                "-dn",
+                "-c:v",
+                video_codec,
+                "-tag:v",
+                "hvc1",
+                "-c:a",
+                audio_codec,
+                *(("-b:a", "192k") if operation is PlayableMediaOperation.TRANSCODE else ()),
+                *(("-preset", "medium", "-crf", "28", "-pix_fmt", "yuv420p")
+                  if operation is PlayableMediaOperation.TRANSCODE
+                  else ()),
+                "-movflags",
+                "+faststart",
+                str(output_path),
+            ),
+        )
+
+        if result.returncode != 0:
+            message = result.stderr.decode("utf-8", errors="replace").strip()
+            raise FFmpegPlayableMediaProcessingError(
+                message
+                or "FFmpeg playable media processing failed with exit code "
+                f"{result.returncode}",
+            )
+        if not output_path.is_file():
+            raise FFmpegPlayableMediaProcessingError(
+                f"FFmpeg completed without creating playable output: {output_path}",
+            )
+
+        return PlayableMediaProcessingResult(
+            output_path=output_path,
+            operation=operation,
+        )

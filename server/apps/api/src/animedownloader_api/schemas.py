@@ -8,7 +8,13 @@ from animedownloader_media_asset import (
     MediaThumbnailStatus,
     SubtitleTrackStatus,
 )
-from animedownloader_media_processing import MediaProcessingJobStatus
+from animedownloader_media_processing import (
+    MediaProcessingJobStatus,
+    MediaTranscodingJobStatus,
+    MediaTranscodingOperation,
+    MediaVariantKind,
+    MediaVariantStatus,
+)
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 
@@ -256,6 +262,48 @@ class MediaProcessingJobResponse(BaseModel):
     status: MediaProcessingJobStatus
     media_path: str | None
     probe_metadata: dict[str, object] | None
+    attempt_count: int
+    error_message: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+class MediaVariantResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    media_asset_id: UUID
+    kind: MediaVariantKind
+    status: MediaVariantStatus
+    source_path: str | None
+    source_metadata_updated_at: datetime | None
+    path: str | None
+    format_name: str | None
+    duration_seconds: float | None
+    size_bytes: int | None
+    video_codec: str | None
+    audio_codec: str | None
+    width: int | None
+    height: int | None
+    frame_rate: str | None
+    error_message: str | None
+    current: bool = False
+    created_at: datetime
+    updated_at: datetime
+
+
+class MediaTranscodingJobResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    media_asset_id: UUID
+    variant_id: UUID
+    status: MediaTranscodingJobStatus
+    operation: MediaTranscodingOperation | None
+    source_path: str
+    source_metadata_updated_at: datetime
+    output_path: str | None
     attempt_count: int
     error_message: str | None
     started_at: datetime | None

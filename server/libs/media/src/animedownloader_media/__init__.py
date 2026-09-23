@@ -2,8 +2,11 @@ from .errors import MediaProbeError
 from .ffmpeg import (
     FFmpegAttachmentProcessor,
     FFmpegCommandResult,
+    FFmpegPlayableMediaProcessingError,
+    FFmpegPlayableMediaProcessor,
     FFmpegRunner,
     FFmpegSubtitleProcessor,
+    PlayableMediaProcessingResult,
     SubprocessFFmpegRunner,
     SubtitleProcessingError,
     UnsupportedSubtitleCodecError,
@@ -17,6 +20,14 @@ from .models import (
     MediaStreamType,
 )
 from .parser import parse_ffprobe_json
+from .playback import (
+    DEFAULT_PLAYABLE_MEDIA_PROFILE,
+    PlayableMediaOperation,
+    PlayableMediaPlanner,
+    PlayableMediaPlanningError,
+    PlayableMediaProfile,
+    PlayableMediaValidationError,
+)
 from .thumbnails import (
     FFmpegThumbnailProcessingError,
     FFmpegThumbnailSpriteProcessor,
@@ -24,8 +35,11 @@ from .thumbnails import (
 )
 
 __all__ = [
+    "DEFAULT_PLAYABLE_MEDIA_PROFILE",
     "FFmpegAttachmentProcessor",
     "FFmpegCommandResult",
+    "FFmpegPlayableMediaProcessingError",
+    "FFmpegPlayableMediaProcessor",
     "FFmpegRunner",
     "FFmpegSubtitleProcessor",
     "FFmpegThumbnailProcessingError",
@@ -37,6 +51,12 @@ __all__ = [
     "MediaProbeError",
     "MediaStream",
     "MediaStreamType",
+    "PlayableMediaOperation",
+    "PlayableMediaPlanner",
+    "PlayableMediaPlanningError",
+    "PlayableMediaProfile",
+    "PlayableMediaProcessingResult",
+    "PlayableMediaValidationError",
     "ProbeCommandResult",
     "ProbeRunner",
     "SubprocessFFmpegRunner",

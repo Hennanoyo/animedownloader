@@ -56,6 +56,7 @@ A sprite image plus WebVTT timing/region metadata is the preferred conceptual re
 
 A media item may expose assets such as:
 
+- derived playable MP4 representation
 - HLS manifest
 - DASH manifest
 - CMAF/fMP4 segments

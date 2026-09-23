@@ -10,8 +10,8 @@ from animedownloader_media import (
     MediaStream,
     MediaStreamType,
     PlayableMediaOperation,
-    PlayableMediaProcessingResult,
     PlayableMediaPlanner,
+    PlayableMediaProcessingResult,
     ThumbnailSpriteResult,
 )
 from animedownloader_media_processing import (

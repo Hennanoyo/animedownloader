@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -10,6 +11,7 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://animedownloader:animedownloader@db:5432/animedownloader"
     )
     redis_url: str = "redis://redis:6379/0"
+    storage_backend: Literal["local", "seaweedfs"] = "local"
     storage_internal_url: str = "http://storage:8888"
     storage_public_url: str = "http://localhost:8888"
     cors_origins_raw: str = "http://localhost:5173,http://127.0.0.1:5173"

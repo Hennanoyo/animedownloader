@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Episode download workflow execution is now in progress. The torrent infrastructure layer is complete; the current work adds Taskiq execution and persistent download orchestration.
+The persistent Episode download workflow is complete. The next phase is the frontend Anime Detail / Episode Management UI that will expose the backend download workflow.
 
 ## Completed
 
@@ -42,6 +42,21 @@ Merged into `main` as commit `767ad92ce7f88f0266e2845a3d4a9833522ec80b`.
 - Shared `/data/downloads` between worker and qBittorrent
 - Added deterministic adapter tests and CI runtime checks
 
+### PR #8 — Episode Download Execution
+
+Merged into `main` as commit `a8610bb1cb39c508b64e9d9111b67b39412fc32f`.
+
+- Added `POST /api/episodes/{episode_id}/download-jobs`
+- Added Taskiq dispatch through Redis
+- Added Worker-side `DownloadRunner` orchestration
+- Reused qBittorrent torrents by per-job tag across worker restarts/retries
+- Persisted qBittorrent progress and terminal state to PostgreSQL
+- Added duplicate active-job handling
+- Added deterministic API/runner coverage
+- Added Worker runtime verification to CI
+
+CI passed for PR #8 with Backend, Frontend, and Integration checks.
+
 ## Current Workflow
 
 ```
@@ -57,32 +72,21 @@ Browser
   → persist DownloadJob progress/state
 ```
 
-## Current PR — Episode Download Execution
+## Next Phase — Frontend Anime Detail / Episode Management
 
-The current PR implements the execution layer for GitHub Issue #4:
+Build the frontend against the now-stable backend workflow:
 
-- `POST /api/episodes/{episode_id}/download-jobs` creates an active persistent job and enqueues Taskiq work
-- the API owns only task dispatch; the worker owns download execution
-- worker execution is isolated in a `DownloadRunner` application service
-- retries/restarts reuse the per-job qBittorrent tag instead of blindly adding duplicate torrents
-- qBittorrent progress is persisted back to PostgreSQL
-- completed, failed, and terminal jobs remain observable through the existing job status API
-- deterministic API/runner tests cover enqueueing, duplicate-job behavior, success, resume, and failure paths
-
-Actual live torrent downloads are intentionally not part of normal CI; integration tests continue to use deterministic external-service boundaries.
-
-### Next Phase
-
-After this PR, the frontend should get a separate Anime Detail / Episode Management UI:
-
-- Anime detail/edit/delete
+- Anime detail view
+- Anime edit/delete
 - Episode list and metadata
-- per-episode download action
-- persistent job status/progress display
+- Per-episode download action
+- Persistent DownloadJob status/progress display
+
+The frontend should remain separate from the backend execution implementation so API/worker behavior can continue to be tested independently.
 
 ## Out of Scope for This Phase
 
-Do not expand the first download-workflow change into the later media pipeline stages:
+Do not expand the first download workflow into later media pipeline stages:
 
 - media inspection
 - subtitle normalization

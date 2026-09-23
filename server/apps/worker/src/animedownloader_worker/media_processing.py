@@ -7,7 +7,11 @@ from typing import Protocol, cast
 from uuid import UUID
 
 from animedownloader_media import MediaProbe, MediaStream
-from animedownloader_media_asset import MediaAssetMetadata, MediaAssetService
+from animedownloader_media_asset import (
+    MediaAssetMetadata,
+    MediaAssetService,
+    SubtitleTrackMetadata,
+)
 from animedownloader_media_processing import (
     MediaProcessingJobService,
     MediaProcessingJobStatus,
@@ -84,7 +88,11 @@ class MediaProcessingState:
             return MediaProcessingContext(
                 status=job.job_status,
                 download_directory=job.download_directory,
-                media_asset_ready=asset is not None and asset.metadata_ready,
+                media_asset_ready=(
+                    asset is not None
+                    and asset.metadata_ready
+                    and asset.subtitle_tracks_ready
+                ),
             )
 
     async def mark_processing(self, job_id: UUID) -> None:
@@ -107,6 +115,7 @@ class MediaProcessingState:
                 processing_job_id=job.id,
                 media_path=media_path,
                 metadata=asset_metadata,
+                subtitle_tracks=build_subtitle_track_metadata(probe),
             )
             job.media_path = media_path
             job.probe_metadata = _serialize_probe(probe)
@@ -212,6 +221,23 @@ def build_media_asset_metadata(probe: MediaProbe) -> MediaAssetMetadata:
         width=video_stream.width if video_stream is not None else None,
         height=video_stream.height if video_stream is not None else None,
         frame_rate=video_stream.frame_rate if video_stream is not None else None,
+    )
+
+
+def build_subtitle_track_metadata(
+    probe: MediaProbe,
+) -> tuple[SubtitleTrackMetadata, ...]:
+    return tuple(
+        SubtitleTrackMetadata(
+            stream_index=stream.index,
+            language=stream.language,
+            title=stream.title,
+            codec_name=stream.codec_name,
+            source_path=None,
+            is_default=stream.disposition_default,
+            is_forced=stream.disposition_forced,
+        )
+        for stream in probe.subtitle_streams
     )
 
 

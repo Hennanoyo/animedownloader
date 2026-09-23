@@ -185,6 +185,7 @@ async def process_media_preparation(job_id: str) -> None:
         )
         parsed_job_id = UUID(job_id)
         await runner.run(parsed_job_id)
+        await _enqueue_media_packaging(database, parsed_job_id)
     finally:
         await database.dispose()
 

@@ -226,6 +226,37 @@ async def test_runner_repairs_completed_job_when_media_asset_is_missing(
 
 
 @pytest.mark.anyio
+async def test_runner_refreshes_completed_job_when_media_asset_metadata_is_missing(
+    tmp_path: Path,
+) -> None:
+    job_id = uuid7()
+    download_job_id = uuid7()
+    media_path = tmp_path / str(download_job_id) / "episode.mkv"
+    media_path.parent.mkdir()
+    media_path.touch()
+
+    state = FakeState(
+        MediaProcessingContext(
+            status=MediaProcessingJobStatus.COMPLETED,
+            download_directory=str(download_job_id),
+            media_asset_ready=False,
+        )
+    )
+    inspector = FakeInspector(make_probe(media_path))
+    runner = MediaProcessingRunner(
+        state=state,
+        inspector=inspector,
+        download_root=tmp_path,
+    )
+
+    await runner.run(job_id)
+
+    assert inspector.paths == [media_path]
+    assert state.completed is not None
+    assert state.completed[0] == str(media_path)
+
+
+@pytest.mark.anyio
 async def test_runner_skips_completed_job_when_media_asset_ready(
     tmp_path: Path,
 ) -> None:

@@ -260,11 +260,12 @@ jobs:
                               format_name, duration_seconds, size_bytes,
                               video_codec, audio_codec, width, height,
                               frame_rate, metadata_updated_at,
+                              subtitle_tracks_updated_at,
                               created_at, updated_at
                           )
                           VALUES (
                               $1, $2, NULL, $3, $4, $5, $6, $7, $8,
-                              $9, $10, $11, $12, $13, $14
+                              $9, $10, $11, $12, $13, $14, $15
                           )
                           """,
                           uuid.uuid7(),
@@ -281,6 +282,7 @@ jobs:
                           now,
                           now,
                           now,
+                          now,
                       )
                   finally:
                       await connection.close()
@@ -294,6 +296,48 @@ jobs:
               media_asset = media.json()
               assert media_asset["episode_id"] == episode_ids[0]
               assert media_asset["path"] == "/downloads/ci/episode.mkv"
+
+              async def create_subtitle_tracks() -> None:
+                  connection = await asyncpg.connect(
+                      "postgresql://animedownloader:animedownloader@db:5432/animedownloader"
+                  )
+                  try:
+                      now = datetime.now(timezone.utc)
+                      await connection.execute(
+                          """
+                          INSERT INTO subtitle_tracks (
+                              id, media_asset_id, stream_index, language, title,
+                              codec_name, source_path, is_default, is_forced,
+                              created_at, updated_at
+                          )
+                          SELECT
+                              $1, id, $2, $3, $4,
+                              $5, $6, $7, $8, $9, $10
+                          FROM media_assets
+                          WHERE episode_id = $11
+                          """,
+                          uuid.uuid7(),
+                          2,
+                          "jpn",
+                          "Japanese",
+                          "ass",
+                          None,
+                          True,
+                          False,
+                          now,
+                          now,
+                          uuid.UUID(episode_ids[0]),
+                      )
+                  finally:
+                      await connection.close()
+
+              asyncio.run(create_subtitle_tracks())
+
+              media = client.get(
+                  "/api/episodes/" + episode_ids[0] + "/media"
+              )
+              assert media.status_code == 200, media.text
+              media_asset = media.json()
               assert media_asset["format_name"] == "matroska,webm"
               assert media_asset["duration_seconds"] == 123.456
               assert media_asset["size_bytes"] == 123456789
@@ -303,6 +347,14 @@ jobs:
               assert media_asset["height"] == 1080
               assert media_asset["frame_rate"] == "24000/1001"
               assert media_asset["metadata_updated_at"] is not None
+              assert media_asset["subtitle_tracks_updated_at"] is not None
+              assert len(media_asset["subtitle_tracks"]) == 1
+              assert media_asset["subtitle_tracks"][0]["stream_index"] == 2
+              assert media_asset["subtitle_tracks"][0]["language"] == "jpn"
+              assert media_asset["subtitle_tracks"][0]["title"] == "Japanese"
+              assert media_asset["subtitle_tracks"][0]["codec_name"] == "ass"
+              assert media_asset["subtitle_tracks"][0]["is_default"] is True
+              assert media_asset["subtitle_tracks"][0]["is_forced"] is False
 
               updated_episode = client.patch(
                   "/api/episodes/" + episode_ids[0],

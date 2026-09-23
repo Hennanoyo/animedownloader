@@ -11,12 +11,12 @@ from animedownloader_api.dependencies import (
     get_media_asset_service,
 )
 from animedownloader_api.schemas import MediaAssetResponse
-from animedownloader_media_asset import MediaAsset, MediaAssetService
+from animedownloader_media_asset import MediaAsset, MediaAssetService, SubtitleTrack
 
 
 def make_asset(episode_id: UUID) -> MediaAsset:
     now = datetime(2026, 9, 23, tzinfo=UTC)
-    return MediaAsset(
+    asset = MediaAsset(
         id=uuid7(),
         episode_id=episode_id,
         processing_job_id=uuid7(),
@@ -30,9 +30,39 @@ def make_asset(episode_id: UUID) -> MediaAsset:
         height=1080,
         frame_rate="24000/1001",
         metadata_updated_at=now,
+        subtitle_tracks_updated_at=now,
         created_at=now,
         updated_at=now,
     )
+    asset.subtitle_tracks = [
+        SubtitleTrack(
+            id=uuid7(),
+            media_asset_id=asset.id,
+            stream_index=2,
+            language="jpn",
+            title="Japanese",
+            codec_name="ass",
+            source_path=None,
+            is_default=True,
+            is_forced=False,
+            created_at=now,
+            updated_at=now,
+        ),
+        SubtitleTrack(
+            id=uuid7(),
+            media_asset_id=asset.id,
+            stream_index=3,
+            language="eng",
+            title="English",
+            codec_name="ass",
+            source_path=None,
+            is_default=False,
+            is_forced=False,
+            created_at=now,
+            updated_at=now,
+        ),
+    ]
+    return asset
 
 
 def make_episode(episode_id: UUID) -> Episode:
@@ -89,6 +119,14 @@ async def test_get_episode_media_returns_asset() -> None:
     assert payload.height == 1080
     assert payload.frame_rate == "24000/1001"
     assert payload.metadata_updated_at == asset.metadata_updated_at
+    assert payload.subtitle_tracks_updated_at == asset.subtitle_tracks_updated_at
+    assert len(payload.subtitle_tracks) == 2
+    assert payload.subtitle_tracks[0].stream_index == 2
+    assert payload.subtitle_tracks[0].language == "jpn"
+    assert payload.subtitle_tracks[0].codec_name == "ass"
+    assert payload.subtitle_tracks[0].is_default
+    assert not payload.subtitle_tracks[0].is_forced
+    assert payload.subtitle_tracks[1].language == "eng"
     anime_service.get_episode.assert_awaited_once_with(episode_id)
     media_service.get_for_episode.assert_awaited_once_with(episode_id)
 

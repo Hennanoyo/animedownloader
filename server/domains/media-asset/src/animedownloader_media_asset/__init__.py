@@ -1,6 +1,6 @@
 from .exceptions import MediaAssetValidationError
-from .metadata import MediaAssetMetadata
-from .models import MediaAsset
+from .metadata import MediaAssetMetadata, SubtitleTrackMetadata
+from .models import MediaAsset, SubtitleTrack
 from .service import MediaAssetService
 
 __all__ = [
@@ -8,4 +8,6 @@ __all__ = [
     "MediaAssetMetadata",
     "MediaAssetService",
     "MediaAssetValidationError",
+    "SubtitleTrack",
+    "SubtitleTrackMetadata",
 ]

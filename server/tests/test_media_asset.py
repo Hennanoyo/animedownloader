@@ -2,7 +2,12 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid7
 
 import pytest
-from animedownloader_media_asset import MediaAsset, MediaAssetMetadata, MediaAssetService
+from animedownloader_media_asset import (
+    MediaAsset,
+    MediaAssetMetadata,
+    MediaAssetService,
+    SubtitleTrackMetadata,
+)
 
 
 def make_service() -> MediaAssetService:
@@ -22,6 +27,29 @@ def make_metadata() -> MediaAssetMetadata:
     )
 
 
+def make_subtitle_tracks() -> tuple[SubtitleTrackMetadata, ...]:
+    return (
+        SubtitleTrackMetadata(
+            stream_index=2,
+            language="jpn",
+            title="Japanese",
+            codec_name="ass",
+            source_path=None,
+            is_default=True,
+            is_forced=False,
+        ),
+        SubtitleTrackMetadata(
+            stream_index=3,
+            language="eng",
+            title="English",
+            codec_name="ass",
+            source_path=None,
+            is_default=False,
+            is_forced=False,
+        ),
+    )
+
+
 @pytest.mark.anyio
 async def test_upsert_creates_media_asset() -> None:
     service = make_service()
@@ -31,6 +59,8 @@ async def test_upsert_creates_media_asset() -> None:
         assert asset.processing_job_id is not None
         assert asset.path is not None
         assert asset.metadata_ready
+        assert asset.subtitle_tracks_ready
+        assert [track.language for track in asset.subtitle_tracks] == ["jpn", "eng"]
 
     service.assets.add = AsyncMock(side_effect=add)
 
@@ -38,12 +68,14 @@ async def test_upsert_creates_media_asset() -> None:
     processing_job_id = uuid7()
     path = "/downloads/example/episode.mkv"
     metadata = make_metadata()
+    subtitle_tracks = make_subtitle_tracks()
 
     asset = await service.upsert(
         episode_id=episode_id,
         processing_job_id=processing_job_id,
         media_path=path,
         metadata=metadata,
+        subtitle_tracks=subtitle_tracks,
     )
 
     assert asset.episode_id == episode_id
@@ -58,7 +90,11 @@ async def test_upsert_creates_media_asset() -> None:
     assert asset.height == metadata.height
     assert asset.frame_rate == metadata.frame_rate
     assert asset.metadata_updated_at is not None
-    assert asset.metadata_ready
+    assert asset.subtitle_tracks_updated_at is not None
+    assert [(track.stream_index, track.codec_name) for track in asset.subtitle_tracks] == [
+        (2, "ass"),
+        (3, "ass"),
+    ]
     service.assets.add.assert_awaited_once_with(asset)
 
 
@@ -69,6 +105,7 @@ async def test_upsert_updates_existing_episode_asset() -> None:
     service.assets.get_for_episode = AsyncMock(return_value=existing)
     service.assets.add = AsyncMock()
     metadata = make_metadata()
+    subtitle_tracks = make_subtitle_tracks()
 
     episode_id = uuid7()
     processing_job_id = uuid7()
@@ -79,10 +116,12 @@ async def test_upsert_updates_existing_episode_asset() -> None:
         processing_job_id=processing_job_id,
         media_path=path,
         metadata=metadata,
+        subtitle_tracks=subtitle_tracks,
     )
 
     assert result is existing
     assert existing.processing_job_id == processing_job_id
     assert existing.path == path
     existing.update_metadata.assert_called_once_with(metadata)
+    existing.update_subtitle_tracks.assert_called_once_with(subtitle_tracks)
     service.assets.add.assert_not_awaited()

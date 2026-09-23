@@ -287,11 +287,14 @@ The next features continue to build the current MediaAsset representation withou
 
 ### PR #20 — Subtitle Track Integration
 
+In development on `feature/subtitle-track-integration`.
+
 Goal: represent subtitle tracks as part of the current media asset without implementing extraction yet.
 
 Scope:
 
 - Add a persistent subtitle-track entity associated with MediaAsset
+- Materialize current embedded subtitle-stream metadata from FFprobe during media processing
 - Store track language, title, default/forced flags, codec or format, and source/path information needed by later extraction/normalization stages
 - Define the relationship between MediaAsset and its current subtitle tracks
 - Extend the media API with current subtitle-track information
@@ -383,7 +386,7 @@ Scope:
 
 ## Planned Follow-up
 
-Immediate next work is PR #20, focused only on subtitle-track persistence and API representation. Extraction and normalization remain a separate PR so the data model can stabilize before introducing processing logic.
+After PR #20, immediate next work is PR #21, focused on subtitle extraction and normalization. Extraction and normalization remain separate from track persistence so the current MediaAsset representation can stabilize before introducing processing logic.
 
 ## Handoff Notes
 

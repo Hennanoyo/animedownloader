@@ -1,6 +1,6 @@
 """add paused download job status
 
-Revision ID: 0003_add_paused_download_job_status
+Revision ID: 0003_paused_download_status
 Revises: 0002_create_download_jobs
 Create Date: 2026-09-23
 """
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "0003_add_paused_download_job_status"
+revision = "0003_paused_download_status"
 down_revision = "0002_create_download_jobs"
 branch_labels = None
 depends_on = None

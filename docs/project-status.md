@@ -328,6 +328,13 @@ Scope:
 - Upload current and derived artifacts
 - Preserve local filesystem support for development
 - Add upload failure and cleanup handling
+- Add a developer runtime smoke test that exercises the real SeaweedFS-backed media artifact path
+
+Runtime validation:
+
+- `just storage-smoke` verifies SeaweedFS upload/materialize/delete against the Compose service
+- `just storage-media-smoke <episode-id>` verifies a newly processed Episode's stored playable media, subtitles, thumbnails, attachments/fonts, and CMAF/HLS/DASH artifacts
+- `STORAGE_BACKEND=seaweedfs` is exposed through Compose for real application-path testing
 
 ### PR #28 — Player / Playback
 

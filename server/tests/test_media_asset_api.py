@@ -14,6 +14,7 @@ from animedownloader_api.schemas import MediaAssetResponse
 from animedownloader_media_asset import (
     MediaAsset,
     MediaAssetService,
+    MediaThumbnailStatus,
     SubtitleTrack,
 )
 
@@ -36,6 +37,11 @@ def make_asset(episode_id: UUID) -> MediaAsset:
         metadata_updated_at=now,
         subtitle_tracks_updated_at=now,
         subtitle_tracks_processed_at=None,
+        thumbnail_status="pending",
+        thumbnail_sprite_path=None,
+        thumbnail_vtt_path=None,
+        thumbnail_updated_at=None,
+        thumbnail_error_message=None,
         created_at=now,
         updated_at=now,
     )
@@ -139,6 +145,11 @@ async def test_get_episode_media_returns_asset() -> None:
     assert payload.chapters_updated_at is None
     assert payload.attachments_updated_at is None
     assert payload.attachments_processed_at is None
+    assert payload.thumbnail_status is MediaThumbnailStatus.PENDING
+    assert payload.thumbnail_sprite_path is None
+    assert payload.thumbnail_vtt_path is None
+    assert payload.thumbnail_updated_at is None
+    assert payload.thumbnail_error_message is None
     assert len(payload.subtitle_tracks) == 2
     assert payload.subtitle_tracks[0].stream_index == 2
     assert payload.subtitle_tracks[0].language == "jpn"

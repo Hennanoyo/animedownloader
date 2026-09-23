@@ -4,7 +4,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, and chapter/embedded attachment integration.
 
-The next phase is thumbnail sprite generation for browser player hover/seek previews.
+The current phase is thumbnail sprite generation for browser player hover/seek previews. PR #23 is in development on `feature/thumbnail-sprite-integration`.
 
 ## Completed
 
@@ -219,9 +219,9 @@ Browser
 
 ### PR #23 — Thumbnail Sprite Integration
 
-**Current next PR.**
+**In development on `feature/thumbnail-sprite-integration`.**
 
-Goal: generate thumbnail sprite assets and WebVTT timing metadata for player hover/seek previews.
+Goal: generate a small thumbnail sprite and WebVTT timing metadata for player hover/seek previews, with a deterministic MKV fixture available for direct FFmpeg/media-pipeline verification.
 
 Scope:
 
@@ -232,6 +232,7 @@ Scope:
 - Track sprite generation state independently from MediaProcessingJob terminal state
 - Make generation retryable without re-downloading the source media
 - Add deterministic FFmpeg unit tests and PostgreSQL/API coverage where state is exposed
+- Add a deterministic 12-second MKV fixture generator containing video, audio, ASS subtitles, chapters, and an embedded attachment for media-pipeline validation
 
 Design constraints:
 

@@ -3,7 +3,11 @@ from uuid import UUID
 
 from animedownloader_anime import ConversionStatus, DownloadStatus, Season, Weekday
 from animedownloader_download import DownloadJobStatus
-from animedownloader_media_asset import MediaAttachmentStatus, SubtitleTrackStatus
+from animedownloader_media_asset import (
+    MediaAttachmentStatus,
+    MediaThumbnailStatus,
+    SubtitleTrackStatus,
+)
 from animedownloader_media_processing import MediaProcessingJobStatus
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
@@ -231,6 +235,11 @@ class MediaAssetResponse(BaseModel):
     chapters_updated_at: datetime | None
     attachments_updated_at: datetime | None
     attachments_processed_at: datetime | None
+    thumbnail_status: MediaThumbnailStatus
+    thumbnail_sprite_path: str | None
+    thumbnail_vtt_path: str | None
+    thumbnail_updated_at: datetime | None
+    thumbnail_error_message: str | None
     subtitle_tracks: list[SubtitleTrackResponse]
     chapters: list[MediaChapterResponse]
     attachments: list[MediaAttachmentResponse]

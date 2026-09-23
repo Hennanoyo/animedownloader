@@ -17,12 +17,19 @@ from .models import (
     MediaStreamType,
 )
 from .parser import parse_ffprobe_json
+from .thumbnails import (
+    FFmpegThumbnailProcessingError,
+    FFmpegThumbnailSpriteProcessor,
+    ThumbnailSpriteResult,
+)
 
 __all__ = [
     "FFmpegAttachmentProcessor",
     "FFmpegCommandResult",
     "FFmpegRunner",
     "FFmpegSubtitleProcessor",
+    "FFmpegThumbnailProcessingError",
+    "FFmpegThumbnailSpriteProcessor",
     "FFprobeInspector",
     "MediaChapter",
     "MediaFormat",
@@ -35,6 +42,7 @@ __all__ = [
     "SubprocessFFmpegRunner",
     "SubprocessProbeRunner",
     "SubtitleProcessingError",
+    "ThumbnailSpriteResult",
     "UnsupportedSubtitleCodecError",
     "parse_ffprobe_json",
 ]

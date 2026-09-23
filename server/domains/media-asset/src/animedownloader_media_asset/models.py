@@ -18,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .enums import MediaAttachmentStatus, SubtitleTrackStatus
+from .enums import MediaAttachmentStatus, MediaThumbnailStatus, SubtitleTrackStatus
 from .metadata import (
     MediaAssetMetadata,
     MediaAttachmentMetadata,
@@ -72,6 +72,17 @@ class MediaAsset(Base):
     attachments_processed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
     )
+    thumbnail_status: Mapped[str] = mapped_column(
+        String(32),
+        default=MediaThumbnailStatus.PENDING.value,
+        server_default=MediaThumbnailStatus.PENDING.value,
+    )
+    thumbnail_sprite_path: Mapped[str | None] = mapped_column(String(2000))
+    thumbnail_vtt_path: Mapped[str | None] = mapped_column(String(2000))
+    thumbnail_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+    )
+    thumbnail_error_message: Mapped[str | None] = mapped_column(String(2000))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -131,6 +142,18 @@ class MediaAsset(Base):
             for attachment in self.attachments
         )
 
+    @property
+    def thumbnail_processing_status(self) -> MediaThumbnailStatus:
+        return MediaThumbnailStatus(self.thumbnail_status)
+
+    @property
+    def thumbnail_ready(self) -> bool:
+        return (
+            self.thumbnail_processing_status is MediaThumbnailStatus.COMPLETED
+            and self.thumbnail_sprite_path is not None
+            and self.thumbnail_vtt_path is not None
+        )
+
     def update_metadata(self, metadata: MediaAssetMetadata) -> None:
         self.format_name = metadata.format_name
         self.duration_seconds = metadata.duration_seconds
@@ -141,6 +164,7 @@ class MediaAsset(Base):
         self.height = metadata.height
         self.frame_rate = metadata.frame_rate
         self.metadata_updated_at = datetime.now(UTC)
+        self.retry_thumbnail()
 
     def update_subtitle_tracks(
         self,
@@ -240,6 +264,36 @@ class MediaAsset(Base):
         ):
             return
         self.attachments_processed_at = datetime.now(UTC)
+
+    def mark_thumbnail_processing(self) -> None:
+        self.thumbnail_status = MediaThumbnailStatus.PROCESSING.value
+        self.thumbnail_sprite_path = None
+        self.thumbnail_vtt_path = None
+        self.thumbnail_updated_at = None
+        self.thumbnail_error_message = None
+
+    def mark_thumbnail_completed(
+        self,
+        *,
+        sprite_path: str,
+        vtt_path: str,
+    ) -> None:
+        self.thumbnail_status = MediaThumbnailStatus.COMPLETED.value
+        self.thumbnail_sprite_path = sprite_path
+        self.thumbnail_vtt_path = vtt_path
+        self.thumbnail_updated_at = datetime.now(UTC)
+        self.thumbnail_error_message = None
+
+    def mark_thumbnail_failed(self, error_message: str) -> None:
+        self.thumbnail_status = MediaThumbnailStatus.FAILED.value
+        self.thumbnail_error_message = error_message[:2000]
+
+    def retry_thumbnail(self) -> None:
+        self.thumbnail_status = MediaThumbnailStatus.PENDING.value
+        self.thumbnail_sprite_path = None
+        self.thumbnail_vtt_path = None
+        self.thumbnail_updated_at = None
+        self.thumbnail_error_message = None
 
 
 class SubtitleTrack(Base):

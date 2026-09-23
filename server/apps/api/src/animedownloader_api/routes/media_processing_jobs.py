@@ -84,6 +84,7 @@ async def create_media_processing_job_from_download(
             or not asset.chapters_ready
             or not asset.attachments_ready
             or not asset.attachment_processing_ready
+            or not asset.thumbnail_ready
         )
 
     if needs_processing:

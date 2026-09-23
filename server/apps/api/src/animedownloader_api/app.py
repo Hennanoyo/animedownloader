@@ -16,10 +16,8 @@ from animedownloader_download import (
 from animedownloader_media_processing import (
     InvalidMediaPreparationJobTransitionError,
     InvalidMediaProcessingJobTransitionError,
-    InvalidMediaTranscodingJobTransitionError,
     MediaPreparationJobNotFoundError,
     MediaProcessingJobNotFoundError,
-    MediaTranscodingJobNotFoundError,
 )
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -80,17 +78,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_exception_handler(InvalidDownloadJobTransitionError, _duplicate_episode_handler)
     app.add_exception_handler(MediaPreparationJobNotFoundError, _not_found_handler)
     app.add_exception_handler(MediaProcessingJobNotFoundError, _not_found_handler)
-    app.add_exception_handler(MediaTranscodingJobNotFoundError, _not_found_handler)
     app.add_exception_handler(
         InvalidMediaPreparationJobTransitionError,
         _duplicate_episode_handler,
     )
     app.add_exception_handler(
         InvalidMediaProcessingJobTransitionError,
-        _duplicate_episode_handler,
-    )
-    app.add_exception_handler(
-        InvalidMediaTranscodingJobTransitionError,
         _duplicate_episode_handler,
     )
     app.add_exception_handler(DuplicateEpisodeError, _duplicate_episode_handler)

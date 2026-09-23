@@ -1,6 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid7
 
+from sqlalchemy import BigInteger
+
 import pytest
 from animedownloader_media_asset import (
     MediaAsset,
@@ -167,6 +169,10 @@ def test_subtitle_track_lifecycle() -> None:
     assert track.processing_status is SubtitleTrackStatus.COMPLETED
     assert track.normalized_path == "/data/media/subtitles/track.ass"
 
+
+
+def test_media_chapter_id_uses_bigint() -> None:
+    assert isinstance(MediaChapter.__table__.c.chapter_id.type, BigInteger)
 
 
 def test_media_asset_chapters_and_attachments_state() -> None:

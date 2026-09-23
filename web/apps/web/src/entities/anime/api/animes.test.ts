@@ -201,5 +201,4 @@ describe("anime API", () => {
     );
     vi.unstubAllGlobals();
   });
-
 });

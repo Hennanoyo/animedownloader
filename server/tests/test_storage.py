@@ -64,8 +64,15 @@ async def test_seaweedfs_storage_round_trip(tmp_path: Path) -> None:
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:
+            content_type = self.headers.get("Content-Type", "")
+            assert content_type.startswith("multipart/form-data; boundary=")
+            boundary = content_type.split("boundary=", 1)[1].encode("ascii")
             size = int(self.headers.get("Content-Length", "0"))
-            values[self.path] = self.rfile.read(size)
+            body = self.rfile.read(size)
+            content_start_marker = b"\\r\\n\\r\\n"
+            content_start = body.index(content_start_marker) + len(content_start_marker)
+            content_end = body.index(b"\\r\\n--" + boundary, content_start)
+            values[self.path] = body[content_start:content_end]
             self.send_response(201)
             self.end_headers()
 

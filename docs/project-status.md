@@ -184,8 +184,8 @@ This PR is in development on `feature/media-asset-integration`.
 Scope:
 
 - Add a persistent `MediaAsset` entity with one canonical asset per Episode
-- Materialize a successful FFprobe result into the Episode media asset
-- Persist canonical path and core container/video/audio metadata
+- Materialize the successful processing output path into the Episode media asset
+- Keep MediaAsset metadata minimal; detailed probe data is not duplicated into the asset
 - Expose Episode media information through `GET /api/episodes/{episode_id}/media`
 - Keep DownloadJob and MediaProcessingJob as execution/history records rather than the primary media representation
 - Make media asset materialization part of the same transaction as processing completion

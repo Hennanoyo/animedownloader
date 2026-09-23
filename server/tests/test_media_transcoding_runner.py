@@ -5,14 +5,13 @@ from uuid import UUID, uuid7
 
 import pytest
 from animedownloader_media import (
-    FFmpegPlayableMediaProcessor,
     MediaFormat,
     MediaProbe,
     MediaStream,
     MediaStreamType,
     PlayableMediaOperation,
     PlayableMediaPlanner,
-    FFmpegCommandResult,
+    PlayableMediaProcessingResult,
 )
 from animedownloader_media_processing import MediaTranscodingJobStatus
 from animedownloader_worker.media_transcoding import (
@@ -82,7 +81,7 @@ class FakeInspector:
         return result
 
 
-class FakeProcessor(FFmpegPlayableMediaProcessor):
+class FakeProcessor:
     def __init__(self, result_operation: PlayableMediaOperation) -> None:
         self.operations: list[PlayableMediaOperation] = []
         self.result_operation = result_operation

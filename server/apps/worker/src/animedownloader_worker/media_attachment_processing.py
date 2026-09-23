@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from tempfile import TemporaryDirectory
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 from uuid import UUID
 
 from animedownloader_media import FFmpegAttachmentProcessor
+from animedownloader_storage import Storage
 from animedownloader_media_asset import (
     MediaAssetService,
     MediaAttachment,
@@ -182,78 +184,98 @@ class MediaAttachmentProcessingRunner:
         state: MediaAttachmentProcessingStateProtocol,
         processor: FFmpegAttachmentProcessor,
         media_root: Path,
+        storage: Storage,
     ) -> None:
         self._state = state
         self._processor = processor
         self._media_root = media_root
+        self._storage = storage
 
     async def run(self, asset_id: UUID) -> None:
         context = await self._state.load(asset_id)
         if context.ready:
             return
 
-        for attachment in context.attachments:
-            if attachment.status is MediaAttachmentStatus.COMPLETED:
-                continue
+        with TemporaryDirectory(prefix="animedownloader-attachments-") as staging_dir:
+            staging_root = Path(staging_dir)
+            for attachment in context.attachments:
+                if attachment.status is MediaAttachmentStatus.COMPLETED:
+                    continue
 
-            await self._state.mark_processing(attachment.id)
-            output_path = self._output_path(context.asset_id, attachment)
-
-            try:
-                await self._processor.extract(
-                    media_path=Path(context.media_path),
-                    attachment_index=attachment.attachment_index,
-                    output_path=output_path,
+                await self._state.mark_processing(attachment.id)
+                output_path = self._output_path(
+                    staging_root,
+                    context.asset_id,
+                    attachment,
                 )
-                size_bytes = output_path.stat().st_size
-                font_id = None
-                extracted_path = output_path
 
-                if attachment.is_font:
-                    sha256 = _sha256(output_path)
-                    extension = output_path.suffix or ".bin"
-                    font_path = self._media_root / "fonts" / sha256[:2] / f"{sha256}{extension}"
-                    font_path.parent.mkdir(parents=True, exist_ok=True)
-                    if font_path.exists():
-                        output_path.unlink()
-                    else:
-                        output_path.replace(font_path)
-                    font_id = await self._state.get_or_create_font(
-                        name=attachment.filename or output_path.name,
-                        mime_type=attachment.mime_type,
-                        sha256=sha256,
-                        path=str(font_path),
-                        size_bytes=size_bytes,
+                try:
+                    await self._processor.extract(
+                        media_path=Path(context.media_path),
+                        attachment_index=attachment.attachment_index,
+                        output_path=output_path,
                     )
-                    extracted_path = font_path
+                    size_bytes = output_path.stat().st_size
+                    font_id = None
+                    filename = output_path.name
 
-                await self._state.mark_completed(
-                    attachment.id,
-                    extracted_path=str(extracted_path),
-                    size_bytes=size_bytes,
-                    font_id=font_id,
-                )
-            except Exception as exc:
-                await self._state.mark_failed(
-                    attachment.id,
-                    error_message=_format_error(exc),
-                )
-                logger.exception(
-                    "Media attachment processing failed for attachment %s",
-                    attachment.id,
-                )
+                    if attachment.is_font:
+                        sha256 = _sha256(output_path)
+                        extension = output_path.suffix or ".bin"
+                        object_key = (
+                            f"fonts/{sha256[:2]}/{sha256}{extension}"
+                        )
+                        await self._storage.put_file(
+                            output_path,
+                            object_key,
+                            content_type=attachment.mime_type,
+                        )
+                        font_id = await self._state.get_or_create_font(
+                            name=attachment.filename or filename,
+                            mime_type=attachment.mime_type,
+                            sha256=sha256,
+                            path=object_key,
+                            size_bytes=size_bytes,
+                        )
+                    else:
+                        object_key = (
+                            f"attachments/{context.asset_id}/{attachment.id}-{filename}"
+                        )
+                        await self._storage.put_file(
+                            output_path,
+                            object_key,
+                            content_type=attachment.mime_type,
+                        )
+
+                    await self._state.mark_completed(
+                        attachment.id,
+                        extracted_path=object_key,
+                        size_bytes=size_bytes,
+                        font_id=font_id,
+                    )
+                except Exception as exc:
+                    await self._state.mark_failed(
+                        attachment.id,
+                        error_message=_format_error(exc),
+                    )
+                    logger.exception(
+                        "Media attachment processing failed for attachment %s",
+                        attachment.id,
+                    )
 
         await self._state.mark_asset_complete(context.asset_id)
 
+
     def _output_path(
         self,
+        root: Path,
         asset_id: UUID,
         attachment: MediaAttachmentContext,
     ) -> Path:
         filename = Path(
             attachment.filename or f"attachment-{attachment.attachment_index}",
         ).name
-        return self._media_root / "attachments" / str(asset_id) / f"{attachment.id}-{filename}"
+        return root / "attachments" / str(asset_id) / f"{attachment.id}-{filename}"
 
 
 def _sha256(path: Path) -> str:

@@ -8,6 +8,7 @@ COPY --from=ghcr.io/casey/just:latest /just /usr/local/bin/just
 USER root
 
 RUN corepack enable
+RUN npx -y playwright@1.63.0 install-deps chromium
 RUN mkdir -p /app/web/node_modules /app/web/apps/web/node_modules && chown -R node:node /app/web
 
 USER node

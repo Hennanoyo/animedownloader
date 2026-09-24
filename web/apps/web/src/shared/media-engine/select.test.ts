@@ -11,11 +11,9 @@ vi.mock("hls.js", () => ({
 }));
 
 vi.mock("dashjs", () => ({
-  default: {
-    MediaPlayer: () => ({
-      create: vi.fn(),
-    }),
-  },
+  MediaPlayer: () => ({
+    create: vi.fn(),
+  }),
 }));
 
 import { selectVideoEngine } from "./select";
@@ -42,7 +40,7 @@ const sources = {
 };
 
 describe("selectVideoEngine", () => {
-  it("prefers HLS.js when MSE HLS support is available", () => {
+  it("prefers HLS.js when supported", () => {
     hls.isSupported.mockReturnValue(true);
 
     const selected = selectVideoEngine(makeVideo(() => ""), sources);
@@ -50,7 +48,7 @@ describe("selectVideoEngine", () => {
     expect(selected?.source.kind).toBe("hls");
   });
 
-  it("uses native HLS when HLS.js is unavailable", () => {
+  it("falls back to native HLS when HLS.js is unavailable", () => {
     hls.isSupported.mockReturnValue(false);
 
     const selected = selectVideoEngine(
@@ -65,6 +63,7 @@ describe("selectVideoEngine", () => {
 
   it("uses DASH when HLS is unavailable and MediaSource exists", () => {
     hls.isSupported.mockReturnValue(false);
+    vi.stubGlobal("MediaSource", class {});
 
     const selected = selectVideoEngine(makeVideo(() => ""), {
       direct: sources.direct,
@@ -73,9 +72,10 @@ describe("selectVideoEngine", () => {
     });
 
     expect(selected?.source.kind).toBe("dash");
+    vi.unstubAllGlobals();
   });
 
-  it("falls back to direct playback", () => {
+  it("falls back to direct MP4", () => {
     hls.isSupported.mockReturnValue(false);
 
     const selected = selectVideoEngine(makeVideo(() => ""), {

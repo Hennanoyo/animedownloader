@@ -61,6 +61,7 @@ class MediaStreamingPackageService:
         self,
         *,
         media_variant_id: UUID,
+        force: bool = False,
     ) -> MediaPackagingJob | None:
         await self.session.rollback()
         async with self.session.begin():
@@ -90,7 +91,7 @@ class MediaStreamingPackageService:
             if package is not None and package.is_current(
                 source_path=variant_path,
                 source_variant_updated_at=variant.updated_at,
-            ):
+            ) and not force:
                 return None
 
             if package is None:

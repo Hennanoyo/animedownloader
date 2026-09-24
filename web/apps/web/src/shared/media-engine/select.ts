@@ -1,4 +1,3 @@
-import dashjs from "dashjs";
 import Hls from "hls.js";
 import { DashVideoEngine } from "./dash";
 import { HlsVideoEngine } from "./hls";
@@ -34,7 +33,10 @@ export function selectVideoEngine(
     }
   }
 
-  if (sources.dash && "MediaSource" in window) {
+  if (
+    sources.dash &&
+    typeof globalThis.MediaSource !== "undefined"
+  ) {
     return {
       engine: new DashVideoEngine(),
       source: { kind: "dash", source: sources.dash },

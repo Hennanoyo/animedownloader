@@ -53,7 +53,14 @@ class FakeProcessor:
         playlist_path = output_dir / "index.m3u8"
         playlist_path.write_text("#EXTM3U\n", encoding="utf-8")
         init_path = output_dir / "init.mp4"
-        init_path.write_bytes(b"init")
+        init_path.write_bytes(
+            bytes.fromhex(
+                "0000001568766343"
+                "010220000000"
+                "000000000000"
+                "78",
+            ),
+        )
         return CMAFPackagingResult(
             playlist_path=playlist_path,
             init_segment_path=init_path,
@@ -64,6 +71,7 @@ class FakeProcessor:
                     uri="s/00000.m4s",
                 ),
             ),
+            video_codec_string="hvc1.2.4.L120",
         )
 
 

@@ -4,7 +4,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, and chapter/embedded attachment integration.
 
-The current phase is media storage and delivery infrastructure. PR #23, PR #24, PR #25, and PR #26 are merged; PR #27 is the next development step.
+The current phase is player and playback delivery. PR #23 through PR #27 are merged; PR #28 is the current development step.
 
 ## Completed
 
@@ -340,15 +340,47 @@ Runtime validation:
 
 ### PR #28 — Player / Playback
 
-Goal: expose current media and derived resources to the frontend player.
+**In progress on `feature/player-playback`.**
+
+Goal: expose current media and derived resources through a playback-oriented API and consume that contract from a browser player.
+
+Implementation order:
+
+1. Playback API contract and browser-facing storage URLs
+2. Frontend playback query/model
+3. Native direct/HLS playback engine and Episode player page
+4. HLS.js, dash.js, and JASSUB engine adapters
+5. Custom accessible video controls, fullscreen, chapters, subtitles/fonts, and thumbnail seek preview
+6. Developer-facing browser playback smoke coverage
+
+Current implementation:
+
+- Playback API exposes current playable media plus HLS/DASH, subtitle, font, chapter, and thumbnail resources
+- Added hls.js and dash.js playback adapters alongside native playback
+- Added JASSUB ASS subtitle rendering with prepared fonts
+- Added HEVC-aware HLS/DASH codec signaling from the CMAF initialization segment
+- Added a custom player control surface using React Aria Components Slider/Button primitives
+- Replaced native video controls with play/pause, seek, volume/mute, subtitle selection, and player-level fullscreen controls
+- Added thumbnail VTT loading and sprite xywh seek previews on the custom timeline
+- Fullscreen targets the player container so the JASSUB subtitle canvas remains inside the fullscreen subtree
+- Added a developer media-repackage command for regenerating the current CMAF package without re-downloading or re-preparing media
+
+Completed browser validation coverage:
+
+- Added Playwright Chromium smoke coverage with deterministic Playback API and media/fullscreen mocks
+- Covered player initial focus, playback controls, keyboard ownership, controller focus/activation, text-input exceptions, page-scroll exceptions, thumbnail preview, and fullscreen
+- Added a developer-facing real playback smoke using the actual Compose Playback API and media resources, including JASSUB subtitle/font loading when subtitle tracks are available
+- Added CI Browser job with Chromium installation, E2E typecheck, smoke execution, and failure artifacts
+- Added `just web-browser-install`, `just web-browser-check`, and `just real-playback-smoke <episode-id>`
+
 
 Scope:
 
 - Add playback-oriented API
 - Integrate media metadata, chapters and subtitles
 - Load thumbnail sprite/WebVTT metadata
-- Support direct-file playback and later packaged playback as separate paths
-- Add focused player UI and API coverage
+- Support direct-file playback and packaged playback as separate paths
+- Add focused, accessible player UI and API coverage
 
 ## Handoff Notes
 

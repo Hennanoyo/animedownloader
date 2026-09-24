@@ -22,6 +22,7 @@ from animedownloader_media_processing import (
     MediaProcessingJobNotFoundError,
     MediaStreamingPackageNotFoundError,
 )
+from animedownloader_storage import create_storage
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -48,6 +49,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     task_broker = create_task_broker(app_settings.redis_url)
     task_dispatcher = DownloadTaskDispatcher(task_broker)
     media_processing_task_dispatcher = MediaProcessingTaskDispatcher(task_broker)
+    media_storage = create_storage(
+        backend=app_settings.storage_backend,
+        local_root=app_settings.media_root,
+        internal_url=app_settings.storage_internal_url,
+        public_url=app_settings.storage_public_url,
+    )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
@@ -66,6 +73,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.database = database
     app.state.download_task_dispatcher = task_dispatcher
     app.state.media_processing_task_dispatcher = media_processing_task_dispatcher
+    app.state.media_storage = media_storage
     app.state.settings = app_settings
 
     app.add_middleware(

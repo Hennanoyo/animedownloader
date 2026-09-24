@@ -14,4 +14,10 @@ export default tseslint.config(
       globals: globals.browser,
     },
   },
+  {
+    files: ["playwright.config.ts", "e2e/**/*.ts"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 );

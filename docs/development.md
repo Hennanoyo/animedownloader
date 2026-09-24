@@ -96,6 +96,43 @@ The first feature slice exposes Nyaa RSS release search through the API and URL-
 - PostgreSQL: `localhost:5432`
 - Redis: `localhost:6379`
 
+## Browser Media Access
+
+The development SeaweedFS Filer is exposed directly to the browser as the public media endpoint. Its CORS allowlist includes the Vite development origins (`http://localhost:5173` and `http://127.0.0.1:5173`) so MP4, HLS/DASH manifests, segments, subtitles, and fonts can be fetched by the player.
+
+If the frontend origin or public media endpoint changes, update the Filer's `-allowedOrigins` setting in `compose.yaml` together with `STORAGE_PUBLIC_URL`.
+
+## Browser Playback Smoke Tests
+
+The web application has two browser smoke paths.
+
+For deterministic CI-style Chromium coverage, install the browser once and run:
+
+```bash
+just web-browser-install
+just web-browser-check
+```
+
+The browser test mocks the Playback API and media element behavior so it can exercise the real React application without requiring PostgreSQL, FFmpeg, SeaweedFS, qBittorrent, or downloaded media. It covers player initialization/focus, playback controls, keyboard ownership, controller focus/activation, page-scroll exceptions, thumbnail previews, and fullscreen state.
+
+For real runtime playback against the running Compose stack, use an Episode that already has current playable media:
+
+```bash
+just real-playback-smoke <episode-id>
+```
+
+Run this command from the WSL2 project directory, outside the Dev Container. The default browser-facing URLs use the Compose ports published to the WSL2 host. This test does not start or mutate the runtime stack. Start the application first, then run the command. The test uses the actual Playback API and media resources and exercises Chromium playback, subtitles/JASSUB when subtitle tracks are present, thumbnail previews, and fullscreen behavior.
+
+The real playback smoke inspects the current HLS master playlist before waiting for media readiness. When the stream advertises HEVC (`hvc1`/`hev1`) and the selected browser does not support that codec through MediaSource, the smoke is explicitly skipped with the detected codec instead of being reported as a playback failure. A browser with the required codec support continues through the full real playback assertions.
+
+To use another browser-facing frontend URL:
+
+```bash
+just real-playback-smoke <episode-id> http://127.0.0.1:5173
+```
+
+Real playback smoke is developer/staging validation rather than normal CI because it depends on existing media artifacts and browser/media-codec support.
+
 ## Running and Debugging
 
 The `api`, `web`, and `worker` processes are started by Docker Compose.
@@ -158,7 +195,6 @@ just media-e2e-smoke <episode-id> 3600
 ```
 
 Use `--skip-playable` when a full playable-file download is undesirable:
-
 
 ```bash
 docker compose exec -T worker uv run --package animedownloader-worker \

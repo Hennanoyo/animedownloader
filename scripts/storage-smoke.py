@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import asyncio
+import http.client
 import sys
 from pathlib import Path
+from urllib.parse import quote, urlsplit
 from tempfile import TemporaryDirectory
 from uuid import uuid7
 
@@ -35,6 +37,56 @@ async def main() -> int:
         if destination.read_text(encoding="utf-8") != source.read_text(encoding="utf-8"):
             raise StorageError("Materialized storage object does not match source")
         print("  upload/materialize: ok")
+        origin = "http://localhost:5173"
+        parsed = urlsplit(settings.storage_internal_url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise StorageError(
+                f"Invalid storage internal URL for browser delivery smoke: "
+                f"{settings.storage_internal_url}",
+            )
+
+        connection_type = (
+            http.client.HTTPSConnection
+            if parsed.scheme == "https"
+            else http.client.HTTPConnection
+        )
+        connection = connection_type(
+            parsed.hostname,
+            parsed.port,
+            timeout=10,
+        )
+        try:
+            request_path = (
+                f"{parsed.path.rstrip('/')}/"
+                f"{quote(key, safe='/')}"
+            )
+            connection.request(
+                "GET",
+                request_path,
+                headers={
+                    "Origin": origin,
+                    "Range": "bytes=0-0",
+                },
+            )
+            response = connection.getresponse()
+            body = response.read()
+            if response.status != 206:
+                raise StorageError(
+                    "Browser media smoke expected HTTP 206 for byte range, "
+                    f"got {response.status}",
+                )
+            allow_origin = response.getheader("Access-Control-Allow-Origin")
+            if allow_origin not in {origin, "*"}:
+                raise StorageError(
+                    "Browser media smoke missing expected CORS origin: "
+                    f"{allow_origin!r}",
+                )
+            if not body:
+                raise StorageError("Browser media smoke returned an empty byte range")
+        finally:
+            connection.close()
+
+        print("  browser CORS/range delivery: ok")
 
         await storage.delete(key)
         if await storage.exists(key):

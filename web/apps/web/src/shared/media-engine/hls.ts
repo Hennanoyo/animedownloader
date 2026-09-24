@@ -22,9 +22,10 @@ export class HlsVideoEngine implements VideoEngine {
     this.hls = hls;
     this.video = video;
 
-    hls.loadSource(source.url);
+    hls.once(Hls.Events.MEDIA_ATTACHED, () => {
+      hls.loadSource(source.url);
+    });
     hls.attachMedia(video);
-    hls.startLoad(-1);
   }
 
   detach(): void {

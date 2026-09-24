@@ -14,7 +14,7 @@ from animedownloader_media_asset import (
     MediaAttachment,
     MediaAttachmentStatus,
 )
-from animedownloader_storage import Storage
+from animedownloader_storage import AttachmentArtifact, FontArtifact, Storage
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 logger = logging.getLogger(__name__)
@@ -220,7 +220,10 @@ class MediaAttachmentProcessingRunner:
                     if attachment.is_font:
                         sha256 = _sha256(output_path)
                         extension = output_path.suffix or ".bin"
-                        object_key = f"fonts/{sha256[:2]}/{sha256}{extension}"
+                        object_key = FontArtifact(
+                            sha256=sha256,
+                            extension=extension,
+                        ).object_key
                         await self._storage.put_file(
                             output_path,
                             object_key,
@@ -234,7 +237,12 @@ class MediaAttachmentProcessingRunner:
                             size_bytes=size_bytes,
                         )
                     else:
-                        object_key = f"attachments/{context.asset_id}/{attachment.id}-{filename}"
+                        extension = Path(filename).suffix.lstrip(".") or "bin"
+                        object_key = AttachmentArtifact(
+                            asset_id=context.asset_id,
+                            attachment_id=attachment.id,
+                            extension=extension,
+                        ).object_key
                         await self._storage.put_file(
                             output_path,
                             object_key,

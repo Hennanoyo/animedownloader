@@ -201,7 +201,6 @@ export default function VideoControls({
         <Button
           className={`${styles.controlButton} ${styles.iconButton} ${styles.playButton}`}
           aria-label={isPlaying ? "Pause" : "Play"}
-          title={isPlaying ? "Pause" : "Play"}
           onPress={onPlayPause}
           isDisabled={!video}
         >
@@ -215,10 +214,7 @@ export default function VideoControls({
         <div className={styles.volumeControls}>
           <Button
             className={`${styles.controlButton} ${styles.iconButton}`}
-            aria-label={
-              isMuted || volume === 0 ? "Unmute" : "Mute"
-            }
-            title={isMuted || volume === 0 ? "Unmute" : "Mute"}
+            aria-label={isMuted || volume === 0 ? "Unmute" : "Mute"}
             aria-pressed={isMuted || volume === 0}
             onPress={onMuteToggle}
             isDisabled={!video}
@@ -274,7 +270,6 @@ export default function VideoControls({
         <Button
           className={`${styles.controlButton} ${styles.iconButton}`}
           aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           onPress={onFullscreenToggle}
         >
           <ControlIcon

@@ -419,6 +419,41 @@ async def test_runner_reuses_completed_thumbnail_for_playable_retry(tmp_path: Pa
 
 
 @pytest.mark.anyio
+async def test_runner_ignores_stale_failed_job(tmp_path: Path) -> None:
+    context = make_context()
+    state = FakeState(
+        MediaPreparationContext(
+            job_id=context.job_id,
+            asset_id=context.asset_id,
+            source_path=context.source_path,
+            source_metadata_updated_at=context.source_metadata_updated_at,
+            status=MediaPreparationJobStatus.FAILED,
+            operation=MediaTranscodingOperation.TRANSCODE,
+            variant_id=context.variant_id,
+            playable_ready=False,
+            thumbnail_ready=False,
+            duration_seconds=context.duration_seconds,
+            source_is_current=True,
+        ),
+    )
+    inspector = FakeInspector([])
+    preparation = FakePreparationProcessor()
+    playable = FakePlayableProcessor()
+    thumbnail = FakeThumbnailProcessor()
+
+    runner = make_runner(tmp_path, state, inspector, preparation, playable, thumbnail)
+
+    await runner.run(state.context.job_id)
+
+    assert state.failed_message is None
+    assert state.completed is None
+    assert inspector.paths == []
+    assert preparation.calls == []
+    assert playable.operations == []
+    assert thumbnail.calls == 0
+
+
+@pytest.mark.anyio
 async def test_runner_rejects_stale_source(tmp_path: Path) -> None:
     state = FakeState(make_context(source_is_current=False))
     inspector = FakeInspector([])

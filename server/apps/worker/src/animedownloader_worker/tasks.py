@@ -51,7 +51,6 @@ from .subtitle_processing import (
 print("[worker] task module loaded", flush=True)
 
 
-
 @broker.task(task_name=DOWNLOAD_TASK_NAME)
 async def download_episode(job_id: str) -> None:
     print(f"[worker] download started: job_id={job_id}", flush=True)

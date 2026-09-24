@@ -381,7 +381,8 @@ class MediaPreparationRunner:
                     self._planner.validate(playable_probe)
                 else:
                     print(
-                        f"[worker] media preparation FFmpeg started: job_id={job_id} mode=thumbnail",
+                        "[worker] media preparation FFmpeg started: "
+                        f"job_id={job_id} mode=thumbnail",
                         flush=True,
                     )
                     thumbnail = await self._thumbnail_processor.generate(

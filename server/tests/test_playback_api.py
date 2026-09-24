@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid7
@@ -20,16 +21,22 @@ from animedownloader_storage import Storage
 
 
 class FakeStorage:
-    async def put_file(self, source_path, object_key, *, content_type=None):
+    async def put_file(
+        self,
+        source_path: Path,
+        object_key: str,
+        *,
+        content_type: str | None = None,
+    ) -> None:
         raise NotImplementedError
 
-    async def materialize(self, object_key, destination):
+    async def materialize(self, object_key: str, destination: Path) -> Path:
         raise NotImplementedError
 
-    async def exists(self, object_key):
+    async def exists(self, object_key: str) -> bool:
         raise NotImplementedError
 
-    async def delete(self, object_key):
+    async def delete(self, object_key: str) -> None:
         raise NotImplementedError
 
     def public_url(self, object_key: str) -> str:

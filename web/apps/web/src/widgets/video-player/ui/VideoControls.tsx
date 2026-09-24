@@ -189,12 +189,12 @@ export default function VideoControls({
 
       <div className={styles.controlRow}>
         <Button
-          className={styles.controlButton}
+          className={`${styles.controlButton} ${styles.playButton}`}
           aria-label={isPlaying ? "Pause" : "Play"}
           onPress={onPlayPause}
           isDisabled={!video}
         >
-          {isPlaying ? "Pause" : "Play"}
+          {isPlaying ? "❚❚" : "▶"}
         </Button>
 
         <span className={styles.timeDisplay} aria-live="off">

@@ -87,6 +87,9 @@ jobs:
       - name: Validate Docker Compose configuration
         run: docker compose config
 
+      - name: Validate GPU Compose configuration
+        run: docker compose -f compose.yaml -f compose.gpu.yaml config
+
       - name: Validate Dev Container Compose configuration
         run: docker compose -f compose.yaml -f .devcontainer/docker-compose.devcontainer.yml config
 

@@ -219,6 +219,12 @@ test("covers playback controls, keyboard priority, thumbnails, and fullscreen", 
   await page.keyboard.press("ArrowDown");
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
+  await page.getByRole("region", { name: "Video player" }).focus();
+  await page.keyboard.press("m");
+  await expect
+    .poll(() => video.evaluate((element) => element.muted))
+    .toBe(false);
+
   await page.getByTestId("timeline-track").hover({ position: { x: 250, y: 2 } });
   await expect(
     page.getByRole("img", { name: /Preview at/ }),

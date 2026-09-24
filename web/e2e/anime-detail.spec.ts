@@ -157,6 +157,13 @@ test("moves live download details into the full-width download panel", async ({ 
   activePipeline.episodes[0].processing.status = "pending";
   activePipeline.episodes[0].processing.progress_percent = 0;
   activePipeline.episodes[0].playback_ready = false;
+  activePipeline.episodes[0].thumbnail.status = "pending";
+  activePipeline.episodes[0].thumbnail.progress_percent = 0;
+  activePipeline.episodes[0].thumbnail.url = null;
+  activePipeline.episodes[0].thumbnail.vtt_url = null;
+  activePipeline.episodes[0].streaming.status = "pending";
+  activePipeline.episodes[0].streaming.hls_ready = false;
+  activePipeline.episodes[0].streaming.dash_ready = false;
   activePipeline.episodes[0].current_stage = "download";
   activePipeline.episodes[0].active = true;
 

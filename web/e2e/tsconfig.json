@@ -1,6 +1,7 @@
 {
   "extends": "../apps/web/tsconfig.node.json",
   "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "tsBuildInfoFile": "./node_modules/.tmp/e2e.tsbuildinfo"
   },
   "include": ["../playwright.config.ts", "./**/*.ts"]

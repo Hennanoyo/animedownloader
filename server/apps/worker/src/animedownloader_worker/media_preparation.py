@@ -60,6 +60,13 @@ class MediaPreparationStateProtocol(Protocol):
         thumbnail_required: bool,
     ) -> None: ...
 
+    async def update_operation(
+        self,
+        job_id: UUID,
+        *,
+        operation: MediaTranscodingOperation | None,
+    ) -> None: ...
+
     async def mark_completed(
         self,
         job_id: UUID,

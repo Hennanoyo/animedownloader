@@ -9,16 +9,19 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from uuid import UUID
 
 from animedownloader_config import Settings
 from animedownloader_database import create_database
 from animedownloader_media import parse_cmaf_media_playlist
 from animedownloader_media_asset import MediaAssetService
+from animedownloader_storage import Storage
 from animedownloader_media_processing import (
     MediaStreamingPackageService,
     MediaVariantService,
 )
+from animedownloader_worker.storage import create_media_storage
 from animedownloader_worker.tasks import process_media_packaging
 
 
@@ -41,16 +44,6 @@ def http_get(api_url: str, path: str) -> object:
         ) from exc
     except urllib.error.URLError as exc:
         raise SmokeTestError(f"Cannot reach API at {api_url}: {exc}") from exc
-
-
-def resolve_media_path(media_root: Path, key: str) -> Path:
-    root = media_root.resolve()
-    path = (media_root / key).resolve()
-    try:
-        path.relative_to(root)
-    except ValueError as exc:
-        raise SmokeTestError(f"Media key escapes MEDIA_ROOT: {key}") from exc
-    return path
 
 
 def wait_for_packaging_job(
@@ -132,10 +125,10 @@ async def ensure_packaging_job(episode_id: UUID) -> UUID | None:
         await database.dispose()
 
 
-def verify_streaming_package(
+async def verify_streaming_package(
     *,
+    storage: Storage,
     api_url: str,
-    media_root: Path,
     episode_id: UUID,
 ) -> None:
     payload = http_get(
@@ -143,9 +136,7 @@ def verify_streaming_package(
         f"/api/episodes/{episode_id}/streaming-media",
     )
     if payload is None:
-        raise SmokeTestError(
-            "Streaming package is not ready.",
-        )
+        raise SmokeTestError("Streaming package is not ready.")
     if not isinstance(payload, dict):
         raise SmokeTestError(f"Unexpected streaming response: {payload!r}")
 
@@ -165,72 +156,69 @@ def verify_streaming_package(
     if not isinstance(representations, list) or not representations:
         raise SmokeTestError("Streaming package has no representations")
 
-    master_path = resolve_media_path(media_root, master_key)
-    dash_path = resolve_media_path(media_root, dash_key)
-    if not master_path.is_file():
-        raise SmokeTestError(f"Missing HLS master: {master_path}")
-    if not dash_path.is_file():
-        raise SmokeTestError(f"Missing DASH manifest: {dash_path}")
+    with TemporaryDirectory(prefix="animedownloader-streaming-smoke-") as directory:
+        root = Path(directory)
+        master_path = root / "master.m3u8"
+        dash_path = root / "manifest.mpd"
+        await storage.materialize(master_key, master_path)
+        await storage.materialize(dash_key, dash_path)
 
-    master = master_path.read_text(encoding="utf-8")
-    dash = dash_path.read_text(encoding="utf-8")
-    if not master.startswith("#EXTM3U"):
-        raise SmokeTestError("HLS master is invalid")
-    if "<MPD " not in dash:
-        raise SmokeTestError("DASH manifest is invalid")
+        master = master_path.read_text(encoding="utf-8")
+        dash = dash_path.read_text(encoding="utf-8")
+        if not master.startswith("#EXTM3U"):
+            raise SmokeTestError("HLS master is invalid")
+        if "<MPD " not in dash:
+            raise SmokeTestError("DASH manifest is invalid")
 
-    for representation in representations:
-        if not isinstance(representation, dict):
-            raise SmokeTestError(f"Invalid representation: {representation!r}")
+        for representation in representations:
+            if not isinstance(representation, dict):
+                raise SmokeTestError(f"Invalid representation: {representation!r}")
 
-        quality = representation.get("quality")
-        hls_key = representation.get("hls_playlist_key")
-        init_key = representation.get("init_segment_key")
-        segment_key = representation.get("segment_directory_key")
-        if not all(
-            isinstance(value, str) and value
-            for value in (quality, hls_key, init_key, segment_key)
-        ):
-            raise SmokeTestError(f"Incomplete representation: {representation!r}")
+            quality = representation.get("quality")
+            hls_key = representation.get("hls_playlist_key")
+            init_key = representation.get("init_segment_key")
+            segment_key = representation.get("segment_directory_key")
+            if not all(
+                isinstance(value, str) and value
+                for value in (quality, hls_key, init_key, segment_key)
+            ):
+                raise SmokeTestError(f"Incomplete representation: {representation!r}")
 
-        hls_path = resolve_media_path(media_root, hls_key)
-        init_path = resolve_media_path(media_root, init_key)
-        segment_dir = resolve_media_path(media_root, segment_key)
-        if not hls_path.is_file():
-            raise SmokeTestError(f"Missing HLS media playlist: {hls_path}")
-        if not init_path.is_file():
-            raise SmokeTestError(f"Missing init segment: {init_path}")
-        if not segment_dir.is_dir():
-            raise SmokeTestError(f"Missing segment directory: {segment_dir}")
+            hls_path = root / f"{quality}-index.m3u8"
+            init_path = root / f"{quality}-init.mp4"
+            await storage.materialize(hls_key, hls_path)
+            await storage.materialize(init_key, init_path)
 
-        playlist = parse_cmaf_media_playlist(
-            hls_path.read_text(encoding="utf-8"),
-        )
-        for segment in playlist.segments:
-            segment_path = resolve_media_path(
-                media_root,
-                str(Path(hls_key).parent / segment.uri),
+            playlist = parse_cmaf_media_playlist(
+                hls_path.read_text(encoding="utf-8"),
             )
-            if not segment_path.is_file():
-                raise SmokeTestError(f"Missing media segment: {segment_path}")
+            if not playlist.segments:
+                raise SmokeTestError(
+                    f"Representation has no media segments: {quality}",
+                )
+            for segment in playlist.segments:
+                segment_key = hls_key.rsplit("/", 1)[0] + "/" + segment.uri
+                segment_path = root / Path(segment.uri).name
+                await storage.materialize(segment_key, segment_path)
 
-        if f"{quality}/index.m3u8" not in master:
-            raise SmokeTestError(
-                f"HLS master does not reference {quality}/index.m3u8",
-            )
-        if f'initialization="{quality}/init.mp4"' not in dash:
-            raise SmokeTestError(
-                f"DASH manifest does not reference {quality}/init.mp4",
-            )
-        if f'media="{quality}/s/$Number%05d$.m4s"' not in dash:
-            raise SmokeTestError(
-                f"DASH manifest does not reference {quality}/s/$Number%05d$.m4s",
+            if f"{quality}/index.m3u8" not in master:
+                raise SmokeTestError(
+                    f"HLS master does not reference {quality}/index.m3u8",
+                )
+            if f'initialization="{quality}/init.mp4"' not in dash:
+                raise SmokeTestError(
+                    f"DASH manifest does not reference {quality}/init.mp4",
+                )
+            if f'media="{quality}/s/$Number%05d$.m4s"' not in dash:
+                raise SmokeTestError(
+                    f"DASH manifest does not reference {quality}/s/$Number%05d$.m4s",
+                )
+
+            print(
+                "  representation verified: "
+                f"{quality}, {len(playlist.segments)} media segments",
             )
 
-        print(
-            "  representation verified: "
-            f"{quality}, {len(playlist.segments)} media segments",
-        )
 
 
 async def main() -> int:
@@ -256,6 +244,7 @@ async def main() -> int:
 
     episode_id: UUID = args.episode_id
     settings = Settings()
+    storage = create_media_storage(settings)
 
     print(f"[media-smoke] episode={episode_id}")
     health = http_get(args.api_url, "/api/health")
@@ -294,9 +283,9 @@ async def main() -> int:
     else:
         print("  packaging job: existing current package")
 
-    verify_streaming_package(
+    await verify_streaming_package(
+        storage=storage,
         api_url=args.api_url,
-        media_root=settings.media_root,
         episode_id=episode_id,
     )
     print("[media-smoke] PASS")

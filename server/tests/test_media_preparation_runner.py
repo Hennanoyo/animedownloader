@@ -18,6 +18,7 @@ from animedownloader_media_processing import (
     MediaPreparationJobStatus,
     MediaTranscodingOperation,
 )
+from animedownloader_storage import LocalStorage
 from animedownloader_worker.media_preparation import (
     MediaPreparationContext,
     MediaPreparationRunner,
@@ -33,6 +34,26 @@ class FakeState:
 
     async def load(self, job_id: UUID) -> MediaPreparationContext:
         return self.context
+
+    async def update_operation(
+        self,
+        job_id: UUID,
+        *,
+        operation: MediaTranscodingOperation | None,
+    ) -> None:
+        self.context = MediaPreparationContext(
+            job_id=self.context.job_id,
+            asset_id=self.context.asset_id,
+            source_path=self.context.source_path,
+            source_metadata_updated_at=self.context.source_metadata_updated_at,
+            status=self.context.status,
+            operation=operation,
+            variant_id=self.context.variant_id,
+            playable_ready=self.context.playable_ready,
+            thumbnail_ready=self.context.thumbnail_ready,
+            duration_seconds=self.context.duration_seconds,
+            source_is_current=self.context.source_is_current,
+        )
 
     async def mark_processing(
         self,
@@ -62,7 +83,10 @@ class FakeState:
         job_id: UUID,
         *,
         playable_probe: MediaProbe | None,
+        playable_output_key: str | None,
         thumbnail: ThumbnailSpriteResult | None,
+        thumbnail_sprite_key: str | None,
+        thumbnail_vtt_key: str | None,
     ) -> None:
         self.completed = (playable_probe, thumbnail)
 
@@ -270,7 +294,7 @@ def make_runner(
         preparation_processor=preparation,
         playable_processor=playable,
         thumbnail_processor=thumbnail,
-        media_root=tmp_path,
+        storage=LocalStorage(tmp_path / "storage", "http://localhost:8888"),
     )
 
 
@@ -298,7 +322,61 @@ async def test_runner_combines_playable_and_thumbnail_generation(tmp_path: Path)
     assert state.completed is not None
     assert state.completed[0] is output_probe
     assert state.completed[1] is not None
+    playable = (
+        tmp_path
+        / "storage"
+        / "playable"
+        / str(state.context.asset_id)
+        / f"{state.context.variant_id}.mp4"
+    )
+    sprite = tmp_path / "storage" / "thumbnails" / str(state.context.asset_id) / "sprite.jpg"
+    vtt = tmp_path / "storage" / "thumbnails" / str(state.context.asset_id) / "sprite.vtt"
+    assert playable.read_bytes() == b"playable"
+    assert sprite.read_bytes() == b"sprite"
+    assert vtt.read_text(encoding="utf-8") == "WEBVTT\n"
+    assert not (
+        tmp_path
+        / "storage"
+        / "playable"
+        / str(state.context.asset_id)
+        / f"{state.context.job_id}.mp4"
+    ).exists()
     assert len(inspector.paths) == 2
+
+
+@pytest.mark.anyio
+async def test_runner_refreshes_stale_operation_on_resume(tmp_path: Path) -> None:
+    context = make_context()
+    state = FakeState(
+        MediaPreparationContext(
+            job_id=context.job_id,
+            asset_id=context.asset_id,
+            source_path=context.source_path,
+            source_metadata_updated_at=context.source_metadata_updated_at,
+            status=MediaPreparationJobStatus.PROCESSING,
+            operation=MediaTranscodingOperation.TRANSCODE,
+            variant_id=context.variant_id,
+            playable_ready=False,
+            thumbnail_ready=False,
+            duration_seconds=context.duration_seconds,
+            source_is_current=True,
+        ),
+    )
+    source_probe = make_probe("hevc", "matroska,webm")
+    output_probe = make_probe("hevc", "mov,mp4,m4a,3gp,3g2,mj2")
+    inspector = FakeInspector([source_probe, output_probe])
+    preparation = FakePreparationProcessor()
+    playable = FakePlayableProcessor()
+    thumbnail = FakeThumbnailProcessor()
+
+    runner = make_runner(tmp_path, state, inspector, preparation, playable, thumbnail)
+
+    await runner.run(state.context.job_id)
+
+    assert state.context.operation is MediaTranscodingOperation.REMUX
+    assert state.completed is not None
+    assert len(preparation.calls) == 1
+    assert preparation.calls[0][-1] is PlayableMediaOperation.REMUX
 
 
 @pytest.mark.anyio
@@ -352,6 +430,41 @@ async def test_runner_reuses_completed_thumbnail_for_playable_retry(tmp_path: Pa
     assert state.completed is not None
     assert state.completed[0] is output_probe
     assert state.completed[1] is None
+
+
+@pytest.mark.anyio
+async def test_runner_ignores_stale_failed_job(tmp_path: Path) -> None:
+    context = make_context()
+    state = FakeState(
+        MediaPreparationContext(
+            job_id=context.job_id,
+            asset_id=context.asset_id,
+            source_path=context.source_path,
+            source_metadata_updated_at=context.source_metadata_updated_at,
+            status=MediaPreparationJobStatus.FAILED,
+            operation=MediaTranscodingOperation.TRANSCODE,
+            variant_id=context.variant_id,
+            playable_ready=False,
+            thumbnail_ready=False,
+            duration_seconds=context.duration_seconds,
+            source_is_current=True,
+        ),
+    )
+    inspector = FakeInspector([])
+    preparation = FakePreparationProcessor()
+    playable = FakePlayableProcessor()
+    thumbnail = FakeThumbnailProcessor()
+
+    runner = make_runner(tmp_path, state, inspector, preparation, playable, thumbnail)
+
+    await runner.run(state.context.job_id)
+
+    assert state.failed_message is None
+    assert state.completed is None
+    assert inspector.paths == []
+    assert preparation.calls == []
+    assert playable.operations == []
+    assert thumbnail.calls == 0
 
 
 @pytest.mark.anyio

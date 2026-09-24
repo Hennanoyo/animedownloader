@@ -47,9 +47,22 @@ Infrastructure such as torrent clients, ffmpeg, SeaweedFS, PostgreSQL, and Redis
 
 See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 
+## Media Hardware Acceleration
+
+- Treat `FFMPEG_VIDEO_ENCODER=auto` as the default development/runtime behavior.
+- When `auto` is selected, probe real `hevc_nvenc` encoding capability before a transcode and fall back to `libx265` when NVIDIA GPU access, drivers, or NVENC are unavailable.
+- Do not require GPU-specific commands or settings for the media pipeline to function.
+- Keep CUDA hardware-frame decoding out of the shared playable/thumbnail preparation path unless the filter graph has explicit, tested hardware-frame compatibility.
+- GPU-specific Compose configuration may be used internally to expose an available NVIDIA device, but application-level encoder selection must remain portable.
+
 ## Storage Rules
 
 - Persist storage `object_key` values in PostgreSQL rather than environment-specific public URLs.
+- Treat `source_path`, `object_key`, and public URL as different representations with different responsibilities.
+- Use UUID7-backed artifact identity for normal derived artifacts; do not use processing job IDs as durable artifact filenames.
+- Use content-addressed SHA-256 identity for reusable resources such as fonts.
+- Keep original filenames as metadata rather than embedding them in canonical object keys.
+- Define and reuse canonical object keys from `animedownloader_storage.artifacts` instead of duplicating key-format strings in workers or API code.
 - Internal and public storage endpoints must be configurable through environment-backed settings.
 - Keep SeaweedFS access behind a storage abstraction.
 

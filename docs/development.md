@@ -25,6 +25,8 @@ code .
 
 In VSCode, run **Dev Containers: Reopen in Container**.
 
+The Dev Container now includes the GPU Compose override. On this development machine, rebuilding the Dev Container therefore gives the Worker NVIDIA GPU access without requiring `just up`. The application still falls back to CPU encoding when NVENC is unavailable.
+
 The Dev Container configuration uses:
 
 - `dev`: development shell with Node.js 24, pnpm, Python 3.14, and uv
@@ -107,6 +109,77 @@ just check
 Use Docker Desktop or the Compose output panel to inspect service logs.
 
 Because Docker Compose is managed by the Dev Containers extension in the supported workflow, do not assume the `dev` container needs access to the host Docker socket.
+
+To verify GPU access from the repository environment:
+
+```bash
+just gpu-check
+```
+
+This checks NVIDIA visibility and performs a real `hevc_nvenc` encode probe.
+
+## Runtime Media Storage Smoke Test
+
+The storage migration can be validated against the real Compose SeaweedFS service without adding live media workflows to CI.
+
+`STORAGE_BACKEND` defaults to `local`. To exercise the SeaweedFS application path, start or restart the API and Worker with the backend selected:
+
+```bash
+STORAGE_BACKEND=seaweedfs docker compose up -d --build api worker
+```
+
+Process a new Episode while this backend is active. Existing derived artifacts written before the switch remain in local storage and are not migrated automatically.
+
+Then run the adapter check and the end-to-end media storage check:
+
+```bash
+just storage-smoke
+just storage-media-smoke <episode-id>
+```
+
+`storage-media-smoke` validates the pipeline after the Episode's download has completed. It reconciles and enqueues missing downstream media-processing, preparation, subtitle/attachment, and streaming-packaging work, waits for the pipeline to settle, then materializes derived objects from the configured storage backend, validates the stored playable MP4 with FFprobe, and verifies thumbnails, subtitles, attachments/fonts, HLS/DASH manifests, and CMAF segments.
+
+For a true Episode-ID-only end-to-end test, use:
+
+```bash
+just reset-dev
+STORAGE_BACKEND=seaweedfs just up
+just media-e2e-smoke <episode-id>
+```
+
+Use `just up` rather than plain `docker compose up` when GPU acceleration should be available. `just up` tests NVIDIA access from the GPU-enabled Compose worker before choosing the GPU or CPU stack. If Docker cannot expose the NVIDIA runtime, it reports that explicitly and falls back to the CPU worker. Use `just gpu-check` to inspect GPU access directly, or `just up-gpu` to require the GPU Compose configuration.
+
+The `media-e2e-smoke` command creates a download job when needed, waits for the Torrent download to complete, then invokes `storage-media-smoke` for the complete downstream media pipeline. It is intended for local/development validation and may perform a real torrent download, so it is not part of normal CI.
+
+The `--timeout` value applies to the download stage and each downstream media stage:
+
+```bash
+just media-e2e-smoke <episode-id> 3600
+```
+
+Use `--skip-playable` when a full playable-file download is undesirable:
+
+
+```bash
+docker compose exec -T worker uv run --package animedownloader-worker \
+  python3 /app/scripts/storage-media-smoke.py <episode-id> --skip-playable
+```
+
+## Development Data Reset
+
+`reset-dev` is intentionally destructive. It stops Compose and removes all Compose-managed development volumes, including PostgreSQL, Redis, SeaweedFS, downloads, media, and qBittorrent state.
+
+Use it when storage rules or database schemas have changed and old development data should not be migrated:
+
+```bash
+just reset-dev
+```
+
+After the reset, start the stack again. For the media storage E2E workflow, use SeaweedFS explicitly:
+
+```bash
+STORAGE_BACKEND=seaweedfs just up
+```
 
 ## Monorepo
 

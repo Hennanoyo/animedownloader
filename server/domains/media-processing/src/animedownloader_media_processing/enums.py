@@ -29,4 +29,3 @@ class MediaPreparationJobStatus(StrEnum):
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
-

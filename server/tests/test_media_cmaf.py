@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -7,6 +8,8 @@ from animedownloader_media import (
     CMAFRepresentationMetadata,
     FFmpegCMAFProcessor,
     FFmpegCommandResult,
+    FFmpegTimeoutError,
+    SubprocessFFmpegRunner,
     build_dash_manifest,
     build_hls_master_playlist,
 )
@@ -53,9 +56,7 @@ async def test_cmaf_processor_creates_one_fmp4_media_set(tmp_path: Path) -> None
     assert len(runner.calls) == 1
     command = runner.calls[0]
     assert command[command.index("-hls_segment_type") + 1] == "fmp4"
-    assert command[command.index("-hls_segment_filename") + 1] == str(
-        output / "s" / "%05d.m4s"
-    )
+    assert command[command.index("-hls_segment_filename") + 1] == str(output / "s" / "%05d.m4s")
     assert result.init_segment_path == output / "init.mp4"
     assert result.segments == (
         CMAFMediaSegment(
@@ -145,3 +146,39 @@ async def test_cmaf_processor_normalizes_absolute_ffmpeg_segment_paths(
     assert "s/00000.m4s" in result.playlist_path.read_text(
         encoding="utf-8",
     )
+
+
+@pytest.mark.anyio
+async def test_subprocess_ffmpeg_runner_returns_command_result() -> None:
+    runner = SubprocessFFmpegRunner(
+        timeout_seconds=5.0,
+        heartbeat_interval_seconds=0.01,
+    )
+
+    result = await runner.run(
+        (
+            sys.executable,
+            "-c",
+            "print('ffmpeg runner test')",
+        ),
+    )
+
+    assert result.returncode == 0
+    assert result.stdout == b"ffmpeg runner test\n"
+
+
+@pytest.mark.anyio
+async def test_subprocess_ffmpeg_runner_times_out() -> None:
+    runner = SubprocessFFmpegRunner(
+        timeout_seconds=0.05,
+        heartbeat_interval_seconds=0.01,
+    )
+
+    with pytest.raises(FFmpegTimeoutError, match="timed out after"):
+        await runner.run(
+            (
+                sys.executable,
+                "-c",
+                "import time; time.sleep(1)",
+            ),
+        )

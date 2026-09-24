@@ -68,6 +68,21 @@ class MediaPackagingRepository:
             .order_by(MediaPackagingJob.created_at.desc()),
         )
 
+    async def get_active_jobs(self) -> list[MediaPackagingJob]:
+        result = await self.session.scalars(
+            select(MediaPackagingJob)
+            .where(
+                MediaPackagingJob.status.in_(
+                    (
+                        MediaPackagingJobStatus.PENDING.value,
+                        MediaPackagingJobStatus.PROCESSING.value,
+                    ),
+                ),
+            )
+            .order_by(MediaPackagingJob.created_at),
+        )
+        return list(result)
+
     async def add_package(
         self,
         package: MediaStreamingPackage,

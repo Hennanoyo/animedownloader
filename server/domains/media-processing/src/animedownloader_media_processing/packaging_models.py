@@ -28,9 +28,7 @@ from .packaging_exceptions import InvalidMediaPackagingJobTransitionError
 
 class MediaStreamingPackage(Base):
     __tablename__ = "media_streaming_packages"
-    __table_args__ = (
-        Index("ix_media_streaming_packages_media_variant_id", "media_variant_id"),
-    )
+    __table_args__ = (Index("ix_media_streaming_packages_media_variant_id", "media_variant_id"),)
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     media_variant_id: Mapped[UUID] = mapped_column(

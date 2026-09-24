@@ -1,12 +1,56 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import shlex
+import signal
+import sys
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
 from .playback import PlayableMediaOperation
+
+DEFAULT_FFMPEG_TIMEOUT_SECONDS = 1800.0
+DEFAULT_FFMPEG_HEARTBEAT_INTERVAL_SECONDS = 30.0
+
+
+def build_video_encoder_options(video_encoder: str) -> tuple[str, ...]:
+    if video_encoder == "libx265":
+        return (
+            "-c:v",
+            "libx265",
+            "-preset",
+            "medium",
+            "-crf",
+            "28",
+            "-threads",
+            "8",
+            "-pix_fmt",
+            "yuv420p",
+        )
+    if video_encoder == "hevc_nvenc":
+        return (
+            "-c:v",
+            "hevc_nvenc",
+            "-preset",
+            "p5",
+            "-rc",
+            "vbr",
+            "-cq",
+            "28",
+            "-b:v",
+            "0",
+            "-pix_fmt",
+            "yuv420p",
+        )
+    raise ValueError(
+        "Unsupported video encoder: "
+        f"{video_encoder!r}; expected 'libx265' or 'hevc_nvenc'",
+    )
+
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,19 +64,199 @@ class FFmpegRunner(Protocol):
     async def run(self, args: Sequence[str]) -> FFmpegCommandResult: ...
 
 
+class FFmpegTimeoutError(RuntimeError):
+    pass
+
+
 class SubprocessFFmpegRunner:
+    def __init__(
+        self,
+        *,
+        timeout_seconds: float = DEFAULT_FFMPEG_TIMEOUT_SECONDS,
+        heartbeat_interval_seconds: float = DEFAULT_FFMPEG_HEARTBEAT_INTERVAL_SECONDS,
+    ) -> None:
+        if timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be positive")
+        if heartbeat_interval_seconds <= 0:
+            raise ValueError("heartbeat_interval_seconds must be positive")
+
+        self._timeout_seconds = timeout_seconds
+        self._heartbeat_interval_seconds = heartbeat_interval_seconds
+
     async def run(self, args: Sequence[str]) -> FFmpegCommandResult:
+        command = tuple(args)
+        started_at = time.monotonic()
         process = await asyncio.create_subprocess_exec(
-            *args,
+            *command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            start_new_session=(sys.platform != "win32"),
         )
-        stdout, stderr = await process.communicate()
-        return FFmpegCommandResult(
-            stdout=stdout,
-            stderr=stderr,
-            returncode=process.returncode or 0,
+        print(
+            f"[worker] FFmpeg started: pid={process.pid} command={shlex.join(command)}",
+            flush=True,
         )
+
+        communication = asyncio.create_task(process.communicate())
+        try:
+            while True:
+                elapsed = time.monotonic() - started_at
+                remaining = self._timeout_seconds - elapsed
+                if remaining <= 0:
+                    raise TimeoutError
+
+                try:
+                    stdout, stderr = await asyncio.wait_for(
+                        asyncio.shield(communication),
+                        timeout=min(self._heartbeat_interval_seconds, remaining),
+                    )
+                    break
+                except asyncio.TimeoutError:
+                    elapsed = time.monotonic() - started_at
+                    print(
+                        f"[worker] FFmpeg still running: pid={process.pid} elapsed={elapsed:.0f}s",
+                        flush=True,
+                    )
+
+            elapsed = time.monotonic() - started_at
+            returncode = process.returncode or 0
+            print(
+                f"[worker] FFmpeg finished: pid={process.pid} "
+                f"elapsed={elapsed:.1f}s returncode={returncode}",
+                flush=True,
+            )
+            return FFmpegCommandResult(
+                stdout=stdout,
+                stderr=stderr,
+                returncode=returncode,
+            )
+        except TimeoutError as exc:
+            await _terminate_process(process)
+            await communication
+            elapsed = time.monotonic() - started_at
+            print(
+                f"[worker] FFmpeg timed out: pid={process.pid} "
+                f"elapsed={elapsed:.1f}s timeout={self._timeout_seconds:.1f}s "
+                f"command={shlex.join(command)}",
+                flush=True,
+                file=sys.stderr,
+            )
+            raise FFmpegTimeoutError(
+                "FFmpeg timed out after "
+                f"{self._timeout_seconds:.1f}s: {shlex.join(command)}",
+            ) from exc
+        except asyncio.CancelledError:
+            await _terminate_process(process)
+            await communication
+            print(
+                f"[worker] FFmpeg cancelled: pid={process.pid}",
+                flush=True,
+                file=sys.stderr,
+            )
+            raise
+
+
+async def probe_video_encoder(
+    video_encoder: str,
+    *,
+    executable: str = "ffmpeg",
+    runner: FFmpegRunner | None = None,
+) -> bool:
+    if video_encoder != "hevc_nvenc":
+        raise ValueError(
+            "Video encoder probe only supports 'hevc_nvenc'",
+        )
+
+    probe_runner = runner or SubprocessFFmpegRunner(
+        timeout_seconds=15.0,
+        heartbeat_interval_seconds=5.0,
+    )
+    try:
+        result = await probe_runner.run(
+            (
+                executable,
+                "-v",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                "testsrc2=size=1920x1080:rate=1",
+                "-frames:v",
+                "2",
+                "-an",
+                "-c:v",
+                "hevc_nvenc",
+                "-preset",
+                "p5",
+                "-rc",
+                "vbr",
+                "-cq",
+                "28",
+                "-b:v",
+                "0",
+                "-pix_fmt",
+                "yuv420p",
+                "-f",
+                "null",
+                "-",
+            ),
+        )
+    except (FFmpegTimeoutError, OSError) as exc:
+        print(
+            "[worker] NVENC probe unavailable: "
+            f"{type(exc).__name__}: {exc}",
+            flush=True,
+        )
+        return False
+
+    if result.returncode != 0:
+        message = result.stderr.decode("utf-8", errors="replace").strip()
+        print(
+            "[worker] NVENC probe failed: "
+            f"returncode={result.returncode} error={message or 'unknown'}",
+            flush=True,
+        )
+        return False
+    return True
+
+
+async def resolve_video_encoder(
+    video_encoder: str,
+    *,
+    executable: str = "ffmpeg",
+    runner: FFmpegRunner | None = None,
+) -> str:
+    if video_encoder != "auto":
+        build_video_encoder_options(video_encoder)
+        return video_encoder
+
+    nvenc_available = await probe_video_encoder(
+        "hevc_nvenc",
+        executable=executable,
+        runner=runner,
+    )
+    selected = "hevc_nvenc" if nvenc_available else "libx265"
+    print(
+        f"[worker] video encoder auto-detected: "
+        f"{selected} (nvenc_available={nvenc_available})",
+        flush=True,
+    )
+    return selected
+
+
+async def _terminate_process(process: asyncio.subprocess.Process) -> None:
+    if process.returncode is not None:
+        return
+
+    if sys.platform == "win32":
+        process.kill()
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            return
+
+    await process.wait()
 
 
 class SubtitleProcessingError(RuntimeError):
@@ -210,6 +434,7 @@ class FFmpegAttachmentProcessor:
                 f"FFmpeg completed without creating attachment output: {output_path}",
             )
 
+
 class FFmpegPlayableMediaProcessingError(RuntimeError):
     pass
 
@@ -226,9 +451,12 @@ class FFmpegPlayableMediaProcessor:
         *,
         executable: str = "ffmpeg",
         runner: FFmpegRunner | None = None,
+        video_encoder: str = "libx265",
     ) -> None:
         self._executable = executable
         self._runner = runner or SubprocessFFmpegRunner()
+        self._video_encoder = video_encoder
+        build_video_encoder_options(video_encoder)
 
     async def process(
         self,
@@ -240,10 +468,10 @@ class FFmpegPlayableMediaProcessor:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         if operation is PlayableMediaOperation.REMUX:
-            video_codec = "copy"
+            video_options = ("-c:v", "copy")
             audio_codec = "copy"
         else:
-            video_codec = "libx265"
+            video_options = build_video_encoder_options(self._video_encoder)
             audio_codec = "aac"
 
         result = await self._runner.run(
@@ -262,16 +490,12 @@ class FFmpegPlayableMediaProcessor:
                 "0",
                 "-sn",
                 "-dn",
-                "-c:v",
-                video_codec,
+                *video_options,
                 "-tag:v",
                 "hvc1",
                 "-c:a",
                 audio_codec,
-                *(("-b:a", "192k") if operation is PlayableMediaOperation.TRANSCODE else ()),
-                *(("-preset", "medium", "-crf", "28", "-pix_fmt", "yuv420p")
-                  if operation is PlayableMediaOperation.TRANSCODE
-                  else ()),
+                *(( "-b:a", "192k") if operation is PlayableMediaOperation.TRANSCODE else ()),
                 "-movflags",
                 "+faststart",
                 str(output_path),

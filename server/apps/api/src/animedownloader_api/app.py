@@ -107,6 +107,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(media_preparation_jobs_router)
     app.include_router(media_processing_jobs_router)
     app.include_router(releases_router)
+
     @app.get("/api/health")
     async def health() -> dict[str, str]:
         return {"status": "ok", "service": "api"}

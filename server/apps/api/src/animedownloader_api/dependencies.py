@@ -76,6 +76,7 @@ async def get_qbittorrent_client(
     async with QBittorrentClient(settings.qbittorrent_url, api_key) as client:
         yield client
 
+
 def get_media_preparation_job_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> MediaPreparationJobService:

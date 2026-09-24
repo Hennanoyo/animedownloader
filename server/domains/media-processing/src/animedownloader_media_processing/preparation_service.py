@@ -32,6 +32,9 @@ class MediaPreparationJobService:
     ) -> MediaPreparationJob | None:
         return await self.jobs.get_latest_preparation_job(media_asset_id)
 
+    async def get_active_jobs(self) -> list[MediaPreparationJob]:
+        return await self.jobs.get_active_preparation_jobs()
+
     async def create_job(
         self,
         *,
@@ -100,6 +103,24 @@ class MediaPreparationJobService:
                 variant.mark_processing()
             if thumbnail_required:
                 asset.mark_thumbnail_processing()
+
+        await self.session.refresh(job)
+        return job
+
+    async def update_operation(
+        self,
+        job_id: UUID,
+        *,
+        operation: MediaTranscodingOperation | None,
+    ) -> MediaPreparationJob:
+        await self.session.rollback()
+        async with self.session.begin():
+            job = await self.get_job(job_id)
+            if job.job_status is not MediaPreparationJobStatus.PROCESSING:
+                raise ValueError(
+                    "Preparation operation can only be updated for a processing job",
+                )
+            job.operation = operation.value if operation is not None else None
 
         await self.session.refresh(job)
         return job

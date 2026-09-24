@@ -16,6 +16,7 @@ members = [
     "animedownloader-qbittorrent",
     "animedownloader-releases",
     "animedownloader-server",
+    "animedownloader-storage",
     "animedownloader-torrent",
     "animedownloader-worker",
 ]
@@ -310,6 +311,19 @@ dev = [
 ]
 
 [[package]]
+name = "animedownloader-storage"
+version = "0.1.0"
+source = { editable = "libs/storage" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.11,<3" },
+]
+
+[[package]]
 name = "animedownloader-torrent"
 version = "0.1.0"
 source = { editable = "libs/torrent" }
@@ -325,6 +339,7 @@ dependencies = [
     { name = "animedownloader-media-asset" },
     { name = "animedownloader-media-processing" },
     { name = "animedownloader-qbittorrent" },
+    { name = "animedownloader-storage" },
     { name = "animedownloader-torrent" },
     { name = "taskiq" },
     { name = "taskiq-redis" },
@@ -338,6 +353,7 @@ requires-dist = [
     { name = "animedownloader-media-asset", editable = "domains/media-asset" },
     { name = "animedownloader-media-processing", editable = "domains/media-processing" },
     { name = "animedownloader-qbittorrent", editable = "libs/qbittorrent" },
+    { name = "animedownloader-storage", editable = "libs/storage" },
     { name = "animedownloader-torrent", editable = "libs/torrent" },
     { name = "taskiq", specifier = ">=0.12,<0.13" },
     { name = "taskiq-redis", specifier = ">=1.2,<1.3" },

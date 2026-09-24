@@ -87,6 +87,9 @@ jobs:
       - name: Validate Docker Compose configuration
         run: docker compose config
 
+      - name: Validate GPU Compose configuration
+        run: docker compose -f compose.yaml -f compose.gpu.yaml config
+
       - name: Validate Dev Container Compose configuration
         run: docker compose -f compose.yaml -f .devcontainer/docker-compose.devcontainer.yml config
 
@@ -151,6 +154,9 @@ jobs:
           docker compose ps
           docker compose logs --no-color --tail=100 worker
           exit 1
+
+      - name: Verify object storage adapter
+        run: docker compose exec -T worker uv run --package animedownloader-worker python3 /app/scripts/storage-smoke.py
 
       - name: Verify shared download volume
         run: |

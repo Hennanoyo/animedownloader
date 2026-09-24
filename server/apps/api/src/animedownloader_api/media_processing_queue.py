@@ -35,6 +35,5 @@ class MediaProcessingTaskDispatcher:
     async def enqueue_preparation(self, job_id: UUID) -> None:
         await self._preparation_task.kiq(str(job_id))
 
-
     async def enqueue_packaging(self, job_id: UUID) -> None:
         await self._packaging_task.kiq(str(job_id))

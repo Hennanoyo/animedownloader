@@ -121,13 +121,17 @@ def test_plans_transcode_for_incompatible_audio() -> None:
     assert PlayableMediaPlanner().plan(probe) is PlayableMediaOperation.TRANSCODE
 
 
-def test_plans_transcode_for_incompatible_container() -> None:
+def test_plans_remux_for_compatible_codecs_in_mkv() -> None:
     probe = make_probe(
         container="matroska,webm",
         video_codec="hevc",
     )
 
-    assert PlayableMediaPlanner().plan(probe) is PlayableMediaOperation.TRANSCODE
+    planner = PlayableMediaPlanner()
+
+    assert planner.plan(probe) is PlayableMediaOperation.REMUX
+    assert planner.can_remux(probe)
+    assert not planner.is_compatible(probe)
 
 
 def test_rejects_probe_without_video() -> None:

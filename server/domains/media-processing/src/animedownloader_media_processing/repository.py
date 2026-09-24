@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .enums import MediaPreparationJobStatus
+from .enums import MediaPreparationJobStatus, MediaProcessingJobStatus
 from .models import MediaPreparationJob, MediaProcessingJob, MediaVariant
 
 
@@ -33,6 +33,21 @@ class MediaProcessingJobRepository:
             .where(MediaProcessingJob.episode_id == episode_id)
             .order_by(MediaProcessingJob.created_at.desc()),
         )
+
+    async def get_active_processing_jobs(self) -> list[MediaProcessingJob]:
+        result = await self.session.scalars(
+            select(MediaProcessingJob)
+            .where(
+                MediaProcessingJob.status.in_(
+                    (
+                        MediaProcessingJobStatus.PENDING.value,
+                        MediaProcessingJobStatus.PROCESSING.value,
+                    ),
+                ),
+            )
+            .order_by(MediaProcessingJob.created_at),
+        )
+        return list(result)
 
     async def add(self, job: MediaProcessingJob) -> MediaProcessingJob:
         self.session.add(job)
@@ -86,6 +101,21 @@ class MediaProcessingJobRepository:
             .order_by(MediaPreparationJob.created_at.desc()),
         )
 
+    async def get_active_preparation_jobs(self) -> list[MediaPreparationJob]:
+        result = await self.session.scalars(
+            select(MediaPreparationJob)
+            .where(
+                MediaPreparationJob.status.in_(
+                    (
+                        MediaPreparationJobStatus.PENDING.value,
+                        MediaPreparationJobStatus.PROCESSING.value,
+                    ),
+                ),
+            )
+            .order_by(MediaPreparationJob.created_at),
+        )
+        return list(result)
+
     async def add_preparation_job(
         self,
         job: MediaPreparationJob,
@@ -93,4 +123,3 @@ class MediaProcessingJobRepository:
         self.session.add(job)
         await self.session.flush()
         return job
-

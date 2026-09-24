@@ -1,9 +1,11 @@
 [project]
 name = "animedownloader-storage"
 version = "0.1.0"
-description = "Media object storage abstractions and adapters"
+description = "Media object storage abstractions"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "pydantic>=2.11,<3",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.17,<0.13"]

@@ -13,6 +13,7 @@ from animedownloader_media import (
     FFprobeInspector,
     PlayableMediaPlanner,
     SubprocessFFmpegRunner,
+    resolve_video_encoder,
 )
 from animedownloader_media_asset import (
     MEDIA_ATTACHMENT_PROCESSING_TASK_NAME,
@@ -195,6 +196,9 @@ async def process_media_preparation(job_id: str) -> None:
         ffmpeg_runner = SubprocessFFmpegRunner(
             timeout_seconds=settings.ffmpeg_timeout_seconds,
         )
+        video_encoder = await resolve_video_encoder(
+            settings.ffmpeg_video_encoder,
+        )
         runner = MediaPreparationRunner(
             state=create_media_preparation_state(database.session_factory),
             storage=create_media_storage(settings),
@@ -202,8 +206,7 @@ async def process_media_preparation(job_id: str) -> None:
             planner=PlayableMediaPlanner(),
             preparation_processor=FFmpegMediaPreparationProcessor(
                 runner=ffmpeg_runner,
-                video_encoder=settings.ffmpeg_video_encoder,
-                hardware_acceleration=settings.ffmpeg_hwaccel,
+                video_encoder=video_encoder,
             ),
             playable_processor=FFmpegPlayableMediaProcessor(
                 runner=ffmpeg_runner,

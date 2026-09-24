@@ -72,6 +72,7 @@ server-format:
 format: web-format server-format
 
 server-check:
+  cd server && uv run ruff check apps/api/src/animedownloader_api/pipeline.py --select I --fix --diff || true
   cd server && uv run ruff check .
   cd server && uv run ruff format --check .
   cd server && uv run pyright

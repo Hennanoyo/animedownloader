@@ -299,6 +299,26 @@
   color: #fecaca;
 }
 
+.error p {
+  margin: 0;
+}
+
+.retryButton {
+  min-height: 2.25rem;
+  margin-top: 0.65rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #475569;
+  border-radius: 0.45rem;
+  background: #1e293b;
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.retryButton:hover,
+.retryButton[data-focus-visible] {
+  background: #334155;
+}
+
 .meta {
   display: flex;
   flex-wrap: wrap;

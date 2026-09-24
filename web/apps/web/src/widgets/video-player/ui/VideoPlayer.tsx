@@ -343,7 +343,6 @@ export default function VideoPlayer({ playback }: Props) {
     onControlsShow: showControls,
   });
 
-
   if (playback.video === null) {
     return (
       <section className={styles.player} aria-label="Video player">

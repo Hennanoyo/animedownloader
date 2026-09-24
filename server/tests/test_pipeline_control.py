@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid7
 
@@ -14,7 +15,7 @@ from animedownloader_media_processing import (
 )
 
 
-def build_service() -> EpisodePipelineControlService:
+def build_service() -> Any:
     service = EpisodePipelineControlService(
         MagicMock(),
         download_dispatcher=MagicMock(),

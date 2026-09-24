@@ -141,7 +141,7 @@ test("offers pipeline continuation without restarting a completed download", asy
   await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
 });
 
-test("moves live download details into the full-width download panel", async ({ page }, testInfo) => {
+test("moves live download details into the full-width download panel", async ({ page }) => {
   const activePipeline = structuredClone(pipeline);
   activePipeline.episodes[0].download = {
     status: "downloading",

@@ -391,6 +391,74 @@ def wait_for_playable(
     )
 
 
+def wait_for_streaming_package(
+    *,
+    api_url: str,
+    episode_id: UUID,
+    timeout_seconds: float,
+) -> dict[str, object]:
+    if timeout_seconds <= 0:
+        raise ValueError("timeout_seconds must be positive")
+
+    started_at = time.monotonic()
+    deadline = started_at + timeout_seconds
+    last_signature: tuple[object, ...] | None = None
+    last_report = started_at - 30.0
+    streaming: dict[str, object] | None = None
+
+    while time.monotonic() < deadline:
+        payload = http_get(
+            api_url,
+            f"/api/episodes/{episode_id}/streaming-media",
+        )
+        if payload is not None:
+            streaming = _require_object(payload, "streaming-media")
+            signature = (
+                streaming.get("status"),
+                streaming.get("error_message"),
+                streaming.get("hls_master_key"),
+                streaming.get("dash_manifest_key"),
+                len(streaming.get("representations", []))
+                if isinstance(streaming.get("representations"), list)
+                else None,
+            )
+            if signature != last_signature:
+                print(
+                    "  streaming: "
+                    f"status={streaming.get('status')} "
+                    f"representations={signature[-1]}",
+                    flush=True,
+                )
+                last_signature = signature
+
+            if streaming.get("status") == "completed":
+                return streaming
+
+            if streaming.get("status") == "failed":
+                raise SmokeTestError(
+                    "Streaming package failed: "
+                    f"{streaming.get('error_message') or 'unknown error'}",
+                )
+
+        now = time.monotonic()
+        if now - last_report >= 30.0:
+            print(
+                "  activity: "
+                f"streaming-package elapsed={now - started_at:.0f}s "
+                f"status={streaming.get('status') if streaming else 'pending'}",
+                flush=True,
+            )
+            last_report = now
+
+        time.sleep(2)
+
+    elapsed_seconds = time.monotonic() - started_at
+    raise SmokeTestError(
+        "Timed out waiting for a completed current streaming package after "
+        f"{elapsed_seconds:.1f}s (limit={timeout_seconds:g}s)",
+    )
+
+
 async def materialize_object(
     storage: Storage,
     object_key: str,
@@ -714,14 +782,11 @@ async def main() -> int:
     if not isinstance(variant_key, str) or not variant_key:
         raise SmokeTestError("Playable media has no storage object key")
 
-    streaming = http_get(
-        args.api_url,
-        f"/api/episodes/{args.episode_id}/streaming-media",
+    streaming = wait_for_streaming_package(
+        api_url=args.api_url,
+        episode_id=args.episode_id,
+        timeout_seconds=args.timeout,
     )
-    if not isinstance(streaming, dict):
-        raise SmokeTestError(
-            "Episode does not have a current completed streaming package",
-        )
 
     with TemporaryDirectory(prefix="animedownloader-storage-media-smoke-") as directory:
         root = Path(directory)

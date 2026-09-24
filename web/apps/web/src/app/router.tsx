@@ -3,6 +3,7 @@ import { z } from "zod";
 import AnimeCreatePage from "../pages/anime-create/ui/AnimeCreatePage";
 import AnimeDetailPage from "../pages/anime-detail/ui/AnimeDetailPage";
 import AnimeListPage from "../pages/animes/ui/AnimeListPage";
+import EpisodePlayerPage from "../pages/episode-player/ui/EpisodePlayerPage";
 import ReleaseSearchPage from "../pages/release-search/ui/ReleaseSearchPage";
 import App from "./App";
 
@@ -35,11 +36,18 @@ const animeDetailRoute = createRoute({
   component: AnimeDetailPage,
 });
 
+const episodePlayerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/episodes/$episodeId",
+  component: EpisodePlayerPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   animesRoute,
   animeCreateRoute,
   animeDetailRoute,
+  episodePlayerRoute,
 ]);
 
 export const router = createRouter({

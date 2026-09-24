@@ -15,18 +15,22 @@ class FakeRunner:
         self.calls: list[tuple[str, ...]] = []
 
     async def run(self, args: Sequence[str]) -> FFmpegCommandResult:
-        self.calls.append(tuple(args))
-        playable_path = Path(args[-8])
-        sprite_path = Path(args[-1])
-        playable_path.parent.mkdir(parents=True, exist_ok=True)
-        sprite_path.parent.mkdir(parents=True, exist_ok=True)
-        playable_path.write_bytes(b"playable")
-        sprite_path.write_bytes(b"sprite")
+        command = tuple(args)
+        self.calls.append(command)
+
+        output = Path(command[-1])
+        if "%05d" in command[-1]:
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.with_name("frame-00001.jpg").write_bytes(b"frame")
+        else:
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(b"output")
+
         return FFmpegCommandResult(stdout=b"", stderr=b"", returncode=0)
 
 
 @pytest.mark.anyio
-async def test_preparation_transcodes_and_generates_thumbnail_in_one_process(
+async def test_preparation_transcodes_and_generates_thumbnail_in_separate_processes(
     tmp_path: Path,
 ) -> None:
     source = tmp_path / "source.mkv"
@@ -48,13 +52,24 @@ async def test_preparation_transcodes_and_generates_thumbnail_in_one_process(
     )
 
     assert isinstance(result, MediaPreparationProcessingResult)
-    assert len(runner.calls) == 1
-    command = runner.calls[0]
-    assert command[command.index("-filter_complex_threads") + 1] == "2"
-    assert "-filter_buffered_frames" not in command
-    assert "-filter_complex" in command
-    assert "split=2[playable][thumbnail]" in command[command.index("-filter_complex") + 1]
-    assert command.count("-map") == 3
+    assert len(runner.calls) == 3
+
+    playable_command = runner.calls[0]
+    assert "-filter_complex" not in playable_command
+    assert playable_command[playable_command.index("-c:v") + 1] == "libx265"
+    assert playable_command[playable_command.index("-threads") + 1] == "8"
+    assert playable_command[-1] == str(playable)
+
+    extraction_command = runner.calls[1]
+    assert "-vf" in extraction_command
+    assert "fps=" in extraction_command[extraction_command.index("-vf") + 1]
+    assert extraction_command[-1].endswith("frame-%05d.jpg")
+
+    sprite_command = runner.calls[2]
+    assert "-vf" in sprite_command
+    assert sprite_command[sprite_command.index("-vf") + 1].startswith("tile=15x12")
+    assert sprite_command[-1] == str(sprite)
+
     assert result.playable.output_path == playable
     assert result.thumbnail.sprite_path == sprite
     assert result.thumbnail.vtt_path == vtt
@@ -95,7 +110,7 @@ async def test_preparation_can_use_nvenc_for_transcode(tmp_path: Path) -> None:
 
 
 @pytest.mark.anyio
-async def test_preparation_remuxes_and_generates_thumbnail_in_one_process(
+async def test_preparation_remuxes_and_generates_thumbnail_in_separate_processes(
     tmp_path: Path,
 ) -> None:
     source = tmp_path / "source.mp4"
@@ -116,13 +131,14 @@ async def test_preparation_remuxes_and_generates_thumbnail_in_one_process(
         operation=PlayableMediaOperation.REMUX,
     )
 
-    assert len(runner.calls) == 1
-    command = runner.calls[0]
-    filter_graph = command[command.index("-filter_complex") + 1]
-    assert "split=2" not in filter_graph
-    assert "0:v:0" in command
-    assert command[command.index("-c:v") + 1] == "copy"
-    assert command[-1] == str(sprite)
+    assert len(runner.calls) == 3
+    playable_command = runner.calls[0]
+    assert "-filter_complex" not in playable_command
+    assert playable_command[playable_command.index("-c:v") + 1] == "copy"
+    assert playable_command[-1] == str(playable)
+
+    assert runner.calls[1][-1].endswith("frame-%05d.jpg")
+    assert runner.calls[2][-1] == str(sprite)
 
 
 @pytest.mark.anyio

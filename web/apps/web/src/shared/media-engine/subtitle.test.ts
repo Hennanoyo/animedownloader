@@ -38,7 +38,7 @@ describe("JassubSubtitleEngine", () => {
 
     await engine.attach(video, subtitle, fonts);
 
-    expect(mocks.ready).resolves.toBeUndefined();
+    await expect(mocks.ready).resolves.toBeUndefined();
   });
 
   it("destroys the renderer on detach", async () => {

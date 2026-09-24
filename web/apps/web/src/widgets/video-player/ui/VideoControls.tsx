@@ -22,12 +22,15 @@ interface Props {
   subtitles: Playback["subtitles"];
   selectedSubtitleId: string | null;
   thumbnails: Playback["thumbnails"];
+  controlsVisible: boolean;
   onPlayPause: () => void;
   onSeek: (seconds: number) => void;
   onVolumeChange: (value: number) => void;
   onMuteToggle: () => void;
   onSubtitleChange: (id: string | null) => void;
   onFullscreenToggle: () => void;
+  onControlsEnter: () => void;
+  onControlsLeave: () => void;
 }
 
 export default function VideoControls({
@@ -41,12 +44,15 @@ export default function VideoControls({
   subtitles,
   selectedSubtitleId,
   thumbnails,
+  controlsVisible,
   onPlayPause,
   onSeek,
   onVolumeChange,
   onMuteToggle,
   onSubtitleChange,
   onFullscreenToggle,
+  onControlsEnter,
+  onControlsLeave,
 }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [thumbnailCues, setThumbnailCues] = useState<ThumbnailCue[]>([]);
@@ -118,7 +124,16 @@ export default function VideoControls({
   };
 
   return (
-    <div className={styles.controls} aria-label="Video controls">
+    <div
+      className={`${styles.controls} ${controlsVisible ? "" : styles.controlsHidden}`}
+      aria-label="Video controls"
+      onPointerEnter={() => {
+        onControlsEnter();
+      }}
+      onPointerLeave={() => {
+        onControlsLeave();
+      }}
+    >
       <div className={styles.timeline}>
         {previewCue ? (
           <div

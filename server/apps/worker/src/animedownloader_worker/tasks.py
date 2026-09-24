@@ -202,9 +202,11 @@ async def process_media_preparation(job_id: str) -> None:
             planner=PlayableMediaPlanner(),
             preparation_processor=FFmpegMediaPreparationProcessor(
                 runner=ffmpeg_runner,
+                video_encoder=settings.ffmpeg_video_encoder,
             ),
             playable_processor=FFmpegPlayableMediaProcessor(
                 runner=ffmpeg_runner,
+                video_encoder=settings.ffmpeg_video_encoder,
             ),
             thumbnail_processor=FFmpegThumbnailSpriteProcessor(
                 runner=ffmpeg_runner,

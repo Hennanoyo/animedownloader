@@ -9,7 +9,7 @@ from .ffmpeg import (
     FFmpegRunner,
     PlayableMediaProcessingResult,
     SubprocessFFmpegRunner,
-    _build_video_encoder_options,
+    build_video_encoder_options,
 )
 from .playback import PlayableMediaOperation
 from .thumbnails import ThumbnailSpriteResult

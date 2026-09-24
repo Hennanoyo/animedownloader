@@ -51,6 +51,9 @@ class MediaStreamingPackageService:
     async def get_latest_job(self, variant_id: UUID) -> MediaPackagingJob | None:
         return await self.packages.get_latest_job(variant_id)
 
+    async def get_active_jobs(self) -> list[MediaPackagingJob]:
+        return await self.packages.get_active_jobs()
+
     async def create_job(
         self,
         *,

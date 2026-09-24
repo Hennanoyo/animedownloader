@@ -114,6 +114,14 @@ class EpisodePipelineControlService:
                 status=EpisodePipelineStageStatus.PENDING,
             )
 
+        if asset.metadata_updated_at is None:
+            await self._enqueue_processing(processing.id)
+            return EpisodePipelineRetryResponse(
+                stage=EpisodePipelineCurrentStage.PROCESSING,
+                job_id=processing.id,
+                status=EpisodePipelineStageStatus.PENDING,
+            )
+
         variant = await self._variants.get_playable_variant(asset.id)
         playable_ready = (
             variant is not None
@@ -163,7 +171,7 @@ class EpisodePipelineControlService:
                 status=EpisodePipelineStageStatus.PENDING,
             )
 
-        if variant is None or variant.path is None or variant.updated_at is None:
+        if variant is None or variant.path is None:
             raise EpisodePipelineRetryConflictError(
                 "Playable media is not ready for streaming packaging.",
             )

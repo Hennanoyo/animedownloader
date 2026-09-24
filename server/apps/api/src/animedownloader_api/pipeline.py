@@ -231,15 +231,13 @@ def build_episode_pipeline_summary(
         else EpisodePipelineStageStatus(asset.thumbnail_status)
     )
     thumbnail_progress = 100 if asset is not None and asset.thumbnail_ready else 0
-    thumbnail_url = (
-        storage.public_url(asset.thumbnail_sprite_path)
-        if asset is not None and asset.thumbnail_ready
-        else None
+    thumbnail_url = _thumbnail_public_url(
+        storage,
+        asset.thumbnail_sprite_path if asset is not None and asset.thumbnail_ready else None,
     )
-    thumbnail_vtt_url = (
-        storage.public_url(asset.thumbnail_vtt_path)
-        if asset is not None and asset.thumbnail_ready
-        else None
+    thumbnail_vtt_url = _thumbnail_public_url(
+        storage,
+        asset.thumbnail_vtt_path if asset is not None and asset.thumbnail_ready else None,
     )
 
     processing_error = _processing_error(
@@ -359,17 +357,6 @@ def _processing_state(
     return EpisodePipelineStageStatus.PENDING, 0
 
 
-def _preparation_progress(
-    *,
-    asset: MediaAsset | None,
-    variant: MediaVariant | None,
-) -> int:
-    playable_ready = _is_playback_ready(asset, variant)
-    thumbnail_ready = asset is not None and asset.thumbnail_ready
-    completed = int(playable_ready) + int(thumbnail_ready)
-    return completed * 50
-
-
 def _asset_stage_status(
     asset: MediaAsset | None,
     *,
@@ -384,6 +371,12 @@ def _asset_stage_status(
     if getattr(asset, processed_at) is not None:
         return EpisodePipelineStageStatus.COMPLETED
     return EpisodePipelineStageStatus.PROCESSING
+
+
+def _thumbnail_public_url(storage: Storage, object_key: str | None) -> str | None:
+    if object_key is None:
+        return None
+    return storage.public_url(object_key)
 
 
 def _is_playback_ready(
@@ -424,7 +417,7 @@ def _streaming_status(
     if package is None:
         return EpisodePipelineStageStatus.PENDING, False, False, None
 
-    if variant is None or variant.path is None or variant.updated_at is None:
+    if variant is None or variant.path is None:
         return EpisodePipelineStageStatus.PENDING, False, False, None
 
     if not package.is_current(

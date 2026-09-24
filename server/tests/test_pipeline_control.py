@@ -15,25 +15,31 @@ from animedownloader_media_processing import (
 )
 
 
-def build_service() -> Any:
+def build_service() -> tuple[EpisodePipelineControlService, dict[str, MagicMock]]:
     service = EpisodePipelineControlService(
         MagicMock(),
         download_dispatcher=MagicMock(),
         media_dispatcher=MagicMock(),
     )
-    service._anime = MagicMock()
-    service._downloads = MagicMock()
-    service._processing = MagicMock()
-    service._assets = MagicMock()
-    service._preparation = MagicMock()
-    service._variants = MagicMock()
-    service._streaming = MagicMock()
-    return service
+    mocks = {
+        "anime": MagicMock(),
+        "downloads": MagicMock(),
+        "processing": MagicMock(),
+        "assets": MagicMock(),
+        "preparation": MagicMock(),
+        "variants": MagicMock(),
+        "streaming": MagicMock(),
+        "download_dispatcher": MagicMock(),
+        "media_dispatcher": MagicMock(),
+    }
+    for name, mock in mocks.items():
+        setattr(service, "_" + name, mock)
+    return service, mocks
 
 
 @pytest.mark.anyio
 async def test_retry_continues_to_streaming_without_creating_download_job() -> None:
-    service = build_service()
+    service, mocks = build_service()
     episode_id = uuid7()
     download_id = uuid7()
     package_job_id = uuid7()
@@ -61,26 +67,26 @@ async def test_retry_continues_to_streaming_without_creating_download_job() -> N
     variant.is_current = MagicMock(return_value=True)
     package_job = SimpleNamespace(id=package_job_id)
 
-    service._anime.get_episode = AsyncMock()
-    service._downloads.get_latest_job = AsyncMock(return_value=download)
-    service._downloads.create_job = AsyncMock()
-    service._processing.get_latest_job = AsyncMock(return_value=processing)
-    service._assets.get_for_episode = AsyncMock(return_value=asset)
-    service._variants.get_playable_variant = AsyncMock(return_value=variant)
-    service._streaming.get_active_job = AsyncMock(return_value=None)
-    service._streaming.get_for_variant = AsyncMock(return_value=None)
-    service._streaming.create_job = AsyncMock(return_value=package_job)
-    service._download_dispatcher.enqueue = AsyncMock()
-    service._media_dispatcher.enqueue_packaging = AsyncMock()
+    mocks["anime"].get_episode = AsyncMock()
+    mocks["downloads"].get_latest_job = AsyncMock(return_value=download)
+    mocks["downloads"].create_job = AsyncMock()
+    mocks["processing"].get_latest_job = AsyncMock(return_value=processing)
+    mocks["assets"].get_for_episode = AsyncMock(return_value=asset)
+    mocks["variants"].get_playable_variant = AsyncMock(return_value=variant)
+    mocks["streaming"].get_active_job = AsyncMock(return_value=None)
+    mocks["streaming"].get_for_variant = AsyncMock(return_value=None)
+    mocks["streaming"].create_job = AsyncMock(return_value=package_job)
+    mocks["download_dispatcher"].enqueue = AsyncMock()
+    mocks["media_dispatcher"].enqueue_packaging = AsyncMock()
 
     result = await service.retry(episode_id)
 
     assert result.stage is EpisodePipelineCurrentStage.STREAMING
     assert result.status is EpisodePipelineStageStatus.PENDING
     assert result.job_id == package_job_id
-    service._downloads.create_job.assert_not_awaited()
-    service._download_dispatcher.enqueue.assert_not_awaited()
-    service._media_dispatcher.enqueue_packaging.assert_awaited_once_with(package_job_id)
+    mocks["downloads"].create_job.assert_not_awaited()
+    mocks["download_dispatcher"].enqueue.assert_not_awaited()
+    mocks["media_dispatcher"].enqueue_packaging.assert_awaited_once_with(package_job_id)
 
 
 @pytest.mark.anyio
@@ -103,12 +109,12 @@ async def test_retry_failed_processing_without_creating_download_job() -> None:
         job_status=MediaProcessingJobStatus.PENDING,
     )
 
-    service._anime.get_episode = AsyncMock()
-    service._downloads.get_latest_job = AsyncMock(return_value=download)
-    service._downloads.create_job = AsyncMock()
-    service._processing.get_latest_job = AsyncMock(return_value=processing)
-    service._processing.retry_job = AsyncMock(return_value=retried)
-    service._media_dispatcher.enqueue = AsyncMock()
+    mocks["anime"].get_episode = AsyncMock()
+    mocks["downloads"].get_latest_job = AsyncMock(return_value=download)
+    mocks["downloads"].create_job = AsyncMock()
+    mocks["processing"].get_latest_job = AsyncMock(return_value=processing)
+    mocks["processing"].retry_job = AsyncMock(return_value=retried)
+    mocks["media_dispatcher"].enqueue = AsyncMock()
 
     result = await service.retry(episode_id)
 
@@ -116,4 +122,4 @@ async def test_retry_failed_processing_without_creating_download_job() -> None:
     assert result.status is EpisodePipelineStageStatus.PENDING
     assert result.job_id == processing_id
     service._downloads.create_job.assert_not_awaited()
-    service._media_dispatcher.enqueue.assert_awaited_once_with(processing_id)
+    mocks["media_dispatcher"].enqueue.assert_awaited_once_with(processing_id)

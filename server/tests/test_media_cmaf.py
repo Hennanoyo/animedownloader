@@ -1,6 +1,6 @@
+import sys
 from collections.abc import Sequence
 from pathlib import Path
-import sys
 
 import pytest
 from animedownloader_media import (

@@ -11,6 +11,9 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ["jassub"],
+    // JASSUB is kept as source so its worker/WASM assets can be resolved by Vite.
+    // Its nested throughput dependency is CommonJS and must be pre-bundled into ESM.
+    include: ["jassub > throughput"],
   },
   server: {
     host: "0.0.0.0",

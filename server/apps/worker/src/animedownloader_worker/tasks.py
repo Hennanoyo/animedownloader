@@ -291,7 +291,7 @@ async def _enqueue_media_packaging(
         preparation_job = await MediaPreparationJobService(session).get_job(
             media_preparation_job_id,
         )
-        variant = await MediaVariantService(session).get_playable_variant(
+        variant = await MediaVariantService(session).get(
             preparation_job.variant_id,
         )
         if variant is None:

@@ -1,8 +1,9 @@
-import type { SVGProps } from "react";
+import type { ReactNode, SVGProps } from "react";
 
 export type IconName =
   | "alertCircle"
   | "caption"
+  | "clock"
   | "checkCircle"
   | "chevronDown"
   | "chevronUp"
@@ -21,7 +22,7 @@ interface Props extends SVGProps<SVGSVGElement> {
   size?: number;
 }
 
-const paths: Record<IconName, JSX.Element> = {
+const paths: Record<IconName, ReactNode> = {
   alertCircle: (
     <>
       <circle cx="12" cy="12" r="9" />
@@ -36,6 +37,12 @@ const paths: Record<IconName, JSX.Element> = {
       <path d="M13 10h4" />
       <path d="M7 14h3" />
       <path d="M12 14h5" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
     </>
   ),
   checkCircle: (

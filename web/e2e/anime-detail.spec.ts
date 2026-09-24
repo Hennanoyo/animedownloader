@@ -64,7 +64,9 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
   await expect(thumbnail).toBeVisible();
   await expect(thumbnail).toHaveAttribute("href", `/episodes/${EPISODE_ID}`);
 
-  await expect(thumbnail).toHaveCSS("background-size", "1500% 1200%");
+  await expect(
+    thumbnail.locator("div").first(),
+  ).toHaveCSS("background-size", "1500% 1200%");
 
   const showDetails = page.getByRole("button", { name: "Show details" });
   await expect(showDetails).toBeVisible();
@@ -90,7 +92,7 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
     page.getByRole("link", { name: "Episode One", exact: true }),
   ).toHaveAttribute("href", `/episodes/${EPISODE_ID}`);
   await expect(
-    page.getByRole("button", { name: "Download" }),
+    page.getByRole("button", { name: "Download", exact: true }),
   ).toBeVisible();
 
 });
@@ -138,7 +140,9 @@ test("offers pipeline continuation without restarting a completed download", asy
   await expect(continueButton).toBeVisible();
   await continueButton.click();
   await expect.poll(() => retryRequests).toBe(1);
-  await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Download", exact: true }),
+  ).toBeVisible();
 });
 
 test("moves live download details into the full-width download panel", async ({ page }) => {

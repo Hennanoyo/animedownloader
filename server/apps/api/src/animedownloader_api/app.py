@@ -8,7 +8,6 @@ from animedownloader_anime import (
 )
 from animedownloader_config import Settings
 from animedownloader_database import create_database
-from animedownloader_storage import create_storage
 from animedownloader_download import (
     DownloadJobActiveError,
     DownloadJobNotFoundError,
@@ -23,6 +22,7 @@ from animedownloader_media_processing import (
     MediaProcessingJobNotFoundError,
     MediaStreamingPackageNotFoundError,
 )
+from animedownloader_storage import create_storage
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse

@@ -1,4 +1,4 @@
-import dashjs from "dashjs";
+import * as dashjs from "dashjs";
 import type { MediaSource, VideoEngine } from "./types";
 
 export class DashVideoEngine implements VideoEngine {

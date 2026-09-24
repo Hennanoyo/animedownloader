@@ -189,7 +189,6 @@ function AnimeHeader({
           className={styles.iconHeaderButton}
           onPress={onEdit}
           aria-label="Edit anime"
-          title="Edit anime"
         >
           <Icon name="edit" size={17} />
         </Button>
@@ -197,7 +196,6 @@ function AnimeHeader({
           className={styles.iconHeaderButtonDanger}
           onPress={onDeleteConfirm}
           aria-label="Delete anime"
-          title="Delete anime"
         >
           <Icon name="trash" size={17} />
         </Button>

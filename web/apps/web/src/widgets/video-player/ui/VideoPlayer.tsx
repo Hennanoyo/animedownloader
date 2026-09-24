@@ -261,9 +261,21 @@ export default function VideoPlayer({ playback }: Props) {
 
   const toggleMute = () => {
     const video = videoRef.current;
-    if (video) {
-      video.muted = !video.muted;
+    if (!video) {
+      return;
     }
+
+    if (video.muted) {
+      video.muted = false;
+      return;
+    }
+
+    if (video.volume === 0) {
+      video.volume = 1;
+      return;
+    }
+
+    video.muted = true;
   };
 
   const toggleFullscreen = () => {

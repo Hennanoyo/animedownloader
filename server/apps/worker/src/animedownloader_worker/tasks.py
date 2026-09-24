@@ -129,11 +129,11 @@ async def _enqueue_subtitle_processing(
     async with database.session_factory() as session:
         job = await MediaProcessingJobService(session).get_job(job_id)
         asset = await MediaAssetService(session).get_for_episode(job.episode_id)
+        if asset is None or asset.subtitle_processing_ready:
+            return
+        asset_id = asset.id
 
-    if asset is None or asset.subtitle_processing_ready:
-        return
-
-    await process_subtitle_tracks.kiq(str(asset.id))
+    await process_subtitle_tracks.kiq(str(asset_id))
 
 
 async def _enqueue_media_processing(
@@ -147,11 +147,13 @@ async def _enqueue_media_processing(
             download_job.episode_id,
             download_job.id,
         )
+        media_job_id = job.id
+        media_job_status = job.job_status
 
-    if job.job_status is MediaProcessingJobStatus.COMPLETED:
+    if media_job_status is MediaProcessingJobStatus.COMPLETED:
         return
 
-    await process_media_job.kiq(str(job.id))
+    await process_media_job.kiq(str(media_job_id))
 
 
 @broker.task(task_name=MEDIA_ATTACHMENT_PROCESSING_TASK_NAME)
@@ -179,11 +181,11 @@ async def _enqueue_media_attachment_processing(
     async with database.session_factory() as session:
         job = await MediaProcessingJobService(session).get_job(job_id)
         asset = await MediaAssetService(session).get_for_episode(job.episode_id)
+        if asset is None or not asset.attachments_ready or asset.attachment_processing_ready:
+            return
+        asset_id = asset.id
 
-    if asset is None or not asset.attachments_ready or asset.attachment_processing_ready:
-        return
-
-    await process_media_attachments.kiq(str(asset.id))
+    await process_media_attachments.kiq(str(asset_id))
 
 
 @broker.task(task_name=MEDIA_PREPARATION_TASK_NAME)
@@ -237,27 +239,29 @@ async def _enqueue_media_preparation(
         if asset is None or asset.metadata_updated_at is None:
             return
 
+        asset_id = asset.id
         preparation_job = await MediaPreparationJobService(session).create_job(
-            media_asset_id=asset.id,
+            media_asset_id=asset_id,
             source_path=asset.path,
             source_metadata_updated_at=asset.metadata_updated_at,
             thumbnail_ready=asset.thumbnail_ready,
         )
+        preparation_job_id = preparation_job.id if preparation_job is not None else None
 
-    if preparation_job is None:
+    if preparation_job_id is None:
         print(
             "[worker] media preparation not enqueued: "
-            f"asset_id={asset.id} (active job or already prepared)",
+            f"asset_id={asset_id} (active job or already prepared)",
             flush=True,
         )
         return
 
     print(
         "[worker] enqueuing media preparation: "
-        f"job_id={preparation_job.id} asset_id={asset.id}",
+        f"job_id={preparation_job_id} asset_id={asset_id}",
         flush=True,
     )
-    await process_media_preparation.kiq(str(preparation_job.id))
+    await process_media_preparation.kiq(str(preparation_job_id))
 
 
 @broker.task(task_name=MEDIA_PACKAGING_TASK_NAME)
@@ -299,19 +303,26 @@ async def _enqueue_media_packaging(
         packaging_job = await package_service.create_job(
             media_variant_id=variant.id,
         )
-        if packaging_job is None:
-            existing_job = await package_service.get_latest_job(variant.id)
+        if packaging_job is not None:
+            packaging_job_id = packaging_job.id
+            reenqueue = False
         else:
-            existing_job = None
+            existing_job = await package_service.get_latest_job(variant.id)
+            if existing_job is not None and existing_job.status == "pending":
+                packaging_job_id = existing_job.id
+                reenqueue = True
+            else:
+                packaging_job_id = None
+                reenqueue = False
 
-    if packaging_job is None:
-        if existing_job is None or existing_job.status != "pending":
-            return
-        packaging_job = existing_job
+    if packaging_job_id is None:
+        return
+
+    if reenqueue:
         print(
             "[worker] re-enqueuing pending media packaging job: "
-            f"job_id={packaging_job.id}",
+            f"job_id={packaging_job_id}",
             flush=True,
         )
 
-    await process_media_packaging.kiq(str(packaging_job.id))
+    await process_media_packaging.kiq(str(packaging_job_id))

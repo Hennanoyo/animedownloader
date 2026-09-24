@@ -347,23 +347,19 @@ def _processing_state(
         return EpisodePipelineStageStatus.PENDING, 0
 
     preparation_status = MediaPreparationJobStatus(preparation_job.status)
+    playable_ready = _is_playback_ready(asset, variant)
     if preparation_status is MediaPreparationJobStatus.FAILED:
-        return EpisodePipelineStageStatus.FAILED, 0
-    if preparation_status is MediaPreparationJobStatus.PENDING:
-        return EpisodePipelineStageStatus.PENDING, _preparation_progress(
-            asset=asset,
-            variant=variant,
+        return (
+            EpisodePipelineStageStatus.FAILED,
+            100 if playable_ready else 0,
         )
+    if playable_ready:
+        return EpisodePipelineStageStatus.COMPLETED, 100
     if preparation_status is MediaPreparationJobStatus.PROCESSING:
-        return EpisodePipelineStageStatus.PROCESSING, _preparation_progress(
-            asset=asset,
-            variant=variant,
-        )
-
-    return EpisodePipelineStageStatus.COMPLETED, _preparation_progress(
-        asset=asset,
-        variant=variant,
-    )
+        return EpisodePipelineStageStatus.PROCESSING, 0
+    if preparation_status is MediaPreparationJobStatus.PENDING:
+        return EpisodePipelineStageStatus.PENDING, 0
+    return EpisodePipelineStageStatus.PENDING, 0
 
 
 def _preparation_progress(

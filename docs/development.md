@@ -121,7 +121,9 @@ For real runtime playback against the running Compose stack, use an Episode that
 just real-playback-smoke <episode-id>
 ```
 
-This test does not start or mutate the runtime stack. Start the application first, then run the command. The test uses the actual Playback API and media resources and exercises Chromium playback, subtitles/JASSUB when subtitle tracks are present, thumbnail previews, and fullscreen behavior.
+Run this command from the WSL2 project directory, outside the Dev Container. The default browser-facing URLs use the Compose ports published to the WSL2 host. This test does not start or mutate the runtime stack. Start the application first, then run the command. The test uses the actual Playback API and media resources and exercises Chromium playback, subtitles/JASSUB when subtitle tracks are present, thumbnail previews, and fullscreen behavior.
+
+The real playback smoke inspects the current HLS master playlist before waiting for media readiness. When the stream advertises HEVC (`hvc1`/`hev1`) and the selected browser does not support that codec through MediaSource, the smoke is explicitly skipped with the detected codec instead of being reported as a playback failure. A browser with the required codec support continues through the full real playback assertions.
 
 To use another browser-facing frontend URL:
 
@@ -193,7 +195,6 @@ just media-e2e-smoke <episode-id> 3600
 ```
 
 Use `--skip-playable` when a full playable-file download is undesirable:
-
 
 ```bash
 docker compose exec -T worker uv run --package animedownloader-worker \

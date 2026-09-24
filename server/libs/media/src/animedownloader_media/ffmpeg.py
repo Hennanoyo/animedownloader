@@ -26,6 +26,8 @@ def build_video_encoder_options(video_encoder: str) -> tuple[str, ...]:
             "medium",
             "-crf",
             "28",
+            "-threads",
+            "8",
             "-pix_fmt",
             "yuv420p",
         )

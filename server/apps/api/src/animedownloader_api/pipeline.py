@@ -12,7 +12,6 @@ from animedownloader_download import DownloadJob
 from animedownloader_media_asset import (
     MediaAsset,
     MediaAttachmentStatus,
-    MediaThumbnailStatus,
     SubtitleTrackStatus,
 )
 from animedownloader_media_processing import (

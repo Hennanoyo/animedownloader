@@ -319,6 +319,7 @@ jobs:
                   size_bytes=Path(remuxed.output_path).stat().st_size,
                   duration_seconds=remuxed_probe.format.duration_seconds,
                   video_codec=video.codec_name,
+                  video_codec_string=cmaf.video_codec_string,
                   audio_codec=audio.codec_name if audio else None,
                   segments=cmaf_playlist.segments,
               )

@@ -69,7 +69,9 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
   await expect(pipelineStatus.getByText("Processing", { exact: true })).toBeVisible();
   await expect(pipelineStatus.getByText("Preview", { exact: true })).toBeVisible();
   await expect(pipelineStatus.getByText("Streaming", { exact: true })).toBeVisible();
-  await expect(page.getByText("Completed", { exact: true }).first()).toBeVisible();
+  await expect(
+    pipelineStatus.getByText("Completed", { exact: true }).first(),
+  ).toBeVisible();
   await expect(page.getByText("HLS ready · DASH ready")).toBeVisible();
   await expect(
     pipelineStatus.getByRole("progressbar", { name: "Preparation" }),

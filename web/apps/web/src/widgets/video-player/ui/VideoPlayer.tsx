@@ -141,11 +141,12 @@ export default function VideoPlayer({ playback }: Props) {
     let active = true;
     let failureHandled = false;
 
-    const handleMediaFailure = (message: string) => {
+    const handleMediaFailure = (failure: Error | string) => {
       if (!active || failureHandled) {
         return;
       }
       failureHandled = true;
+      const message = failure instanceof Error ? failure.message : failure;
       setIsLoading(false);
       setMediaError(message);
       setError(message);
@@ -236,15 +237,15 @@ export default function VideoPlayer({ playback }: Props) {
     void engine
       .attach(video, source.source, { onError: handleMediaFailure })
       .catch((attachError: unknown) => {
-      if (!active) {
-        return;
-      }
-      const message =
-        attachError instanceof Error
-          ? attachError.message
-          : "The selected video source could not be loaded.";
-      handleMediaFailure(message);
-    });
+        if (!active) {
+          return;
+        }
+        const message =
+          attachError instanceof Error
+            ? attachError.message
+            : "The selected video source could not be loaded.";
+        handleMediaFailure(message);
+      });
 
     return () => {
       active = false;

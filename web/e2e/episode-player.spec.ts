@@ -52,6 +52,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     const currentTimes = new WeakMap<HTMLMediaElement, number>();
     const pausedState = new WeakMap<HTMLMediaElement, boolean>();
+    const sourceUrls = new WeakMap<HTMLMediaElement, string>();
 
     Object.defineProperty(HTMLMediaElement.prototype, "currentTime", {
       configurable: true,
@@ -68,6 +69,16 @@ test.beforeEach(async ({ page }) => {
       configurable: true,
       get() {
         return 120;
+      },
+    });
+
+    Object.defineProperty(HTMLMediaElement.prototype, "src", {
+      configurable: true,
+      get() {
+        return sourceUrls.get(this) ?? "";
+      },
+      set(value: string) {
+        sourceUrls.set(this, value);
       },
     });
 
@@ -149,7 +160,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("recovers from a media loading error", async ({ page }) => {
+test("retries an exhausted media source", async ({ page }) => {
   await page.goto(`/episodes/${EPISODE_ID}`);
 
   const player = page.getByRole("region", { name: "Video player" });
@@ -162,7 +173,7 @@ test("recovers from a media loading error", async ({ page }) => {
   });
 
   await expect(page.getByRole("alert")).toContainText(
-    "The selected video source could not be loaded.",
+    "All available video sources failed. Retry to try them again.",
   );
   await expect(
     page.getByRole("button", { name: "Retry media" }),

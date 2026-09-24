@@ -64,6 +64,7 @@ test.describe("real playback smoke", () => {
     ).toBeVisible();
 
     await page.keyboard.press("Escape");
+    await player.focus();
     await expect(
       page.getByRole("button", { name: "Enter fullscreen" }),
     ).toBeVisible();

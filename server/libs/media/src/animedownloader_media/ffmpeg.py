@@ -403,13 +403,19 @@ class FFmpegPlayableMediaProcessor:
             video_options = build_video_encoder_options(self._video_encoder)
             audio_codec = "aac"
 
+        input_options = (
+            build_video_input_options(self._hardware_acceleration)
+            if operation is PlayableMediaOperation.TRANSCODE
+            else ()
+        )
+
         result = await self._runner.run(
             (
                 self._executable,
                 "-v",
                 "error",
                 "-y",
-                *build_video_input_options(self._hardware_acceleration),
+                *input_options,
                 "-i",
                 str(media_path),
                 "-map",

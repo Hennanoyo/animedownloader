@@ -8,6 +8,7 @@ export function playbackQueryOptions(episodeId: string) {
     retry: 1,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    refetchOnMount: "always",
   });
 }
 

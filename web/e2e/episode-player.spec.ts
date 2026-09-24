@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000001";
 const SPRITE_URL = "https://e2e.invalid/player/preview.png";
 const THUMBNAIL_VTT_URL = "https://e2e.invalid/player/thumbnails.vtt";
+const REFRESHED_VIDEO_URL = "https://e2e.invalid/player/video-v2.mp4";
 
 const playback = {
   anime_id: "019a0000-0000-7000-8000-000000000002",
@@ -42,6 +43,8 @@ ${SPRITE_URL}#xywh=0,0,160,90
 00:00:10.000 --> 00:00:20.000
 ${SPRITE_URL}#xywh=160,0,160,90
 `;
+
+let playbackRequestCount = 0;
 
 const transparentPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
@@ -132,13 +135,30 @@ test.beforeEach(async ({ page }) => {
     };
   });
 
+  playbackRequestCount = 0;
+
   await page.route(
     `**/api/episodes/${EPISODE_ID}/playback`,
     async (route) => {
+      playbackRequestCount += 1;
+      const response =
+        playbackRequestCount === 1
+          ? playback
+          : {
+              ...playback,
+              video: {
+                ...playback.video,
+                direct: {
+                  ...playback.video.direct,
+                  url: REFRESHED_VIDEO_URL,
+                },
+              },
+            };
+
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(playback),
+        body: JSON.stringify(response),
       });
     },
   );
@@ -160,7 +180,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("retries an exhausted media source", async ({ page }) => {
+test("refreshes playback after an exhausted media source", async ({ page }) => {
   await page.goto(`/episodes/${EPISODE_ID}`);
 
   const player = page.getByRole("region", { name: "Video player" });

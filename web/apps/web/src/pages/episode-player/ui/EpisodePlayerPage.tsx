@@ -68,7 +68,18 @@ export default function EpisodePlayerPage() {
       </header>
 
       <section className={styles.panel}>
-        <VideoPlayer playback={playback} />
+        <VideoPlayer
+          playback={playback}
+          playbackRevision={query.dataUpdatedAt}
+          onRetryMedia={async () => {
+            const result = await query.refetch();
+            if (result.isError) {
+              throw result.error instanceof Error
+                ? result.error
+                : new Error("Playback refresh failed.");
+            }
+          }}
+        />
       </section>
     </main>
   );

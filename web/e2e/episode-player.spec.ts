@@ -149,6 +149,33 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test("recovers from a media loading error", async ({ page }) => {
+  await page.goto(`/episodes/${EPISODE_ID}`);
+
+  const player = page.getByRole("region", { name: "Video player" });
+  const video = page.getByTestId("video-player");
+
+  await expect(player).toBeFocused();
+
+  await video.evaluate((element) => {
+    element.dispatchEvent(new Event("error"));
+  });
+
+  await expect(page.getByRole("alert")).toContainText(
+    "The selected video source could not be loaded.",
+  );
+  await expect(
+    page.getByRole("button", { name: "Retry media" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Retry media" }).click();
+
+  await expect(
+    page.getByRole("button", { name: "Retry media" }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Loading media...")).toHaveCount(0);
+});
+
 test("covers playback controls, keyboard priority, thumbnails, and fullscreen", async ({
   page,
 }) => {

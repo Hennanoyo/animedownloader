@@ -280,6 +280,13 @@ class MediaPreparationRunner:
             )
             if context.status is MediaPreparationJobStatus.COMPLETED:
                 return
+            if context.status is MediaPreparationJobStatus.FAILED:
+                print(
+                    "[worker] media preparation task ignored for failed job: "
+                    f"job_id={job_id}",
+                    flush=True,
+                )
+                return
             if not context.source_is_current:
                 raise MediaPreparationExecutionError(
                     "Media asset source changed after the preparation job was created; "

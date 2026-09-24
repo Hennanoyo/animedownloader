@@ -380,9 +380,6 @@ Scope:
 - Support direct-file playback and packaged playback as separate paths
 - Add focused, accessible player UI and API coverage
 
-## Handoff Notes
-
-For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current repository state, and recent commits. Treat the repository state as authoritative and update this file whenever the development phase changes.
 ### PR #29 — Playback Hardening
 
 **In progress on `feature/playback-hardening`.**
@@ -405,3 +402,6 @@ Planned follow-up within the same phase:
 - improve source fallback behavior
 - cover stale playback artifacts and recovery after media replacement
 
+## Handoff Notes
+
+For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current repository state, and recent commits. Treat the repository state as authoritative and update this file whenever the development phase changes.

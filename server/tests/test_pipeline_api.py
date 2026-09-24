@@ -194,6 +194,33 @@ def test_build_pipeline_summary_polls_after_download_before_processing_job_exist
     assert summary.active is True
 
 
+def test_pipeline_advances_to_preview_after_playable_media_is_ready() -> None:
+    episode = make_episode()
+    download, processing, asset, preparation, variant, package = make_completed_pipeline(
+        episode,
+    )
+    preparation.status = "processing"
+    asset.mark_thumbnail_processing()
+
+    summary = build_episode_pipeline_summary(
+        episode,
+        download_job=download,
+        processing_job=processing,
+        asset=asset,
+        preparation_job=preparation,
+        variant=variant,
+        package=package,
+        storage=LocalStorage(Path("/tmp/animedownloader-test-media"), "http://test-media"),
+    )
+
+    assert summary.processing.status is EpisodePipelineStageStatus.COMPLETED
+    assert summary.processing.progress_percent == 100
+    assert summary.thumbnail.status is EpisodePipelineStageStatus.PROCESSING
+    assert summary.thumbnail.progress_percent == 0
+    assert summary.current_stage.value == "preview"
+    assert summary.active is True
+
+
 def test_build_pipeline_summary_keeps_playback_ready_while_streaming_runs() -> None:
     episode = make_episode()
     (

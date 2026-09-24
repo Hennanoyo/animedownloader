@@ -389,7 +389,6 @@ function InlineDownloadState({
           <Button
             className={styles.iconButton}
             aria-label={paused ? "Resume download" : "Pause download"}
-            title={paused ? "Resume download" : "Pause download"}
             onPress={onPause}
             isDisabled={pending}
           >
@@ -401,8 +400,7 @@ function InlineDownloadState({
           <Button
             className={styles.iconButtonDanger}
             aria-label="Cancel download"
-            title="Cancel download"
-            onPress={onCancel}
+              onPress={onCancel}
             isDisabled={pending}
           >
             <Icon name="x" size={15} />

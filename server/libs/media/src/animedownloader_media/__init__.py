@@ -7,6 +7,7 @@ from .cmaf import (
     FFmpegCMAFProcessor,
     build_dash_manifest,
     build_hls_master_playlist,
+    codec_string_from_init_segment,
     make_representation_metadata,
     parse_cmaf_media_playlist,
 )
@@ -97,6 +98,7 @@ __all__ = [
     "UnsupportedSubtitleCodecError",
     "build_dash_manifest",
     "build_hls_master_playlist",
+    "codec_string_from_init_segment",
     "resolve_video_encoder",
     "make_representation_metadata",
     "parse_cmaf_media_playlist",

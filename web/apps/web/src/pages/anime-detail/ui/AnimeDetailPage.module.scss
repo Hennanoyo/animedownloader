@@ -48,7 +48,8 @@
   min-width: 0;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.65rem 0.8rem;
+  gap: 0.4rem 0.9rem;
+  margin-top: 0.65rem;
 }
 
 .schedule {
@@ -59,17 +60,56 @@
 
 .episodeCount {
   flex: 0 0 auto;
-  padding: 0.45rem 0.7rem;
-  border: 1px solid #334155;
-  border-radius: 999px;
-  color: #cbd5e1;
-  font-size: 0.8rem;
+  padding-left: 0.9rem;
+  border-left: 1px solid #334155;
+  color: #64748b;
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.45rem;
+}
+
+.iconHeaderButton,
+.iconHeaderButtonDanger {
+  display: inline-flex;
+  width: 2.3rem;
+  height: 2.3rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.iconHeaderButton:hover,
+.iconHeaderButton:focus-visible {
+  border-color: #334155;
+  background: #111827;
+  color: #f8fafc;
+}
+
+.iconHeaderButtonDanger {
+  color: #f87171;
+}
+
+.iconHeaderButtonDanger:hover,
+.iconHeaderButtonDanger:focus-visible {
+  border-color: #7f1d1d;
+  background: #2a1014;
+  color: #fecaca;
+}
+
+.iconHeaderButton:focus-visible,
+.iconHeaderButtonDanger:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
 }
 
 .secondaryButton,
@@ -256,23 +296,6 @@
   }
 }
 
-
-.playButton {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.2rem;
-  padding: 0 0.7rem;
-  border: 1px solid #334155;
-  border-radius: 0.5rem;
-  color: #bfdbfe;
-  text-decoration: none;
-}
-
-.playButton:hover,
-.playButton:focus-visible {
-  border-color: #60a5fa;
-  color: #dbeafe;
-}
 
 
 .pipelineSummary {

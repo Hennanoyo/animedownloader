@@ -175,16 +175,18 @@ function AnimeHeader({
       <div>
         <p className={styles.kicker}>Anime detail</p>
         <h1>{anime.title}</h1>
-        <p className={styles.schedule}>
-          {anime.year} · {formatLabel(anime.season)} ·{" "}
-          {formatLabel(anime.weekday)} ·{" "}
-          {anime.air_time ?? "Time not set"} ({anime.timezone})
-        </p>
+        <div className={styles.headerMeta}>
+          <p className={styles.schedule}>
+            {anime.year} · {formatLabel(anime.season)} ·{" "}
+            {formatLabel(anime.weekday)} ·{" "}
+            {anime.air_time ?? "Time not set"} ({anime.timezone})
+          </p>
+          <span className={styles.episodeCount}>
+            {anime.episodes.length} {anime.episodes.length === 1 ? "episode" : "episodes"}
+          </span>
+        </div>
       </div>
       <div className={styles.headerActions}>
-        <span className={styles.episodeCount}>
-          {anime.episodes.length} episodes
-        </span>
         <Button className={styles.secondaryButton} onPress={onEdit}>
           Edit
         </Button>

@@ -141,7 +141,7 @@ function PipelineStage({ label, status, detail }: PipelineStageProps) {
 function formatStatus(status: PipelineStageStatus): string {
   return status
     .replaceAll("_", " ")
-    .replace(/w/g, (letter) => letter.toUpperCase());
+    .replace(/\bw/g, (letter) => letter.toUpperCase());
 }
 
 function formatDownloadProgress(download: {

@@ -7,8 +7,8 @@ import { useAnimeDetail } from "../../../features/anime-detail/model/useAnimeDet
 import { useAnimePipeline } from "../../../features/anime-detail/model/useAnimePipeline";
 import { useDeleteAnime } from "../../../features/anime-edit/model/useEditAnime";
 import AnimeEditForm from "../../../features/anime-edit/ui/AnimeEditForm";
-import EpisodePipelineCard from "../../../widgets/episode-pipeline/ui/EpisodePipelineCard";
 import EpisodeManagement from "../../../features/episode-management/ui/EpisodeManagement";
+import EpisodePipelineCard from "../../../widgets/episode-pipeline/ui/EpisodePipelineCard";
 import { ApiRequestError } from "../../../shared/api/client";
 import styles from "./AnimeDetailPage.module.scss";
 
@@ -150,6 +150,7 @@ export default function AnimeDetailPage() {
           )}
         </section>
       ) : null}
+    </main>
   );
 }
 
@@ -255,6 +256,3 @@ function formatLabel(value: string): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function formatCount(value: number | null): string {
-  return value === null ? "—" : value.toLocaleString();
-}

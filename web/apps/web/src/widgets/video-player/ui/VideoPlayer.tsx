@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { Button } from "react-aria-components";
 import type { Playback } from "../../../features/playback/model/types";
 import { selectVideoEngine } from "../../../shared/media-engine/select";
@@ -261,15 +267,18 @@ export default function VideoPlayer({ playback }: Props) {
     }
   }, []);
 
-  const seek = useCallback((nextTime: number) => {
-    const video = videoRef.current;
-    if (!video || !Number.isFinite(nextTime)) {
-      return;
-    }
+  const seek = useCallback(
+    (nextTime: number) => {
+      const video = videoRef.current;
+      if (!video || !Number.isFinite(nextTime)) {
+        return;
+      }
 
-    video.currentTime = Math.max(0, Math.min(nextTime, duration));
-    setCurrentTime(video.currentTime);
-  }, [duration]);
+      video.currentTime = Math.max(0, Math.min(nextTime, duration));
+      setCurrentTime(video.currentTime);
+    },
+    [duration],
+  );
 
   const changeVolume = useCallback((nextVolume: number) => {
     const video = videoRef.current;
@@ -327,7 +336,7 @@ export default function VideoPlayer({ playback }: Props) {
     });
   }, []);
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (
       event.defaultPrevented ||
       event.ctrlKey ||

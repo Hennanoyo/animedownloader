@@ -24,6 +24,10 @@ export default function VideoPlayer({ playback }: Props) {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const controlsTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(
+    null,
+  );
   const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(
     playback.subtitles.find((subtitle) => subtitle.is_default)?.id ??
       playback.subtitles[0]?.id ??
@@ -42,9 +46,29 @@ export default function VideoPlayer({ playback }: Props) {
     setSelectedSubtitleId(nextId);
   }, [playback.subtitles, selectedSubtitleId]);
 
+  const clearControlsTimer = () => {
+    if (controlsTimerRef.current !== null) {
+      window.clearTimeout(controlsTimerRef.current);
+      controlsTimerRef.current = null;
+    }
+  };
+
+  const showControls = () => {
+    setControlsVisible(true);
+    clearControlsTimer();
+
+    if (isPlaying) {
+      controlsTimerRef.current = window.setTimeout(() => {
+        setControlsVisible(false);
+        controlsTimerRef.current = null;
+      }, 2500);
+    }
+  };
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(document.fullscreenElement === playerRef.current);
+      showControls();
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
@@ -53,8 +77,14 @@ export default function VideoPlayer({ playback }: Props) {
         "fullscreenchange",
         handleFullscreenChange,
       );
+      clearControlsTimer();
     };
-  }, []);
+  }, [isPlaying]);
+
+  useEffect(() => {
+    showControls();
+    return clearControlsTimer;
+  }, [isPlaying]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -307,6 +337,71 @@ export default function VideoPlayer({ playback }: Props) {
       ref={playerRef}
       className={styles.player}
       aria-label="Video player"
+      tabIndex={0}
+      onPointerMove={showControls}
+      onFocus={showControls}
+      onKeyDown={(event) => {
+        if (
+          event.ctrlKey ||
+          event.metaKey ||
+          event.altKey ||
+          event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLSelectElement
+        ) {
+          return;
+        }
+
+        switch (event.key) {
+          case " ":
+          case "k":
+          case "K":
+            event.preventDefault();
+            togglePlayPause();
+            showControls();
+            break;
+          case "ArrowLeft":
+            event.preventDefault();
+            seek(currentTime - 5);
+            showControls();
+            break;
+          case "ArrowRight":
+            event.preventDefault();
+            seek(currentTime + 5);
+            showControls();
+            break;
+          case "ArrowUp":
+            event.preventDefault();
+            changeVolume(volume + 0.05);
+            showControls();
+            break;
+          case "ArrowDown":
+            event.preventDefault();
+            changeVolume(volume - 0.05);
+            showControls();
+            break;
+          case "m":
+          case "M":
+            event.preventDefault();
+            toggleMute();
+            showControls();
+            break;
+          case "f":
+          case "F":
+            event.preventDefault();
+            toggleFullscreen();
+            showControls();
+            break;
+          case "Escape":
+            if (document.fullscreenElement !== null) {
+              event.preventDefault();
+              void document.exitFullscreen();
+              showControls();
+            }
+            break;
+          default:
+            break;
+        }
+      }}
     >
       <video
         ref={videoRef}
@@ -315,6 +410,11 @@ export default function VideoPlayer({ playback }: Props) {
         playsInline
         preload="metadata"
         data-testid="video-player"
+        onClick={() => {
+          togglePlayPause();
+          showControls();
+        }}
+        onPointerMove={showControls}
       />
 
       <VideoControls
@@ -333,6 +433,7 @@ export default function VideoPlayer({ playback }: Props) {
         onVolumeChange={changeVolume}
         onMuteToggle={toggleMute}
         onSubtitleChange={setSelectedSubtitleId}
+        controlsVisible={controlsVisible}
         onFullscreenToggle={toggleFullscreen}
       />
 

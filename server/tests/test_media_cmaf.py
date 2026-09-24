@@ -12,6 +12,7 @@ from animedownloader_media import (
     SubprocessFFmpegRunner,
     build_dash_manifest,
     build_hls_master_playlist,
+    codec_string_from_init_segment,
 )
 
 
@@ -24,7 +25,14 @@ class FakeRunner:
         playlist_path = Path(args[-1])
         playlist_path.parent.mkdir(parents=True, exist_ok=True)
         (playlist_path.parent / "s").mkdir(parents=True, exist_ok=True)
-        (playlist_path.parent / "init.mp4").write_bytes(b"init")
+        (playlist_path.parent / "init.mp4").write_bytes(
+            bytes.fromhex(
+                "0000001568766343"
+                "010220000000"
+                "000000000000"
+                "78",
+            ),
+        )
         (playlist_path.parent / "s" / "00000.m4s").write_bytes(b"segment")
         playlist_path.write_text(
             "#EXTM3U\n"
@@ -79,6 +87,7 @@ def test_hls_master_and_dash_manifest_reference_same_representation() -> None:
         init_uri="1080p/init.mp4",
         segment_template="1080p/s/$Number%05d$.m4s",
         segments=(CMAFMediaSegment(0, 2.0, "s/00000.m4s"),),
+        video_codec_string="hvc1.2.4.L120",
     )
 
     hls = build_hls_master_playlist((representation,))
@@ -90,6 +99,22 @@ def test_hls_master_and_dash_manifest_reference_same_representation() -> None:
     assert "1080p/index.m3u8" in hls
     assert 'initialization="1080p/init.mp4"' in dash
     assert 'media="1080p/s/$Number%05d$.m4s"' in dash
+    assert 'CODECS="hvc1.2.4.L120,mp4a.40.2"' in hls
+    assert 'codecs="hvc1.2.4.L120,mp4a.40.2"' in dash
+
+
+def test_codec_string_from_hevc_init_segment(tmp_path: Path) -> None:
+    init_segment = tmp_path / "init.mp4"
+    init_segment.write_bytes(
+        bytes.fromhex(
+            "0000001568766343"
+            "010220000000"
+            "000000000000"
+            "78",
+        ),
+    )
+
+    assert codec_string_from_init_segment(init_segment) == "hvc1.2.4.L120"
 
 
 @pytest.mark.anyio

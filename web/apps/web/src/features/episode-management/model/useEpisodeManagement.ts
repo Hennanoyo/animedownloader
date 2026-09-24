@@ -36,6 +36,9 @@ export function useCreateEpisode(animeId: string) {
         ),
       );
       await queryClient.invalidateQueries({ queryKey: ["animes"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["anime-pipelines", animeId],
+      });
     },
   });
 }

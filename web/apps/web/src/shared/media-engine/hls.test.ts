@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   isSupported: vi.fn(() => true),
   loadSource: vi.fn(),
   attachMedia: vi.fn(),
+  startLoad: vi.fn(),
   destroy: vi.fn(),
 }));
 
@@ -12,6 +13,7 @@ vi.mock("hls.js", () => ({
     static isSupported = mocks.isSupported;
     loadSource = mocks.loadSource;
     attachMedia = mocks.attachMedia;
+    startLoad = mocks.startLoad;
     destroy = mocks.destroy;
   },
 }));
@@ -35,6 +37,7 @@ describe("HlsVideoEngine", () => {
 
     expect(mocks.loadSource).toHaveBeenCalledWith(source.url);
     expect(mocks.attachMedia).toHaveBeenCalledWith(video);
+    expect(mocks.startLoad).toHaveBeenCalledWith(-1);
   });
 
   it("destroys the HLS instance on detach", async () => {

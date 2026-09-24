@@ -95,6 +95,7 @@ export default function VideoControls({
     previewTime === null
       ? null
       : findThumbnailCue(thumbnailCues, previewTime);
+  const displayedTime = scrubTime ?? currentTime;
 
   const updatePreview = (clientX: number) => {
     const track = trackRef.current;
@@ -136,7 +137,7 @@ export default function VideoControls({
 
         <Slider
           aria-label="Seek"
-          value={Math.min(scrubTime ?? currentTime, duration)}
+          value={Math.min(displayedTime, duration)}
           minValue={0}
           maxValue={Math.max(duration, 1)}
           step={0.1}
@@ -163,7 +164,7 @@ export default function VideoControls({
             <span
               className={styles.timelineProgress}
               style={{
-                width: `${duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0}%`,
+                width: `${duration > 0 ? Math.min(100, (displayedTime / duration) * 100) : 0}%`,
               }}
             />
             <SliderThumb className={styles.timelineThumb} />

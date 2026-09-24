@@ -96,6 +96,12 @@ The first feature slice exposes Nyaa RSS release search through the API and URL-
 - PostgreSQL: `localhost:5432`
 - Redis: `localhost:6379`
 
+## Browser Media Access
+
+The development SeaweedFS Filer is exposed directly to the browser as the public media endpoint. Its CORS allowlist includes the Vite development origins (`http://localhost:5173` and `http://127.0.0.1:5173`) so MP4, HLS/DASH manifests, segments, subtitles, and fonts can be fetched by the player.
+
+If the frontend origin or public media endpoint changes, update the Filer's `-allowedOrigins` setting in `compose.yaml` together with `STORAGE_PUBLIC_URL`.
+
 ## Running and Debugging
 
 The `api`, `web`, and `worker` processes are started by Docker Compose.

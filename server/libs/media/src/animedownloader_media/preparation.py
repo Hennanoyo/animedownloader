@@ -111,7 +111,7 @@ class FFmpegMediaPreparationProcessor:
                 f"[thumbnail]{thumbnail_filter}[sprite]"
             )
             playable_video_map = "[playable]"
-            video_options = _build_video_encoder_options(self._video_encoder)
+            video_options = build_video_encoder_options(self._video_encoder)
             audio_codec = "aac"
             audio_options = ("-b:a", "192k")
         else:
@@ -145,7 +145,6 @@ class FFmpegMediaPreparationProcessor:
                 "-c:a",
                 audio_codec,
                 *audio_options,
-                *video_options,
                 "-movflags",
                 "+faststart",
                 str(playable_path),

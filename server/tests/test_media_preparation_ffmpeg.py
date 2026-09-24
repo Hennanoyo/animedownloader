@@ -96,6 +96,7 @@ async def test_preparation_can_use_cuda_decode(tmp_path: Path) -> None:
     )
     filter_graph = command[command.index("-filter_complex") + 1]
     assert "[thumbnail]hwdownload,format=nv12," in filter_graph
+    assert "-pix_fmt" not in command
 
 
 @pytest.mark.anyio

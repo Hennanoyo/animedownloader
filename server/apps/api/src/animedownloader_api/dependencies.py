@@ -13,12 +13,13 @@ from animedownloader_media_processing import (
     MediaVariantService,
 )
 from animedownloader_nyaa import NyaaClient
-from animedownloader_storage import Storage, create_storage
+from animedownloader_storage import Storage
 from animedownloader_qbittorrent import QBittorrentClient
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
+from animedownloader_api.playback import PlaybackService
 from animedownloader_api.task_queue import DownloadTaskDispatcher
 
 
@@ -98,3 +99,28 @@ def get_media_streaming_package_service(
 
 def get_media_storage(request: Request) -> Storage:
     return request.app.state.media_storage
+
+
+def get_playback_service(
+    anime_service: Annotated[AnimeService, Depends(get_anime_service)],
+    media_asset_service: Annotated[
+        MediaAssetService,
+        Depends(get_media_asset_service),
+    ],
+    media_variant_service: Annotated[
+        MediaVariantService,
+        Depends(get_media_variant_service),
+    ],
+    streaming_package_service: Annotated[
+        MediaStreamingPackageService,
+        Depends(get_media_streaming_package_service),
+    ],
+    storage: Annotated[Storage, Depends(get_media_storage)],
+) -> PlaybackService:
+    return PlaybackService(
+        anime_service=anime_service,
+        media_asset_service=media_asset_service,
+        media_variant_service=media_variant_service,
+        streaming_package_service=streaming_package_service,
+        storage=storage,
+    )

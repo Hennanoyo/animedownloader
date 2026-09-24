@@ -35,6 +35,26 @@ class FakeState:
     async def load(self, job_id: UUID) -> MediaPreparationContext:
         return self.context
 
+    async def update_operation(
+        self,
+        job_id: UUID,
+        *,
+        operation: MediaTranscodingOperation | None,
+    ) -> None:
+        self.context = MediaPreparationContext(
+            job_id=self.context.job_id,
+            asset_id=self.context.asset_id,
+            source_path=self.context.source_path,
+            source_metadata_updated_at=self.context.source_metadata_updated_at,
+            status=self.context.status,
+            operation=operation,
+            variant_id=self.context.variant_id,
+            playable_ready=self.context.playable_ready,
+            thumbnail_ready=self.context.thumbnail_ready,
+            duration_seconds=self.context.duration_seconds,
+            source_is_current=self.context.source_is_current,
+        )
+
     async def mark_processing(
         self,
         job_id: UUID,
@@ -311,6 +331,39 @@ async def test_runner_combines_playable_and_thumbnail_generation(tmp_path: Path)
     assert not (tmp_path / "storage" / "playable" / str(state.context.asset_id) / f"{state.context.job_id}.mp4").exists()
     assert len(inspector.paths) == 2
 
+
+@pytest.mark.anyio
+async def test_runner_refreshes_stale_operation_on_resume(tmp_path: Path) -> None:
+    context = make_context()
+    state = FakeState(
+        MediaPreparationContext(
+            job_id=context.job_id,
+            asset_id=context.asset_id,
+            source_path=context.source_path,
+            source_metadata_updated_at=context.source_metadata_updated_at,
+            status=MediaPreparationJobStatus.PROCESSING,
+            operation=MediaTranscodingOperation.TRANSCODE,
+            variant_id=context.variant_id,
+            playable_ready=False,
+            thumbnail_ready=False,
+            duration_seconds=context.duration_seconds,
+            source_is_current=True,
+        ),
+    )
+    source_probe = make_probe("hevc", "matroska,webm")
+    inspector = FakeInspector([source_probe])
+    preparation = FakePreparationProcessor()
+    playable = FakePlayableProcessor()
+    thumbnail = FakeThumbnailProcessor()
+
+    runner = make_runner(tmp_path, state, inspector, preparation, playable, thumbnail)
+
+    await runner.run(state.context.job_id)
+
+    assert state.context.operation is MediaTranscodingOperation.REMUX
+    assert state.completed is not None
+    assert len(preparation.calls) == 1
+    assert preparation.calls[0][-1] is PlayableMediaOperation.REMUX
 
 @pytest.mark.anyio
 async def test_runner_reuses_completed_playable_for_thumbnail_retry(tmp_path: Path) -> None:

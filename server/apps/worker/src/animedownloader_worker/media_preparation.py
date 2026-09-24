@@ -250,6 +250,16 @@ class MediaPreparationRunner:
         context: MediaPreparationContext | None = None
         try:
             context = await self._state.load(job_id)
+            logger.info(
+                "Media preparation loaded: job_id=%s asset_id=%s status=%s operation=%s "
+                "playable_ready=%s thumbnail_ready=%s",
+                job_id,
+                context.asset_id,
+                context.status.value,
+                context.operation.value if context.operation is not None else None,
+                context.playable_ready,
+                context.thumbnail_ready,
+            )
             if context.status is MediaPreparationJobStatus.COMPLETED:
                 return
             if not context.source_is_current:
@@ -261,7 +271,13 @@ class MediaPreparationRunner:
             playable_required = not context.playable_ready
             thumbnail_required = not context.thumbnail_ready
             if not playable_required and not thumbnail_required:
-                await self._state.mark_completed(
+                logger.info(
+                "Media preparation completed: job_id=%s playable_key=%s thumbnail=%s",
+                job_id,
+                playable_output_key,
+                thumbnail is not None,
+            )
+            await self._state.mark_completed(
                     job_id,
                     playable_probe=None,
                     playable_output_key=None,
@@ -278,6 +294,14 @@ class MediaPreparationRunner:
                 operation = self._planner.plan(source_probe)
 
             if context.status is MediaPreparationJobStatus.PENDING:
+                logger.info(
+                    "Media preparation entering processing: job_id=%s operation=%s "
+                    "playable_required=%s thumbnail_required=%s",
+                    job_id,
+                    operation.value if operation is not None else None,
+                    playable_required,
+                    thumbnail_required,
+                )
                 await self._state.mark_processing(
                     job_id,
                     operation=(
@@ -323,6 +347,11 @@ class MediaPreparationRunner:
                         raise MediaPreparationExecutionError(
                             "A playable operation is required for combined preparation",
                         )
+                    logger.info(
+                        "Media preparation FFmpeg started: job_id=%s mode=combined operation=%s",
+                        job_id,
+                        operation.value,
+                    )
                     combined = await self._preparation_processor.process(
                         media_path=Path(context.source_path),
                         playable_path=playable_path,
@@ -340,6 +369,11 @@ class MediaPreparationRunner:
                         raise MediaPreparationExecutionError(
                             "A playable operation is required for playable preparation",
                         )
+                    logger.info(
+                        "Media preparation FFmpeg started: job_id=%s mode=playable operation=%s",
+                        job_id,
+                        operation.value,
+                    )
                     result = await self._playable_processor.process(
                         media_path=Path(context.source_path),
                         output_path=playable_path,
@@ -349,6 +383,10 @@ class MediaPreparationRunner:
                     playable_probe = await self._inspector.inspect(playable_output_path)
                     self._planner.validate(playable_probe)
                 else:
+                    logger.info(
+                        "Media preparation FFmpeg started: job_id=%s mode=thumbnail",
+                        job_id,
+                    )
                     thumbnail = await self._thumbnail_processor.generate(
                         media_path=Path(context.source_path),
                         output_dir=thumbnail_dir,
@@ -357,6 +395,11 @@ class MediaPreparationRunner:
 
                 if playable_output_path is not None:
                     playable_output_key = f"playable/{context.asset_id}/{job_id}.mp4"
+                    logger.info(
+                        "Media preparation uploading playable: job_id=%s key=%s",
+                        job_id,
+                        playable_output_key,
+                    )
                     await self._storage.put_file(
                         playable_output_path,
                         playable_output_key,

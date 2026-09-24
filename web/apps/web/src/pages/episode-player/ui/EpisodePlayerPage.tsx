@@ -70,14 +70,14 @@ export default function EpisodePlayerPage() {
       <section className={styles.panel}>
         <VideoPlayer
           playback={playback}
-          playbackRevision={query.dataUpdatedAt}
           onRetryMedia={async () => {
             const result = await query.refetch();
-            if (result.isError) {
+            if (result.isError || result.data === undefined) {
               throw result.error instanceof Error
                 ? result.error
                 : new Error("Playback refresh failed.");
             }
+            return result.data;
           }}
         />
       </section>

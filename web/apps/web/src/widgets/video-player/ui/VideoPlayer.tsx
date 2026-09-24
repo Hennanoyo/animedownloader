@@ -13,8 +13,7 @@ import styles from "./VideoPlayer.module.scss";
 
 interface Props {
   playback: Playback;
-  playbackRevision: number;
-  onRetryMedia: () => Promise<void>;
+  onRetryMedia: () => Promise<Playback>;
 }
 
 export default function VideoPlayer({ playback }: Props) {
@@ -24,12 +23,13 @@ export default function VideoPlayer({ playback }: Props) {
     useState<SelectedVideoSource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
+  const [mediaRetryAttempt, setMediaRetryAttempt] = useState(0);
   const [isRetryingMedia, setIsRetryingMedia] = useState(false);
   const [sourceFailures, setSourceFailures] = useState<{
-    revision: number;
+    video: Playback["video"];
     kinds: VideoSourceKind[];
   }>({
-    revision: playbackRevision,
+    video: playback.video,
     kinds: [],
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -120,7 +120,7 @@ export default function VideoPlayer({ playback }: Props) {
     }
 
     const excludedSourceKinds =
-      sourceFailures.revision === playbackRevision ? sourceFailures.kinds : [];
+      sourceFailures.video === playback.video ? sourceFailures.kinds : [];
     const selected = selectVideoEngine(
       video,
       playback.video,
@@ -154,12 +154,12 @@ export default function VideoPlayer({ playback }: Props) {
       setError(message);
       setSourceFailures((current) => {
         const currentKinds =
-          current.revision === playbackRevision ? current.kinds : [];
+          current.video === playback.video ? current.kinds : [];
         if (currentKinds.includes(source.kind)) {
           return current;
         }
         return {
-          revision: playbackRevision,
+          video: playback.video,
           kinds: [...currentKinds, source.kind],
         };
       });
@@ -260,7 +260,7 @@ export default function VideoPlayer({ playback }: Props) {
       video.removeEventListener("error", handleError);
       engine.detach();
     };
-  }, [playback.video, playbackRevision, sourceFailures]);
+  }, [mediaRetryAttempt, playback.video, sourceFailures]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -475,6 +475,15 @@ export default function VideoPlayer({ playback }: Props) {
               onPress={() => {
                 setIsRetryingMedia(true);
                 void onRetryMedia()
+                  .then((nextPlayback) => {
+                    if (nextPlayback.video === playback.video) {
+                      setSourceFailures({
+                        video: playback.video,
+                        kinds: [],
+                      });
+                      setMediaRetryAttempt((attempt) => attempt + 1);
+                    }
+                  })
                   .catch((retryError: unknown) => {
                     setError(
                       retryError instanceof Error

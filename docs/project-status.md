@@ -405,7 +405,7 @@ Current implementation:
 - Added deterministic unit/browser coverage for source fallback and media-engine error handling
 - Refresh Playback data when the player mounts instead of reusing a fresh cache entry
 - Re-fetch Playback data from the media retry action so replaced media URLs are not retried indefinitely
-- Use the Playback fetch timestamp to invalidate prior source-failure exclusions after a successful refresh
+- Reset prior source-failure exclusions when refreshed Playback data replaces the video source
 - Added browser coverage for replacing an exhausted media source through Playback refresh
 
 Planned follow-up within the same phase:

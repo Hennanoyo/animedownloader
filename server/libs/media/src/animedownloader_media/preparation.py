@@ -121,7 +121,10 @@ class FFmpegMediaPreparationProcessor:
                 f"[thumbnail]{thumbnail_prefix}{thumbnail_filter}[sprite]"
             )
             playable_video_map = "[playable]"
-            video_options = build_video_encoder_options(self._video_encoder)
+            video_options = build_video_encoder_options(
+                self._video_encoder,
+                hardware_acceleration=self._hardware_acceleration,
+            )
             audio_codec = "aac"
             audio_options = ("-b:a", "192k")
         else:

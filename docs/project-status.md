@@ -335,6 +335,8 @@ Runtime validation:
 - `just storage-smoke` verifies SeaweedFS upload/materialize/delete against the Compose service
 - `just storage-media-smoke <episode-id>` verifies a newly processed Episode's stored playable media, subtitles, thumbnails, attachments/fonts, and CMAF/HLS/DASH artifacts
 - `STORAGE_BACKEND=seaweedfs` is exposed through Compose for real application-path testing
+- Development GPU acceleration is available through `compose.gpu.yaml` and `just storage-media-smoke-gpu <episode-id>`
+- `storage-media-smoke` reports Redis pending tasks and active FFmpeg/temporary-output diagnostics when its wait timeout expires
 
 ### PR #28 — Player / Playback
 

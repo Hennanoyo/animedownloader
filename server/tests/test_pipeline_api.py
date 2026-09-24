@@ -11,6 +11,7 @@ from animedownloader_api.dependencies import get_anime_pipeline_service
 from animedownloader_api.pipeline import build_episode_pipeline_summary
 from animedownloader_api.schemas import (
     AnimePipelineResponse,
+    EpisodePipelineCurrentStage,
     EpisodePipelineStageStatus,
 )
 from animedownloader_download import DownloadJob

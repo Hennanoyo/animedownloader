@@ -314,6 +314,14 @@ dev = [
 name = "animedownloader-storage"
 version = "0.1.0"
 source = { editable = "libs/storage" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.11,<3" },
+]
 
 [[package]]
 name = "animedownloader-torrent"

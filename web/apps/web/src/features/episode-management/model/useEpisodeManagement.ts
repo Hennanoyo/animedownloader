@@ -66,9 +66,6 @@ export function useUpdateEpisode() {
         ),
       );
       await queryClient.invalidateQueries({ queryKey: ["animes"] });
-      await queryClient.invalidateQueries({
-        queryKey: ["anime-pipelines", animeId],
-      });
     },
   });
 }
@@ -86,6 +83,9 @@ export function useDeleteEpisode(animeId: string) {
         ),
       );
       await queryClient.invalidateQueries({ queryKey: ["animes"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["anime-pipelines", animeId],
+      });
     },
   });
 }

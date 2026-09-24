@@ -61,6 +61,13 @@ class MediaAssetService:
     ) -> MediaFont:
         font = await self.assets.get_font_by_sha256(sha256)
         if font is not None:
+            # The object key can change as storage backends are migrated. The
+            # font content is content-addressed, so an existing font row can
+            # safely be refreshed to the key just uploaded by the caller.
+            font.name = name
+            font.mime_type = mime_type
+            font.path = path
+            font.size_bytes = size_bytes
             return font
 
         font = MediaFont(
@@ -77,6 +84,10 @@ class MediaAssetService:
             existing = await self.assets.get_font_by_sha256(sha256)
             if existing is None:
                 raise
+            existing.name = name
+            existing.mime_type = mime_type
+            existing.path = path
+            existing.size_bytes = size_bytes
             return existing
 
     async def upsert(

@@ -269,6 +269,7 @@ def wait_for_playable(
     started_at = time.monotonic()
     deadline = started_at + timeout_seconds
     last_signature: tuple[object, ...] | None = None
+    last_activity_report = started_at - 30.0
     processing: object = None
     preparation: dict[str, object] | None = None
     playable: dict[str, object] | None = None
@@ -339,6 +340,20 @@ def wait_for_playable(
                 )
             if status == "completed" and current is True and path:
                 return playable
+
+        now = time.monotonic()
+        if now - last_activity_report >= 30.0:
+            ffmpeg_processes = _active_ffmpeg_processes()
+            outputs = _temporary_media_outputs()
+            activity = f"  activity: elapsed={now - started_at:.0f}s"
+            if ffmpeg_processes:
+                activity += f" ffmpeg=running({len(ffmpeg_processes)})"
+            else:
+                activity += " ffmpeg=none"
+            if outputs:
+                activity += f" temp_outputs={', '.join(outputs[:3])}"
+            print(activity, flush=True)
+            last_activity_report = now
 
         if (
             preparation is not None

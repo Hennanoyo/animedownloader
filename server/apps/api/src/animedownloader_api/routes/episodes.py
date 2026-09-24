@@ -23,8 +23,8 @@ from animedownloader_api.dependencies import (
     get_media_preparation_job_service,
     get_media_processing_job_service,
     get_media_streaming_package_service,
-    get_playback_service,
     get_media_variant_service,
+    get_playback_service,
 )
 from animedownloader_api.schemas import (
     DownloadJobResponse,
@@ -71,7 +71,6 @@ MediaStreamingPackageServiceDependency = Annotated[
     Depends(get_media_streaming_package_service),
 ]
 PlaybackServiceDependency = Annotated[PlaybackService, Depends(get_playback_service)]
-
 
 
 @router.get(

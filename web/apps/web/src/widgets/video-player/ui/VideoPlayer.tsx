@@ -16,7 +16,7 @@ interface Props {
   onRetryMedia: () => Promise<Playback>;
 }
 
-export default function VideoPlayer({ playback }: Props) {
+export default function VideoPlayer({ playback, onRetryMedia }: Props) {
   const playerRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [selectedSource, setSelectedSource] =

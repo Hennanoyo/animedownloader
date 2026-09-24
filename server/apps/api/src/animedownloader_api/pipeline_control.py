@@ -125,7 +125,6 @@ class EpisodePipelineControlService:
         variant = await self._variants.get_playable_variant(asset.id)
         playable_ready = (
             variant is not None
-            and asset.metadata_updated_at is not None
             and variant.is_current(
                 source_path=asset.path,
                 source_metadata_updated_at=asset.metadata_updated_at,

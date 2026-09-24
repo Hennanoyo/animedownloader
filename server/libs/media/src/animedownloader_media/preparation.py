@@ -144,8 +144,6 @@ class FFmpegMediaPreparationProcessor:
                 str(media_path),
                 "-filter_complex_threads",
                 "2",
-                "-filter_buffered_frames",
-                "512",
                 "-filter_complex",
                 filter_complex,
                 "-map",

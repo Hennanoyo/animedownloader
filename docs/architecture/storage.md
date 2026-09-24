@@ -38,6 +38,7 @@ Keep these representations distinct:
 Do not persist local absolute paths or provider-specific URLs in an `object_key` field. The storage adapter accepts only provider-independent relative keys.
 
 The canonical key builders live in `animedownloader_storage.artifacts`. Workers should construct keys through those models instead of duplicating string formatting rules.
+
 ## Processing and Storage
 
 Media processing should use temporary local staging paths for FFmpeg and then upload successful outputs through the storage abstraction.
@@ -74,7 +75,7 @@ This keeps FFmpeg independent from the storage provider and makes upload failure
 
 The canonical downloaded `MediaAsset.path` remains a local filesystem path in this phase because media inspection, subtitle extraction, and attachment extraction still read the shared download/media volumes directly.
 
-The storage migration therefore focuses first on durable derived artifacts. Existing local absolute paths remain readable by `LocalStorage` so previously generated artifacts can continue to be consumed while the migration proceeds.
+The storage migration therefore focuses first on durable derived artifacts. Existing derived objects created under older path rules are intentionally not treated as compatible data in this development phase; reset/recreate the development database and media storage when changing the canonical rules.
 
 Migrating source media itself to object storage is a separate lifecycle concern.
 

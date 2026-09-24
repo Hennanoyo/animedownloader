@@ -18,6 +18,8 @@ export default function VideoPlayer({ playback }: Props) {
   const [selectedSource, setSelectedSource] =
     useState<SelectedVideoSource | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [mediaAttempt, setMediaAttempt] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -96,6 +98,8 @@ export default function VideoPlayer({ playback }: Props) {
     const video = videoRef.current;
     if (!video || playback.video === null) {
       setSelectedSource(null);
+      setError(null);
+      setMediaError(null);
       setIsLoading(false);
       setCurrentTime(0);
       setDuration(0);
@@ -106,7 +110,9 @@ export default function VideoPlayer({ playback }: Props) {
     const selected = selectVideoEngine(video, playback.video);
     if (selected === null) {
       setSelectedSource(null);
-      setError("This browser cannot play any available video source.");
+      const message = "This browser cannot play any available video source.";
+      setMediaError(message);
+      setError(message);
       setIsLoading(false);
       return;
     }
@@ -133,6 +139,7 @@ export default function VideoPlayer({ playback }: Props) {
       }
       syncMediaState();
       setIsLoading(false);
+      setMediaError(null);
     };
 
     const handleDurationChange = () => {
@@ -170,14 +177,17 @@ export default function VideoPlayer({ playback }: Props) {
 
     const handleError = () => {
       if (active) {
+        const message = "The selected video source could not be loaded.";
         setIsLoading(false);
-        setError("The selected video source could not be loaded.");
+        setMediaError(message);
+        setError(message);
       }
     };
 
     syncMediaState();
     setSelectedSource(source);
     setError(null);
+    setMediaError(null);
     setIsLoading(true);
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
     video.addEventListener("durationchange", handleDurationChange);
@@ -191,12 +201,13 @@ export default function VideoPlayer({ playback }: Props) {
       if (!active) {
         return;
       }
-      setIsLoading(false);
-      setError(
+      const message =
         attachError instanceof Error
           ? attachError.message
-          : "The selected video source could not be loaded.",
-      );
+          : "The selected video source could not be loaded.";
+      setIsLoading(false);
+      setMediaError(message);
+      setError(message);
     });
 
     return () => {
@@ -210,7 +221,7 @@ export default function VideoPlayer({ playback }: Props) {
       video.removeEventListener("error", handleError);
       engine.detach();
     };
-  }, [playback.video]);
+  }, [mediaAttempt, playback.video]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -416,9 +427,19 @@ export default function VideoPlayer({ playback }: Props) {
       </div>
 
       {error ? (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
+        <div className={styles.error} role="alert">
+          <p>{error}</p>
+          {mediaError !== null ? (
+            <Button
+              className={styles.retryButton}
+              onPress={() => {
+                setMediaAttempt((attempt) => attempt + 1);
+              }}
+            >
+              Retry media
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {playback.chapters.length > 0 ? (

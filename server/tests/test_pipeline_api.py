@@ -172,7 +172,7 @@ def test_build_pipeline_summary_reports_completed_media_and_streaming() -> None:
 
 def test_build_pipeline_summary_polls_after_download_before_processing_job_exists() -> None:
     episode = make_episode()
-    download, _, asset, preparation, variant, package = make_completed_pipeline(episode)
+    download = make_completed_pipeline(episode)[0]
 
     summary = build_episode_pipeline_summary(
         episode,

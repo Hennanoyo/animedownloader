@@ -16,11 +16,15 @@ export class HlsVideoEngine implements VideoEngine {
       throw new Error("HLS.js is not supported by this browser.");
     }
 
-    const hls = new Hls();
+    const hls = new Hls({
+      autoStartLoad: true,
+    });
     this.hls = hls;
     this.video = video;
+
     hls.loadSource(source.url);
     hls.attachMedia(video);
+    hls.startLoad(-1);
   }
 
   detach(): void {

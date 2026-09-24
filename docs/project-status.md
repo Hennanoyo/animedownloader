@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is media pipeline integration and Anime detail UX. PR #23 through PR #29 are merged; PR #30 is the current development step.
+The current phase is Download Management UX. PR #23 through PR #30 are merged; PR #31 is the next development step.
 
 ## Completed
 
@@ -415,7 +415,7 @@ Planned follow-up within the same phase:
 
 ### PR #30 — Media Pipeline Integration & Anime Detail UX
 
-**In progress on `feature/media-pipeline-detail`.**
+**Merged into `main` as commit `0ed5f512ce362937ca64a892729efa369ef1e8b6`.**
 
 Goal: complete the user-visible Episode media pipeline from Download through playable media, thumbnail readiness, HLS/DASH packaging, and playback readiness, while replacing the wide Episode table with a pipeline-oriented detail view.
 
@@ -442,7 +442,41 @@ Important implementation note:
 Planned follow-up:
 
 - Do not expand this PR with real-time FFmpeg progress unless profiling shows that coarse stage completion is insufficient.
-- After this PR, proceed to the next Download Management UX work rather than adding more media-pipeline surface area.
+- Proceed to the next Download Management UX work rather than adding more media-pipeline surface area.
+
+### PR #31 — Download Management UX
+
+Goal: provide a coherent place to monitor and control downloads across Episodes instead of requiring users to manage each download only from the Anime detail Episode card.
+
+Scope:
+
+- Add a download-management API that can list current and recent DownloadJobs with stable Episode/Anime context
+- Keep PostgreSQL as the durable source of truth while continuing to poll qBittorrent from the worker
+- Add a dedicated frontend download manager for active, paused, failed, completed, and cancelled jobs
+- Reuse the existing Pause / Resume / Cancel / Retry / Download again / Delete record actions and their existing state semantics
+- Keep active download status polling limited to jobs that can actually change; do not introduce FFmpeg progress or media-pipeline WebSocket streaming in this PR
+- Preserve the existing Anime detail pipeline controls and make cache invalidation consistent between the detail page and the management view
+- Add focused API/frontend/browser coverage for queue presentation, terminal-state actions, and refresh/reload recovery
+
+Design constraints:
+
+- Do not duplicate DownloadJob state in a new database table
+- Keep qBittorrent behind the existing TorrentClient abstraction
+- Do not turn PostgreSQL into a per-progress-event realtime transport
+- Keep media-processing progress architecture separate so download management can ship independently
+
+Out of scope:
+
+- FFmpeg realtime progress events
+- Redis Pub/Sub or WebSocket transport for media-processing progress
+- Changes to the media preparation, thumbnail, CMAF, or playback pipeline
+- Automatic scheduling/prioritization of a multi-download queue
+
+Future follow-up after PR #31:
+
+- Evaluate a shared realtime progress event transport (Redis + WebSocket) for long-running download/media jobs if polling becomes insufficient
+- Add coarse durable checkpoints/heartbeat only where recovery semantics require them
+- Consider queue prioritization and concurrency controls after the download-management UI is established
 
 ## Handoff Notes
 

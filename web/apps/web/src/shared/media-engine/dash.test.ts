@@ -7,14 +7,12 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("dashjs", () => ({
-  default: {
-    MediaPlayer: () => ({
-      create: mocks.create.mockReturnValue({
-        initialize: mocks.initialize,
-        reset: mocks.reset,
-      }),
+  MediaPlayer: () => ({
+    create: mocks.create.mockReturnValue({
+      initialize: mocks.initialize,
+      reset: mocks.reset,
     }),
-  },
+  }),
 }));
 
 import { DashVideoEngine } from "./dash";

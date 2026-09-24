@@ -272,12 +272,10 @@ class MediaPreparationRunner:
             thumbnail_required = not context.thumbnail_ready
             if not playable_required and not thumbnail_required:
                 logger.info(
-                "Media preparation completed: job_id=%s playable_key=%s thumbnail=%s",
-                job_id,
-                playable_output_key,
-                thumbnail is not None,
-            )
-            await self._state.mark_completed(
+                    "Media preparation already complete: job_id=%s",
+                    job_id,
+                )
+                await self._state.mark_completed(
                     job_id,
                     playable_probe=None,
                     playable_output_key=None,
@@ -420,6 +418,12 @@ class MediaPreparationRunner:
                         content_type="text/vtt",
                     )
 
+            logger.info(
+                "Media preparation completed: job_id=%s playable_key=%s thumbnail=%s",
+                job_id,
+                playable_output_key,
+                thumbnail is not None,
+            )
             await self._state.mark_completed(
                 job_id,
                 playable_probe=playable_probe,

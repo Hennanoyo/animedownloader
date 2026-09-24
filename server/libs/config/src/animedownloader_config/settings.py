@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     qbittorrent_api_key: SecretStr | None = None
     ffmpeg_timeout_seconds: float = 1800.0
     ffmpeg_video_encoder: Literal["libx265", "hevc_nvenc"] = "libx265"
+    ffmpeg_hwaccel: Literal["none", "cuda"] = "none"
 
     model_config = SettingsConfigDict(
         env_file="/app/server/.env",

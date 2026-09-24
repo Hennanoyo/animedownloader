@@ -58,6 +58,11 @@ See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 ## Storage Rules
 
 - Persist storage `object_key` values in PostgreSQL rather than environment-specific public URLs.
+- Treat `source_path`, `object_key`, and public URL as different representations with different responsibilities.
+- Use UUID7-backed artifact identity for normal derived artifacts; do not use processing job IDs as durable artifact filenames.
+- Use content-addressed SHA-256 identity for reusable resources such as fonts.
+- Keep original filenames as metadata rather than embedding them in canonical object keys.
+- Define and reuse canonical object keys from `animedownloader_storage.artifacts` instead of duplicating key-format strings in workers or API code.
 - Internal and public storage endpoints must be configurable through environment-backed settings.
 - Keep SeaweedFS access behind a storage abstraction.
 

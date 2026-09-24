@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import type { Playback } from "../../../features/playback/model/types";
-import {
-  NativeVideoEngine,
-  selectNativeSource,
-} from "../../../shared/media-engine/native";
+import { selectVideoEngine } from "../../../shared/media-engine/select";
 import type { SelectedVideoSource } from "../../../shared/media-engine/types";
 import styles from "./VideoPlayer.module.scss";
 
@@ -27,15 +24,16 @@ export default function VideoPlayer({ playback }: Props) {
       return;
     }
 
-    const source = selectNativeSource(video, playback.video);
-    if (source === null) {
+    const selected = selectVideoEngine(video, playback.video);
+    if (selected === null) {
       setSelectedSource(null);
       setError("This browser cannot play any available video source.");
       setIsLoading(false);
       return;
     }
 
-    const engine = new NativeVideoEngine();
+    const engine = selected.engine;
+    const source = selected.source;
     let active = true;
 
     const handleLoadedMetadata = () => {
@@ -55,7 +53,17 @@ export default function VideoPlayer({ playback }: Props) {
     setIsLoading(true);
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
     video.addEventListener("error", handleError);
-    void engine.attach(video, source.source);
+    void engine.attach(video, source.source).catch((attachError: unknown) => {
+      if (!active) {
+        return;
+      }
+      setIsLoading(false);
+      setError(
+        attachError instanceof Error
+          ? attachError.message
+          : "The selected video source could not be loaded.",
+      );
+    });
 
     return () => {
       active = false;

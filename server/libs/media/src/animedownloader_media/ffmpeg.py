@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import shlex
+import sys
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -10,9 +10,6 @@ from pathlib import Path
 from typing import Protocol
 
 from .playback import PlayableMediaOperation
-
-
-logger = logging.getLogger(__name__)
 
 DEFAULT_FFMPEG_TIMEOUT_SECONDS = 1800.0
 DEFAULT_FFMPEG_HEARTBEAT_INTERVAL_SECONDS = 30.0
@@ -56,10 +53,9 @@ class SubprocessFFmpegRunner:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        logger.info(
-            "FFmpeg started: pid=%s command=%s",
-            process.pid,
-            shlex.join(command),
+        print(
+            f"[worker] FFmpeg started: pid={process.pid} command={shlex.join(command)}",
+            flush=True,
         )
 
         communication = asyncio.create_task(process.communicate())
@@ -78,19 +74,17 @@ class SubprocessFFmpegRunner:
                     break
                 except asyncio.TimeoutError:
                     elapsed = time.monotonic() - started_at
-                    logger.info(
-                        "FFmpeg still running: pid=%s elapsed=%.0fs",
-                        process.pid,
-                        elapsed,
+                    print(
+                        f"[worker] FFmpeg still running: pid={process.pid} elapsed={elapsed:.0f}s",
+                        flush=True,
                     )
 
             elapsed = time.monotonic() - started_at
             returncode = process.returncode or 0
-            logger.info(
-                "FFmpeg finished: pid=%s elapsed=%.1fs returncode=%s",
-                process.pid,
-                elapsed,
-                returncode,
+            print(
+                f"[worker] FFmpeg finished: pid={process.pid} "
+                f"elapsed={elapsed:.1f}s returncode={returncode}",
+                flush=True,
             )
             return FFmpegCommandResult(
                 stdout=stdout,
@@ -102,12 +96,12 @@ class SubprocessFFmpegRunner:
                 process.kill()
             await communication
             elapsed = time.monotonic() - started_at
-            logger.error(
-                "FFmpeg timed out: pid=%s elapsed=%.1fs timeout=%.1fs command=%s",
-                process.pid,
-                elapsed,
-                self._timeout_seconds,
-                shlex.join(command),
+            print(
+                f"[worker] FFmpeg timed out: pid={process.pid} "
+                f"elapsed={elapsed:.1f}s timeout={self._timeout_seconds:.1f}s "
+                f"command={shlex.join(command)}",
+                flush=True,
+                file=sys.stderr,
             )
             raise FFmpegTimeoutError(
                 "FFmpeg timed out after "
@@ -117,7 +111,11 @@ class SubprocessFFmpegRunner:
             if process.returncode is None:
                 process.kill()
             await communication
-            logger.warning("FFmpeg cancelled: pid=%s", process.pid)
+            print(
+                f"[worker] FFmpeg cancelled: pid={process.pid}",
+                flush=True,
+                file=sys.stderr,
+            )
             raise
 
 

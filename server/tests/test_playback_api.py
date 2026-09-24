@@ -239,7 +239,7 @@ async def test_playback_service_hides_stale_video_and_incomplete_streaming() -> 
 
     assert result.video is None
     assert result.thumbnails is None
-    streaming_package_service.get_for_variant.assert_not_awaited()
+    streaming_package_service.get_for_variant.assert_not_called()
 
 
 @pytest.mark.anyio

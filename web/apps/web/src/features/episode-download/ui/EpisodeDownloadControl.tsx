@@ -13,9 +13,13 @@ import styles from "./EpisodeDownloadControl.module.scss";
 
 interface Props {
   episodeId: string;
+  compact?: boolean;
 }
 
-export default function EpisodeDownloadControl({ episodeId }: Props) {
+export default function EpisodeDownloadControl({
+  episodeId,
+  compact = false,
+}: Props) {
   const query = useEpisodeDownload(episodeId);
   const createMutation = useCreateEpisodeDownloadJob(episodeId);
   const pauseMutation = usePauseDownloadJob(episodeId);
@@ -48,25 +52,33 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
     const pending = pauseMutation.isPending || cancelMutation.isPending;
 
     return (
-      <div className={styles.control}>
-        <span className={styles.status}>
-          {job.status === "pending" ? "Queued" : "Downloading"}
-        </span>
-        <div className={styles.progressTrack}>
-          <div
-            className={styles.progress}
-            style={{
-              width:
-                job.total_bytes && job.total_bytes > 0
-                  ? Math.min(
-                      (job.downloaded_bytes / job.total_bytes) * 100,
-                      100,
-                    ) + "%"
-                  : "0%",
-            }}
-          />
-        </div>
-        <span className={styles.progressLabel}>{formatProgress(job)}</span>
+      <div
+        className={compact ? styles.control + " " + styles.compact : styles.control}
+      >
+        {compact ? null : (
+          <>
+            <span className={styles.status}>
+              {job.status === "pending" ? "Queued" : "Downloading"}
+            </span>
+            <div className={styles.progressTrack}>
+              <div
+                className={styles.progress}
+                style={{
+                  width:
+                    job.total_bytes && job.total_bytes > 0
+                      ? Math.min(
+                          (job.downloaded_bytes / job.total_bytes) * 100,
+                          100,
+                        ) + "%"
+                      : "0%",
+                }}
+              />
+            </div>
+            <span className={styles.progressLabel}>
+              {formatProgress(job)}
+            </span>
+          </>
+        )}
         {confirm === "cancel" ? (
           <div className={styles.confirm} role="alertdialog">
             <span>Cancel this download and remove partial data?</span>
@@ -122,9 +134,15 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
     const pending = resumeMutation.isPending || cancelMutation.isPending;
 
     return (
-      <div className={styles.control}>
-        <span className={styles.status}>Paused</span>
-        <span className={styles.progressLabel}>{formatProgress(job)}</span>
+      <div
+        className={compact ? styles.control + " " + styles.compact : styles.control}
+      >
+        {compact ? null : (
+          <>
+            <span className={styles.status}>Paused</span>
+            <span className={styles.progressLabel}>{formatProgress(job)}</span>
+          </>
+        )}
         {confirm === "cancel" ? (
           <div className={styles.confirm} role="alertdialog">
             <span>Cancel this download and remove partial data?</span>
@@ -179,6 +197,7 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
   if (job?.status === "completed") {
     return (
       <TerminalDownloadControl
+        compact={compact}
         job={job}
         onDownload={() => createMutation.mutate()}
         onDelete={() => setConfirm("delete")}
@@ -193,6 +212,7 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
   if (job?.status === "failed") {
     return (
       <TerminalDownloadControl
+        compact={compact}
         job={job}
         onDownload={() => createMutation.mutate()}
         onDelete={() => setConfirm("delete")}
@@ -208,6 +228,7 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
   if (job?.status === "cancelled") {
     return (
       <TerminalDownloadControl
+        compact={compact}
         job={job}
         onDownload={() => createMutation.mutate()}
         onDelete={() => setConfirm("delete")}
@@ -240,6 +261,7 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
 }
 
 interface TerminalDownloadControlProps {
+  compact?: boolean;
   job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
   onDownload: () => void;
   onDelete: () => void;
@@ -251,6 +273,7 @@ interface TerminalDownloadControlProps {
 }
 
 function TerminalDownloadControl({
+  compact = false,
   job,
   onDownload,
   onDelete,
@@ -261,18 +284,24 @@ function TerminalDownloadControl({
   showError = false,
 }: TerminalDownloadControlProps) {
   return (
-    <div className={styles.control}>
-      <span className={job.status === "failed" ? styles.error : styles.message}>
-        {job.status === "completed"
-          ? "Completed"
-          : job.status === "failed"
-            ? "Failed"
-            : "Cancelled"}
-      </span>
+    <div
+      className={compact ? styles.control + " " + styles.compact : styles.control}
+    >
+      {compact ? null : (
+        <span className={job.status === "failed" ? styles.error : styles.message}>
+          {job.status === "completed"
+            ? "Completed"
+            : job.status === "failed"
+              ? "Failed"
+              : "Cancelled"}
+        </span>
+      )}
       {job.status === "failed" && job.error_message ? (
         <span className={styles.errorDetail}>{job.error_message}</span>
       ) : null}
-      <span className={styles.progressLabel}>{formatProgress(job)}</span>
+      {compact ? null : (
+        <span className={styles.progressLabel}>{formatProgress(job)}</span>
+      )}
       <div className={styles.buttons}>
         <Button
           className={styles.secondaryButton}

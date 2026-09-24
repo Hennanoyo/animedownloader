@@ -7,7 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, computed_field, field_validator
 
-
 _EXTENSION_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 

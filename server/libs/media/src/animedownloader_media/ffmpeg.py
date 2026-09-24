@@ -17,27 +17,7 @@ DEFAULT_FFMPEG_TIMEOUT_SECONDS = 1800.0
 DEFAULT_FFMPEG_HEARTBEAT_INTERVAL_SECONDS = 30.0
 
 
-def build_video_input_options(hardware_acceleration: str) -> tuple[str, ...]:
-    if hardware_acceleration == "none":
-        return ()
-    if hardware_acceleration == "cuda":
-        return (
-            "-hwaccel",
-            "cuda",
-            "-hwaccel_output_format",
-            "cuda",
-        )
-    raise ValueError(
-        "Unsupported hardware acceleration: "
-        f"{hardware_acceleration!r}; expected 'none' or 'cuda'",
-    )
-
-
-def build_video_encoder_options(
-    video_encoder: str,
-    *,
-    hardware_acceleration: str = "none",
-) -> tuple[str, ...]:
+def build_video_encoder_options(video_encoder: str) -> tuple[str, ...]:
     if video_encoder == "libx265":
         return (
             "-c:v",
@@ -50,7 +30,7 @@ def build_video_encoder_options(
             "yuv420p",
         )
     if video_encoder == "hevc_nvenc":
-        options = [
+        return (
             "-c:v",
             "hevc_nvenc",
             "-preset",
@@ -61,10 +41,9 @@ def build_video_encoder_options(
             "28",
             "-b:v",
             "0",
-        ]
-        if hardware_acceleration != "cuda":
-            options.extend(("-pix_fmt", "yuv420p"))
-        return tuple(options)
+            "-pix_fmt",
+            "yuv420p",
+        )
     raise ValueError(
         "Unsupported video encoder: "
         f"{video_encoder!r}; expected 'libx265' or 'hevc_nvenc'",
@@ -173,6 +152,68 @@ class SubprocessFFmpegRunner:
                 file=sys.stderr,
             )
             raise
+
+
+async def probe_video_encoder(
+    video_encoder: str,
+    *,
+    executable: str = "ffmpeg",
+    runner: FFmpegRunner | None = None,
+) -> bool:
+    if video_encoder != "hevc_nvenc":
+        raise ValueError(
+            "Video encoder probe only supports 'hevc_nvenc'",
+        )
+
+    probe_runner = runner or SubprocessFFmpegRunner(
+        timeout_seconds=15.0,
+        heartbeat_interval_seconds=5.0,
+    )
+    try:
+        result = await probe_runner.run(
+            (
+                executable,
+                "-v",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                "color=c=black:s=16x16:r=1:d=0.1",
+                "-frames:v",
+                "1",
+                *build_video_encoder_options(video_encoder),
+                "-f",
+                "null",
+                "-",
+            ),
+        )
+    except (FFmpegTimeoutError, OSError):
+        return False
+    return result.returncode == 0
+
+
+async def resolve_video_encoder(
+    video_encoder: str,
+    *,
+    executable: str = "ffmpeg",
+    runner: FFmpegRunner | None = None,
+) -> str:
+    if video_encoder != "auto":
+        build_video_encoder_options(video_encoder)
+        return video_encoder
+
+    nvenc_available = await probe_video_encoder(
+        "hevc_nvenc",
+        executable=executable,
+        runner=runner,
+    )
+    selected = "hevc_nvenc" if nvenc_available else "libx265"
+    print(
+        f"[worker] video encoder auto-detected: "
+        f"{selected} (nvenc_available={nvenc_available})",
+        flush=True,
+    )
+    return selected
 
 
 async def _terminate_process(process: asyncio.subprocess.Process) -> None:
@@ -383,17 +424,11 @@ class FFmpegPlayableMediaProcessor:
         executable: str = "ffmpeg",
         runner: FFmpegRunner | None = None,
         video_encoder: str = "libx265",
-        hardware_acceleration: str = "none",
     ) -> None:
         self._executable = executable
         self._runner = runner or SubprocessFFmpegRunner()
         self._video_encoder = video_encoder
-        self._hardware_acceleration = hardware_acceleration
-        build_video_encoder_options(
-            video_encoder,
-            hardware_acceleration=hardware_acceleration,
-        )
-        build_video_input_options(hardware_acceleration)
+        build_video_encoder_options(video_encoder)
 
     async def process(
         self,
@@ -408,17 +443,8 @@ class FFmpegPlayableMediaProcessor:
             video_options = ("-c:v", "copy")
             audio_codec = "copy"
         else:
-            video_options = build_video_encoder_options(
-                self._video_encoder,
-                hardware_acceleration=self._hardware_acceleration,
-            )
+            video_options = build_video_encoder_options(self._video_encoder)
             audio_codec = "aac"
-
-        input_options = (
-            build_video_input_options(self._hardware_acceleration)
-            if operation is PlayableMediaOperation.TRANSCODE
-            else ()
-        )
 
         result = await self._runner.run(
             (
@@ -426,7 +452,6 @@ class FFmpegPlayableMediaProcessor:
                 "-v",
                 "error",
                 "-y",
-                *input_options,
                 "-i",
                 str(media_path),
                 "-map",

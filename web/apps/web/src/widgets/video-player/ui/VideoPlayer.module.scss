@@ -4,7 +4,6 @@
   gap: 1rem;
 }
 
-
 .video {
   position: relative;
   z-index: 0;
@@ -19,25 +18,170 @@
   z-index: 1;
 }
 
-.fullscreenButton {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
+.controls {
+  position: relative;
   z-index: 10;
-  min-height: 2.25rem;
-  padding: 0.45rem 0.7rem;
-  border: 1px solid rgb(255 255 255 / 25%);
-  border-radius: 0.5rem;
-  background: rgb(15 23 42 / 85%);
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.6rem;
+  background: #0b1222;
   color: #e5e7eb;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 120ms ease;
 }
 
-.player:hover .fullscreenButton,
-.fullscreenButton:focus-visible {
-  opacity: 1;
+.timeline {
+  position: relative;
+  padding: 0.35rem 0;
+}
+
+.timelineTrack {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: #334155;
+  cursor: pointer;
+}
+
+.timelineProgress {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: #e5e7eb;
+  pointer-events: none;
+}
+
+.timelineThumb {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 0.15rem solid #0b1222;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 0.1rem #fff;
+  transform: translate(-50%, -50%);
+}
+
+.timelineTrack[data-focus-visible] {
+  outline: 2px solid #cbd5e1;
+  outline-offset: 3px;
+}
+
+.thumbnailPreview {
+  position: absolute;
+  bottom: 1.1rem;
+  width: 160px;
+  height: 90px;
+  overflow: hidden;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.4rem;
+  background-repeat: no-repeat;
+  box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 45%);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.thumbnailPreview span {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 0.15rem 0.3rem;
+  background: rgb(0 0 0 / 75%);
+  color: #fff;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.controlRow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.controlButton {
+  min-height: 2.15rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #334155;
+  border-radius: 0.45rem;
+  background: #111827;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.controlButton:hover,
+.controlButton[data-focus-visible] {
+  border-color: #64748b;
+  background: #1e293b;
+}
+
+.controlButton[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.timeDisplay {
+  min-width: 7.5rem;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.volumeControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.volumeTrack {
+  position: relative;
+  display: block;
+  width: 5.5rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: #334155;
+  cursor: pointer;
+}
+
+.volumeProgress {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: #e5e7eb;
+  pointer-events: none;
+}
+
+.volumeThumb {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+
+.subtitleControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+}
+
+.subtitleControl select {
+  min-height: 2.15rem;
+  padding: 0 0.55rem;
+  border: 1px solid #334155;
+  border-radius: 0.45rem;
+  background: #111827;
+  color: #e5e7eb;
 }
 
 .player:fullscreen {
@@ -57,12 +201,17 @@
   object-fit: contain;
 }
 
-.player:fullscreen .fullscreenButton {
-  opacity: 1;
+.player:fullscreen .controls {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: 0;
+  border-radius: 0;
+  background: rgb(11 18 34 / 90%);
 }
 
 .player:fullscreen .meta,
-.player:fullscreen .subtitleSelect,
 .player:fullscreen .error,
 .player:fullscreen .chapters {
   display: none;
@@ -127,23 +276,4 @@
 
 .chapterTime {
   color: #94a3b8;
-  font-variant-numeric: tabular-nums;
-}
-
-
-.subtitleSelect {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: #cbd5e1;
-  font-size: 0.8rem;
-}
-
-.subtitleSelect select {
-  min-height: 2.1rem;
-  padding: 0 0.6rem;
-  border: 1px solid #334155;
-  border-radius: 0.5rem;
-  background: #0b1222;
-  color: #e5e7eb;
 }

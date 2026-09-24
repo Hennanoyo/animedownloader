@@ -1,7 +1,9 @@
 .control {
   display: grid;
+  width: 100%;
   gap: 0.45rem;
-  min-width: 13rem;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .primaryButton,
@@ -25,7 +27,14 @@
 .buttons {
   display: flex;
   flex-wrap: wrap;
+  min-width: 0;
   gap: 0.4rem;
+}
+
+.buttons button {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .confirm {
@@ -94,5 +103,6 @@
 }
 
 .compact {
+  width: 100%;
   min-width: 0;
 }

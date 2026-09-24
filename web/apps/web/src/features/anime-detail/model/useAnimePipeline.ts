@@ -1,5 +1,13 @@
-import { queryOptions, useQuery } from "@tanstack/react-query";
-import { getAnimePipeline } from "../../../entities/anime/api/pipeline";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  getAnimePipeline,
+  retryEpisodePipeline,
+} from "../../../entities/anime/api/pipeline";
 
 export function getAnimePipelineRefetchInterval(
   data: { episodes: readonly { active: boolean }[] } | undefined,
@@ -19,4 +27,20 @@ export function animePipelineQueryOptions(animeId: string) {
 
 export function useAnimePipeline(animeId: string) {
   return useQuery(animePipelineQueryOptions(animeId));
+}
+
+export function useRetryEpisodePipeline(episodeId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => retryEpisodePipeline(episodeId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["anime-pipelines"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["download-jobs", "latest", episodeId],
+      });
+    },
+  });
 }

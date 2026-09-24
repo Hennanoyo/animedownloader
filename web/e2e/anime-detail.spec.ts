@@ -61,6 +61,7 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
     name: "Episode One thumbnail",
   });
   await expect(thumbnail).toBeVisible();
+  await expect(thumbnail).toHaveCSS("background-size", "1500% 1200%");
 
   const pipelineStatus = page.getByLabel("Media pipeline status");
   await expect(pipelineStatus.getByText("Download", { exact: true })).toBeVisible();
@@ -82,4 +83,105 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
   await expect(
     page.getByRole("button", { name: "Download" }),
   ).toBeVisible();
+});
+
+
+test("offers pipeline continuation without restarting a completed download", async ({ page }) => {
+  let retryRequests = 0;
+  await page.route(
+    `**/api/episodes/${EPISODE_ID}/pipeline/retry`,
+    async (route) => {
+      retryRequests += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          stage: "streaming",
+          job_id: "019a0000-0000-7000-8000-000000000099",
+          status: "pending",
+        }),
+      });
+    },
+  );
+
+  const pendingPipeline = structuredClone(pipeline);
+  pendingPipeline.episodes[0].streaming = {
+    status: "pending",
+    hls_ready: false,
+    dash_ready: false,
+    error_message: null,
+  };
+  pendingPipeline.episodes[0].current_stage = "streaming";
+  pendingPipeline.episodes[0].active = true;
+
+  await page.unroute(`**/api/animes/${ANIME_ID}/pipeline`);
+  await page.route(`**/api/animes/${ANIME_ID}/pipeline`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(pendingPipeline),
+    });
+  });
+
+  await page.goto(`/animes/${ANIME_ID}`);
+  const continueButton = page.getByRole("button", { name: "Continue streaming" });
+  await expect(continueButton).toBeVisible();
+  await continueButton.click();
+  await expect.poll(() => retryRequests).toBe(1);
+  await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
+});
+
+test("moves live download details into the full-width download panel", async ({ page }) => {
+  const activePipeline = structuredClone(pipeline);
+  activePipeline.episodes[0].download = {
+    status: "downloading",
+    downloaded_bytes: 524288,
+    total_bytes: 1048576,
+    error_message: null,
+  };
+  activePipeline.episodes[0].processing.status = "pending";
+  activePipeline.episodes[0].processing.progress_percent = 0;
+  activePipeline.episodes[0].playback_ready = false;
+  activePipeline.episodes[0].current_stage = "download";
+  activePipeline.episodes[0].active = true;
+
+  await page.unroute(`**/api/animes/${ANIME_ID}/pipeline`);
+  await page.route(`**/api/animes/${ANIME_ID}/pipeline`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(activePipeline),
+    });
+  });
+  await page.unroute(
+    `**/api/episodes/${EPISODE_ID}/download-jobs/latest`,
+  );
+  await page.route(
+    `**/api/episodes/${EPISODE_ID}/download-jobs/latest`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "019a0000-0000-7000-8000-000000000098",
+          episode_id: EPISODE_ID,
+          status: "downloading",
+          downloaded_bytes: 524288,
+          total_bytes: 1048576,
+          attempt_count: 1,
+          error_message: null,
+          started_at: "2026-09-25T00:00:00Z",
+          completed_at: null,
+          created_at: "2026-09-25T00:00:00Z",
+          updated_at: "2026-09-25T00:00:00Z",
+        }),
+      });
+    },
+  );
+
+  await page.goto(`/animes/${ANIME_ID}`);
+  await expect(page.getByLabel("Download progress")).toBeVisible();
+  await expect(page.getByText("Downloading", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
 });

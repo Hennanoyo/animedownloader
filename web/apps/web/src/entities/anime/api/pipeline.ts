@@ -1,6 +1,10 @@
 import { z } from "zod";
-import { getJson } from "../../../shared/api/client";
-import type { AnimePipeline, PipelineStageStatus } from "../model/pipeline";
+import { getJson, postJson } from "../../../shared/api/client";
+import type {
+  AnimePipeline,
+  EpisodePipelineRetryResponse,
+  PipelineStageStatus,
+} from "../model/pipeline";
 
 const stageStatusSchema: z.ZodType<PipelineStageStatus> = z.enum([
   "not_started",
@@ -61,6 +65,12 @@ const animePipelineSchema = z.object({
   episodes: z.array(pipelineSchema),
 });
 
+const pipelineRetryResponseSchema = z.object({
+  stage: currentStageSchema,
+  job_id: z.uuid(),
+  status: stageStatusSchema,
+});
+
 export class AnimePipelineResponseError extends Error {
   constructor(readonly issues: z.core.$ZodIssue[]) {
     super(
@@ -82,6 +92,23 @@ export async function getAnimePipeline(
 ): Promise<AnimePipeline> {
   const result = animePipelineSchema.safeParse(
     await getJson("/api/animes/" + animeId + "/pipeline", { signal }),
+  );
+  if (!result.success) {
+    throw new AnimePipelineResponseError(result.error.issues);
+  }
+  return result.data;
+}
+
+export async function retryEpisodePipeline(
+  episodeId: string,
+  signal?: AbortSignal,
+): Promise<EpisodePipelineRetryResponse> {
+  const result = pipelineRetryResponseSchema.safeParse(
+    await postJson(
+      "/api/episodes/" + episodeId + "/pipeline/retry",
+      {},
+      { signal },
+    ),
   );
   if (!result.success) {
     throw new AnimePipelineResponseError(result.error.issues);

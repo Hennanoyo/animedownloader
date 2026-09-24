@@ -1,24 +1,32 @@
 .card {
   display: grid;
-  grid-template-columns: 160px minmax(0, 1fr) auto;
-  gap: 1.2rem;
+  gap: 0.9rem;
+  min-width: 0;
   padding: 1rem;
   border: 1px solid #26324a;
   border-radius: 0.8rem;
   background: #0b1222;
 }
 
+.topRow {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr) minmax(8.5rem, 10rem);
+  gap: 1rem;
+  min-width: 0;
+  align-items: stretch;
+}
+
 .thumbnail {
-  width: 160px;
+  width: 100%;
   aspect-ratio: 16 / 9;
   display: grid;
   place-items: center;
   overflow: hidden;
   border-radius: 0.55rem;
   background-color: #111827;
-  background-position: center;
+  background-position: left top;
   background-repeat: no-repeat;
-  background-size: cover;
+  background-size: 1500% 1200%;
 }
 
 .thumbnailPlaceholder {
@@ -26,8 +34,12 @@
   font-size: 0.75rem;
 }
 
-.content {
+.heading {
   min-width: 0;
+  min-height: 6.2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .heading h3 {
@@ -51,6 +63,7 @@
   margin: 0.35rem 0 0;
   color: #94a3b8;
   font-size: 0.78rem;
+  overflow-wrap: anywhere;
 }
 
 .source a {
@@ -63,29 +76,78 @@
   text-decoration: underline;
 }
 
-.stages {
+.actions {
   display: flex;
+  flex-direction: column;
   align-items: stretch;
-  margin-top: 1rem;
+  justify-content: center;
+  gap: 0.5rem;
   min-width: 0;
-  overflow-x: auto;
-  padding: 0.35rem 0 0.65rem;
+}
+
+.actions > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.playButton,
+.retryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.35rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 0.7rem;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  background: #111827;
+  color: #dbeafe;
+  text-decoration: none;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.playButton:hover,
+.playButton:focus-visible {
+  border-color: #60a5fa;
+  background: #172554;
+}
+
+.retryButton {
+  border-color: #60a5fa;
+  background: #172554;
+}
+
+.retryButton:hover,
+.retryButton:focus-visible {
+  background: #1e3a8a;
+}
+
+.actionError {
+  color: #fecaca;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.stages {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  min-width: 0;
 }
 
 .stageWrap {
   position: relative;
-  display: flex;
-  align-items: center;
   min-width: 0;
-  flex: 1 1 0;
 }
 
 .stage {
   position: relative;
   z-index: 1;
-  width: 100%;
   min-width: 0;
-  min-height: 7.5rem;
+  min-height: 7rem;
   padding: 0.7rem;
   border: 1px solid #1e293b;
   border-radius: 0.65rem;
@@ -124,8 +186,13 @@
   background: #60a5fa;
 }
 
+.stage[data-status="failed"] .stageDot {
+  background: #ef4444;
+}
+
 .stageHeader {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: 0.45rem;
@@ -134,7 +201,13 @@
   font-weight: 700;
 }
 
+.stageHeader > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .status {
+  flex: 0 1 auto;
   padding: 0.18rem 0.35rem;
   border: 1px solid #334155;
   border-radius: 999px;
@@ -179,6 +252,7 @@
 
 .detail {
   margin: 0.5rem 0 0;
+  overflow-wrap: anywhere;
 }
 
 .progressBlock {
@@ -187,10 +261,16 @@
 
 .progressMeta {
   display: flex;
+  min-width: 0;
   justify-content: space-between;
   gap: 0.5rem;
   color: #94a3b8;
   font-size: 0.65rem;
+}
+
+.progressMeta > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .progressTrack {
@@ -209,10 +289,34 @@
   transition: width 180ms ease;
 }
 
+.error {
+  margin: 0.45rem 0 0;
+  color: #fca5a5;
+  overflow-wrap: anywhere;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.extras {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.8rem;
+}
+
+.extras > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .connector {
-  flex: 0 0 1.2rem;
+  position: absolute;
+  top: 50%;
+  left: -0.55rem;
+  z-index: 0;
+  width: 0.55rem;
   height: 2px;
-  margin: 0 -1px;
+  transform: translateY(-50%);
   background: #334155;
 }
 
@@ -220,45 +324,36 @@
   background: #22c55e;
 }
 
-.error {
-  margin: 0.45rem 0 0;
-  color: #fca5a5;
-  overflow-wrap: anywhere;
-  font-size: 0.68rem;
+.downloadPanel {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid #334155;
+  border-radius: 0.7rem;
+  background: #0f172a;
 }
 
-.extras {
+.downloadPanelHeader {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.8rem;
-  margin-top: 0.65rem;
-}
-
-.actions {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  gap: 0.5rem;
-  min-width: 12rem;
-}
-
-.playButton {
-  display: inline-flex;
+  min-width: 0;
   align-items: center;
-  justify-content: center;
-  min-height: 2.35rem;
-  padding: 0 0.8rem;
-  border: 1px solid #60a5fa;
-  border-radius: 0.55rem;
-  background: #172554;
-  color: #dbeafe;
-  text-decoration: none;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: #cbd5e1;
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
-.playButton:hover,
-.playButton:focus-visible {
-  background: #1e3a8a;
+.downloadPanelHeader span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.downloadPanelHeader span:last-child {
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 @keyframes pulse {
@@ -267,6 +362,7 @@
     transform: scale(1);
     opacity: 0.7;
   }
+
   50% {
     transform: scale(1.35);
     opacity: 1;
@@ -288,36 +384,61 @@
 }
 
 @media (max-width: 960px) {
-  .card {
-    grid-template-columns: 160px minmax(0, 1fr);
+  .topRow {
+    grid-template-columns: 140px minmax(0, 1fr) 8.5rem;
   }
 
-  .stageWrap {
-    flex: 0 0 12rem;
+  .stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .actions {
-    grid-column: 1 / -1;
-    min-width: 0;
-    flex-direction: row;
+  .connector {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .topRow {
+    grid-template-columns: 128px minmax(0, 1fr) 7.5rem;
+    gap: 0.8rem;
+  }
+
+  .stage {
+    min-height: 6.3rem;
+    padding: 0.65rem;
   }
 }
 
 @media (max-width: 620px) {
-  .card {
+  .topRow {
     grid-template-columns: 1fr;
   }
 
   .thumbnail {
-    width: 100%;
-    max-width: 320px;
+    width: min(100%, 20rem);
+    justify-self: start;
   }
 
-  .stageWrap {
-    flex-basis: 10.5rem;
+  .heading {
+    min-height: 0;
   }
 
   .actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stages {
+    grid-template-columns: 1fr;
+  }
+
+  .downloadPanelHeader {
+    align-items: flex-start;
     flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .downloadPanelHeader span:last-child {
+    white-space: normal;
   }
 }

@@ -68,3 +68,9 @@ export interface AnimePipeline {
   anime_id: string;
   episodes: EpisodePipelineSummary[];
 }
+
+export interface EpisodePipelineRetryResponse {
+  stage: PipelineCurrentStage;
+  job_id: string;
+  status: PipelineStageStatus;
+}

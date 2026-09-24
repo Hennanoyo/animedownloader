@@ -417,31 +417,32 @@ Planned follow-up within the same phase:
 
 **In progress on `feature/media-pipeline-detail`.**
 
-Goal: complete the user-visible connection from an Episode download through playable media, HLS/DASH packaging, thumbnail readiness, and playback readiness, while replacing the wide Episode table with a pipeline-oriented detail view.
+Goal: complete the user-visible Episode media pipeline from Download through playable media, thumbnail readiness, HLS/DASH packaging, and playback readiness, while replacing the wide Episode table with a pipeline-oriented detail view.
 
 Current implementation:
 
 - Added `GET /api/animes/{anime_id}/pipeline` as a UI-oriented batched summary over DownloadJob, MediaProcessingJob, MediaPreparationJob, MediaAsset, playable MediaVariant, streaming package, subtitle/attachment processing, and thumbnail state
 - Kept execution/history records separate while projecting them into stable Episode pipeline stages
-- Preserved automatic worker chaining from completed download → media processing → preparation → CMAF/HLS/DASH packaging; updated the runtime smoke to verify packaging is reached without manually creating a packaging job
+- Fixed the worker packaging handoff so a completed MediaPreparationJob resolves its own `variant_id` directly before creating the MediaPackagingJob
+- Preserved automatic worker chaining from completed download → media processing → preparation → CMAF/HLS/DASH packaging
 - Added HLS/DASH readiness to the Episode pipeline summary while allowing direct playable MP4 playback as soon as the current playable variant is ready
-- Added Anime detail Episode cards with Download → Processing → Streaming → Preview stages
-- Unified Download and Conversion as one user-facing processing flow while keeping the underlying job types separate
-- Reused the existing thumbnail sprite as the Episode card preview when the sprite is ready
+- Added Anime detail Episode cards with a connected `Download → Processing → Preview → Streaming` visual flow
+- Added a highlighted current stage with reduced-motion-aware animation and completed-stage connector effects
+- Added preparation progress as artifact completion state: Processing reports 0/100% for playable readiness, and Preview reports 0/100% for sprite readiness
 - Added active-only TanStack Query polling at 2-second intervals and cache invalidation after download actions
-- Added Playwright coverage for the Anime detail pipeline UI and backend coverage for pipeline-state aggregation
-- Added post-download smoke coverage that waits for the normal pipeline to finish HLS/DASH packaging, then verifies stored HLS/DASH artifacts without enqueuing packaging itself
+- Added Playwright coverage for the Anime detail pipeline UI, including stage progress bars and sprite preview
+- Added backend coverage for pipeline-state aggregation and the transition from Processing to Preview when playable media is ready
+- Updated the media E2E smoke to verify that the normal download pipeline reaches HLS/DASH packaging before validating stored streaming artifacts
 
-Design constraints:
+Important implementation note:
 
-- HLS and DASH continue to share the same CMAF/fMP4 segments; do not introduce duplicate video encoding for the two protocols
-- Pipeline API status is derived from the existing durable jobs/media state rather than duplicating job state in a new database record
-- Polling stops when no Episode pipeline stage is active and resumes on cache invalidation or a fresh mount
-- The existing sprite remains a derived seek-preview artifact; the current UI uses its first tile as the Episode card preview
+- `MediaPreparationJob` is the shared orchestration unit for playable media and thumbnails, but `FFmpegMediaPreparationProcessor` currently executes those two FFmpeg operations sequentially rather than in one shared FFmpeg filter graph. This PR exposes honest stage-level completion rather than inventing a fine-grained percentage.
+- HLS and DASH continue to reuse the same CMAF/fMP4 segments; packaging does not duplicate video encoding.
 
 Planned follow-up:
 
-- After this PR, proceed to the next Download Management UX work rather than expanding the media pipeline further in the same branch
+- Do not expand this PR with real-time FFmpeg progress unless profiling shows that coarse stage completion is insufficient.
+- After this PR, proceed to the next Download Management UX work rather than adding more media-pipeline surface area.
 
 ## Handoff Notes
 

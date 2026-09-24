@@ -47,7 +47,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("renders episode media pipeline and sprite thumbnail", async ({ page }) => {
+test("renders episode media pipeline and sprite thumbnail", async ({ page }, testInfo) => {
   await page.goto(`/animes/${ANIME_ID}`);
 
   await expect(
@@ -143,6 +143,18 @@ test("offers pipeline continuation without restarting a completed download", asy
   await expect(
     page.getByRole("button", { name: "Download", exact: true }),
   ).toBeVisible();
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.screenshot({
+    path: testInfo.outputPath("anime-detail-refined-desktop.png"),
+    fullPage: true,
+  });
+
+  await page.setViewportSize({ width: 640, height: 1000 });
+  await page.screenshot({
+    path: testInfo.outputPath("anime-detail-refined-mobile.png"),
+    fullPage: true,
+  });
 });
 
 test("moves live download details into the full-width download panel", async ({ page }) => {

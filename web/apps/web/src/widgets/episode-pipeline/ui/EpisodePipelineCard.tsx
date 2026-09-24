@@ -24,11 +24,11 @@ const stages: { id: PipelineCurrentStage; label: string }[] = [
 
 export default function EpisodePipelineCard({ episode, pipeline }: Props) {
   const retryMutation = useRetryEpisodePipeline(episode.id);
-  const retryAction = getRetryAction(pipeline);
   const downloadActive =
     pipeline.download.status === "pending" ||
     pipeline.download.status === "downloading" ||
     pipeline.download.status === "paused";
+  const retryAction = getRetryAction(pipeline);
 
   return (
     <article className={styles.card}>
@@ -142,9 +142,6 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
                     value={pipeline.thumbnail.progress_percent}
                   />
                 ) : null}
-                {stage.id === "download" ? (
-                  <DownloadProgress pipeline={pipeline} />
-                ) : null}
                 {stage.id === "streaming" ? (
                   <p className={styles.detail}>
                     {formatStreamingDetail(pipeline)}
@@ -212,15 +209,6 @@ function StageProgress({ label, value }: StageProgressProps) {
   );
 }
 
-function DownloadProgress({ pipeline }: { pipeline: EpisodePipelineSummary }) {
-  const { downloaded_bytes: downloaded, total_bytes: total } = pipeline.download;
-  if (total === null || total === 0) {
-    return null;
-  }
-  const value = Math.min(Math.round((downloaded / total) * 100), 100);
-  return <StageProgress label="Downloaded" value={value} />;
-}
-
 function getStageStatus(
   stage: PipelineCurrentStage,
   pipeline: EpisodePipelineSummary,
@@ -248,33 +236,41 @@ function isPreviousStageCompleted(
 function getRetryAction(
   pipeline: EpisodePipelineSummary,
 ): { label: "Continue" | "Retry"; ariaLabel: string } | null {
+  if (pipeline.download.status !== "completed") {
+    return null;
+  }
+
   const candidates: Array<{
     stage: PipelineCurrentStage;
     status: PipelineStageStatus;
-    text: "Continue" | "Retry";
+    ready: boolean;
   }> = [
     {
       stage: "processing",
       status: pipeline.processing.status,
-      text: pipeline.processing.status === "failed" ? "Retry" : "Continue",
+      ready: true,
     },
     {
       stage: "preview",
       status: pipeline.thumbnail.status,
-      text: pipeline.thumbnail.status === "failed" ? "Retry" : "Continue",
+      ready: pipeline.processing.playable_ready,
     },
     {
       stage: "streaming",
       status: pipeline.streaming.status,
-      text: pipeline.streaming.status === "failed" ? "Retry" : "Continue",
+      ready: pipeline.processing.playable_ready,
     },
   ];
 
   for (const candidate of candidates) {
-    if (candidate.status === "pending" || candidate.status === "failed") {
+    if (
+      candidate.ready &&
+      (candidate.status === "pending" || candidate.status === "failed")
+    ) {
+      const action = candidate.status === "failed" ? "Retry" : "Continue";
       return {
-        label: candidate.text,
-        ariaLabel: candidate.text + " " + candidate.stage,
+        label: action,
+        ariaLabel: action + " " + candidate.stage,
       };
     }
   }

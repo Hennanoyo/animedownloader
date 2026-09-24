@@ -176,7 +176,7 @@
 }
 
 .stage[data-completed="true"] {
-  background: #0d1a17;
+  background: transparent;
 }
 
 .stageDot {
@@ -396,6 +396,11 @@
 
   .stageWrap + .stageWrap {
     border-left-color: #26324a;
+  }
+
+  .stageWrap:nth-child(n + 3) {
+    border-top: 1px solid #1e293b;
+    padding-top: 0.7rem;
   }
 }
 

@@ -111,9 +111,6 @@ export default function AnimeDetailPage() {
               <p className={styles.kicker}>Media pipeline</p>
               <h2 id="episodes-heading">Episodes</h2>
             </div>
-            <span className={styles.episodeCount}>
-              {anime.episodes.length} episodes
-            </span>
           </div>
 
           {pipelineQuery.isPending ? (

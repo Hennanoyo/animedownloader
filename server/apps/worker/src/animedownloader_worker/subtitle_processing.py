@@ -9,7 +9,7 @@ from uuid import UUID
 
 from animedownloader_media import FFmpegSubtitleProcessor
 from animedownloader_media_asset import MediaAssetService, SubtitleTrack, SubtitleTrackStatus
-from animedownloader_storage import Storage
+from animedownloader_storage import Storage, SubtitleArtifact
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 logger = logging.getLogger(__name__)
@@ -179,7 +179,11 @@ class SubtitleProcessingRunner:
                         )
 
                     extension = output_path.suffix.lstrip(".")
-                    object_key = f"subtitles/{context.asset_id}/{track.id}.{extension}"
+                    object_key = SubtitleArtifact(
+                        asset_id=context.asset_id,
+                        track_id=track.id,
+                        extension=extension,
+                    ).object_key
                     await self._storage.put_file(
                         output_path,
                         object_key,

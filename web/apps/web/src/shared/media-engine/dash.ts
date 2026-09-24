@@ -2,7 +2,7 @@ import dashjs from "dashjs";
 import type { MediaSource, VideoEngine } from "./types";
 
 export class DashVideoEngine implements VideoEngine {
-  private player: ReturnType<typeof dashjs.MediaPlayer> | null = null;
+  private player: { reset: () => void } | null = null;
   private video: HTMLVideoElement | null = null;
 
   async attach(video: HTMLVideoElement, source: MediaSource): Promise<void> {

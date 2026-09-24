@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import shlex
+import signal
 import sys
 import time
 from collections.abc import Sequence
@@ -13,6 +15,22 @@ from .playback import PlayableMediaOperation
 
 DEFAULT_FFMPEG_TIMEOUT_SECONDS = 1800.0
 DEFAULT_FFMPEG_HEARTBEAT_INTERVAL_SECONDS = 30.0
+
+
+def build_video_input_options(hardware_acceleration: str) -> tuple[str, ...]:
+    if hardware_acceleration == "none":
+        return ()
+    if hardware_acceleration == "cuda":
+        return (
+            "-hwaccel",
+            "cuda",
+            "-hwaccel_output_format",
+            "cuda",
+        )
+    raise ValueError(
+        "Unsupported hardware acceleration: "
+        f"{hardware_acceleration!r}; expected 'none' or 'cuda'",
+    )
 
 
 def build_video_encoder_options(video_encoder: str) -> tuple[str, ...]:
@@ -86,6 +104,7 @@ class SubprocessFFmpegRunner:
             *command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            start_new_session=(sys.platform != "win32"),
         )
         print(
             f"[worker] FFmpeg started: pid={process.pid} command={shlex.join(command)}",
@@ -126,8 +145,7 @@ class SubprocessFFmpegRunner:
                 returncode=returncode,
             )
         except TimeoutError as exc:
-            if process.returncode is None:
-                process.kill()
+            await _terminate_process(process)
             await communication
             elapsed = time.monotonic() - started_at
             print(
@@ -142,8 +160,7 @@ class SubprocessFFmpegRunner:
                 f"{self._timeout_seconds:.1f}s: {shlex.join(command)}",
             ) from exc
         except asyncio.CancelledError:
-            if process.returncode is None:
-                process.kill()
+            await _terminate_process(process)
             await communication
             print(
                 f"[worker] FFmpeg cancelled: pid={process.pid}",
@@ -151,6 +168,21 @@ class SubprocessFFmpegRunner:
                 file=sys.stderr,
             )
             raise
+
+
+async def _terminate_process(process: asyncio.subprocess.Process) -> None:
+    if process.returncode is not None:
+        return
+
+    if sys.platform == "win32":
+        process.kill()
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            return
+
+    await process.wait()
 
 
 class SubtitleProcessingError(RuntimeError):
@@ -207,6 +239,7 @@ class FFmpegSubtitleProcessor:
                 "-v",
                 "error",
                 "-y",
+                *build_video_input_options(self._hardware_acceleration),
                 "-i",
                 str(media_path),
                 "-map",
@@ -346,11 +379,14 @@ class FFmpegPlayableMediaProcessor:
         executable: str = "ffmpeg",
         runner: FFmpegRunner | None = None,
         video_encoder: str = "libx265",
+        hardware_acceleration: str = "none",
     ) -> None:
         self._executable = executable
         self._runner = runner or SubprocessFFmpegRunner()
         self._video_encoder = video_encoder
+        self._hardware_acceleration = hardware_acceleration
         build_video_encoder_options(video_encoder)
+        build_video_input_options(hardware_acceleration)
 
     async def process(
         self,

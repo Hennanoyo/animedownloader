@@ -335,7 +335,8 @@ async def _enqueue_media_packaging(
         if variant is None:
             return
 
-        packaging_job = await MediaStreamingPackageService(session).create_job(
+        package_service = MediaStreamingPackageService(session)
+        packaging_job = await package_service.create_job(
             media_variant_id=variant.id,
         )
 

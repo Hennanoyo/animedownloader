@@ -33,7 +33,11 @@ def build_video_input_options(hardware_acceleration: str) -> tuple[str, ...]:
     )
 
 
-def build_video_encoder_options(video_encoder: str) -> tuple[str, ...]:
+def build_video_encoder_options(
+    video_encoder: str,
+    *,
+    hardware_acceleration: str = "none",
+) -> tuple[str, ...]:
     if video_encoder == "libx265":
         return (
             "-c:v",
@@ -46,7 +50,7 @@ def build_video_encoder_options(video_encoder: str) -> tuple[str, ...]:
             "yuv420p",
         )
     if video_encoder == "hevc_nvenc":
-        return (
+        options = [
             "-c:v",
             "hevc_nvenc",
             "-preset",
@@ -57,9 +61,10 @@ def build_video_encoder_options(video_encoder: str) -> tuple[str, ...]:
             "28",
             "-b:v",
             "0",
-            "-pix_fmt",
-            "yuv420p",
-        )
+        ]
+        if hardware_acceleration != "cuda":
+            options.extend(("-pix_fmt", "yuv420p"))
+        return tuple(options)
     raise ValueError(
         "Unsupported video encoder: "
         f"{video_encoder!r}; expected 'libx265' or 'hevc_nvenc'",
@@ -384,7 +389,10 @@ class FFmpegPlayableMediaProcessor:
         self._runner = runner or SubprocessFFmpegRunner()
         self._video_encoder = video_encoder
         self._hardware_acceleration = hardware_acceleration
-        build_video_encoder_options(video_encoder)
+        build_video_encoder_options(
+            video_encoder,
+            hardware_acceleration=hardware_acceleration,
+        )
         build_video_input_options(hardware_acceleration)
 
     async def process(
@@ -400,7 +408,10 @@ class FFmpegPlayableMediaProcessor:
             video_options = ("-c:v", "copy")
             audio_codec = "copy"
         else:
-            video_options = build_video_encoder_options(self._video_encoder)
+            video_options = build_video_encoder_options(
+                self._video_encoder,
+                hardware_acceleration=self._hardware_acceleration,
+            )
             audio_codec = "aac"
 
         input_options = (

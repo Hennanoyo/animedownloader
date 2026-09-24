@@ -35,7 +35,6 @@ from .schemas import (
     EpisodePipelineThumbnailResponse,
 )
 
-
 _ACTIVE_STATUSES = {
     EpisodePipelineStageStatus.PENDING,
     EpisodePipelineStageStatus.PROCESSING,

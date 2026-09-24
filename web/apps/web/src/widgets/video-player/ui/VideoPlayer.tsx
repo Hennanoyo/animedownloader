@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import type { Playback } from "../../../features/playback/model/types";
 import { selectVideoEngine } from "../../../shared/media-engine/select";
@@ -25,7 +25,7 @@ export default function VideoPlayer({ playback }: Props) {
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
-  const controlsTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
   const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(
@@ -46,29 +46,29 @@ export default function VideoPlayer({ playback }: Props) {
     setSelectedSubtitleId(nextId);
   }, [playback.subtitles, selectedSubtitleId]);
 
-  const clearControlsTimer = () => {
+  const clearControlsTimer = useCallback(() => {
     if (controlsTimerRef.current !== null) {
-      window.clearTimeout(controlsTimerRef.current);
+      clearTimeout(controlsTimerRef.current);
       controlsTimerRef.current = null;
     }
-  };
+  }, []);
 
-  const showControls = () => {
+  const showControls = useCallback(() => {
     setControlsVisible(true);
     clearControlsTimer();
 
     if (isPlaying) {
-      controlsTimerRef.current = window.setTimeout(() => {
+      controlsTimerRef.current = setTimeout(() => {
         setControlsVisible(false);
         controlsTimerRef.current = null;
       }, 2500);
     }
-  };
+  }, [clearControlsTimer, isPlaying]);
 
-  const keepControlsVisible = () => {
+  const keepControlsVisible = useCallback(() => {
     setControlsVisible(true);
     clearControlsTimer();
-  };
+  }, [clearControlsTimer]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -425,19 +425,19 @@ export default function VideoPlayer({ playback }: Props) {
         <VideoControls
         video={videoRef.current}
         duration={duration}
-        currentTime={currentTime}
-        isPlaying={isPlaying}
-        volume={volume}
-        isMuted={isMuted}
-        isFullscreen={isFullscreen}
-        subtitles={playback.subtitles}
-        selectedSubtitleId={selectedSubtitleId}
-        thumbnails={playback.thumbnails}
-        onPlayPause={togglePlayPause}
-        onSeek={seek}
-        onVolumeChange={changeVolume}
-        onMuteToggle={toggleMute}
-        onSubtitleChange={setSelectedSubtitleId}
+            currentTime={currentTime}
+            isPlaying={isPlaying}
+            volume={volume}
+            isMuted={isMuted}
+            isFullscreen={isFullscreen}
+            subtitles={playback.subtitles}
+            selectedSubtitleId={selectedSubtitleId}
+            thumbnails={playback.thumbnails}
+            onPlayPause={togglePlayPause}
+            onSeek={seek}
+            onVolumeChange={changeVolume}
+            onMuteToggle={toggleMute}
+            onSubtitleChange={setSelectedSubtitleId}
           controlsVisible={controlsVisible}
           onFullscreenToggle={toggleFullscreen}
           onControlsEnter={keepControlsVisible}

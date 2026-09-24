@@ -4,6 +4,7 @@ import type { Playback } from "../../../features/playback/model/types";
 import { selectVideoEngine } from "../../../shared/media-engine/select";
 import { JassubSubtitleEngine } from "../../../shared/media-engine/subtitle";
 import type { SelectedVideoSource } from "../../../shared/media-engine/types";
+import VideoControls from "./VideoControls";
 import styles from "./VideoPlayer.module.scss";
 
 interface Props {
@@ -17,7 +18,29 @@ export default function VideoPlayer({ playback }: Props) {
     useState<SelectedVideoSource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(
+    playback.subtitles.find((subtitle) => subtitle.is_default)?.id ??
+      playback.subtitles[0]?.id ??
+      null,
+  );
+
+  useEffect(() => {
+    const nextId =
+      playback.subtitles.find(
+        (subtitle) => subtitle.id === selectedSubtitleId,
+      )?.id ??
+      playback.subtitles.find((subtitle) => subtitle.is_default)?.id ??
+      playback.subtitles[0]?.id ??
+      null;
+
+    setSelectedSubtitleId(nextId);
+  }, [playback.subtitles, selectedSubtitleId]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -33,47 +56,14 @@ export default function VideoPlayer({ playback }: Props) {
     };
   }, []);
 
-  const toggleFullscreen = async () => {
-    const player = playerRef.current;
-    if (!player) {
-      return;
-    }
-
-    try {
-      if (document.fullscreenElement === player) {
-        await document.exitFullscreen();
-      } else {
-        await player.requestFullscreen();
-      }
-      setError(null);
-    } catch (fullscreenError: unknown) {
-      setError(
-        fullscreenError instanceof Error
-          ? fullscreenError.message
-          : "Fullscreen mode could not be activated.",
-      );
-    }
-  };
-  const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(
-    playback.subtitles.find((subtitle) => subtitle.is_default)?.id ??
-      playback.subtitles[0]?.id ??
-      null,
-  );
-
-  useEffect(() => {
-    const nextId =
-      playback.subtitles.find((subtitle) => subtitle.id === selectedSubtitleId)?.id ??
-      playback.subtitles.find((subtitle) => subtitle.is_default)?.id ??
-      playback.subtitles[0]?.id ??
-      null;
-    setSelectedSubtitleId(nextId);
-  }, [playback.subtitles, selectedSubtitleId]);
-
   useEffect(() => {
     const video = videoRef.current;
     if (!video || playback.video === null) {
       setSelectedSource(null);
       setIsLoading(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setIsPlaying(false);
       return;
     }
 
@@ -89,11 +79,59 @@ export default function VideoPlayer({ playback }: Props) {
     const source = selected.source;
     let active = true;
 
+    const syncMediaState = () => {
+      if (!active) {
+        return;
+      }
+
+      setCurrentTime(video.currentTime);
+      setDuration(Number.isFinite(video.duration) ? video.duration : 0);
+      setIsPlaying(!video.paused);
+      setVolume(video.volume);
+      setIsMuted(video.muted);
+    };
+
     const handleLoadedMetadata = () => {
+      if (!active) {
+        return;
+      }
+      syncMediaState();
+      setIsLoading(false);
+    };
+
+    const handleDurationChange = () => {
+      if (!active) {
+        return;
+      }
+      setDuration(Number.isFinite(video.duration) ? video.duration : 0);
+    };
+
+    const handleTimeUpdate = () => {
       if (active) {
-        setIsLoading(false);
+        setCurrentTime(video.currentTime);
       }
     };
+
+    const handlePlay = () => {
+      if (active) {
+        setIsPlaying(true);
+      }
+    };
+
+    const handlePause = () => {
+      if (active) {
+        setIsPlaying(false);
+      }
+    };
+
+    const handleVolumeChange = () => {
+      if (!active) {
+        return;
+      }
+      setVolume(video.volume);
+      setIsMuted(video.muted);
+    };
+
     const handleError = () => {
       if (active) {
         setIsLoading(false);
@@ -101,11 +139,18 @@ export default function VideoPlayer({ playback }: Props) {
       }
     };
 
+    syncMediaState();
     setSelectedSource(source);
     setError(null);
     setIsLoading(true);
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("durationchange", handleDurationChange);
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("volumechange", handleVolumeChange);
     video.addEventListener("error", handleError);
+
     void engine.attach(video, source.source).catch((attachError: unknown) => {
       if (!active) {
         return;
@@ -121,6 +166,11 @@ export default function VideoPlayer({ playback }: Props) {
     return () => {
       active = false;
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("durationchange", handleDurationChange);
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("volumechange", handleVolumeChange);
       video.removeEventListener("error", handleError);
       engine.detach();
     };
@@ -167,6 +217,79 @@ export default function VideoPlayer({ playback }: Props) {
     );
   }
 
+  const togglePlayPause = () => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+
+    if (video.paused) {
+      void video.play().catch((playError: unknown) => {
+        setError(
+          playError instanceof Error
+            ? playError.message
+            : "Playback could not be started.",
+        );
+      });
+    } else {
+      video.pause();
+    }
+  };
+
+  const seek = (nextTime: number) => {
+    const video = videoRef.current;
+    if (!video || !Number.isFinite(nextTime)) {
+      return;
+    }
+
+    video.currentTime = Math.max(0, Math.min(nextTime, duration));
+    setCurrentTime(video.currentTime);
+  };
+
+  const changeVolume = (nextVolume: number) => {
+    const video = videoRef.current;
+    if (!video || !Number.isFinite(nextVolume)) {
+      return;
+    }
+
+    const clampedVolume = Math.max(0, Math.min(1, nextVolume));
+    video.volume = clampedVolume;
+    if (clampedVolume > 0 && video.muted) {
+      video.muted = false;
+    }
+  };
+
+  const toggleMute = () => {
+    const video = videoRef.current;
+    if (video) {
+      video.muted = !video.muted;
+    }
+  };
+
+  const toggleFullscreen = () => {
+    const player = playerRef.current;
+    if (!player) {
+      return;
+    }
+
+    const run = async () => {
+      if (document.fullscreenElement === player) {
+        await document.exitFullscreen();
+      } else {
+        await player.requestFullscreen();
+      }
+      setError(null);
+    };
+
+    void run().catch((fullscreenError: unknown) => {
+      setError(
+        fullscreenError instanceof Error
+          ? fullscreenError.message
+          : "Fullscreen mode could not be activated.",
+      );
+    });
+  };
+
   return (
     <section
       ref={playerRef}
@@ -177,21 +300,30 @@ export default function VideoPlayer({ playback }: Props) {
         ref={videoRef}
         crossOrigin="anonymous"
         className={styles.video}
-        controls
-        controlsList="nofullscreen"
         playsInline
         preload="metadata"
         data-testid="video-player"
       />
-      <Button
-        className={styles.fullscreenButton}
-        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-        onPress={() => {
-          void toggleFullscreen();
-        }}
-      >
-        {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-      </Button>
+
+      <VideoControls
+        video={videoRef.current}
+        duration={duration}
+        currentTime={currentTime}
+        isPlaying={isPlaying}
+        volume={volume}
+        isMuted={isMuted}
+        isFullscreen={isFullscreen}
+        subtitles={playback.subtitles}
+        selectedSubtitleId={selectedSubtitleId}
+        thumbnails={playback.thumbnails}
+        onPlayPause={togglePlayPause}
+        onSeek={seek}
+        onVolumeChange={changeVolume}
+        onMuteToggle={toggleMute}
+        onSubtitleChange={setSelectedSubtitleId}
+        onFullscreenToggle={toggleFullscreen}
+      />
+
       <div className={styles.meta}>
         {isLoading ? <span>Loading media...</span> : null}
         {selectedSource ? (
@@ -204,23 +336,6 @@ export default function VideoPlayer({ playback }: Props) {
           {playback.subtitles.length === 1 ? "" : "s"}
         </span>
       </div>
-      {playback.subtitles.length > 0 ? (
-        <label className={styles.subtitleSelect}>
-          <span>Subtitles</span>
-          <select
-            value={selectedSubtitleId ?? ""}
-            onChange={(event) => setSelectedSubtitleId(event.target.value || null)}
-          >
-            <option value="">Off</option>
-            {playback.subtitles.map((subtitle) => (
-              <option key={subtitle.id} value={subtitle.id}>
-                {subtitle.title ?? subtitle.language ?? "Subtitle"}
-                {subtitle.is_forced ? " (forced)" : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
 
       {error ? (
         <p className={styles.error} role="alert">
@@ -236,9 +351,7 @@ export default function VideoPlayer({ playback }: Props) {
               key={chapter.id}
               className={styles.chapter}
               onPress={() => {
-                if (videoRef.current) {
-                  videoRef.current.currentTime = chapter.start_time_seconds;
-                }
+                seek(chapter.start_time_seconds);
               }}
             >
               <span>{chapter.title ?? "Untitled chapter"}</span>
@@ -258,7 +371,11 @@ function formatSourceKind(kind: SelectedVideoSource["kind"]): string {
 }
 
 function formatTime(value: number): string {
-  const totalSeconds = Math.max(0, Math.floor(value));
+  if (!Number.isFinite(value) || value <= 0) {
+    return "00:00";
+  }
+
+  const totalSeconds = Math.floor(value);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
@@ -274,6 +391,8 @@ function formatTime(value: number): string {
   }
 
   return (
-    String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0")
+    String(minutes).padStart(2, "0") +
+    ":" +
+    String(seconds).padStart(2, "0")
   );
 }

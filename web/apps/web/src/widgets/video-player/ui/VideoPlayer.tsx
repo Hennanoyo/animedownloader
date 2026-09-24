@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function VideoPlayer({ playback }: Props) {
-  const playerRef = useRef<HTMLElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [selectedSource, setSelectedSource] =
     useState<SelectedVideoSource | null>(null);
@@ -21,7 +21,7 @@ export default function VideoPlayer({ playback }: Props) {
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === playerRef.current);
+      setIsFullscreen(document.fullscreenElement === viewportRef.current);
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
@@ -34,16 +34,16 @@ export default function VideoPlayer({ playback }: Props) {
   }, []);
 
   const toggleFullscreen = async () => {
-    const player = playerRef.current;
-    if (!player) {
+    const viewport = viewportRef.current;
+    if (!viewport) {
       return;
     }
 
     try {
-      if (document.fullscreenElement === player) {
+      if (document.fullscreenElement === viewport) {
         await document.exitFullscreen();
       } else {
-        await player.requestFullscreen();
+        await viewport.requestFullscreen();
       }
       setError(null);
     } catch (fullscreenError: unknown) {
@@ -169,11 +169,10 @@ export default function VideoPlayer({ playback }: Props) {
 
   return (
     <section
-      ref={playerRef}
       className={styles.player}
       aria-label="Video player"
     >
-      <div className={styles.viewport}>
+      <div ref={viewportRef} className={styles.viewport}>
         <video
           ref={videoRef}
           crossOrigin="anonymous"

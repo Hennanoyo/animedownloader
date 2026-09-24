@@ -335,7 +335,7 @@ Runtime validation:
 - `just storage-smoke` verifies SeaweedFS upload/materialize/delete against the Compose service
 - `just storage-media-smoke <episode-id>` verifies a newly processed Episode's stored playable media, subtitles, thumbnails, attachments/fonts, and CMAF/HLS/DASH artifacts
 - `STORAGE_BACKEND=seaweedfs` is exposed through Compose for real application-path testing
-- Development GPU acceleration is available through `compose.gpu.yaml` and `just storage-media-smoke-gpu <episode-id>`
+- Development GPU acceleration is available through `compose.gpu.yaml` and `just storage-media-smoke-gpu <episode-id>`. The GPU runtime enables NVENC and CUDA decode, while FFmpeg subprocesses use their own process groups for reliable cleanup on cancellation. The development worker defaults to one Taskiq child process to avoid concurrent heavyweight media jobs exhausting host CPU/RAM.
 - `storage-media-smoke` reports Redis pending tasks and active FFmpeg/temporary-output diagnostics when its wait timeout expires
 
 ### PR #28 — Player / Playback

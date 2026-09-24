@@ -378,6 +378,12 @@ class AnimePipelineResponse(BaseModel):
     episodes: list[EpisodePipelineSummary]
 
 
+class EpisodePipelineRetryResponse(BaseModel):
+    stage: EpisodePipelineCurrentStage
+    job_id: UUID
+    status: EpisodePipelineStageStatus
+
+
 class MediaProcessingJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

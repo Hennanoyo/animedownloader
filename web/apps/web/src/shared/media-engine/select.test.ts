@@ -11,11 +11,9 @@ vi.mock("hls.js", () => ({
 }));
 
 vi.mock("dashjs", () => ({
-  default: {
-    MediaPlayer: () => ({
-      create: vi.fn(),
-    }),
-  },
+  MediaPlayer: () => ({
+    create: vi.fn(),
+  }),
 }));
 
 import { selectVideoEngine } from "./select";

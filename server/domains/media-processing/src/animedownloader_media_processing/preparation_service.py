@@ -107,6 +107,24 @@ class MediaPreparationJobService:
         await self.session.refresh(job)
         return job
 
+    async def update_operation(
+        self,
+        job_id: UUID,
+        *,
+        operation: MediaTranscodingOperation | None,
+    ) -> MediaPreparationJob:
+        await self.session.rollback()
+        async with self.session.begin():
+            job = await self.get_job(job_id)
+            if job.job_status is not MediaPreparationJobStatus.PROCESSING:
+                raise ValueError(
+                    "Preparation operation can only be updated for a processing job",
+                )
+            job.operation = operation.value if operation is not None else None
+
+        await self.session.refresh(job)
+        return job
+
     async def mark_completed(
         self,
         job_id: UUID,

@@ -23,7 +23,7 @@ from animedownloader_media_processing import (
     MediaTranscodingOperation,
     MediaVariantService,
 )
-from animedownloader_storage import Storage
+from animedownloader_storage import PlayableArtifact, Storage, ThumbnailArtifact
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 logger = logging.getLogger(__name__)
@@ -392,7 +392,10 @@ class MediaPreparationRunner:
                     )
 
                 if playable_output_path is not None:
-                    playable_output_key = f"playable/{context.asset_id}/{job_id}.mp4"
+                    playable_output_key = PlayableArtifact(
+                        asset_id=context.asset_id,
+                        variant_id=context.variant_id,
+                    ).object_key
                     print(
                         "[worker] media preparation uploading playable: "
                         f"job_id={job_id} key={playable_output_key}",
@@ -405,8 +408,14 @@ class MediaPreparationRunner:
                     )
 
                 if thumbnail is not None:
-                    thumbnail_sprite_key = f"thumbnails/{context.asset_id}/sprite.jpg"
-                    thumbnail_vtt_key = f"thumbnails/{context.asset_id}/sprite.vtt"
+                    thumbnail_sprite_key = ThumbnailArtifact(
+                        asset_id=context.asset_id,
+                        kind="sprite",
+                    ).object_key
+                    thumbnail_vtt_key = ThumbnailArtifact(
+                        asset_id=context.asset_id,
+                        kind="vtt",
+                    ).object_key
                     await self._storage.put_file(
                         thumbnail.sprite_path,
                         thumbnail_sprite_key,

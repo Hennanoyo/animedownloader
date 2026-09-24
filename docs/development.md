@@ -127,13 +127,46 @@ just storage-smoke
 just storage-media-smoke <episode-id>
 ```
 
-`storage-media-smoke` is an executable developer smoke test: it requires a completed download, reconciles and enqueues missing downstream media-processing, preparation, subtitle/attachment, and streaming-packaging work, waits for the pipeline to settle, then materializes derived objects from the configured storage backend, validates the stored playable MP4 with FFprobe, and verifies thumbnails, subtitles, attachments/fonts, HLS/DASH manifests, and CMAF segments.
+`storage-media-smoke` validates the pipeline after the Episode's download has completed. It reconciles and enqueues missing downstream media-processing, preparation, subtitle/attachment, and streaming-packaging work, waits for the pipeline to settle, then materializes derived objects from the configured storage backend, validates the stored playable MP4 with FFprobe, and verifies thumbnails, subtitles, attachments/fonts, HLS/DASH manifests, and CMAF segments.
+
+For a true Episode-ID-only end-to-end test, use:
+
+```bash
+just reset-dev
+STORAGE_BACKEND=seaweedfs just up
+just media-e2e-smoke <episode-id>
+```
+
+The `media-e2e-smoke` command creates a download job when needed, waits for the Torrent download to complete, then invokes `storage-media-smoke` for the complete downstream media pipeline. It is intended for local/development validation and may perform a real torrent download, so it is not part of normal CI.
+
+The `--timeout` value applies to the download stage and each downstream media stage:
+
+```bash
+just media-e2e-smoke <episode-id> 3600
+```
 
 Use `--skip-playable` when a full playable-file download is undesirable:
+
 
 ```bash
 docker compose exec -T worker uv run --package animedownloader-worker \
   python3 /app/scripts/storage-media-smoke.py <episode-id> --skip-playable
+```
+
+## Development Data Reset
+
+`reset-dev` is intentionally destructive. It stops Compose and removes all Compose-managed development volumes, including PostgreSQL, Redis, SeaweedFS, downloads, media, and qBittorrent state.
+
+Use it when storage rules or database schemas have changed and old development data should not be migrated:
+
+```bash
+just reset-dev
+```
+
+After the reset, start the stack again. For the media storage E2E workflow, use SeaweedFS explicitly:
+
+```bash
+STORAGE_BACKEND=seaweedfs just up
 ```
 
 ## Monorepo

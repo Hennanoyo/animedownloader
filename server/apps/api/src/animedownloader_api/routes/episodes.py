@@ -23,6 +23,7 @@ from animedownloader_api.dependencies import (
     get_media_preparation_job_service,
     get_media_processing_job_service,
     get_media_streaming_package_service,
+    get_playback_service,
     get_media_variant_service,
 )
 from animedownloader_api.schemas import (
@@ -34,7 +35,9 @@ from animedownloader_api.schemas import (
     MediaProcessingJobResponse,
     MediaStreamingPackageResponse,
     MediaVariantResponse,
+    PlaybackResponse,
 )
+from animedownloader_api.playback import PlaybackService
 from animedownloader_api.task_queue import DownloadTaskDispatcher
 
 router = APIRouter(prefix="/api/episodes", tags=["episodes"])
@@ -67,6 +70,19 @@ MediaStreamingPackageServiceDependency = Annotated[
     MediaStreamingPackageService,
     Depends(get_media_streaming_package_service),
 ]
+PlaybackServiceDependency = Annotated[PlaybackService, Depends(get_playback_service)]
+
+
+
+@router.get(
+    "/{episode_id}/playback",
+    response_model=PlaybackResponse,
+)
+async def get_episode_playback(
+    episode_id: UUID,
+    service: PlaybackServiceDependency,
+) -> PlaybackResponse:
+    return await service.get_episode_playback(episode_id)
 
 
 @router.get("/{episode_id}", response_model=EpisodeResponse)

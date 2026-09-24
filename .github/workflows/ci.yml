@@ -37,6 +37,19 @@ jobs:
           install: false
           cache: false
 
+      - name: Generate playback dependency lockfile
+        if: github.ref == 'refs/heads/feature/player-playback'
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+        working-directory: web
+
+      - name: Upload playback dependency lockfile
+        if: github.ref == 'refs/heads/feature/player-playback'
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-player-playback-pnpm-lock
+          path: web/pnpm-lock.yaml
+          if-no-files-found: error
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         working-directory: web

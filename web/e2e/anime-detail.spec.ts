@@ -184,7 +184,9 @@ test("moves live download details into the full-width download panel", async ({ 
 
   await page.goto(`/animes/${ANIME_ID}`);
   await expect(page.getByLabel("Download progress")).toBeVisible();
-  await expect(page.getByText("Downloading", { exact: true })).toBeVisible();
+  await expect(
+    page.getByLabel("Download progress").getByText("Downloading", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
 });

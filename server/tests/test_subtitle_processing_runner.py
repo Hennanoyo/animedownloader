@@ -113,6 +113,8 @@ async def test_runner_processes_pending_tracks(tmp_path: Path) -> None:
     assert processor.calls == [track_id]
     assert len(state.completed) == 1
     assert state.completed[0][2] == "ass"
+    assert state.completed[0][1] == f"subtitles/{context.asset_id}/{track_id}.ass"
+    assert (tmp_path / "storage" / "subtitles" / str(context.asset_id) / f"{track_id}.ass").exists()
     assert state.failed == []
     assert state.asset_completed
 

@@ -42,7 +42,11 @@ async def test_auto_encoder_prefers_nvenc_when_probe_succeeds() -> None:
 
     assert encoder == "hevc_nvenc"
     assert runner.calls
-    assert "hevc_nvenc" in runner.calls[0]
+    command = runner.calls[0]
+    assert "hevc_nvenc" in command
+    assert "-frames:v" in command
+    assert command[command.index("-frames:v") + 1] == "2"
+    assert command[-3:] == ("-f", "null", "-")
 
 
 @pytest.mark.anyio

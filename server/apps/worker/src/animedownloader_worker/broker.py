@@ -4,9 +4,6 @@ from animedownloader_media_processing import (
     MEDIA_PACKAGING_TASK_NAME,
     MEDIA_PREPARATION_TASK_NAME,
     MEDIA_PROCESSING_TASK_NAME,
-    MediaPackagingJobStatus,
-    MediaPreparationJobStatus,
-    MediaProcessingJobStatus,
     MediaStreamingPackageService,
     MediaPreparationJobService,
     MediaProcessingJobService,
@@ -42,24 +39,12 @@ async def recover_active_media_jobs(_state: TaskiqState) -> None:
             packaging_jobs = await MediaStreamingPackageService(session).get_active_jobs()
 
         recovery_targets = (
-            (
-                MEDIA_PROCESSING_TASK_NAME,
-                processing_jobs,
-                MediaProcessingJobStatus,
-            ),
-            (
-                MEDIA_PREPARATION_TASK_NAME,
-                preparation_jobs,
-                MediaPreparationJobStatus,
-            ),
-            (
-                MEDIA_PACKAGING_TASK_NAME,
-                packaging_jobs,
-                MediaPackagingJobStatus,
-            ),
+            (MEDIA_PROCESSING_TASK_NAME, processing_jobs),
+            (MEDIA_PREPARATION_TASK_NAME, preparation_jobs),
+            (MEDIA_PACKAGING_TASK_NAME, packaging_jobs),
         )
 
-        for task_name, jobs, _status_type in recovery_targets:
+        for task_name, jobs in recovery_targets:
             task = broker.find_task(task_name)
             if task is None:
                 print(

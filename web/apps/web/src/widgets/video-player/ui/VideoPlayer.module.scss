@@ -5,10 +5,10 @@
 
 .viewport {
   position: relative;
-  display: grid;
   overflow: hidden;
   border-radius: 0.7rem;
   background: #000;
+  line-height: 0;
 }
 
 .video {

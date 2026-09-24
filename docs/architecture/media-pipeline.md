@@ -32,14 +32,11 @@ The downloaded `MediaAsset.path` remains the canonical source. Derived playable 
 
 ## Media Preparation
 
-Playable media and thumbnails are derived from the same source in a shared FFmpeg execution whenever both are needed.
+Playable media and thumbnails are derived from the same source, but they run as separate FFmpeg processes whenever both are needed.
 
-For a TRANSCODE operation, the source video is decoded once and split into:
+For a TRANSCODE operation, one process creates the playable HEVC MP4 and a later process extracts the sampled thumbnail frames and assembles the sprite. This intentionally decodes the source twice so the playable transcode cannot be coupled to the thumbnail filter's slower output cadence or retain a large shared filter graph in memory.
 
-- a playable branch encoded to HEVC
-- a thumbnail branch sampled, scaled, padded, and tiled into a sprite
-
-For a REMUX operation, compatible video/audio streams are copied directly into MP4 while the thumbnail branch is decoded for frame extraction.
+For a REMUX operation, one process copies compatible video/audio streams into MP4 and a later process extracts the thumbnail frames and builds the sprite.
 
 The preparation job records durable execution state and a source path/metadata snapshot. Playable and thumbnail artifact state remains independent so retries can process only the missing artifact after a partial failure.
 
@@ -51,7 +48,7 @@ The default video encoder setting is `auto`. Before a transcode, the worker runs
 
 This keeps the media pipeline portable without making GPU availability a prerequisite. Docker Compose can expose the GPU to the worker when available, but the application itself does not require a GPU-specific encoder setting. The repository's `just up` performs this host/container capability check automatically and uses the GPU Compose overlay only when the NVIDIA device is usable; otherwise it starts the normal CPU worker.
 
-The NVENC path keeps the existing software decode and thumbnail filter graph. This is intentional: the shared thumbnail pipeline requires CPU-side filtering, and avoiding CUDA-frame filter negotiation keeps the preparation path portable and predictable. NVENC still removes the HEVC encoding workload from the CPU, which is the expensive part of TRANSCODE. The CPU fallback uses an explicit eight-thread encoder limit to keep resource usage bounded. The worker's automatic probe performs a real small NVENC encode rather than only checking whether the encoder is listed, because GPU visibility alone does not guarantee that the NVENC session can be initialized.
+The NVENC path keeps software decoding and CPU-side thumbnail filtering. The playable transcode and thumbnail generation are separate processes intentionally: NVENC removes the HEVC encoding workload from the CPU while process separation prevents the thumbnail branch from sharing the playable transcode's decoded-frame/filter state. The CPU fallback uses an explicit eight-thread encoder limit to keep resource usage bounded. The worker's automatic probe performs a real small NVENC encode rather than only checking whether the encoder is listed, because GPU visibility alone does not guarantee that the NVENC session can be initialized.
 
 FFmpeg subprocesses are started in their own POSIX process group so timeout or task cancellation can terminate the complete FFmpeg process tree instead of leaving an orphaned encoder/decoder running after a worker failure. The development worker defaults to one Taskiq child process because media transcoding is resource-intensive; `TASKIQ_WORKERS` can be increased explicitly when the host has capacity for concurrent jobs.
 
@@ -89,7 +86,7 @@ Generate a thumbnail sprite together with timing information suitable for hover/
 
 The sprite image plus WebVTT timing/region metadata is the preferred conceptual representation.
 
-Thumbnail generation is part of the shared media preparation pass when a playable artifact is also required. If the playable artifact is already current, thumbnail-only retry uses the thumbnail processor without regenerating the playable file.
+Thumbnail generation is part of the media preparation pass when a playable artifact is also required, but it runs in its own FFmpeg process. If the playable artifact is already current, thumbnail-only retry uses the thumbnail processor without regenerating the playable file.
 
 ## Outputs
 

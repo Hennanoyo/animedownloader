@@ -315,6 +315,7 @@ function EpisodeActionMenu({
             <MenuItem
               className={styles.menuItem + " " + styles.menuItemDanger}
               onAction={onDeleteEpisode}
+              isDisabled={isDeleteDisabled}
             >
               <Icon name="trash" size={15} />
               <span>Delete episode</span>

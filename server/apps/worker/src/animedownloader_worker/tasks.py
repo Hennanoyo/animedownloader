@@ -47,7 +47,6 @@ from .subtitle_processing import (
     create_subtitle_processing_state,
 )
 
-
 print("[worker] task module loaded", flush=True)
 
 
@@ -257,8 +256,7 @@ async def _enqueue_media_preparation(
         return
 
     print(
-        "[worker] enqueuing media preparation: "
-        f"job_id={preparation_job_id} asset_id={asset_id}",
+        f"[worker] enqueuing media preparation: job_id={preparation_job_id} asset_id={asset_id}",
         flush=True,
     )
     await process_media_preparation.kiq(str(preparation_job_id))
@@ -320,8 +318,7 @@ async def _enqueue_media_packaging(
 
     if reenqueue:
         print(
-            "[worker] re-enqueuing pending media packaging job: "
-            f"job_id={packaging_job_id}",
+            f"[worker] re-enqueuing pending media packaging job: job_id={packaging_job_id}",
             flush=True,
         )
 

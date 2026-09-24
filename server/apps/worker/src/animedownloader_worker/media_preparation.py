@@ -282,8 +282,7 @@ class MediaPreparationRunner:
                 return
             if context.status is MediaPreparationJobStatus.FAILED:
                 print(
-                    "[worker] media preparation task ignored for failed job: "
-                    f"job_id={job_id}",
+                    f"[worker] media preparation task ignored for failed job: job_id={job_id}",
                     flush=True,
                 )
                 return

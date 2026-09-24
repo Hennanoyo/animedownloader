@@ -64,8 +64,7 @@ async def recover_active_media_jobs(_state: TaskiqState) -> None:
                 )
     except Exception as exc:
         print(
-            "[worker] startup media job recovery failed: "
-            f"{type(exc).__name__}: {exc}",
+            f"[worker] startup media job recovery failed: {type(exc).__name__}: {exc}",
             flush=True,
         )
         raise

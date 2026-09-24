@@ -322,13 +322,25 @@ async def test_runner_combines_playable_and_thumbnail_generation(tmp_path: Path)
     assert state.completed is not None
     assert state.completed[0] is output_probe
     assert state.completed[1] is not None
-    playable = tmp_path / "storage" / "playable" / str(state.context.asset_id) / f"{state.context.variant_id}.mp4"
+    playable = (
+        tmp_path
+        / "storage"
+        / "playable"
+        / str(state.context.asset_id)
+        / f"{state.context.variant_id}.mp4"
+    )
     sprite = tmp_path / "storage" / "thumbnails" / str(state.context.asset_id) / "sprite.jpg"
     vtt = tmp_path / "storage" / "thumbnails" / str(state.context.asset_id) / "sprite.vtt"
     assert playable.read_bytes() == b"playable"
     assert sprite.read_bytes() == b"sprite"
     assert vtt.read_text(encoding="utf-8") == "WEBVTT\n"
-    assert not (tmp_path / "storage" / "playable" / str(state.context.asset_id) / f"{state.context.job_id}.mp4").exists()
+    assert not (
+        tmp_path
+        / "storage"
+        / "playable"
+        / str(state.context.asset_id)
+        / f"{state.context.job_id}.mp4"
+    ).exists()
     assert len(inspector.paths) == 2
 
 
@@ -364,6 +376,7 @@ async def test_runner_refreshes_stale_operation_on_resume(tmp_path: Path) -> Non
     assert state.completed is not None
     assert len(preparation.calls) == 1
     assert preparation.calls[0][-1] is PlayableMediaOperation.REMUX
+
 
 @pytest.mark.anyio
 async def test_runner_reuses_completed_playable_for_thumbnail_retry(tmp_path: Path) -> None:

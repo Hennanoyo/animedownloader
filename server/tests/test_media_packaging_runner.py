@@ -108,8 +108,12 @@ async def test_runner_packages_current_playable_variant(tmp_path: Path) -> None:
     assert representation.quality == "1080p"
     assert representation.segments[0].uri == "s/00000.m4s"
     assert package_artifact.object_prefix == f"streaming/{state.context.package_id}"
-    assert package_artifact.master_playlist_key == f"streaming/{state.context.package_id}/master.m3u8"
-    assert package_artifact.dash_manifest_key == f"streaming/{state.context.package_id}/manifest.mpd"
+    assert (
+        package_artifact.master_playlist_key == f"streaming/{state.context.package_id}/master.m3u8"
+    )
+    assert (
+        package_artifact.dash_manifest_key == f"streaming/{state.context.package_id}/manifest.mpd"
+    )
     assert package_artifact.representation_key("1080p", "index.m3u8") == (
         f"streaming/{state.context.package_id}/1080p/index.m3u8"
     )

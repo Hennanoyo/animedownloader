@@ -41,9 +41,7 @@ def test_attachment_artifact_does_not_depend_on_original_filename() -> None:
     )
 
     assert artifact.filename == f"{artifact.attachment_id}.ttf"
-    assert artifact.object_key == (
-        f"attachments/{artifact.asset_id}/{artifact.attachment_id}.ttf"
-    )
+    assert artifact.object_key == (f"attachments/{artifact.asset_id}/{artifact.attachment_id}.ttf")
 
 
 def test_font_artifact_is_content_addressed() -> None:

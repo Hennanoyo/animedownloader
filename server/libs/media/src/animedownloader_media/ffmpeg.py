@@ -350,6 +350,7 @@ class FFmpegPlayableMediaProcessor:
         self._executable = executable
         self._runner = runner or SubprocessFFmpegRunner()
         self._video_encoder = video_encoder
+        build_video_encoder_options(video_encoder)
 
     async def process(
         self,

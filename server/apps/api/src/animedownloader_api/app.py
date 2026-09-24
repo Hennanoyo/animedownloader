@@ -29,8 +29,10 @@ from fastapi.responses import JSONResponse
 
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
 from animedownloader_api.routes import (
+    anime_pipeline_router,
     animes_router,
     download_jobs_router,
+    episode_pipeline_router,
     episodes_router,
     media_packaging_jobs_router,
     media_preparation_jobs_router,
@@ -109,6 +111,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.add_exception_handler(DuplicateEpisodeError, _duplicate_episode_handler)
     app.include_router(animes_router)
+    app.include_router(anime_pipeline_router)
+    app.include_router(episode_pipeline_router)
     app.include_router(episodes_router)
     app.include_router(download_jobs_router)
     app.include_router(media_packaging_jobs_router)

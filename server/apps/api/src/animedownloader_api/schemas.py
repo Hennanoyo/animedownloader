@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from enum import StrEnum
 from uuid import UUID
 
 from animedownloader_anime import ConversionStatus, DownloadStatus, Season, Weekday
@@ -307,6 +308,80 @@ class PlaybackResponse(BaseModel):
     fonts: list[PlaybackFontResponse]
     chapters: list[PlaybackChapterResponse]
     thumbnails: PlaybackThumbnailResponse | None
+
+
+
+class EpisodePipelineStageStatus(StrEnum):
+    NOT_STARTED = "not_started"
+    PENDING = "pending"
+    PROCESSING = "processing"
+    DOWNLOADING = "downloading"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    PAUSED = "paused"
+    CANCELLED = "cancelled"
+
+
+class EpisodePipelineCurrentStage(StrEnum):
+    DOWNLOAD = "download"
+    PROCESSING = "processing"
+    PREVIEW = "preview"
+    STREAMING = "streaming"
+
+
+class EpisodePipelineDownloadResponse(BaseModel):
+    status: EpisodePipelineStageStatus
+    downloaded_bytes: int
+    total_bytes: int | None
+    error_message: str | None
+
+
+class EpisodePipelineProcessingResponse(BaseModel):
+    status: EpisodePipelineStageStatus
+    progress_percent: int = Field(ge=0, le=100)
+    playable_ready: bool
+    error_message: str | None
+
+
+class EpisodePipelineStreamingResponse(BaseModel):
+    status: EpisodePipelineStageStatus
+    hls_ready: bool
+    dash_ready: bool
+    error_message: str | None
+
+
+class EpisodePipelineThumbnailResponse(BaseModel):
+    status: EpisodePipelineStageStatus
+    progress_percent: int = Field(ge=0, le=100)
+    url: str | None
+    vtt_url: str | None
+    error_message: str | None
+
+
+class EpisodePipelineSummary(BaseModel):
+    episode_id: UUID
+    episode_number: int
+    title: str
+    download: EpisodePipelineDownloadResponse
+    processing: EpisodePipelineProcessingResponse
+    subtitles: EpisodePipelineStageStatus
+    attachments: EpisodePipelineStageStatus
+    streaming: EpisodePipelineStreamingResponse
+    thumbnail: EpisodePipelineThumbnailResponse
+    current_stage: EpisodePipelineCurrentStage | None
+    playback_ready: bool
+    active: bool
+
+
+class AnimePipelineResponse(BaseModel):
+    anime_id: UUID
+    episodes: list[EpisodePipelineSummary]
+
+
+class EpisodePipelineRetryResponse(BaseModel):
+    stage: EpisodePipelineCurrentStage
+    job_id: UUID
+    status: EpisodePipelineStageStatus
 
 
 class MediaProcessingJobResponse(BaseModel):

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "react-aria-components";
 import { ApiRequestError } from "../../../shared/api/client";
+import Icon from "../../../shared/ui/Icon";
 import {
   useCancelDownloadJob,
   useCreateEpisodeDownloadJob,
@@ -13,9 +14,15 @@ import styles from "./EpisodeDownloadControl.module.scss";
 
 interface Props {
   episodeId: string;
+  compact?: boolean;
+  inline?: boolean;
 }
 
-export default function EpisodeDownloadControl({ episodeId }: Props) {
+export default function EpisodeDownloadControl({
+  episodeId,
+  compact = false,
+  inline = false,
+}: Props) {
   const query = useEpisodeDownload(episodeId);
   const createMutation = useCreateEpisodeDownloadJob(episodeId);
   const pauseMutation = usePauseDownloadJob(episodeId);
@@ -47,26 +54,57 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
   if (job?.status === "pending" || job?.status === "downloading") {
     const pending = pauseMutation.isPending || cancelMutation.isPending;
 
+    if (inline) {
+      return (
+        <InlineDownloadState
+          job={job}
+          statusLabel={job.status === "pending" ? "Queued" : "Downloading"}
+          pending={pending}
+          isPausing={pauseMutation.isPending}
+          isCancelling={cancelMutation.isPending}
+          onPause={() => pauseMutation.mutate(job.id)}
+          onCancel={() => setConfirm("cancel")}
+          confirm={confirm}
+          onKeep={() => setConfirm(null)}
+          onConfirmCancel={() => {
+            setConfirm(null);
+            cancelMutation.mutate(job.id);
+          }}
+          cancelError={cancelMutation.isError ? cancelMutation.error.message : null}
+          pauseError={pauseMutation.isError ? pauseMutation.error.message : null}
+        />
+      );
+    }
+
     return (
-      <div className={styles.control}>
-        <span className={styles.status}>
-          {job.status === "pending" ? "Queued" : "Downloading"}
-        </span>
-        <div className={styles.progressTrack}>
-          <div
-            className={styles.progress}
-            style={{
-              width:
-                job.total_bytes && job.total_bytes > 0
-                  ? Math.min(
-                      (job.downloaded_bytes / job.total_bytes) * 100,
-                      100,
-                    ) + "%"
-                  : "0%",
-            }}
-          />
-        </div>
-        <span className={styles.progressLabel}>{formatProgress(job)}</span>
+      <div
+        className={compact ? styles.control + " " + styles.compact : styles.control}
+        data-compact={compact || undefined}
+      >
+        {compact ? null : (
+          <>
+            <span className={styles.status}>
+              {job.status === "pending" ? "Queued" : "Downloading"}
+            </span>
+            <div className={styles.progressTrack}>
+              <div
+                className={styles.progress}
+                style={{
+                  width:
+                    job.total_bytes && job.total_bytes > 0
+                      ? Math.min(
+                          (job.downloaded_bytes / job.total_bytes) * 100,
+                          100,
+                        ) + "%"
+                      : "0%",
+                }}
+              />
+            </div>
+            <span className={styles.progressLabel}>
+              {formatProgress(job)}
+            </span>
+          </>
+        )}
         {confirm === "cancel" ? (
           <div className={styles.confirm} role="alertdialog">
             <span>Cancel this download and remove partial data?</span>
@@ -121,10 +159,40 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
   if (job?.status === "paused") {
     const pending = resumeMutation.isPending || cancelMutation.isPending;
 
+    if (inline) {
+      return (
+        <InlineDownloadState
+          job={job}
+          statusLabel="Paused"
+          pending={pending}
+          isPausing={false}
+          isCancelling={cancelMutation.isPending}
+          onPause={() => resumeMutation.mutate(job.id)}
+          onCancel={() => setConfirm("cancel")}
+          confirm={confirm}
+          onKeep={() => setConfirm(null)}
+          onConfirmCancel={() => {
+            setConfirm(null);
+            cancelMutation.mutate(job.id);
+          }}
+          cancelError={cancelMutation.isError ? cancelMutation.error.message : null}
+          pauseError={resumeMutation.isError ? resumeMutation.error.message : null}
+          paused
+        />
+      );
+    }
+
     return (
-      <div className={styles.control}>
-        <span className={styles.status}>Paused</span>
-        <span className={styles.progressLabel}>{formatProgress(job)}</span>
+      <div
+        className={compact ? styles.control + " " + styles.compact : styles.control}
+        data-compact={compact || undefined}
+      >
+        {compact ? null : (
+          <>
+            <span className={styles.status}>Paused</span>
+            <span className={styles.progressLabel}>{formatProgress(job)}</span>
+          </>
+        )}
         {confirm === "cancel" ? (
           <div className={styles.confirm} role="alertdialog">
             <span>Cancel this download and remove partial data?</span>
@@ -179,6 +247,7 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
   if (job?.status === "completed") {
     return (
       <TerminalDownloadControl
+        compact={compact}
         job={job}
         onDownload={() => createMutation.mutate()}
         onDelete={() => setConfirm("delete")}
@@ -193,6 +262,7 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
   if (job?.status === "failed") {
     return (
       <TerminalDownloadControl
+        compact={compact}
         job={job}
         onDownload={() => createMutation.mutate()}
         onDelete={() => setConfirm("delete")}
@@ -208,6 +278,7 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
   if (job?.status === "cancelled") {
     return (
       <TerminalDownloadControl
+        compact={compact}
         job={job}
         onDownload={() => createMutation.mutate()}
         onDelete={() => setConfirm("delete")}
@@ -239,7 +310,112 @@ export default function EpisodeDownloadControl({ episodeId }: Props) {
   );
 }
 
+interface InlineDownloadStateProps {
+  job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
+  statusLabel: string;
+  pending: boolean;
+  isPausing: boolean;
+  isCancelling: boolean;
+  onPause: () => void;
+  onCancel: () => void;
+  confirm: "cancel" | "delete" | null;
+  onKeep: () => void;
+  onConfirmCancel: () => void;
+  cancelError: string | null;
+  pauseError: string | null;
+  paused?: boolean;
+}
+
+function InlineDownloadState({
+  job,
+  statusLabel,
+  pending,
+  isPausing,
+  isCancelling,
+  onPause,
+  onCancel,
+  confirm,
+  onKeep,
+  onConfirmCancel,
+  cancelError,
+  pauseError,
+  paused = false,
+}: InlineDownloadStateProps) {
+  return (
+    <div className={styles.inlineControl} data-inline="true" aria-label="Download progress">
+      <div className={styles.inlineMeta}>
+        <span className={styles.status}>{statusLabel}</span>
+        <span className={styles.progressLabel}>{formatProgress(job)}</span>
+      </div>
+      {paused ? null : (
+        <div className={styles.progressTrack}>
+          <div
+            className={styles.progress}
+            style={{
+              width:
+                job.total_bytes && job.total_bytes > 0
+                  ? Math.min(
+                      (job.downloaded_bytes / job.total_bytes) * 100,
+                      100,
+                    ) + "%"
+                  : "0%",
+            }}
+          />
+        </div>
+      )}
+
+      {confirm === "cancel" ? (
+        <div className={styles.inlineConfirm} role="alertdialog">
+          <span>Cancel this download and remove partial data?</span>
+          <div className={styles.buttons}>
+            <Button
+              className={styles.secondaryButton}
+              onPress={onKeep}
+              isDisabled={pending}
+            >
+              Keep
+            </Button>
+            <Button
+              className={styles.dangerButton}
+              onPress={onConfirmCancel}
+              isDisabled={pending}
+            >
+              {isCancelling ? "Cancelling..." : "Cancel download"}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className={styles.iconButtons}>
+          <Button
+            className={styles.iconButton}
+            aria-label={paused ? "Resume download" : "Pause download"}
+            onPress={onPause}
+            isDisabled={pending}
+          >
+            <Icon name={paused ? "play" : "pause"} size={15} />
+            {isPausing ? (
+              <span className={styles.srOnly}>Starting...</span>
+            ) : null}
+          </Button>
+          <Button
+            className={styles.iconButtonDanger}
+            aria-label="Cancel download"
+              onPress={onCancel}
+            isDisabled={pending}
+          >
+            <Icon name="x" size={15} />
+          </Button>
+        </div>
+      )}
+
+      {pauseError ? <span className={styles.error}>{pauseError}</span> : null}
+      {cancelError ? <span className={styles.error}>{cancelError}</span> : null}
+    </div>
+  );
+}
+
 interface TerminalDownloadControlProps {
+  compact?: boolean;
   job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
   onDownload: () => void;
   onDelete: () => void;
@@ -251,6 +427,7 @@ interface TerminalDownloadControlProps {
 }
 
 function TerminalDownloadControl({
+  compact = false,
   job,
   onDownload,
   onDelete,
@@ -261,18 +438,25 @@ function TerminalDownloadControl({
   showError = false,
 }: TerminalDownloadControlProps) {
   return (
-    <div className={styles.control}>
-      <span className={job.status === "failed" ? styles.error : styles.message}>
-        {job.status === "completed"
-          ? "Completed"
-          : job.status === "failed"
-            ? "Failed"
-            : "Cancelled"}
-      </span>
+    <div
+      className={compact ? styles.control + " " + styles.compact : styles.control}
+      data-compact={compact || undefined}
+    >
+      {compact ? null : (
+        <span className={job.status === "failed" ? styles.error : styles.message}>
+          {job.status === "completed"
+            ? "Completed"
+            : job.status === "failed"
+              ? "Failed"
+              : "Cancelled"}
+        </span>
+      )}
       {job.status === "failed" && job.error_message ? (
         <span className={styles.errorDetail}>{job.error_message}</span>
       ) : null}
-      <span className={styles.progressLabel}>{formatProgress(job)}</span>
+      {compact ? null : (
+        <span className={styles.progressLabel}>{formatProgress(job)}</span>
+      )}
       <div className={styles.buttons}>
         <Button
           className={styles.secondaryButton}

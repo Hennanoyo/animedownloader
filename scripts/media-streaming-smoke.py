@@ -240,6 +240,11 @@ async def main() -> int:
         default=180.0,
         help="Packaging timeout in seconds",
     )
+    parser.add_argument(
+        "--existing-only",
+        action="store_true",
+        help="Only verify an existing current package; never enqueue packaging",
+    )
     args = parser.parse_args()
 
     episode_id: UUID = args.episode_id
@@ -272,16 +277,25 @@ async def main() -> int:
         f"{playable.get('video_codec')}",
     )
 
-    job_id = await ensure_packaging_job(episode_id)
-    if job_id is not None:
-        await asyncio.to_thread(
-            wait_for_packaging_job,
-            api_url=args.api_url,
-            job_id=job_id,
-            timeout_seconds=args.timeout,
+    if args.existing_only:
+        package = http_get(
+            args.api_url,
+            f"/api/episodes/{episode_id}/streaming-media",
         )
-    else:
+        if package is None:
+            raise SmokeTestError("No current streaming package exists")
         print("  packaging job: existing current package")
+    else:
+        job_id = await ensure_packaging_job(episode_id)
+        if job_id is not None:
+            await asyncio.to_thread(
+                wait_for_packaging_job,
+                api_url=args.api_url,
+                job_id=job_id,
+                timeout_seconds=args.timeout,
+            )
+        else:
+            print("  packaging job: existing current package")
 
     await verify_streaming_package(
         storage=storage,

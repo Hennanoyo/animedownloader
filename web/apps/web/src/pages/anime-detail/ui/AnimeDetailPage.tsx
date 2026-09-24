@@ -1,18 +1,23 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { Button } from "react-aria-components";
+import Icon from "../../../shared/ui/Icon";
 import type { Anime } from "../../../entities/anime/model/types";
 import { useAnimeDetail } from "../../../features/anime-detail/model/useAnimeDetail";
+import { useAnimePipeline } from "../../../features/anime-detail/model/useAnimePipeline";
 import { useDeleteAnime } from "../../../features/anime-edit/model/useEditAnime";
 import AnimeEditForm from "../../../features/anime-edit/ui/AnimeEditForm";
-import EpisodeDownloadControl from "../../../features/episode-download/ui/EpisodeDownloadControl";
 import EpisodeManagement from "../../../features/episode-management/ui/EpisodeManagement";
+import EpisodePipelineCard from "../../../widgets/episode-pipeline/ui/EpisodePipelineCard";
 import { ApiRequestError } from "../../../shared/api/client";
 import styles from "./AnimeDetailPage.module.scss";
 
 export default function AnimeDetailPage() {
   const { animeId } = useParams({ from: "/animes/$animeId" });
+  const queryClient = useQueryClient();
   const query = useAnimeDetail(animeId);
+  const pipelineQuery = useAnimePipeline(animeId);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
@@ -70,7 +75,12 @@ export default function AnimeDetailPage() {
           <AnimeEditForm
             anime={anime}
             onCancel={() => setIsEditing(false)}
-            onSaved={() => void query.refetch()}
+            onSaved={() => {
+              void query.refetch();
+              void queryClient.invalidateQueries({
+                queryKey: ["anime-pipelines", animeId],
+              });
+            }}
           />
           <EpisodeManagement anime={anime} />
         </section>
@@ -93,78 +103,54 @@ export default function AnimeDetailPage() {
       ) : null}
 
       {!isEditing ? (
-        <section className={styles.panel} aria-labelledby="episodes-heading">
-        <div className={styles.panelHeader}>
-          <div>
-            <p className={styles.kicker}>Episodes</p>
-            <h2 id="episodes-heading">Episode list</h2>
+        <section
+          className={styles.pipelineSummary}
+          aria-labelledby="episodes-heading"
+        >
+          <div className={styles.panelHeader}>
+            <div>
+              <p className={styles.kicker}>Media pipeline</p>
+              <h2 id="episodes-heading">Episodes</h2>
+            </div>
           </div>
-        </div>
 
-        {anime.episodes.length === 0 ? (
-          <p className={styles.empty}>No episodes have been added yet.</p>
-        ) : (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th scope="col">Episode</th>
-                  <th scope="col">Title</th>
-                  <th scope="col">Source</th>
-                  <th scope="col">Size</th>
-                  <th scope="col">Seeders</th>
-                  <th scope="col">Leechers</th>
-                  <th scope="col">Downloads</th>
-                  <th scope="col">Download</th>
-                  <th scope="col">Conversion</th>
-                  <th scope="col">Playback</th>
-                </tr>
-              </thead>
-              <tbody>
-                {anime.episodes.map((episode) => (
-                  <tr key={episode.id}>
-                    <th scope="row">#{episode.episode_number}</th>
-                    <td>{episode.title}</td>
-                    <td>
-                      {episode.source_url ? (
-                        <a
-                          href={episode.source_url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {episode.source}
-                        </a>
-                      ) : (
-                        episode.source
-                      )}
-                    </td>
-                    <td>{episode.size ?? "Unknown"}</td>
-                    <td>{formatCount(episode.seeders)}</td>
-                    <td>{formatCount(episode.leechers)}</td>
-                    <td>{formatCount(episode.downloads)}</td>
-                    <td>
-                      <EpisodeDownloadControl episodeId={episode.id} />
-                    </td>
-                    <td>
-                      <span className={styles.status}>
-                        {formatLabel(episode.conversion_status)}
-                      </span>
-                    </td>
-                    <td>
-                      <Link
-                        className={styles.playButton}
-                        to="/episodes/$episodeId"
-                        params={{ episodeId: episode.id }}
-                      >
-                        Play
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          {pipelineQuery.isPending ? (
+            <p className={styles.pipelineState}>Loading media status...</p>
+          ) : pipelineQuery.isError ? (
+            <div className={styles.pipelineState} role="alert">
+              <p>
+                Failed to load media pipeline status.
+                {pipelineQuery.error instanceof Error
+                  ? " " + pipelineQuery.error.message
+                  : ""}
+              </p>
+              <Button
+                className={styles.pipelineRetryButton}
+                onPress={() => void pipelineQuery.refetch()}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : pipelineQuery.data.episodes.length === 0 ? (
+            <p className={styles.pipelineState}>
+              No episodes have been added yet.
+            </p>
+          ) : (
+            <div className={styles.pipelineList}>
+              {anime.episodes.map((episode) => {
+                const pipeline = pipelineQuery.data.episodes.find(
+                  (item) => item.episode_id === episode.id,
+                );
+                return pipeline ? (
+                  <EpisodePipelineCard
+                    key={episode.id}
+                    episode={episode}
+                    pipeline={pipeline}
+                  />
+                ) : null;
+              })}
+            </div>
+          )}
         </section>
       ) : null}
     </main>
@@ -187,21 +173,31 @@ function AnimeHeader({
       <div>
         <p className={styles.kicker}>Anime detail</p>
         <h1>{anime.title}</h1>
-        <p className={styles.schedule}>
-          {anime.year} · {formatLabel(anime.season)} ·{" "}
-          {formatLabel(anime.weekday)} ·{" "}
-          {anime.air_time ?? "Time not set"} ({anime.timezone})
-        </p>
+        <div className={styles.headerMeta}>
+          <p className={styles.schedule}>
+            {anime.year} · {formatLabel(anime.season)} ·{" "}
+            {formatLabel(anime.weekday)} ·{" "}
+            {anime.air_time ?? "Time not set"} ({anime.timezone})
+          </p>
+          <span className={styles.episodeCount}>
+            {anime.episodes.length} {anime.episodes.length === 1 ? "episode" : "episodes"}
+          </span>
+        </div>
       </div>
       <div className={styles.headerActions}>
-        <span className={styles.episodeCount}>
-          {anime.episodes.length} episodes
-        </span>
-        <Button className={styles.secondaryButton} onPress={onEdit}>
-          Edit
+        <Button
+          className={styles.iconHeaderButton}
+          onPress={onEdit}
+          aria-label="Edit anime"
+        >
+          <Icon name="edit" size={17} />
         </Button>
-        <Button className={styles.dangerButton} onPress={onDeleteConfirm}>
-          Delete
+        <Button
+          className={styles.iconHeaderButtonDanger}
+          onPress={onDeleteConfirm}
+          aria-label="Delete anime"
+        >
+          <Icon name="trash" size={17} />
         </Button>
       </div>
     </header>
@@ -273,6 +269,3 @@ function formatLabel(value: string): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function formatCount(value: number | null): string {
-  return value === null ? "—" : value.toLocaleString();
-}

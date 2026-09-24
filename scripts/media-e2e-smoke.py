@@ -146,6 +146,111 @@ def wait_for_download(
     )
 
 
+def _require_dict(payload: object, label: str) -> dict[str, object]:
+    if not isinstance(payload, dict):
+        raise MediaE2ESmokeError(f"Unexpected {label} response: {payload!r}")
+    return payload
+
+
+def get_episode_anime_id(*, api_url: str, episode_id: UUID) -> UUID:
+    payload = _require_dict(
+        http_request(api_url, f"/api/episodes/{episode_id}"),
+        "episode",
+    )
+    anime_id = payload.get("anime_id")
+    if not isinstance(anime_id, str):
+        raise MediaE2ESmokeError("Episode response has no valid anime_id")
+    return UUID(anime_id)
+
+
+def wait_for_automatic_pipeline(
+    *,
+    api_url: str,
+    episode_id: UUID,
+    anime_id: UUID,
+    timeout_seconds: float,
+) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    last_signature: tuple[object, ...] | None = None
+
+    while time.monotonic() < deadline:
+        payload = _require_dict(
+            http_request(api_url, f"/api/animes/{anime_id}/pipeline"),
+            "anime pipeline",
+        )
+        episodes = payload.get("episodes")
+        if not isinstance(episodes, list):
+            raise MediaE2ESmokeError("Anime pipeline response has no episodes")
+
+        episode = next(
+            (
+                item
+                for item in episodes
+                if isinstance(item, dict) and item.get("episode_id") == str(episode_id)
+            ),
+            None,
+        )
+        if episode is None:
+            raise MediaE2ESmokeError(
+                f"Episode {episode_id} is missing from anime pipeline",
+            )
+
+        processing = episode.get("processing")
+        streaming = episode.get("streaming")
+        thumbnail = episode.get("thumbnail")
+        if not all(isinstance(value, dict) for value in (processing, streaming, thumbnail)):
+            raise MediaE2ESmokeError("Episode pipeline has malformed stage data")
+
+        signature = (
+            processing.get("status"),
+            processing.get("playable_ready"),
+            streaming.get("status"),
+            streaming.get("hls_ready"),
+            streaming.get("dash_ready"),
+            thumbnail.get("status"),
+            processing.get("error_message"),
+            streaming.get("error_message"),
+            thumbnail.get("error_message"),
+        )
+        if signature != last_signature:
+            print(
+                "  automatic pipeline: "
+                f"processing={processing.get('status')} "
+                f"playable={processing.get('playable_ready')} "
+                f"streaming={streaming.get('status')} "
+                f"hls={streaming.get('hls_ready')} "
+                f"dash={streaming.get('dash_ready')} "
+                f"thumbnail={thumbnail.get('status')}",
+                flush=True,
+            )
+            last_signature = signature
+
+        if processing.get("status") == "failed":
+            raise MediaE2ESmokeError(
+                "Media processing failed: "
+                f"{processing.get('error_message') or 'unknown error'}",
+            )
+        if streaming.get("status") == "failed":
+            raise MediaE2ESmokeError(
+                "Media packaging failed: "
+                f"{streaming.get('error_message') or 'unknown error'}",
+            )
+        if (
+            processing.get("playable_ready") is True
+            and streaming.get("status") == "completed"
+            and streaming.get("hls_ready") is True
+            and streaming.get("dash_ready") is True
+        ):
+            return
+
+        time.sleep(2)
+
+    raise MediaE2ESmokeError(
+        "Timed out waiting for automatic media packaging after "
+        f"{timeout_seconds:.1f}s",
+    )
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -197,7 +302,18 @@ async def main() -> int:
         flush=True,
     )
 
-    smoke_script = Path(__file__).with_name("storage-media-smoke.py")
+    anime_id = get_episode_anime_id(
+        api_url=args.api_url,
+        episode_id=args.episode_id,
+    )
+    wait_for_automatic_pipeline(
+        api_url=args.api_url,
+        episode_id=args.episode_id,
+        anime_id=anime_id,
+        timeout_seconds=args.timeout,
+    )
+
+    smoke_script = Path(__file__).with_name("media-streaming-smoke.py")
     command = [
         sys.executable,
         str(smoke_script),
@@ -206,11 +322,10 @@ async def main() -> int:
         args.api_url,
         "--timeout",
         str(args.timeout),
+        "--existing-only",
     ]
-    if args.skip_playable:
-        command.append("--skip-playable")
 
-    print("  downstream media pipeline: starting", flush=True)
+    print("  automatic HLS/DASH package verification: starting", flush=True)
     process = await asyncio.to_thread(
         subprocess.run,
         command,

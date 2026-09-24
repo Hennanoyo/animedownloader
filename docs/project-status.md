@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is playback hardening. PR #23 through PR #28 are merged; PR #29 is the current development step.
+The current phase is media pipeline integration and Anime detail UX. PR #23 through PR #29 are merged; PR #30 is the current development step.
 
 ## Completed
 
@@ -338,7 +338,7 @@ Runtime validation:
 
 ### PR #28 — Player / Playback
 
-**In progress on `feature/player-playback`.**
+**Merged into `main` as commit `421442f28991b5d80270e8ab0ab5f4ea98d36c3e`.**
 
 Goal: expose current media and derived resources through a playback-oriented API and consume that contract from a browser player.
 
@@ -382,7 +382,7 @@ Scope:
 
 ### PR #29 — Playback Hardening
 
-**In progress on `feature/playback-hardening`.**
+**Merged into `main` as commit `6ff2d8630fb726af0ab055e300fe4c9d0e564ea3`.**
 
 Goal: make playback failures recoverable and keep playback API queries stable during normal player interaction.
 
@@ -411,6 +411,38 @@ Current implementation:
 Planned follow-up within the same phase:
 
 - none; proceed to the next playback/platform phase after PR #29
+
+
+### PR #30 — Media Pipeline Integration & Anime Detail UX
+
+**In progress on `feature/media-pipeline-detail`.**
+
+Goal: complete the user-visible Episode media pipeline from Download through playable media, thumbnail readiness, HLS/DASH packaging, and playback readiness, while replacing the wide Episode table with a pipeline-oriented detail view.
+
+Current implementation:
+
+- Added `GET /api/animes/{anime_id}/pipeline` as a UI-oriented batched summary over DownloadJob, MediaProcessingJob, MediaPreparationJob, MediaAsset, playable MediaVariant, streaming package, subtitle/attachment processing, and thumbnail state
+- Kept execution/history records separate while projecting them into stable Episode pipeline stages
+- Fixed the worker packaging handoff so a completed MediaPreparationJob resolves its own `variant_id` directly before creating the MediaPackagingJob
+- Preserved automatic worker chaining from completed download → media processing → preparation → CMAF/HLS/DASH packaging
+- Added HLS/DASH readiness to the Episode pipeline summary while allowing direct playable MP4 playback as soon as the current playable variant is ready
+- Added Anime detail Episode cards with a connected `Download → Processing → Preview → Streaming` visual flow
+- Added a highlighted current stage with reduced-motion-aware animation and completed-stage connector effects
+- Added preparation progress as artifact completion state: Processing reports 0/100% for playable readiness, and Preview reports 0/100% for sprite readiness
+- Added active-only TanStack Query polling at 2-second intervals and cache invalidation after download actions
+- Added Playwright coverage for the Anime detail pipeline UI, including stage progress bars and sprite preview
+- Added backend coverage for pipeline-state aggregation and the transition from Processing to Preview when playable media is ready
+- Updated the media E2E smoke to verify that the normal download pipeline reaches HLS/DASH packaging before validating stored streaming artifacts
+
+Important implementation note:
+
+- `MediaPreparationJob` is the shared orchestration unit for playable media and thumbnails, but `FFmpegMediaPreparationProcessor` currently executes those two FFmpeg operations sequentially rather than in one shared FFmpeg filter graph. This PR exposes honest stage-level completion rather than inventing a fine-grained percentage.
+- HLS and DASH continue to reuse the same CMAF/fMP4 segments; packaging does not duplicate video encoding.
+
+Planned follow-up:
+
+- Do not expand this PR with real-time FFmpeg progress unless profiling shows that coarse stage completion is insufficient.
+- After this PR, proceed to the next Download Management UX work rather than adding more media-pipeline surface area.
 
 ## Handoff Notes
 

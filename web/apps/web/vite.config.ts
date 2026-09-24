@@ -1,5 +1,5 @@
-import { fileURLToPath, URL } from "node:url";
 import { readFileSync } from "node:fs";
+import { fileURLToPath, URL } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
@@ -27,7 +27,6 @@ const stripJassubWasmSourceMap = {
 };
 
 export default defineConfig({
-
   plugins: [react(), stripJassubWasmSourceMap],
   resolve: {
     alias: {

@@ -2,6 +2,7 @@ from uuid import UUID
 
 from animedownloader_anime import AnimeService
 from animedownloader_media_asset import (
+    MediaAsset,
     MediaAssetService,
     MediaAttachment,
     MediaAttachmentStatus,
@@ -181,7 +182,7 @@ def _build_fonts(
 
 
 def _build_thumbnails(
-    asset: object,
+    asset: MediaAsset,
     storage: Storage,
 ) -> PlaybackThumbnailResponse | None:
     if (

@@ -1,0 +1,199 @@
+.card {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) auto;
+  gap: 1.2rem;
+  padding: 1rem;
+  border: 1px solid #26324a;
+  border-radius: 0.8rem;
+  background: #0b1222;
+}
+
+.thumbnail {
+  width: 160px;
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 0.55rem;
+  background-color: #111827;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  background-size: 1500% 1200%;
+}
+
+.thumbnailPlaceholder {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.content {
+  min-width: 0;
+}
+
+.heading h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.episodeNumber {
+  margin: 0 0 0.2rem;
+  color: #60a5fa;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.source {
+  margin: 0.35rem 0 0;
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.source a {
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.stages {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+}
+
+.stage {
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid #1e293b;
+  border-radius: 0.55rem;
+  background: #0f172a;
+}
+
+.stageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.stage p {
+  margin: 0.35rem 0 0;
+  color: #64748b;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.status {
+  padding: 0.18rem 0.35rem;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  color: #94a3b8;
+  font-size: 0.64rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status[data-status="completed"] {
+  color: #86efac;
+  border-color: #166534;
+}
+
+.status[data-status="processing"],
+.status[data-status="downloading"],
+.status[data-status="pending"] {
+  color: #93c5fd;
+  border-color: #1d4ed8;
+}
+
+.status[data-status="failed"] {
+  color: #fecaca;
+  border-color: #991b1b;
+}
+
+.status[data-status="paused"] {
+  color: #fde68a;
+  border-color: #a16207;
+}
+
+.status[data-status="cancelled"] {
+  color: #cbd5e1;
+  border-color: #475569;
+}
+
+.extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.8rem;
+  margin-top: 0.65rem;
+  color: #64748b;
+  font-size: 0.7rem;
+}
+
+.error {
+  color: #fca5a5;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  min-width: 12rem;
+}
+
+.playButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.35rem;
+  padding: 0 0.8rem;
+  border: 1px solid #60a5fa;
+  border-radius: 0.55rem;
+  background: #172554;
+  color: #dbeafe;
+  text-decoration: none;
+}
+
+@media (max-width: 960px) {
+  .card {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+
+  .actions {
+    grid-column: 1 / -1;
+    min-width: 0;
+    flex-direction: row;
+  }
+
+  .stages {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .card {
+    grid-template-columns: 1fr;
+  }
+
+  .thumbnail {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .stages {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+}

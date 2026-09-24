@@ -101,7 +101,10 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
           </p>
         </div>
 
-        <EpisodeActionMenu episode={episode} />
+        <EpisodeActionMenu
+          episode={episode}
+          onDeleteEpisode={() => setConfirmAction("delete-episode")}
+        />
       </div>
 
       <div className={styles.pipelineSection}>
@@ -238,9 +241,13 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
 
 interface EpisodeActionMenuProps {
   episode: Episode;
+  onDeleteEpisode: () => void;
 }
 
-function EpisodeActionMenu({ episode }: EpisodeActionMenuProps) {
+function EpisodeActionMenu({
+  episode,
+  onDeleteEpisode,
+}: EpisodeActionMenuProps) {
   const query = useEpisodeDownload(episode.id);
   const createMutation = useCreateEpisodeDownloadJob(episode.id);
   const deleteMutation = useDeleteDownloadJob(episode.id);
@@ -307,7 +314,7 @@ function EpisodeActionMenu({ episode }: EpisodeActionMenuProps) {
             ) : null}
             <MenuItem
               className={styles.menuItem + " " + styles.menuItemDanger}
-              onAction={() => setConfirmDelete(false)}
+              onAction={onDeleteEpisode}
             >
               <Icon name="trash" size={15} />
               <span>Delete episode</span>

@@ -96,8 +96,7 @@ services:
       MEDIA_ROOT: /data/media
       QBITTORRENT_URL: http://qbittorrent:8080
       FFMPEG_TIMEOUT_SECONDS: ${FFMPEG_TIMEOUT_SECONDS:-1800}
-      FFMPEG_VIDEO_ENCODER: ${FFMPEG_VIDEO_ENCODER:-libx265}
-      FFMPEG_HWACCEL: ${FFMPEG_HWACCEL:-none}
+      FFMPEG_VIDEO_ENCODER: ${FFMPEG_VIDEO_ENCODER:-auto}
     depends_on:
       redis:
         condition: service_healthy

@@ -256,6 +256,58 @@ class MediaAssetResponse(BaseModel):
     updated_at: datetime
 
 
+class PlaybackSourceResponse(BaseModel):
+    url: str
+    mime_type: str
+
+
+class PlaybackVideoResponse(BaseModel):
+    direct: PlaybackSourceResponse | None
+    hls: PlaybackSourceResponse | None
+    dash: PlaybackSourceResponse | None
+
+
+class PlaybackSubtitleResponse(BaseModel):
+    id: UUID
+    language: str | None
+    title: str | None
+    is_default: bool
+    is_forced: bool
+    format: str | None
+    url: str
+
+
+class PlaybackFontResponse(BaseModel):
+    id: UUID
+    name: str
+    mime_type: str | None
+    url: str
+
+
+class PlaybackChapterResponse(BaseModel):
+    id: UUID
+    title: str | None
+    start_time_seconds: float
+    end_time_seconds: float
+
+
+class PlaybackThumbnailResponse(BaseModel):
+    sprite_url: str
+    vtt_url: str
+
+
+class PlaybackResponse(BaseModel):
+    episode_id: UUID
+    episode_number: int
+    title: str
+    duration_seconds: float | None
+    video: PlaybackVideoResponse | None
+    subtitles: list[PlaybackSubtitleResponse]
+    fonts: list[PlaybackFontResponse]
+    chapters: list[PlaybackChapterResponse]
+    thumbnails: PlaybackThumbnailResponse | None
+
+
 class MediaProcessingJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

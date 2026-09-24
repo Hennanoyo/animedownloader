@@ -1,33 +1,9 @@
-import { readFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
-const jassubWasmSourceMapPattern =
-  /\n?\/\/# sourceMappingURL=.*(?:\r?\n)?$/;
-
-const stripJassubWasmSourceMap = {
-  name: "strip-jassub-wasm-sourcemap",
-  enforce: "pre" as const,
-  load(id: string) {
-    if (!/[\\/]jassub[\\/]dist[\\/]wasm[\\/]jassub-worker\\.js(?:$|\?)/.test(id)) {
-      return null;
-    }
-
-    const code = readFileSync(id, "utf-8");
-    if (!jassubWasmSourceMapPattern.test(code)) {
-      return null;
-    }
-
-    return {
-      code: code.replace(jassubWasmSourceMapPattern, ""),
-      map: null,
-    };
-  },
-};
-
 export default defineConfig({
-  plugins: [react(), stripJassubWasmSourceMap],
+  plugins: [react()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

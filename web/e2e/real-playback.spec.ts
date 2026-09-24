@@ -23,15 +23,15 @@ test.describe("real playback smoke", () => {
     await expect(video).toBeVisible();
 
     await expect
-      .poll(() => video.evaluate((element) => element.readyState))
+      .poll(() => video.evaluate((element) => (element as HTMLVideoElement).readyState))
       .toBeGreaterThanOrEqual(2);
 
-    const initialTime = await video.evaluate((element) => element.currentTime);
+    const initialTime = await video.evaluate((element) => (element as HTMLVideoElement).currentTime);
 
     await page.getByRole("button", { name: "Play" }).click();
 
     await expect
-      .poll(() => video.evaluate((element) => element.currentTime), {
+      .poll(() => video.evaluate((element) => (element as HTMLVideoElement).currentTime), {
         timeout: 15_000,
       })
       .toBeGreaterThan(initialTime);

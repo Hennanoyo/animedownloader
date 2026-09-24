@@ -45,6 +45,20 @@ async def test_auto_encoder_prefers_nvenc_when_probe_succeeds() -> None:
 
 
 @pytest.mark.anyio
+async def test_auto_encoder_falls_back_to_cpu_when_probe_raises_os_error() -> None:
+    class FailingProbeRunner:
+        async def run(self, args: Sequence[str]) -> FFmpegCommandResult:
+            raise OSError("GPU runtime unavailable")
+
+    encoder = await resolve_video_encoder(
+        "auto",
+        runner=FailingProbeRunner(),
+    )
+
+    assert encoder == "libx265"
+
+
+@pytest.mark.anyio
 async def test_auto_encoder_falls_back_to_cpu_when_nvenc_probe_fails() -> None:
     runner = ProbeRunner(returncode=1)
 

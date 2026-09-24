@@ -73,6 +73,27 @@
   color: #fecaca;
 }
 
+.retryButton {
+  min-height: 2.25rem;
+  margin-top: 1rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #475569;
+  border-radius: 0.45rem;
+  background: #1e293b;
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.retryButton:hover,
+.retryButton[data-focus-visible] {
+  background: #334155;
+}
+
+.retryButton[aria-disabled="true"] {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 @media (max-width: 720px) {
   .page {
     padding-inline: 1rem;

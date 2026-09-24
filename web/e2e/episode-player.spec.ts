@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000001";
 const SPRITE_URL = "https://e2e.invalid/player/preview.png";
 const THUMBNAIL_VTT_URL = "https://e2e.invalid/player/thumbnails.vtt";
+const REFRESHED_VIDEO_URL = "https://e2e.invalid/player/video-v2.mp4";
 
 const playback = {
   anime_id: "019a0000-0000-7000-8000-000000000002",
@@ -43,6 +44,8 @@ ${SPRITE_URL}#xywh=0,0,160,90
 ${SPRITE_URL}#xywh=160,0,160,90
 `;
 
+let playbackRequestCount = 0;
+
 const transparentPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
   "base64",
@@ -52,6 +55,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     const currentTimes = new WeakMap<HTMLMediaElement, number>();
     const pausedState = new WeakMap<HTMLMediaElement, boolean>();
+    const sourceUrls = new WeakMap<HTMLMediaElement, string>();
 
     Object.defineProperty(HTMLMediaElement.prototype, "currentTime", {
       configurable: true,
@@ -68,6 +72,16 @@ test.beforeEach(async ({ page }) => {
       configurable: true,
       get() {
         return 120;
+      },
+    });
+
+    Object.defineProperty(HTMLMediaElement.prototype, "src", {
+      configurable: true,
+      get() {
+        return sourceUrls.get(this) ?? "";
+      },
+      set(value: string) {
+        sourceUrls.set(this, value);
       },
     });
 
@@ -121,13 +135,30 @@ test.beforeEach(async ({ page }) => {
     };
   });
 
+  playbackRequestCount = 0;
+
   await page.route(
     `**/api/episodes/${EPISODE_ID}/playback`,
     async (route) => {
+      playbackRequestCount += 1;
+      const response =
+        playbackRequestCount === 1
+          ? playback
+          : {
+              ...playback,
+              video: {
+                ...playback.video,
+                direct: {
+                  ...playback.video.direct,
+                  url: REFRESHED_VIDEO_URL,
+                },
+              },
+            };
+
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(playback),
+        body: JSON.stringify(response),
       });
     },
   );
@@ -147,6 +178,33 @@ test.beforeEach(async ({ page }) => {
       body: transparentPng,
     });
   });
+});
+
+test("refreshes playback after an exhausted media source", async ({ page }) => {
+  await page.goto(`/episodes/${EPISODE_ID}`);
+
+  const player = page.getByRole("region", { name: "Video player" });
+  const video = page.getByTestId("video-player");
+
+  await expect(player).toBeFocused();
+
+  await video.evaluate((element) => {
+    element.dispatchEvent(new Event("error"));
+  });
+
+  await expect(page.getByRole("alert")).toContainText(
+    "All available video sources failed. Retry to try them again.",
+  );
+  await expect(
+    page.getByRole("button", { name: "Retry media" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Retry media" }).click();
+
+  await expect(
+    page.getByRole("button", { name: "Retry media" }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Loading media...")).toHaveCount(0);
 });
 
 test("covers playback controls, keyboard priority, thumbnails, and fullscreen", async ({

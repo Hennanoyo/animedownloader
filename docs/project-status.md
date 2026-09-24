@@ -1,10 +1,8 @@
-# Project Status
-
 ## Current Phase
 
-The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, and chapter/embedded attachment integration.
+The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is player and playback delivery. PR #23 through PR #27 are merged; PR #28 is the current development step.
+The current phase is playback hardening. PR #23 through PR #28 are merged; PR #29 is the current development step.
 
 ## Completed
 
@@ -381,6 +379,38 @@ Scope:
 - Load thumbnail sprite/WebVTT metadata
 - Support direct-file playback and packaged playback as separate paths
 - Add focused, accessible player UI and API coverage
+
+### PR #29 — Playback Hardening
+
+**In progress on `feature/playback-hardening`.**
+
+Goal: make playback failures recoverable and keep playback API queries stable during normal player interaction.
+
+Initial scope:
+
+- add a bounded Playback API retry policy
+- avoid unnecessary Playback API refetches when the browser window regains focus
+- add an explicit retry action when the Playback API cannot be loaded
+- distinguish media-source failures from other player errors
+- allow a failed media engine to be reattached through an explicit retry action
+- add deterministic browser coverage for media playback recovery
+
+Current implementation:
+
+- Added bounded Playback API retries and disabled unnecessary window-focus refetches
+- Added Playback API and media-source retry actions
+- Added media-engine error callbacks for asynchronous HLS.js/dash.js failures
+- Added one internal recovery attempt for fatal HLS.js network/media errors before surfacing the failure
+- Added automatic playback source fallback from HLS to DASH to direct MP4 when a selected source fails
+- Added deterministic unit/browser coverage for source fallback and media-engine error handling
+- Refresh Playback data when the player mounts instead of reusing a fresh cache entry
+- Re-fetch Playback data from the media retry action so replaced media URLs are not retried indefinitely
+- Reset prior source-failure exclusions when refreshed Playback data replaces the video source
+- Added browser coverage for replacing an exhausted media source through Playback refresh
+
+Planned follow-up within the same phase:
+
+- none; proceed to the next playback/platform phase after PR #29
 
 ## Handoff Notes
 

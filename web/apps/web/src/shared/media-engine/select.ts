@@ -5,6 +5,7 @@ import { NativeVideoEngine } from "./native";
 import type {
   SelectedVideoSource,
   VideoEngine,
+  VideoSourceKind,
   VideoSourceSet,
 } from "./types";
 
@@ -16,8 +17,11 @@ export interface SelectedVideoEngine {
 export function selectVideoEngine(
   video: HTMLVideoElement,
   sources: VideoSourceSet,
+  excludedKinds: readonly VideoSourceKind[] = [],
 ): SelectedVideoEngine | null {
-  if (sources.hls) {
+  const excluded = new Set(excludedKinds);
+
+  if (sources.hls && !excluded.has("hls")) {
     if (Hls.isSupported()) {
       return {
         engine: new HlsVideoEngine(),
@@ -35,6 +39,7 @@ export function selectVideoEngine(
 
   if (
     sources.dash &&
+    !excluded.has("dash") &&
     typeof globalThis.MediaSource !== "undefined"
   ) {
     return {
@@ -43,7 +48,7 @@ export function selectVideoEngine(
     };
   }
 
-  if (sources.direct) {
+  if (sources.direct && !excluded.has("direct")) {
     return {
       engine: new NativeVideoEngine(),
       source: { kind: "direct", source: sources.direct },

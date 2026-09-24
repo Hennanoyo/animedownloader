@@ -16,7 +16,15 @@ export interface VideoSourceSet {
   dash: MediaSource | null;
 }
 
+export interface VideoEngineErrorHandler {
+  onError(error: Error): void;
+}
+
 export interface VideoEngine {
-  attach(video: HTMLVideoElement, source: MediaSource): Promise<void>;
+  attach(
+    video: HTMLVideoElement,
+    source: MediaSource,
+    handlers?: VideoEngineErrorHandler,
+  ): Promise<void>;
   detach(): void;
 }

@@ -75,6 +75,30 @@ describe("selectVideoEngine", () => {
     vi.unstubAllGlobals();
   });
 
+  it("skips a failed HLS source and selects DASH", () => {
+    hls.isSupported.mockReturnValue(true);
+    vi.stubGlobal("MediaSource", class {});
+
+    const selected = selectVideoEngine(makeVideo(() => ""), sources, ["hls"]);
+
+    expect(selected?.source.kind).toBe("dash");
+    vi.unstubAllGlobals();
+  });
+
+  it("skips failed streaming sources and falls back to direct MP4", () => {
+    hls.isSupported.mockReturnValue(true);
+    vi.stubGlobal("MediaSource", class {});
+
+    const selected = selectVideoEngine(
+      makeVideo(() => ""),
+      sources,
+      ["hls", "dash"],
+    );
+
+    expect(selected?.source.kind).toBe("direct");
+    vi.unstubAllGlobals();
+  });
+
   it("falls back to direct MP4", () => {
     hls.isSupported.mockReturnValue(false);
 

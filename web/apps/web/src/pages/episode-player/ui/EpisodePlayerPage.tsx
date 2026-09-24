@@ -1,4 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
+import { Button } from "react-aria-components";
 import { usePlayback } from "../../../features/playback/model/usePlayback";
 import { ApiRequestError } from "../../../shared/api/client";
 import VideoPlayer from "../../../widgets/video-player/ui/VideoPlayer";
@@ -32,6 +33,15 @@ export default function EpisodePlayerPage() {
         <section className={styles.state}>
           <h1>Unable to load playback</h1>
           <p className={styles.error}>{message}</p>
+          <Button
+            className={styles.retryButton}
+            isDisabled={query.isFetching}
+            onPress={() => {
+              void query.refetch();
+            }}
+          >
+            {query.isFetching ? "Retrying..." : "Retry"}
+          </Button>
         </section>
       </main>
     );
@@ -58,7 +68,18 @@ export default function EpisodePlayerPage() {
       </header>
 
       <section className={styles.panel}>
-        <VideoPlayer playback={playback} />
+        <VideoPlayer
+          playback={playback}
+          onRetryMedia={async () => {
+            const result = await query.refetch();
+            if (result.isError || result.data === undefined) {
+              throw result.error instanceof Error
+                ? result.error
+                : new Error("Playback refresh failed.");
+            }
+            return result.data;
+          }}
+        />
       </section>
     </main>
   );

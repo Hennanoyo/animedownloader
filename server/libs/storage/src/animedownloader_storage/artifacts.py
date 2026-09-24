@@ -121,7 +121,8 @@ class ThumbnailArtifact(BaseModel):
     @computed_field
     @property
     def filename(self) -> str:
-        return f"sprite.{self.kind}"
+        extension = "jpg" if self.kind == "sprite" else "vtt"
+        return f"sprite.{extension}"
 
     @computed_field
     @property

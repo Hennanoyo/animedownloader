@@ -252,7 +252,7 @@ export default function VideoPlayer({ playback }: Props) {
     );
   }
 
-  const togglePlayPause = () => {
+  const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
     if (!video) {
       return;
@@ -269,9 +269,9 @@ export default function VideoPlayer({ playback }: Props) {
     } else {
       video.pause();
     }
-  };
+  }, []);
 
-  const seek = (nextTime: number) => {
+  const seek = useCallback((nextTime: number) => {
     const video = videoRef.current;
     if (!video || !Number.isFinite(nextTime)) {
       return;
@@ -279,9 +279,9 @@ export default function VideoPlayer({ playback }: Props) {
 
     video.currentTime = Math.max(0, Math.min(nextTime, duration));
     setCurrentTime(video.currentTime);
-  };
+  }, [duration]);
 
-  const changeVolume = (nextVolume: number) => {
+  const changeVolume = useCallback((nextVolume: number) => {
     const video = videoRef.current;
     if (!video || !Number.isFinite(nextVolume)) {
       return;
@@ -292,9 +292,9 @@ export default function VideoPlayer({ playback }: Props) {
     if (clampedVolume > 0 && video.muted) {
       video.muted = false;
     }
-  };
+  }, []);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     const video = videoRef.current;
     if (!video) {
       return;
@@ -311,9 +311,9 @@ export default function VideoPlayer({ playback }: Props) {
     }
 
     video.muted = true;
-  };
+  }, []);
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = useCallback(() => {
     const player = playerRef.current;
     if (!player) {
       return;
@@ -335,7 +335,7 @@ export default function VideoPlayer({ playback }: Props) {
           : "Fullscreen mode could not be activated.",
       );
     });
-  };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -421,11 +421,16 @@ export default function VideoPlayer({ playback }: Props) {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [
+    changeVolume,
     currentTime,
     duration,
     isMuted,
     isPlaying,
+    seek,
     showControls,
+    toggleFullscreen,
+    toggleMute,
+    togglePlayPause,
     volume,
   ]);
 

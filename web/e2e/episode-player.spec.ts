@@ -106,9 +106,13 @@ test.beforeEach(async ({ page }) => {
       get: () => fullscreenElement,
     });
 
-    Element.prototype.requestFullscreen = async function () {
-      fullscreenElement = this;
+    const setFullscreenElement = (element: Element) => {
+      fullscreenElement = element;
       document.dispatchEvent(new Event("fullscreenchange"));
+    };
+
+    Element.prototype.requestFullscreen = async function () {
+      setFullscreenElement(this);
     };
 
     document.exitFullscreen = async function () {

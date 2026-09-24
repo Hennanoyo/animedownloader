@@ -42,7 +42,7 @@ class PlayableMediaPlanner:
         if video_stream is None:
             raise PlayableMediaPlanningError("Playable media requires at least one video stream")
 
-        if self.is_compatible(probe):
+        if self.can_remux(probe):
             return PlayableMediaOperation.REMUX
         return PlayableMediaOperation.TRANSCODE
 
@@ -60,22 +60,22 @@ class PlayableMediaPlanner:
             "Playable output does not satisfy the target playback profile",
         )
 
-    def is_compatible(self, probe: MediaProbe) -> bool:
+    def can_remux(self, probe: MediaProbe) -> bool:
         video_stream = _primary_video_stream(probe.video_streams)
-        if video_stream is None:
+        if video_stream is None or video_stream.codec_name is None:
             return False
 
-        if video_stream.codec_name is None:
-            return False
         if video_stream.codec_name.casefold() != self.profile.video_codec:
             return False
 
-        audio_streams = probe.audio_streams
-        if any(
+        return not any(
             stream.codec_name is None
             or stream.codec_name.casefold() != self.profile.audio_codec
-            for stream in audio_streams
-        ):
+            for stream in probe.audio_streams
+        )
+
+    def is_compatible(self, probe: MediaProbe) -> bool:
+        if not self.can_remux(probe):
             return False
 
         format_name = (probe.format.format_name or "").casefold()

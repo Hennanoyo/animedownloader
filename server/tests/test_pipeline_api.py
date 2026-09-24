@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid7
 
@@ -146,7 +147,7 @@ def test_build_pipeline_summary_reports_completed_media_and_streaming() -> None:
         package,
     ) = make_completed_pipeline(episode)
 
-    storage = LocalStorage(__import__("pathlib").Path("/tmp/animedownloader-test-media"), "http://test-media")
+    storage = LocalStorage(Path("/tmp/animedownloader-test-media"), "http://test-media")
     summary = build_episode_pipeline_summary(
         episode,
         download_job=download,
@@ -191,7 +192,7 @@ def test_build_pipeline_summary_keeps_playback_ready_while_streaming_runs() -> N
         preparation_job=preparation,
         variant=variant,
         package=package,
-        storage=LocalStorage(__import__("pathlib").Path("/tmp/animedownloader-test-media"), "http://test-media"),
+        storage=LocalStorage(Path("/tmp/animedownloader-test-media"), "http://test-media"),
     )
 
     assert summary.processing.status is EpisodePipelineStageStatus.COMPLETED
@@ -214,7 +215,7 @@ async def test_get_anime_pipeline() -> None:
                 preparation_job=None,
                 variant=None,
                 package=None,
-                storage=LocalStorage(__import__("pathlib").Path("/tmp/animedownloader-test-media"), "http://test-media"),
+                storage=LocalStorage(Path("/tmp/animedownloader-test-media"), "http://test-media"),
             ),
         ],
     )

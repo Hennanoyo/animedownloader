@@ -3,7 +3,10 @@ import { Button } from "react-aria-components";
 import type { Playback } from "../../../features/playback/model/types";
 import { selectVideoEngine } from "../../../shared/media-engine/select";
 import { JassubSubtitleEngine } from "../../../shared/media-engine/subtitle";
-import type { SelectedVideoSource } from "../../../shared/media-engine/types";
+import type {
+  SelectedVideoSource,
+  VideoSourceKind,
+} from "../../../shared/media-engine/types";
 import VideoControls from "./VideoControls";
 import { useVideoPlayerKeyboard } from "./useVideoPlayerKeyboard";
 import styles from "./VideoPlayer.module.scss";
@@ -20,6 +23,13 @@ export default function VideoPlayer({ playback }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [mediaAttempt, setMediaAttempt] = useState(0);
+  const [sourceFailures, setSourceFailures] = useState<{
+    video: Playback["video"];
+    kinds: VideoSourceKind[];
+  }>({
+    video: playback.video,
+    kinds: [],
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -107,10 +117,19 @@ export default function VideoPlayer({ playback }: Props) {
       return;
     }
 
-    const selected = selectVideoEngine(video, playback.video);
+    const excludedSourceKinds =
+      sourceFailures.video === playback.video ? sourceFailures.kinds : [];
+    const selected = selectVideoEngine(
+      video,
+      playback.video,
+      excludedSourceKinds,
+    );
     if (selected === null) {
       setSelectedSource(null);
-      const message = "This browser cannot play any available video source.";
+      const message =
+        excludedSourceKinds.length > 0
+          ? "All available video sources failed. Retry to try them again."
+          : "This browser cannot play any available video source.";
       setMediaError(message);
       setError(message);
       setIsLoading(false);
@@ -120,6 +139,28 @@ export default function VideoPlayer({ playback }: Props) {
     const engine = selected.engine;
     const source = selected.source;
     let active = true;
+    let failureHandled = false;
+
+    const handleMediaFailure = (message: string) => {
+      if (!active || failureHandled) {
+        return;
+      }
+      failureHandled = true;
+      setIsLoading(false);
+      setMediaError(message);
+      setError(message);
+      setSourceFailures((current) => {
+        const currentKinds =
+          current.video === playback.video ? current.kinds : [];
+        if (currentKinds.includes(source.kind)) {
+          return current;
+        }
+        return {
+          video: playback.video,
+          kinds: [...currentKinds, source.kind],
+        };
+      });
+    };
 
     const syncMediaState = () => {
       if (!active) {
@@ -176,12 +217,7 @@ export default function VideoPlayer({ playback }: Props) {
     };
 
     const handleError = () => {
-      if (active) {
-        const message = "The selected video source could not be loaded.";
-        setIsLoading(false);
-        setMediaError(message);
-        setError(message);
-      }
+      handleMediaFailure("The selected video source could not be loaded.");
     };
 
     syncMediaState();
@@ -197,7 +233,9 @@ export default function VideoPlayer({ playback }: Props) {
     video.addEventListener("volumechange", handleVolumeChange);
     video.addEventListener("error", handleError);
 
-    void engine.attach(video, source.source).catch((attachError: unknown) => {
+    void engine
+      .attach(video, source.source, { onError: handleMediaFailure })
+      .catch((attachError: unknown) => {
       if (!active) {
         return;
       }
@@ -205,9 +243,7 @@ export default function VideoPlayer({ playback }: Props) {
         attachError instanceof Error
           ? attachError.message
           : "The selected video source could not be loaded.";
-      setIsLoading(false);
-      setMediaError(message);
-      setError(message);
+      handleMediaFailure(message);
     });
 
     return () => {
@@ -221,7 +257,7 @@ export default function VideoPlayer({ playback }: Props) {
       video.removeEventListener("error", handleError);
       engine.detach();
     };
-  }, [mediaAttempt, playback.video]);
+  }, [mediaAttempt, playback.video, sourceFailures]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -433,6 +469,10 @@ export default function VideoPlayer({ playback }: Props) {
             <Button
               className={styles.retryButton}
               onPress={() => {
+                setSourceFailures({
+                  video: playback.video,
+                  kinds: [],
+                });
                 setMediaAttempt((attempt) => attempt + 1);
               }}
             >

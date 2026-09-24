@@ -10,7 +10,7 @@
 
 .topRow {
   display: grid;
-  grid-template-columns: 176px minmax(0, 1fr) minmax(8.5rem, 10rem);
+  grid-template-columns: 176px minmax(0, 1fr) minmax(7rem, 8.5rem);
   gap: 1rem;
   min-width: 0;
   align-items: stretch;
@@ -108,10 +108,16 @@
   overflow-wrap: anywhere;
 }
 
+.playButton {
+  border-color: #60a5fa;
+  background: #2563eb;
+  color: #eff6ff;
+}
+
 .playButton:hover,
 .playButton:focus-visible {
-  border-color: #60a5fa;
-  background: #172554;
+  border-color: #93c5fd;
+  background: #1d4ed8;
 }
 
 .retryButton {
@@ -134,8 +140,11 @@
 .stages {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.55rem;
+  gap: 0;
   min-width: 0;
+  padding: 0.7rem 0;
+  border-top: 1px solid #26324a;
+  border-bottom: 1px solid #26324a;
 }
 
 .stageWrap {
@@ -147,33 +156,36 @@
   position: relative;
   z-index: 1;
   min-width: 0;
-  min-height: 7rem;
-  padding: 0.7rem;
-  border: 1px solid #1e293b;
-  border-radius: 0.65rem;
-  background: #0f172a;
+  min-height: 5rem;
+  padding: 0.35rem 0.7rem 0.25rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
   transition:
-    border-color 160ms ease,
-    transform 160ms ease,
+    background 160ms ease,
     box-shadow 160ms ease;
 }
 
+.stageWrap + .stageWrap {
+  border-left: 1px solid #1e293b;
+}
+
 .stage[data-current="true"] {
-  border-color: #60a5fa;
-  transform: translateY(-2px);
-  box-shadow: 0 0.45rem 1.3rem rgb(37 99 235 / 18%);
+  background: #101a2f;
+  box-shadow: inset 0 0 0 1px #3b82f6;
 }
 
 .stage[data-completed="true"] {
-  border-color: #166534;
+  background: #0d1a17;
 }
 
 .stageDot {
-  display: block;
-  width: 0.6rem;
-  height: 0.6rem;
-  margin-bottom: 0.45rem;
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin: 0 0.4rem 0 0;
   border-radius: 50%;
+  vertical-align: middle;
   background: #475569;
 }
 
@@ -301,7 +313,8 @@
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
-  gap: 0.5rem 0.8rem;
+  gap: 0.45rem 0.9rem;
+  color: #8190a8;
 }
 
 .extras > * {
@@ -310,18 +323,7 @@
 }
 
 .connector {
-  position: absolute;
-  top: 50%;
-  left: -0.55rem;
-  z-index: 0;
-  width: 0.55rem;
-  height: 2px;
-  transform: translateY(-50%);
-  background: #334155;
-}
-
-.connector[data-completed="true"] {
-  background: #22c55e;
+  display: none;
 }
 
 .downloadPanel {
@@ -385,27 +387,27 @@
 
 @media (max-width: 960px) {
   .topRow {
-    grid-template-columns: 140px minmax(0, 1fr) 8.5rem;
+    grid-template-columns: 140px minmax(0, 1fr) 7.5rem;
   }
 
   .stages {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .connector {
-    display: none;
+  .stageWrap + .stageWrap {
+    border-left-color: #26324a;
   }
 }
 
 @media (max-width: 720px) {
   .topRow {
-    grid-template-columns: 128px minmax(0, 1fr) 7.5rem;
+    grid-template-columns: 128px minmax(0, 1fr) 7rem;
     gap: 0.8rem;
   }
 
   .stage {
-    min-height: 6.3rem;
-    padding: 0.65rem;
+    min-height: 4.8rem;
+    padding-inline: 0.55rem;
   }
 }
 
@@ -429,7 +431,20 @@
   }
 
   .stages {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stageWrap + .stageWrap {
+    border-left: 0;
+  }
+
+  .stageWrap:nth-child(even) {
+    border-left: 1px solid #1e293b;
+  }
+
+  .stageWrap:nth-child(n + 3) {
+    border-top: 1px solid #1e293b;
+    padding-top: 0.7rem;
   }
 
   .downloadPanelHeader {

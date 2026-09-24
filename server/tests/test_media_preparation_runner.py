@@ -363,7 +363,8 @@ async def test_runner_refreshes_stale_operation_on_resume(tmp_path: Path) -> Non
         ),
     )
     source_probe = make_probe("hevc", "matroska,webm")
-    inspector = FakeInspector([source_probe])
+    output_probe = make_probe("hevc", "mov,mp4,m4a,3gp,3g2,mj2")
+    inspector = FakeInspector([source_probe, output_probe])
     preparation = FakePreparationProcessor()
     playable = FakePlayableProcessor()
     thumbnail = FakeThumbnailProcessor()

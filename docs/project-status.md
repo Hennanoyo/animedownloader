@@ -395,11 +395,17 @@ Initial scope:
 - allow a failed media engine to be reattached through an explicit retry action
 - add deterministic browser coverage for media playback recovery
 
+Current implementation:
+
+- Added bounded Playback API retries and disabled unnecessary window-focus refetches
+- Added Playback API and media-source retry actions
+- Added media-engine error callbacks for asynchronous HLS.js/dash.js failures
+- Added one internal recovery attempt for fatal HLS.js network/media errors before surfacing the failure
+- Added automatic playback source fallback from HLS to DASH to direct MP4 when a selected source fails
+- Added deterministic unit/browser coverage for source fallback and media-engine error handling
+
 Planned follow-up within the same phase:
 
-- harden HLS/DASH engine error propagation
-- refine browser codec/source capability reporting
-- improve source fallback behavior
 - cover stale playback artifacts and recovery after media replacement
 
 ## Handoff Notes

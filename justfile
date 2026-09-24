@@ -52,6 +52,16 @@ web-format:
 web-check:
   cd web && pnpm lint && pnpm typecheck && pnpm test
 
+web-browser-install:
+  cd web && pnpm exec playwright install chromium
+
+web-browser-check:
+  cd web && pnpm exec tsc --noEmit -p e2e/tsconfig.json
+  cd web && pnpm run e2e -- --project=chromium
+
+real-playback-smoke episode_id base_url="http://localhost:5173":
+  cd web && REAL_PLAYBACK_EPISODE_ID={{episode_id}} PLAYWRIGHT_TEST_BASE_URL={{base_url}} PLAYWRIGHT_SKIP_WEB_SERVER=1 pnpm run e2e:real -- --project=chromium
+
 server-sync:
   cd server && uv sync --all-packages
 

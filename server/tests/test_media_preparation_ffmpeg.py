@@ -50,6 +50,8 @@ async def test_preparation_transcodes_and_generates_thumbnail_in_one_process(
     assert isinstance(result, MediaPreparationProcessingResult)
     assert len(runner.calls) == 1
     command = runner.calls[0]
+    assert command[command.index("-filter_complex_threads") + 1] == "2"
+    assert command[command.index("-filter_buffered_frames") + 1] == "512"
     assert "-filter_complex" in command
     assert "split=2[playable][thumbnail]" in command[command.index("-filter_complex") + 1]
     assert command.count("-map") == 3

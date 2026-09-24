@@ -13,8 +13,8 @@ from animedownloader_media_processing import (
     MediaVariantService,
 )
 from animedownloader_nyaa import NyaaClient
-from animedownloader_storage import Storage
 from animedownloader_qbittorrent import QBittorrentClient
+from animedownloader_storage import Storage
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -42,6 +42,14 @@ class FakeStorage:
         return "https://media.example.test/" + object_key
 
 
+def _always_current(**_: object) -> bool:
+    return True
+
+
+def _never_current(**_: object) -> bool:
+    return False
+
+
 @pytest.mark.anyio
 async def test_playback_service_exposes_only_current_ready_resources() -> None:
     episode_id = uuid7()
@@ -132,7 +140,7 @@ async def test_playback_service_exposes_only_current_ready_resources() -> None:
         path="playable/asset/variant.mp4",
         updated_at=now,
     )
-    variant.is_current = lambda **_: True
+    variant.is_current = _always_current
 
     package = SimpleNamespace(
         representations=[
@@ -143,7 +151,7 @@ async def test_playback_service_exposes_only_current_ready_resources() -> None:
         hls_master_key="streaming/package/master.m3u8",
         dash_manifest_key="streaming/package/manifest.mpd",
     )
-    package.is_current = lambda **_: True
+    package.is_current = _always_current
 
     anime_service = MagicMock(spec=AnimeService)
     anime_service.get_episode = AsyncMock(return_value=episode)
@@ -209,7 +217,7 @@ async def test_playback_service_hides_stale_video_and_incomplete_streaming() -> 
         path="playable/asset/variant.mp4",
         updated_at=now,
     )
-    variant.is_current = lambda **_: False
+    variant.is_current = _never_current
 
     anime_service = MagicMock(spec=AnimeService)
     anime_service.get_episode = AsyncMock(return_value=episode)
@@ -253,7 +261,11 @@ async def test_get_episode_playback_returns_contract() -> None:
     service.get_episode_playback = AsyncMock(return_value=playback)
 
     app = create_app()
-    app.dependency_overrides[get_playback_service] = lambda: service
+
+    def override_playback_service() -> PlaybackService:
+        return service
+
+    app.dependency_overrides[get_playback_service] = override_playback_service
 
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),

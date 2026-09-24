@@ -21,7 +21,8 @@ class FakeRunner:
         output = Path(command[-1])
         if "%05d" in command[-1]:
             output.parent.mkdir(parents=True, exist_ok=True)
-            output.with_name("frame-00001.jpg").write_bytes(b"frame")
+            for index in range(1, 4):
+                output.with_name(f"frame-{index:05d}.jpg").write_bytes(b"frame")
         else:
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_bytes(b"output")

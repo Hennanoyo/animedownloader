@@ -84,12 +84,12 @@ export default function VideoPlayer({ playback }: Props) {
       );
       clearControlsTimer();
     };
-  }, [isPlaying]);
+  }, [clearControlsTimer, showControls]);
 
   useEffect(() => {
     showControls();
     return clearControlsTimer;
-  }, [isPlaying]);
+  }, [clearControlsTimer, showControls]);
 
   useEffect(() => {
     const video = videoRef.current;

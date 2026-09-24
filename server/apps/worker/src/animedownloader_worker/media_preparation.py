@@ -145,6 +145,18 @@ class MediaPreparationState:
                 thumbnail_required=thumbnail_required,
             )
 
+    async def update_operation(
+        self,
+        job_id: UUID,
+        *,
+        operation: MediaTranscodingOperation | None,
+    ) -> None:
+        async with self._session_factory() as session:
+            await MediaPreparationJobService(session).update_operation(
+                job_id,
+                operation=operation,
+            )
+
     async def mark_completed(
         self,
         job_id: UUID,

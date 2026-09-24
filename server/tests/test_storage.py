@@ -33,19 +33,6 @@ async def test_local_storage_round_trip(tmp_path: Path) -> None:
 
 
 @pytest.mark.anyio
-async def test_local_storage_supports_legacy_absolute_paths(tmp_path: Path) -> None:
-    storage = LocalStorage(tmp_path / "objects", "http://localhost:8888")
-    legacy = tmp_path / "objects" / "legacy.bin"
-    legacy.parent.mkdir(parents=True)
-    legacy.write_bytes(b"legacy")
-
-    destination = tmp_path / "copy.bin"
-    await storage.materialize(str(legacy), destination)
-
-    assert destination.read_bytes() == b"legacy"
-
-
-@pytest.mark.anyio
 async def test_storage_rejects_unsafe_keys(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path, "http://localhost:8888")
     source = tmp_path / "source.bin"

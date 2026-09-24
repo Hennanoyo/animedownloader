@@ -1,10 +1,8 @@
-# Project Status
-
 ## Current Phase
 
-The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, and chapter/embedded attachment integration.
+The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is player and playback delivery. PR #23 through PR #27 are merged; PR #28 is the current development step.
+The current phase is playback hardening. PR #23 through PR #28 are merged; PR #29 is the current development step.
 
 ## Completed
 
@@ -385,3 +383,25 @@ Scope:
 ## Handoff Notes
 
 For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current repository state, and recent commits. Treat the repository state as authoritative and update this file whenever the development phase changes.
+### PR #29 — Playback Hardening
+
+**In progress on `feature/playback-hardening`.**
+
+Goal: make playback failures recoverable and keep playback API queries stable during normal player interaction.
+
+Initial scope:
+
+- add a bounded Playback API retry policy
+- avoid unnecessary Playback API refetches when the browser window regains focus
+- add an explicit retry action when the Playback API cannot be loaded
+- distinguish media-source failures from other player errors
+- allow a failed media engine to be reattached through an explicit retry action
+- add deterministic browser coverage for media playback recovery
+
+Planned follow-up within the same phase:
+
+- harden HLS/DASH engine error propagation
+- refine browser codec/source capability reporting
+- improve source fallback behavior
+- cover stale playback artifacts and recovery after media replacement
+

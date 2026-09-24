@@ -178,18 +178,26 @@ async def probe_video_encoder(
                 "-f",
                 "lavfi",
                 "-i",
-                "color=c=black:s=16x16:r=1:d=0.1",
+                "testsrc2=size=1920x1080:rate=1",
                 "-frames:v",
-                "1",
-                *build_video_encoder_options(video_encoder),
+                "2",
+                "-an",
+                "-c:v",
+                "hevc_nvenc",
                 "-f",
                 "null",
                 "-",
             ),
         )
-    except (FFmpegTimeoutError, OSError):
+    if result.returncode != 0:
+        message = result.stderr.decode("utf-8", errors="replace").strip()
+        print(
+            "[worker] NVENC probe failed: "
+            f"returncode={result.returncode} error={message or 'unknown'}",
+            flush=True,
+        )
         return False
-    return result.returncode == 0
+    return True
 
 
 async def resolve_video_encoder(

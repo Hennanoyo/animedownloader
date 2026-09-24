@@ -102,6 +102,35 @@ The development SeaweedFS Filer is exposed directly to the browser as the public
 
 If the frontend origin or public media endpoint changes, update the Filer's `-allowedOrigins` setting in `compose.yaml` together with `STORAGE_PUBLIC_URL`.
 
+## Browser Playback Smoke Tests
+
+The web application has two browser smoke paths.
+
+For deterministic CI-style Chromium coverage, install the browser once and run:
+
+```bash
+just web-browser-install
+just web-browser-check
+```
+
+The browser test mocks the Playback API and media element behavior so it can exercise the real React application without requiring PostgreSQL, FFmpeg, SeaweedFS, qBittorrent, or downloaded media. It covers player initialization/focus, playback controls, keyboard ownership, controller focus/activation, page-scroll exceptions, thumbnail previews, and fullscreen state.
+
+For real runtime playback against the running Compose stack, use an Episode that already has current playable media:
+
+```bash
+just real-playback-smoke <episode-id>
+```
+
+This test does not start or mutate the runtime stack. Start the application first, then run the command. The test uses the actual Playback API and media resources and exercises Chromium playback, subtitles/JASSUB when subtitle tracks are present, thumbnail previews, and fullscreen behavior.
+
+To use another browser-facing frontend URL:
+
+```bash
+just real-playback-smoke <episode-id> http://127.0.0.1:5173
+```
+
+Real playback smoke is developer/staging validation rather than normal CI because it depends on existing media artifacts and browser/media-codec support.
+
 ## Running and Debugging
 
 The `api`, `web`, and `worker` processes are started by Docker Compose.

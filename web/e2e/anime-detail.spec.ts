@@ -47,7 +47,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("renders episode media pipeline and sprite thumbnail", async ({ page }, testInfo) => {
+test("renders episode media pipeline and sprite thumbnail", async ({ page }) => {
   await page.goto(`/animes/${ANIME_ID}`);
 
   await expect(
@@ -95,17 +95,8 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }, tes
     page.getByRole("button", { name: "Download", exact: true }),
   ).toBeVisible();
 
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.screenshot({
-    path: testInfo.outputPath("anime-detail-refined-desktop.png"),
-    fullPage: true,
-  });
-
-  await page.setViewportSize({ width: 640, height: 1000 });
-  await page.screenshot({
-    path: testInfo.outputPath("anime-detail-refined-mobile.png"),
-    fullPage: true,
-  });
+  await page.getByRole("button", { name: "Hide details" }).click();
+  await expect(pipelineStatus).toBeHidden();
 });
 
 

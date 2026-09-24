@@ -15,7 +15,7 @@ DEFAULT_FFMPEG_TIMEOUT_SECONDS = 1800.0
 DEFAULT_FFMPEG_HEARTBEAT_INTERVAL_SECONDS = 30.0
 
 
-def _build_video_encoder_options(video_encoder: str) -> tuple[str, ...]:
+def build_video_encoder_options(video_encoder: str) -> tuple[str, ...]:
     if video_encoder == "libx265":
         return (
             "-c:v",
@@ -364,7 +364,7 @@ class FFmpegPlayableMediaProcessor:
             video_options = ("-c:v", "copy")
             audio_codec = "copy"
         else:
-            video_options = _build_video_encoder_options(self._video_encoder)
+            video_options = build_video_encoder_options(self._video_encoder)
             audio_codec = "aac"
 
         result = await self._runner.run(

@@ -420,9 +420,9 @@ def _streaming_status(
     if variant is None or variant.path is None:
         return EpisodePipelineStageStatus.PENDING, False, False, None
 
-    if not package.is_current(
-        source_path=variant.path,
-        source_variant_updated_at=variant.updated_at,
+    if (
+        package.source_path != variant.path
+        or package.source_variant_updated_at != variant.updated_at
     ):
         return EpisodePipelineStageStatus.PENDING, False, False, None
 

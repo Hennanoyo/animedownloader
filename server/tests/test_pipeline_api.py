@@ -282,6 +282,8 @@ def test_build_pipeline_summary_keeps_playback_ready_while_streaming_runs() -> N
 
     assert summary.processing.status is EpisodePipelineStageStatus.COMPLETED
     assert summary.streaming.status is EpisodePipelineStageStatus.PROCESSING
+    assert summary.streaming.hls_ready is False
+    assert summary.streaming.dash_ready is False
     assert summary.current_stage is EpisodePipelineCurrentStage.STREAMING
     assert summary.playback_ready is True
     assert summary.active is True

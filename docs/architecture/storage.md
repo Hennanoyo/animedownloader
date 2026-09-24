@@ -13,31 +13,7 @@ The backend selects the implementation through the `STORAGE_BACKEND` setting. Lo
 
 ## Object Keys
 
-Persist durable derived media artifacts as provider-independent object keys:
-
-```
-playable/{media_asset_id}/{job_id}.mp4
-streaming/{media_variant_id}/master.m3u8
-streaming/{media_variant_id}/manifest.mpd
-streaming/{media_variant_id}/{quality}/index.m3u8
-streaming/{media_variant_id}/{quality}/init.mp4
-streaming/{media_variant_id}/{quality}/s/{segment}.m4s
-subtitles/{media_asset_id}/{track_id}.ass
-thumbnails/{media_asset_id}/sprite.jpg
-thumbnails/{media_asset_id}/sprite.vtt
-fonts/{prefix}/{sha256}.ttf
-attachments/{media_asset_id}/{attachment_id}-{filename}
-```
-
-Do not persist environment-specific public URLs as the canonical database representation.
-
-Existing database columns named `path`, `normalized_path`, `extracted_path`, and similar fields may contain object keys for derived artifacts during this incremental migration. A later schema cleanup may rename these fields to `object_key` where that improves clarity.
-
-## Canonical Artifact Rules
-
-Storage identity and delivery details are separate concerns.
-
-For derived artifacts, use the following rules:
+Persist durable derived media artifacts as provider-independent object keys. The canonical rules are:
 
 | Artifact | Identity | Filename | Canonical object key |
 | --- | --- | --- | --- |
@@ -49,17 +25,17 @@ For derived artifacts, use the following rules:
 | Thumbnail VTT | `MediaAsset.id` | `sprite.vtt` | `thumbnails/{asset_id}/sprite.vtt` |
 | Streaming package | `MediaStreamingPackage.id` | package-defined names | `streaming/{package_id}/...` |
 
-UUID7 is the default artifact identity when the database row represents one logical artifact. Processing job IDs represent execution attempts and must not determine the durable artifact filename. Content-addressed resources such as fonts use their SHA-256 instead so identical content can be reused.
+UUID7 is the default artifact identity when the database row represents one logical artifact. Processing job IDs represent execution attempts and must not determine durable artifact filenames. Content-addressed resources such as fonts use their SHA-256 so identical content can be reused.
 
-Original filenames are metadata, not storage identity. A downloaded attachment such as `NotoSans-Regular.ttf` is therefore stored under the attachment ID plus extension while the original filename remains in `MediaAttachment.filename`.
+Original filenames are metadata, not storage identity. An attachment such as `NotoSans-Regular.ttf` is stored under the attachment ID plus extension while the original filename remains in `MediaAttachment.filename`.
 
-The application should keep these representations distinct:
+Keep these representations distinct:
 
 - `source_path`: a local filesystem path used by FFmpeg or other local processing.
 - `object_key`: a provider-independent relative storage key persisted in PostgreSQL.
 - public URL: a browser-facing delivery URL derived from the object key at the application boundary.
 
-Do not persist local absolute paths or provider-specific URLs in fields that represent `object_key`.
+Do not persist local absolute paths or provider-specific URLs in an `object_key` field. The storage adapter accepts only provider-independent relative keys.
 
 The canonical key builders live in `animedownloader_storage.artifacts`. Workers should construct keys through those models instead of duplicating string formatting rules.
 ## Processing and Storage

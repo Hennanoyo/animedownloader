@@ -2,13 +2,7 @@ default:
   @just --list
 
 up:
-  @if command -v nvidia-smi >/dev/null 2>&1 && docker compose -f compose.yaml -f compose.gpu.yaml run --rm --no-deps --build --entrypoint sh worker -c 'nvidia-smi >/dev/null 2>&1'; then \
-    echo "[up] NVIDIA GPU is available; starting GPU-enabled worker."; \
-    docker compose -f compose.yaml -f compose.gpu.yaml up --build; \
-  else \
-    echo "[up] NVIDIA GPU is unavailable; starting CPU worker."; \
-    docker compose up --build; \
-  fi
+  @if command -v nvidia-smi >/dev/null 2>&1 && docker compose -f compose.yaml -f compose.gpu.yaml run --rm --no-deps --build --entrypoint sh worker -c 'nvidia-smi >/dev/null 2>&1'; then     echo "[up] NVIDIA GPU is available; starting GPU-enabled worker.";     docker compose -f compose.yaml -f compose.gpu.yaml up --build;   else     echo "[up] NVIDIA GPU is unavailable; starting CPU worker.";     docker compose up --build;   fi
 
 up-gpu:
   docker compose -f compose.yaml -f compose.gpu.yaml up --build
@@ -22,6 +16,11 @@ down:
 down-v:
   docker compose down -v
 
+reset-dev:
+  @echo "[reset-dev] WARNING: removing all development Compose volumes."
+  @echo "[reset-dev] This deletes PostgreSQL, Redis, SeaweedFS, downloads, media, and qBittorrent state."
+  docker compose down -v --remove-orphans
+
 logs service="":
   docker compose logs -f {{service}}
 
@@ -33,6 +32,9 @@ storage-smoke:
 
 storage-media-smoke episode_id timeout="1800":
   docker compose exec -T worker uv run --package animedownloader-worker python3 /app/scripts/storage-media-smoke.py {{episode_id}} --timeout {{timeout}}
+
+media-e2e-smoke episode_id timeout="3600":
+  docker compose exec -T worker uv run --package animedownloader-worker python3 /app/scripts/media-e2e-smoke.py {{episode_id}} --timeout {{timeout}}
 
 storage-media-smoke-gpu episode_id timeout="1800":
   @echo "[storage-media-smoke-gpu] compatibility alias; encoder selection is automatic."

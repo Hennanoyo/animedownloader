@@ -47,6 +47,31 @@ async def test_transcode_command_uses_hevc_and_aac(tmp_path: Path) -> None:
 
 
 @pytest.mark.anyio
+async def test_transcode_command_can_use_cuda_decode(tmp_path: Path) -> None:
+    output_path = tmp_path / "playable.mp4"
+    runner = FakeRunner()
+
+    await FFmpegPlayableMediaProcessor(
+        runner=runner,
+        video_encoder="hevc_nvenc",
+        hardware_acceleration="cuda",
+    ).process(
+        media_path=tmp_path / "episode.mkv",
+        output_path=output_path,
+        operation=PlayableMediaOperation.TRANSCODE,
+    )
+
+    command = runner.calls[0]
+    input_index = command.index("-i")
+    assert command[input_index - 4 : input_index] == (
+        "-hwaccel",
+        "cuda",
+        "-hwaccel_output_format",
+        "cuda",
+    )
+
+
+@pytest.mark.anyio
 async def test_transcode_command_can_use_nvenc(tmp_path: Path) -> None:
     output_path = tmp_path / "playable.mp4"
     runner = FakeRunner()

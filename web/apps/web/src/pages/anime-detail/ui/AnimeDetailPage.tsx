@@ -117,6 +117,7 @@ export default function AnimeDetailPage() {
                   <th scope="col">Downloads</th>
                   <th scope="col">Download</th>
                   <th scope="col">Conversion</th>
+                  <th scope="col">Playback</th>
                 </tr>
               </thead>
               <tbody>
@@ -148,6 +149,15 @@ export default function AnimeDetailPage() {
                       <span className={styles.status}>
                         {formatLabel(episode.conversion_status)}
                       </span>
+                    </td>
+                    <td>
+                      <Link
+                        className={styles.playButton}
+                        to="/episodes/$episodeId"
+                        params={{ episodeId: episode.id }}
+                      >
+                        Play
+                      </Link>
                     </td>
                   </tr>
                 ))}

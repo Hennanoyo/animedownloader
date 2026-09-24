@@ -43,9 +43,18 @@
   margin: 0;
 }
 
+.headerMeta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem 0.8rem;
+}
+
 .schedule {
-  margin-top: 0.65rem !important;
+  margin: 0 !important;
   color: #94a3b8;
+  line-height: 1.4;
 }
 
 .episodeCount {
@@ -267,11 +276,41 @@
 
 
 .pipelineSummary {
-  margin-top: 2rem;
-  padding: 1.2rem;
-  border: 1px solid #26324a;
-  border-radius: 0.9rem;
-  background: #0f172a;
+  margin-top: 2.75rem;
+}
+
+.pipelineSummary .panelHeader {
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid #26324a;
+}
+
+.pipelineList {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pipelineState {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px dashed #334155;
+  border-radius: 0.7rem;
+  color: #94a3b8;
+}
+
+.pipelineState p {
+  margin: 0;
+}
+
+.pipelineRetryButton {
+  min-height: 2.25rem;
+  margin-top: 0.7rem;
+  padding: 0 0.7rem;
+  border: 1px solid #475569;
+  border-radius: 0.55rem;
+  background: #111827;
+  color: #e5e7eb;
+  cursor: pointer;
 }
 
 .pipelineList {

@@ -1,14 +1,27 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Button } from "react-aria-components";
+import {
+  Button,
+  Menu,
+  MenuItem,
+  MenuTrigger,
+  Popover,
+} from "react-aria-components";
 import type { Episode } from "../../../entities/anime/model/types";
 import type {
   EpisodePipelineSummary,
   PipelineCurrentStage,
   PipelineStageStatus,
 } from "../../../entities/anime/model/pipeline";
-import { useRetryEpisodePipeline } from "../../../features/anime-detail/model/useAnimePipeline";
+import {
+  useCreateEpisodeDownloadJob,
+  useDeleteDownloadJob,
+  useEpisodeDownload,
+} from "../../../features/episode-download/model/useEpisodeDownload";
 import EpisodeDownloadControl from "../../../features/episode-download/ui/EpisodeDownloadControl";
+import { useDeleteEpisode } from "../../../features/episode-management/model/useEpisodeManagement";
+import { useRetryEpisodePipeline } from "../../../features/anime-detail/model/useAnimePipeline";
+import Icon from "../../../shared/ui/Icon";
 import styles from "./EpisodePipelineCard.module.scss";
 
 interface Props {
@@ -25,14 +38,19 @@ const stages: { id: PipelineCurrentStage; label: string }[] = [
 
 export default function EpisodePipelineCard({ episode, pipeline }: Props) {
   const retryMutation = useRetryEpisodePipeline(episode.id);
-  const downloadActive =
-    pipeline.download.status === "pending" ||
-    pipeline.download.status === "downloading" ||
-    pipeline.download.status === "paused";
+  const deleteEpisodeMutation = useDeleteEpisode(episode.anime_id);
   const [expanded, setExpanded] = useState(
     pipeline.active || hasPipelineFailure(pipeline),
   );
+  const [confirmAction, setConfirmAction] = useState<
+    "delete-episode" | null
+  >(null);
   const pipelineId = "episode-pipeline-" + episode.id;
+
+  async function handleDeleteEpisode() {
+    await deleteEpisodeMutation.mutateAsync(episode.id);
+    setConfirmAction(null);
+  }
 
   return (
     <article className={styles.card}>
@@ -83,50 +101,44 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
           </p>
         </div>
 
-        <div className={styles.actions}>
-          {!downloadActive ? (
-            <EpisodeDownloadControl episodeId={episode.id} compact />
-          ) : null}
-        </div>
+        <EpisodeActionMenu episode={episode} />
       </div>
 
       <div className={styles.pipelineSection}>
         <Button
           className={styles.pipelineToggle}
           onPress={() => setExpanded((value) => !value)}
+          aria-label={expanded ? "Hide details" : "Show details"}
           aria-expanded={expanded}
           aria-controls={pipelineId}
         >
           <span className={styles.pipelineSummaryLine}>
-            {stages.map((stage, index) => (
+            {stages.map((stage) => (
               <span key={stage.id} className={styles.summaryStage}>
-                {index > 0 ? (
-                  <span className={styles.summaryConnector} aria-hidden="true">
-                    →
-                  </span>
-                ) : null}
-                <span
-                  className={styles.summaryDot}
-                  data-status={getStageStatus(stage.id, pipeline)}
-                  aria-hidden="true"
+                <StageStatusIcon
+                  status={getStageStatus(stage.id, pipeline)}
+                  current={pipeline.current_stage === stage.id}
                 />
                 <span>{stage.label}</span>
-                <span className={styles.summaryStatus}>
-                  {formatCompactStatus(getStageStatus(stage.id, pipeline))}
-                </span>
               </span>
             ))}
           </span>
           <span className={styles.toggleLabel}>
             {expanded ? "Hide details" : "Show details"}
-            <span className={styles.toggleIcon} aria-hidden="true">
-              {expanded ? "⌃" : "⌄"}
-            </span>
+            <Icon
+              className={styles.toggleIcon}
+              name={expanded ? "chevronUp" : "chevronDown"}
+              size={15}
+            />
           </span>
         </Button>
 
         {expanded ? (
-          <div id={pipelineId} className={styles.stages} aria-label="Media pipeline status">
+          <div
+            id={pipelineId}
+            className={styles.stages}
+            aria-label="Media pipeline status"
+          >
             {stages.map((stage) => {
               const stageStatus = getStageStatus(stage.id, pipeline);
               const completed = stageStatus === "completed";
@@ -143,49 +155,15 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
                   >
                     <div className={styles.stageHeader}>
                       <div className={styles.stageTitle}>
-                        <span className={styles.stageDot} aria-hidden="true" />
+                        <StageStatusIcon
+                          status={stageStatus}
+                          current={current}
+                        />
                         <span>{stage.label}</span>
                       </div>
-                      <span className={styles.status} data-status={stageStatus}>
-                        {formatStatus(stageStatus)}
-                      </span>
                     </div>
 
-                    {stage.id === "processing" ? (
-                      <StageProgress
-                        label="Preparation"
-                        value={pipeline.processing.progress_percent}
-                      />
-                    ) : null}
-
-                    {stage.id === "preview" ? (
-                      <StageProgress
-                        label="Sprite"
-                        value={pipeline.thumbnail.progress_percent}
-                      />
-                    ) : null}
-
-                    {stage.id === "streaming" ? (
-                      <p className={styles.detail}>
-                        {formatStreamingDetail(pipeline)}
-                      </p>
-                    ) : null}
-
-                    {stage.id === "download" && pipeline.download.error_message ? (
-                      <p className={styles.error}>{pipeline.download.error_message}</p>
-                    ) : null}
-
-                    {stage.id === "processing" && pipeline.processing.error_message ? (
-                      <p className={styles.error}>{pipeline.processing.error_message}</p>
-                    ) : null}
-
-                    {stage.id === "preview" && pipeline.thumbnail.error_message ? (
-                      <p className={styles.error}>{pipeline.thumbnail.error_message}</p>
-                    ) : null}
-
-                    {stage.id === "streaming" && pipeline.streaming.error_message ? (
-                      <p className={styles.error}>{pipeline.streaming.error_message}</p>
-                    ) : null}
+                    {renderStageBody(stage.id, stageStatus, pipeline)}
 
                     {action ? (
                       <Button
@@ -193,9 +171,13 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
                         onPress={() => void retryMutation.mutateAsync()}
                         isDisabled={retryMutation.isPending}
                       >
-                        {retryMutation.isPending
-                          ? "Starting..."
-                          : action}
+                        <Icon
+                          name={action === "Retry" ? "refresh" : "play"}
+                          size={13}
+                        />
+                        <span>
+                          {retryMutation.isPending ? "Starting..." : action}
+                        </span>
                       </Button>
                     ) : null}
                   </div>
@@ -206,21 +188,40 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
         ) : null}
       </div>
 
-      <div className={styles.extras}>
-        <span>Subtitles: {formatStatus(pipeline.subtitles)}</span>
-        <span>Attachments: {formatStatus(pipeline.attachments)}</span>
-        {pipeline.download.error_message ? (
-          <span className={styles.error}>{pipeline.download.error_message}</span>
-        ) : null}
-      </div>
-
-      {downloadActive ? (
-        <div className={styles.downloadPanel} aria-label="Download progress">
-          <div className={styles.downloadPanelHeader}>
-            <span>Download progress</span>
-            <span>Live transfer</span>
+      {confirmAction === "delete-episode" ? (
+        <div
+          className={styles.confirm}
+          role="alertdialog"
+          aria-label="Delete episode confirmation"
+        >
+          <div>
+            <strong>Delete episode #{episode.episode_number}?</strong>
+            <p>This removes the episode record. Downloaded media is kept.</p>
           </div>
-          <EpisodeDownloadControl episodeId={episode.id} />
+          {deleteEpisodeMutation.isError ? (
+            <p className={styles.error} role="alert">
+              Failed to delete episode: {deleteEpisodeMutation.error.message}
+            </p>
+          ) : null}
+          <div className={styles.confirmActions}>
+            <Button
+              className={styles.secondaryButton}
+              onPress={() => setConfirmAction(null)}
+              isDisabled={deleteEpisodeMutation.isPending}
+            >
+              Keep episode
+            </Button>
+            <Button
+              className={styles.dangerButton}
+              onPress={() => void handleDeleteEpisode()}
+              isDisabled={deleteEpisodeMutation.isPending}
+            >
+              <Icon name="trash" size={14} />
+              <span>
+                {deleteEpisodeMutation.isPending ? "Deleting..." : "Delete episode"}
+              </span>
+            </Button>
+          </div>
         </div>
       ) : null}
 
@@ -232,6 +233,369 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
         </span>
       ) : null}
     </article>
+  );
+}
+
+interface EpisodeActionMenuProps {
+  episode: Episode;
+}
+
+function EpisodeActionMenu({ episode }: EpisodeActionMenuProps) {
+  const query = useEpisodeDownload(episode.id);
+  const createMutation = useCreateEpisodeDownloadJob(episode.id);
+  const deleteMutation = useDeleteDownloadJob(episode.id);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const job = query.data;
+  const isDeleteDisabled =
+    createMutation.isPending || deleteMutation.isPending;
+
+  return (
+    <div className={styles.actionMenu}>
+      <MenuTrigger>
+        <Button
+          className={styles.iconButton}
+          aria-label="Episode actions"
+          title="Episode actions"
+        >
+          <Icon name="more" size={18} />
+        </Button>
+        <Popover
+          className={styles.menuPopover}
+          placement="bottom end"
+          offset={6}
+        >
+          <Menu className={styles.menu} aria-label="Episode actions">
+            {!query.isPending && !query.isError ? (
+              <>
+                {job?.status === "pending" ||
+                job?.status === "downloading" ||
+                job?.status === "paused" ? null : (
+                  <MenuItem
+                    className={styles.menuItem}
+                    onAction={() => createMutation.mutate()}
+                    isDisabled={createMutation.isPending}
+                  >
+                    <Icon
+                      name={job?.status === "failed" ? "refresh" : "download"}
+                      size={15}
+                    />
+                    <span>
+                      {job?.status === "failed"
+                        ? "Retry download"
+                        : job?.status === "completed" ||
+                            job?.status === "cancelled"
+                          ? "Download again"
+                          : "Download"}
+                    </span>
+                  </MenuItem>
+                )}
+                {job &&
+                (job.status === "completed" ||
+                  job.status === "failed" ||
+                  job.status === "cancelled") ? (
+                  <MenuItem
+                    className={styles.menuItem}
+                    onAction={() => setConfirmDelete(true)}
+                    isDisabled={deleteMutation.isPending}
+                  >
+                    <Icon name="trash" size={15} />
+                    <span>Delete download record</span>
+                  </MenuItem>
+                ) : null}
+              </>
+            ) : null}
+            <MenuItem
+              className={styles.menuItem + " " + styles.menuItemDanger}
+              onAction={() => setConfirmDelete(false)}
+            >
+              <Icon name="trash" size={15} />
+              <span>Delete episode</span>
+            </MenuItem>
+          </Menu>
+        </Popover>
+      </MenuTrigger>
+
+      {confirmDelete ? (
+        <div className={styles.menuConfirm} role="alertdialog">
+          <p>
+            Delete this download record? Downloaded files will be kept.
+          </p>
+          <div className={styles.confirmActions}>
+            <Button
+              className={styles.secondaryButton}
+              onPress={() => setConfirmDelete(false)}
+              isDisabled={deleteMutation.isPending}
+            >
+              Keep record
+            </Button>
+            <Button
+              className={styles.dangerButton}
+              onPress={() => {
+                if (job) {
+                  deleteMutation.mutate(job.id);
+                }
+                setConfirmDelete(false);
+              }}
+              isDisabled={deleteMutation.isPending}
+            >
+              <Icon name="trash" size={14} />
+              <span>
+                {deleteMutation.isPending ? "Deleting..." : "Delete record"}
+              </span>
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {createMutation.isError ? (
+        <span className={styles.menuError} role="alert">
+          {createMutation.error instanceof Error
+            ? createMutation.error.message
+            : "Failed to start the download."}
+        </span>
+      ) : null}
+      {deleteMutation.isError ? (
+        <span className={styles.menuError} role="alert">
+          {deleteMutation.error.message}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function StageStatusIcon({
+  status,
+  current,
+}: {
+  status: PipelineStageStatus;
+  current: boolean;
+}) {
+  if (status === "completed") {
+    return (
+      <Icon className={styles.statusIconComplete} name="checkCircle" size={15} />
+    );
+  }
+
+  if (status === "failed") {
+    return (
+      <Icon className={styles.statusIconFailed} name="alertCircle" size={15} />
+    );
+  }
+
+  if (current || status === "processing" || status === "downloading" || status === "pending") {
+    return (
+      <span
+        className={styles.statusIndicator}
+        data-status={status}
+        aria-label={status === "pending" ? "Waiting" : "In progress"}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={styles.statusIndicator}
+      data-status={status}
+      aria-label="Not started"
+    />
+  );
+}
+
+function renderStageBody(
+  stage: PipelineCurrentStage,
+  stageStatus: PipelineStageStatus,
+  pipeline: EpisodePipelineSummary,
+) {
+  if (stage === "download") {
+    if (
+      stageStatus === "pending" ||
+      stageStatus === "downloading" ||
+      stageStatus === "paused"
+    ) {
+      return (
+        <EpisodeDownloadControl
+          episodeId={pipeline.episode_id}
+          inline
+        />
+      );
+    }
+
+    if (stageStatus === "completed") {
+      return (
+        <OutputStatusList
+          items={[
+            {
+              label: "File downloaded",
+              detail: formatDownloadedBytes(
+                pipeline.download.downloaded_bytes,
+                pipeline.download.total_bytes,
+              ),
+              icon: "download",
+            },
+          ]}
+        />
+      );
+    }
+
+    if (pipeline.download.error_message) {
+      return <p className={styles.error}>{pipeline.download.error_message}</p>;
+    }
+
+    if (stageStatus === "cancelled") {
+      return <p className={styles.detail}>Download was cancelled.</p>;
+    }
+
+    return <p className={styles.detail}>Waiting to download.</p>;
+  }
+
+  if (stage === "processing") {
+    if (
+      stageStatus === "processing" ||
+      (stageStatus === "pending" && pipeline.processing.progress_percent > 0)
+    ) {
+      return (
+        <StageProgress
+          label="Preparation"
+          value={pipeline.processing.progress_percent}
+        />
+      );
+    }
+
+    if (stageStatus === "completed") {
+      return (
+        <OutputStatusList
+          items={[
+            {
+              label: pipeline.processing.playable_ready
+                ? "Playable media ready"
+                : "Playable media pending",
+              icon: "play",
+              complete: pipeline.processing.playable_ready,
+            },
+            {
+              label: "Subtitles",
+              icon: "caption",
+              complete: pipeline.subtitles === "completed",
+            },
+            {
+              label: "Attachments",
+              icon: "paperclip",
+              complete: pipeline.attachments === "completed",
+            },
+          ]}
+        />
+      );
+    }
+
+    if (pipeline.processing.error_message) {
+      return <p className={styles.error}>{pipeline.processing.error_message}</p>;
+    }
+
+    return <p className={styles.detail}>Waiting for the downloaded file.</p>;
+  }
+
+  if (stage === "preview") {
+    if (
+      stageStatus === "processing" ||
+      (stageStatus === "pending" && pipeline.thumbnail.progress_percent > 0)
+    ) {
+      return (
+        <StageProgress
+          label="Sprite"
+          value={pipeline.thumbnail.progress_percent}
+        />
+      );
+    }
+
+    if (stageStatus === "completed") {
+      return (
+        <OutputStatusList
+          items={[
+            {
+              label: "Sprite sheet ready",
+              icon: "image",
+              complete: Boolean(pipeline.thumbnail.url),
+            },
+            {
+              label: "Thumbnail VTT ready",
+              icon: "file",
+              complete: Boolean(pipeline.thumbnail.vtt_url),
+            },
+          ]}
+        />
+      );
+    }
+
+    if (pipeline.thumbnail.error_message) {
+      return <p className={styles.error}>{pipeline.thumbnail.error_message}</p>;
+    }
+
+    return <p className={styles.detail}>Waiting for playable media.</p>;
+  }
+
+  if (stageStatus === "completed") {
+    return (
+      <OutputStatusList
+        items={[
+          {
+            label: "HLS ready",
+            icon: "video",
+            complete: pipeline.streaming.hls_ready,
+          },
+          {
+            label: "DASH ready",
+            icon: "video",
+            complete: pipeline.streaming.dash_ready,
+          },
+        ]}
+      />
+    );
+  }
+
+  if (pipeline.streaming.error_message) {
+    return <p className={styles.error}>{pipeline.streaming.error_message}</p>;
+  }
+
+  return <p className={styles.detail}>Waiting for the preview assets.</p>;
+}
+
+interface OutputStatus {
+  label: string;
+  icon:
+    | "caption"
+    | "download"
+    | "file"
+    | "paperclip"
+    | "play"
+    | "video"
+    | "image";
+  complete?: boolean;
+  detail?: string;
+}
+
+function OutputStatusList({ items }: { items: OutputStatus[] }) {
+  return (
+    <div className={styles.outputList}>
+      {items.map((item) => {
+        const complete = item.complete ?? true;
+        return (
+          <span
+            key={item.label}
+            className={styles.outputItem}
+            data-complete={complete}
+          >
+            <Icon
+              name={item.icon}
+              size={14}
+              className={complete ? styles.outputIconReady : styles.outputIconPending}
+            />
+            <span>{item.label}</span>
+            {item.detail ? <small>{item.detail}</small> : null}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
@@ -355,31 +719,27 @@ function hasPipelineFailure(pipeline: EpisodePipelineSummary): boolean {
   );
 }
 
-function formatCompactStatus(status: PipelineStageStatus): string {
-  switch (status) {
-    case "completed":
-      return "✓";
-    case "not_started":
-      return "—";
-    case "failed":
-      return "!";
-    case "pending":
-      return "…";
-    default:
-      return "";
+function formatDownloadedBytes(
+  downloaded: number,
+  total: number | null,
+): string {
+  const downloadedText = formatBytes(downloaded);
+  return total ? downloadedText + " / " + formatBytes(total) : downloadedText;
+}
+
+function formatBytes(value: number): string {
+  if (value < 1024) {
+    return value + " B";
   }
-}
 
-function formatStatus(status: PipelineStageStatus): string {
-  return status
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
+  const units = ["KiB", "MiB", "GiB", "TiB"];
+  let size = value / 1024;
+  let unitIndex = 0;
 
-function formatStreamingDetail(pipeline: EpisodePipelineSummary): string {
-  return (
-    (pipeline.streaming.hls_ready ? "HLS ready" : "HLS pending") +
-    " · " +
-    (pipeline.streaming.dash_ready ? "DASH ready" : "DASH pending")
-  );
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+
+  return size.toFixed(size >= 10 ? 0 : 1) + " " + units[unitIndex];
 }

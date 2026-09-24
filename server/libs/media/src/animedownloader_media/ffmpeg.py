@@ -15,6 +15,40 @@ DEFAULT_FFMPEG_TIMEOUT_SECONDS = 1800.0
 DEFAULT_FFMPEG_HEARTBEAT_INTERVAL_SECONDS = 30.0
 
 
+def _build_video_encoder_options(video_encoder: str) -> tuple[str, ...]:
+    if video_encoder == "libx265":
+        return (
+            "-c:v",
+            "libx265",
+            "-preset",
+            "medium",
+            "-crf",
+            "28",
+            "-pix_fmt",
+            "yuv420p",
+        )
+    if video_encoder == "hevc_nvenc":
+        return (
+            "-c:v",
+            "hevc_nvenc",
+            "-preset",
+            "p5",
+            "-rc",
+            "vbr",
+            "-cq",
+            "28",
+            "-b:v",
+            "0",
+            "-pix_fmt",
+            "yuv420p",
+        )
+    raise ValueError(
+        "Unsupported video encoder: "
+        f"{video_encoder!r}; expected 'libx265' or 'hevc_nvenc'",
+    )
+
+
+
 @dataclass(frozen=True, slots=True)
 class FFmpegCommandResult:
     stdout: bytes
@@ -311,9 +345,11 @@ class FFmpegPlayableMediaProcessor:
         *,
         executable: str = "ffmpeg",
         runner: FFmpegRunner | None = None,
+        video_encoder: str = "libx265",
     ) -> None:
         self._executable = executable
         self._runner = runner or SubprocessFFmpegRunner()
+        self._video_encoder = video_encoder
 
     async def process(
         self,
@@ -325,10 +361,10 @@ class FFmpegPlayableMediaProcessor:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         if operation is PlayableMediaOperation.REMUX:
-            video_codec = "copy"
+            video_options = ("-c:v", "copy")
             audio_codec = "copy"
         else:
-            video_codec = "libx265"
+            video_options = _build_video_encoder_options(self._video_encoder)
             audio_codec = "aac"
 
         result = await self._runner.run(
@@ -347,16 +383,12 @@ class FFmpegPlayableMediaProcessor:
                 "0",
                 "-sn",
                 "-dn",
-                "-c:v",
-                video_codec,
+                *video_options,
                 "-tag:v",
                 "hvc1",
                 "-c:a",
                 audio_codec,
                 *(( "-b:a", "192k") if operation is PlayableMediaOperation.TRANSCODE else ()),
-                *(( "-preset", "medium", "-crf", "28", "-pix_fmt", "yuv420p")
-                  if operation is PlayableMediaOperation.TRANSCODE
-                  else ()),
                 "-movflags",
                 "+faststart",
                 str(output_path),

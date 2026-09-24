@@ -41,6 +41,7 @@ const playbackThumbnailSchema = z.object({
 });
 
 export const playbackSchema = z.object({
+  anime_id: z.uuid(),
   episode_id: z.uuid(),
   episode_number: z.number().int().positive(),
   title: z.string(),

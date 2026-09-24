@@ -14,7 +14,7 @@ up-gpu:
   docker compose -f compose.yaml -f compose.gpu.yaml up --build
 
 gpu-check:
-  docker compose -f compose.yaml -f compose.gpu.yaml run --rm --no-deps --entrypoint sh worker -c 'nvidia-smi && ffmpeg -hide_banner -hwaccels | grep -Fx cuda && ffmpeg -hide_banner -encoders | grep -F hevc_nvenc'
+  docker compose -f compose.yaml -f compose.gpu.yaml run --rm --no-deps --entrypoint sh worker -c 'nvidia-smi && ffmpeg -hide_banner -encoders | grep -F hevc_nvenc && ffmpeg -hide_banner -v error -f lavfi -i testsrc2=size=1920x1080:rate=1 -frames:v 2 -an -c:v hevc_nvenc -preset p5 -rc vbr -cq 28 -b:v 0 -pix_fmt yuv420p -f null -'
 
 down:
   docker compose down

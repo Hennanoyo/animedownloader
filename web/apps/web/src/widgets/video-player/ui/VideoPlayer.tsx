@@ -327,102 +327,146 @@ export default function VideoPlayer({ playback }: Props) {
     });
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const player = playerRef.current;
-      if (
-        !player ||
-        event.defaultPrevented ||
-        event.ctrlKey ||
-        event.metaKey ||
-        event.altKey
-      ) {
-        return;
-      }
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (
+      event.defaultPrevented ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey
+    ) {
+      return;
+    }
 
-      const eventTarget = event.target;
-      const isInsidePlayer =
-        eventTarget instanceof Node && player.contains(eventTarget);
-      const isPlayerHovered = player.matches(":hover");
-      const isPlayerFullscreen = document.fullscreenElement === player;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
 
-      if (!isInsidePlayer && !isPlayerHovered && !isPlayerFullscreen) {
-        return;
-      }
+    if (isTextInputTarget(target)) {
+      return;
+    }
 
-      if (isInteractiveKeyboardTarget(eventTarget)) {
-        return;
-      }
+    const slider = target.closest<HTMLElement>('[role="slider"]');
+    if (slider) {
+      const sliderLabel = slider.getAttribute("aria-label");
 
-      switch (event.key) {
-        case " ":
-        case "k":
-        case "K":
-          event.preventDefault();
-          togglePlayPause();
-          showControls();
-          break;
-        case "ArrowLeft":
-          event.preventDefault();
-          seek(currentTime - 5);
-          showControls();
-          break;
-        case "ArrowRight":
-          event.preventDefault();
-          seek(currentTime + 5);
-          showControls();
-          break;
-        case "ArrowUp":
-          event.preventDefault();
-          changeVolume(volume + 0.05);
-          showControls();
-          break;
-        case "ArrowDown":
-          event.preventDefault();
-          changeVolume(volume - 0.05);
-          showControls();
-          break;
-        case "m":
-        case "M":
-          event.preventDefault();
-          toggleMute();
-          showControls();
-          break;
-        case "f":
-        case "F":
-          event.preventDefault();
-          toggleFullscreen();
-          showControls();
-          break;
-        case "Escape":
-          if (isPlayerFullscreen) {
+      if (sliderLabel === "Seek") {
+        switch (event.key) {
+          case "ArrowLeft":
             event.preventDefault();
-            void document.exitFullscreen();
+            seek(currentTime - 5);
             showControls();
-          }
-          break;
-        default:
-          break;
+            return;
+          case "ArrowRight":
+            event.preventDefault();
+            seek(currentTime + 5);
+            showControls();
+            return;
+          case "Home":
+            event.preventDefault();
+            seek(0);
+            showControls();
+            return;
+          case "End":
+            event.preventDefault();
+            seek(duration);
+            showControls();
+            return;
+          default:
+            break;
+        }
       }
-    };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [
-    changeVolume,
-    currentTime,
-    duration,
-    isMuted,
-    isPlaying,
-    seek,
-    showControls,
-    toggleFullscreen,
-    toggleMute,
-    togglePlayPause,
-    volume,
-  ]);
+      if (sliderLabel === "Volume") {
+        switch (event.key) {
+          case "ArrowLeft":
+          case "ArrowDown":
+            event.preventDefault();
+            changeVolume(volume - 0.05);
+            showControls();
+            return;
+          case "ArrowRight":
+          case "ArrowUp":
+            event.preventDefault();
+            changeVolume(volume + 0.05);
+            showControls();
+            return;
+          case "Home":
+            event.preventDefault();
+            changeVolume(0);
+            showControls();
+            return;
+          case "End":
+            event.preventDefault();
+            changeVolume(1);
+            showControls();
+            return;
+          default:
+            break;
+        }
+      }
+    }
+
+    const button = target.closest("button");
+    if (
+      button &&
+      (event.key === " " || event.key === "Enter")
+    ) {
+      return;
+    }
+
+    switch (event.key) {
+      case " ":
+      case "k":
+      case "K":
+        event.preventDefault();
+        togglePlayPause();
+        showControls();
+        break;
+      case "ArrowLeft":
+        event.preventDefault();
+        seek(currentTime - 5);
+        showControls();
+        break;
+      case "ArrowRight":
+        event.preventDefault();
+        seek(currentTime + 5);
+        showControls();
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        changeVolume(volume + 0.05);
+        showControls();
+        break;
+      case "ArrowDown":
+        event.preventDefault();
+        changeVolume(volume - 0.05);
+        showControls();
+        break;
+      case "m":
+      case "M":
+        event.preventDefault();
+        toggleMute();
+        showControls();
+        break;
+      case "f":
+      case "F":
+        event.preventDefault();
+        toggleFullscreen();
+        showControls();
+        break;
+      case "Escape":
+        if (document.fullscreenElement === playerRef.current) {
+          event.preventDefault();
+          void document.exitFullscreen();
+          showControls();
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
 
   if (playback.video === null) {
     return (
@@ -440,8 +484,10 @@ export default function VideoPlayer({ playback }: Props) {
       className={styles.player}
       aria-label="Video player"
       tabIndex={0}
+      aria-keyshortcuts="Space K ArrowLeft ArrowRight ArrowUp ArrowDown M F"
       onPointerMove={showControls}
       onFocus={showControls}
+      onKeyDown={handleKeyDown}
     >
       <div className={styles.mediaSurface}>
         <video
@@ -524,14 +570,13 @@ export default function VideoPlayer({ playback }: Props) {
   );
 }
 
-function isInteractiveKeyboardTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-
+function isTextInputTarget(target: HTMLElement): boolean {
   return (
+    target.matches(
+      "input, select, textarea, [contenteditable='true']",
+    ) ||
     target.closest(
-      "button, input, select, textarea, [contenteditable='true'], [role='slider']",
+      "input, select, textarea, [contenteditable='true']",
     ) !== null
   );
 }

@@ -281,33 +281,66 @@ function getStageAction(
   stage: PipelineCurrentStage,
   pipeline: EpisodePipelineSummary,
 ): "Continue" | "Retry" | null {
+  const actionableStage = getActionableStage(pipeline);
+  if (actionableStage === null || actionableStage !== stage) {
+    return null;
+  }
+
+  if (
+    stage === "processing" &&
+    (pipeline.processing.status === "pending" ||
+      pipeline.processing.status === "failed")
+  ) {
+    return pipeline.processing.status === "failed" ? "Retry" : "Continue";
+  }
+
+  if (
+    stage === "preview" &&
+    (pipeline.thumbnail.status === "pending" ||
+      pipeline.thumbnail.status === "failed")
+  ) {
+    return pipeline.thumbnail.status === "failed" ? "Retry" : "Continue";
+  }
+
+  if (
+    stage === "streaming" &&
+    (pipeline.streaming.status === "pending" ||
+      pipeline.streaming.status === "failed")
+  ) {
+    return pipeline.streaming.status === "failed" ? "Retry" : "Continue";
+  }
+
+  return null;
+}
+
+function getActionableStage(
+  pipeline: EpisodePipelineSummary,
+): PipelineCurrentStage | null {
   if (pipeline.download.status !== "completed") {
     return null;
   }
 
-  const candidate =
-    stage === "processing"
-      ? {
-          status: pipeline.processing.status,
-          ready: true,
-        }
-      : stage === "preview"
-        ? {
-            status: pipeline.thumbnail.status,
-            ready: pipeline.processing.playable_ready,
-          }
-        : stage === "streaming"
-          ? {
-              status: pipeline.streaming.status,
-              ready: pipeline.processing.playable_ready,
-            }
-          : null;
+  if (
+    pipeline.processing.status === "pending" ||
+    pipeline.processing.status === "failed"
+  ) {
+    return "processing";
+  }
 
   if (
-    candidate?.ready &&
-    (candidate.status === "pending" || candidate.status === "failed")
+    pipeline.processing.playable_ready &&
+    (pipeline.thumbnail.status === "pending" ||
+      pipeline.thumbnail.status === "failed")
   ) {
-    return candidate.status === "failed" ? "Retry" : "Continue";
+    return "preview";
+  }
+
+  if (
+    pipeline.processing.playable_ready &&
+    (pipeline.streaming.status === "pending" ||
+      pipeline.streaming.status === "failed")
+  ) {
+    return "streaming";
   }
 
   return null;

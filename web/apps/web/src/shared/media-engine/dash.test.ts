@@ -34,6 +34,10 @@ vi.mock("dashjs", () => ({
 import { DashVideoEngine } from "./dash";
 
 describe("DashVideoEngine", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.errorHandler = null;
+  });
   it("initializes dash.js with the provided source", async () => {
     const video = {
       pause: vi.fn(),

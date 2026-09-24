@@ -58,11 +58,17 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
   ).toBeVisible();
   await expect(page.getByText("Episode One")).toBeVisible();
 
-  const thumbnail = page.getByRole("img", {
+  const thumbnail = page.getByRole("link", {
     name: "Episode One thumbnail",
   });
   await expect(thumbnail).toBeVisible();
+  await expect(thumbnail).toHaveAttribute("href", `/episodes/${EPISODE_ID}`);
+
   await expect(thumbnail).toHaveCSS("background-size", "1500% 1200%");
+
+  const showDetails = page.getByRole("button", { name: "Show details" });
+  await expect(showDetails).toBeVisible();
+  await showDetails.click();
 
   const pipelineStatus = page.getByLabel("Media pipeline status");
   await expect(pipelineStatus.getByText("Download", { exact: true })).toBeVisible();
@@ -81,7 +87,7 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
   ).toHaveAttribute("aria-valuenow", "100");
 
   await expect(
-    page.getByRole("link", { name: "Play" }),
+    page.getByRole("link", { name: "Episode One", exact: true }),
   ).toHaveAttribute("href", `/episodes/${EPISODE_ID}`);
   await expect(
     page.getByRole("button", { name: "Download" }),
@@ -128,7 +134,7 @@ test("offers pipeline continuation without restarting a completed download", asy
   });
 
   await page.goto(`/animes/${ANIME_ID}`);
-  const continueButton = page.getByRole("button", { name: "Continue streaming" });
+  const continueButton = page.getByRole("button", { name: "Continue" });
   await expect(continueButton).toBeVisible();
   await continueButton.click();
   await expect.poll(() => retryRequests).toBe(1);

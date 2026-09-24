@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .ffmpeg import (
+    FFmpegPlayableMediaProcessor,
     FFmpegRunner,
     PlayableMediaProcessingResult,
     SubprocessFFmpegRunner,
-    FFmpegPlayableMediaProcessor,
 )
 from .playback import PlayableMediaOperation
 from .thumbnails import FFmpegThumbnailSpriteProcessor, ThumbnailSpriteResult

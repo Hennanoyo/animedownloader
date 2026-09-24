@@ -10,7 +10,6 @@ from .ffmpeg import (
     PlayableMediaProcessingResult,
     SubprocessFFmpegRunner,
     build_video_encoder_options,
-    build_video_input_options,
 )
 from .playback import PlayableMediaOperation
 from .thumbnails import ThumbnailSpriteResult
@@ -33,7 +32,6 @@ class FFmpegMediaPreparationProcessor:
         executable: str = "ffmpeg",
         runner: FFmpegRunner | None = None,
         video_encoder: str = "libx265",
-        hardware_acceleration: str = "none",
         min_interval_seconds: float = 5.0,
         max_frames: int = 180,
         width: int = 160,
@@ -60,8 +58,6 @@ class FFmpegMediaPreparationProcessor:
         self._executable = executable
         self._runner = runner or SubprocessFFmpegRunner()
         self._video_encoder = video_encoder
-        self._hardware_acceleration = hardware_acceleration
-        build_video_input_options(hardware_acceleration)
         self._min_interval_seconds = min_interval_seconds
         self._max_frames = max_frames
         self._width = width
@@ -109,27 +105,18 @@ class FFmpegMediaPreparationProcessor:
             f"tile={self._columns}x{self._rows}:padding=0:margin=0"
         )
 
-        thumbnail_prefix = (
-            "hwdownload,format=nv12,"
-            if self._hardware_acceleration == "cuda"
-            else ""
-        )
-
         if operation is PlayableMediaOperation.TRANSCODE:
             filter_complex = (
                 "[0:v:0]split=2[playable][thumbnail];"
-                f"[thumbnail]{thumbnail_prefix}{thumbnail_filter}[sprite]"
+                f"[thumbnail]{thumbnail_filter}[sprite]"
             )
             playable_video_map = "[playable]"
-            video_options = build_video_encoder_options(
-                self._video_encoder,
-                hardware_acceleration=self._hardware_acceleration,
-            )
+            video_options = build_video_encoder_options(self._video_encoder)
             audio_codec = "aac"
             audio_options = ("-b:a", "192k")
         else:
             filter_complex = (
-                f"[0:v:0]{thumbnail_prefix}{thumbnail_filter}[sprite]"
+                f"[0:v:0]{thumbnail_filter}[sprite]"
             )
             playable_video_map = "0:v:0"
             video_options = ("-c:v", "copy")
@@ -142,7 +129,6 @@ class FFmpegMediaPreparationProcessor:
                 "-v",
                 "error",
                 "-y",
-                *build_video_input_options(self._hardware_acceleration),
                 "-i",
                 str(media_path),
                 "-filter_complex_threads",

@@ -190,6 +190,7 @@ def build_episode_pipeline_summary(
     download_status = _download_status(download_job)
     processing_status = _processing_status(
         processing_job,
+        download_status=download_status,
         asset=asset,
         preparation_job=preparation_job,
         variant=variant,
@@ -302,11 +303,14 @@ def _download_status(job: DownloadJob | None) -> EpisodePipelineStageStatus:
 def _processing_status(
     processing_job: MediaProcessingJob | None,
     *,
+    download_status: EpisodePipelineStageStatus,
     asset: MediaAsset | None,
     preparation_job: MediaPreparationJob | None,
     variant: MediaVariant | None,
 ) -> EpisodePipelineStageStatus:
     if processing_job is None:
+        if download_status is EpisodePipelineStageStatus.COMPLETED:
+            return EpisodePipelineStageStatus.PENDING
         return (
             EpisodePipelineStageStatus.PENDING
             if asset is not None

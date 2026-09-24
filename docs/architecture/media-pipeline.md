@@ -47,13 +47,11 @@ The generated playable MP4 is re-inspected with FFprobe before the `MediaVariant
 
 ## Hardware Acceleration
 
-The default transcoder is CPU-based `libx265` so the media pipeline remains portable across CI and hosts without NVIDIA GPUs.
+The default video encoder setting is `auto`. Before a transcode, the worker runs a small real FFmpeg probe for `hevc_nvenc`. When the probe succeeds, the preparation job uses NVENC; when the GPU, driver, NVIDIA Container Toolkit, or NVENC encoder is unavailable, the worker transparently falls back to CPU `libx265`.
 
-Development environments with an NVIDIA GPU can use `hevc_nvenc` through `compose.gpu.yaml` and the `FFMPEG_VIDEO_ENCODER` setting. The NVENC path changes only the video encoder; the shared thumbnail filter graph and AAC encoding can still use CPU resources. NVIDIA GPU access in Docker requires the host NVIDIA driver and NVIDIA Container Toolkit. The Compose GPU reservation and `video` driver capability are configured by the GPU overlay.
+This keeps the media pipeline portable without making GPU availability a prerequisite. Docker Compose can expose the GPU to the worker when available, but the application itself does not require a GPU-specific encoder setting. The repository's `just up` performs this host/container capability check automatically and uses the GPU Compose overlay only when the NVIDIA device is usable; otherwise it starts the normal CPU worker.
 
-The GPU path is a development/runtime acceleration option, not a second media format. Both encoders continue to produce HEVC playable media and should be validated through FFprobe and the storage smoke test.
-
-GPU preparation also enables CUDA hardware decoding. Decoded CUDA frames stay on the GPU for the playable NVENC path; only the thumbnail branch downloads frames to system memory for CPU-side sampling and sprite filters. The CPU-only path keeps its software decoder/encoder path. Both paths use a small filter-thread limit for the shared preparation graph. The project does not rely on FFmpeg options unavailable in the runtime image.
+The NVENC path keeps the existing software decode and thumbnail filter graph. This is intentional: the shared thumbnail pipeline requires CPU-side filtering, and avoiding CUDA-frame filter negotiation keeps the preparation path portable and predictable. NVENC still removes the HEVC encoding workload from the CPU, which is the expensive part of TRANSCODE. The CPU fallback remains unchanged.
 
 FFmpeg subprocesses are started in their own POSIX process group so timeout or task cancellation can terminate the complete FFmpeg process tree instead of leaving an orphaned encoder/decoder running after a worker failure. The development worker defaults to one Taskiq child process because media transcoding is resource-intensive; `TASKIQ_WORKERS` can be increased explicitly when the host has capacity for concurrent jobs.
 

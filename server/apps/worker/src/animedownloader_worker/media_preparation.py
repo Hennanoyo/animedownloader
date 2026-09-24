@@ -334,9 +334,15 @@ class MediaPreparationRunner:
                     and context.operation is not None
                     and context.operation.value != operation.value
                 ):
-                    raise MediaPreparationExecutionError(
-                        "Preparation operation changed while a job was processing: "
+                    print(
+                        "[worker] media preparation operation changed while resuming: "
+                        f"job_id={job_id} "
                         f"{context.operation.value} -> {operation.value}",
+                        flush=True,
+                    )
+                    await self._state.update_operation(
+                        job_id,
+                        operation=MediaTranscodingOperation(operation.value),
                     )
             else:
                 raise MediaPreparationExecutionError(

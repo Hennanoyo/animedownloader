@@ -54,6 +54,7 @@ export default function EpisodeDownloadControl({
     return (
       <div
         className={compact ? styles.control + " " + styles.compact : styles.control}
+        data-compact={compact || undefined}
       >
         {compact ? null : (
           <>
@@ -136,6 +137,7 @@ export default function EpisodeDownloadControl({
     return (
       <div
         className={compact ? styles.control + " " + styles.compact : styles.control}
+        data-compact={compact || undefined}
       >
         {compact ? null : (
           <>
@@ -286,6 +288,7 @@ function TerminalDownloadControl({
   return (
     <div
       className={compact ? styles.control + " " + styles.compact : styles.control}
+      data-compact={compact || undefined}
     >
       {compact ? null : (
         <span className={job.status === "failed" ? styles.error : styles.message}>

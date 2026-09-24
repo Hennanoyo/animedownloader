@@ -35,8 +35,7 @@ export function selectVideoEngine(
 
   if (
     sources.dash &&
-    typeof window !== "undefined" &&
-    "MediaSource" in window
+    typeof globalThis.MediaSource !== "undefined"
   ) {
     return {
       engine: new DashVideoEngine(),

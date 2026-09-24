@@ -78,7 +78,7 @@ services:
       - >-
         uv sync --all-packages --locked &&
         uv run --package animedownloader-worker
-        taskiq worker --log-level INFO
+        taskiq worker --log-level INFO --workers ${TASKIQ_WORKERS:-1}
         animedownloader_worker.broker:broker
         animedownloader_worker.tasks
     volumes:
@@ -97,6 +97,7 @@ services:
       QBITTORRENT_URL: http://qbittorrent:8080
       FFMPEG_TIMEOUT_SECONDS: ${FFMPEG_TIMEOUT_SECONDS:-1800}
       FFMPEG_VIDEO_ENCODER: ${FFMPEG_VIDEO_ENCODER:-libx265}
+      FFMPEG_HWACCEL: ${FFMPEG_HWACCEL:-none}
     depends_on:
       redis:
         condition: service_healthy

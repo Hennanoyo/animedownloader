@@ -47,7 +47,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("renders episode media pipeline and sprite thumbnail", async ({ page }) => {
+test("renders episode media pipeline and sprite thumbnail", async ({ page }, testInfo) => {
   await page.goto(`/animes/${ANIME_ID}`);
 
   await expect(
@@ -134,7 +134,7 @@ test("offers pipeline continuation without restarting a completed download", asy
   await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
 });
 
-test("moves live download details into the full-width download panel", async ({ page }) => {
+test("moves live download details into the full-width download panel", async ({ page }, testInfo) => {
   const activePipeline = structuredClone(pipeline);
   activePipeline.episodes[0].download = {
     status: "downloading",

@@ -350,18 +350,32 @@ Implementation order:
 2. Frontend playback query/model
 3. Native direct/HLS playback engine and Episode player page
 4. HLS.js, dash.js, and JASSUB engine adapters
-5. Chapters, subtitles/fonts, and thumbnail seek preview
+5. Custom accessible video controls, fullscreen, chapters, subtitles/fonts, and thumbnail seek preview
 6. Developer-facing browser playback smoke coverage
 
-Scope:
+Current implementation:
+
+- Playback API exposes current playable media plus HLS/DASH, subtitle, font, chapter, and thumbnail resources
+- Added hls.js and dash.js playback adapters alongside native playback
+- Added JASSUB ASS subtitle rendering with prepared fonts
+- Added HEVC-aware HLS/DASH codec signaling from the CMAF initialization segment
+- Added a custom player control surface using React Aria Components Slider/Button primitives
+- Replaced native video controls with play/pause, seek, volume/mute, subtitle selection, and player-level fullscreen controls
+- Added thumbnail VTT loading and sprite xywh seek previews on the custom timeline
+- Fullscreen targets the player container so the JASSUB subtitle canvas remains inside the fullscreen subtree
+- Added a developer media-repackage command for regenerating the current CMAF package without re-downloading or re-preparing media
+
+Remaining:
+
+- Add developer-facing browser playback smoke coverage for normal playback, ASS subtitles/fonts, thumbnail preview, and player fullscreen behavior
 
 Scope:
 
 - Add playback-oriented API
 - Integrate media metadata, chapters and subtitles
 - Load thumbnail sprite/WebVTT metadata
-- Support direct-file playback and later packaged playback as separate paths
-- Add focused player UI and API coverage
+- Support direct-file playback and packaged playback as separate paths
+- Add focused, accessible player UI and API coverage
 
 ## Handoff Notes
 

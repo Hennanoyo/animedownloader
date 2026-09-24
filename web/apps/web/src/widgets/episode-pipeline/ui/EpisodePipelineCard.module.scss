@@ -120,7 +120,7 @@
   max-width: 100%;
 }
 
-.actions :global(.compact) {
+.actions [data-compact="true"] {
   width: auto;
 }
 
@@ -539,9 +539,7 @@
     justify-content: flex-start;
   }
 
-  .actions :global(.compact) {
-    width: auto;
-  }
+
 
   .stage {
     min-height: 4.8rem;
@@ -553,9 +551,7 @@
   }
 
   .pipelineSummaryLine {
-    overflow-x: auto;
-    scrollbar-width: thin;
-    padding-bottom: 0.1rem;
+    min-width: 0;
   }
 
   .toggleLabel {
@@ -564,20 +560,11 @@
 }
 
 @media (max-width: 620px) {
-  .topRow {
-    grid-template-columns: 1fr;
-  }
-
-  .thumbnailLink {
-    width: 100%;
-  }
-
   .actions {
-    grid-column: auto;
     justify-content: flex-start;
   }
 
-  .actions .compact {
+  .actions [data-compact="true"] {
     width: 100%;
   }
 
@@ -604,5 +591,21 @@
 
   .pipelineToggle {
     padding-block: 0.6rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .summaryStage {
+    gap: 0.22rem;
+    font-size: 0.62rem;
+  }
+
+  .summaryStage > span:nth-last-child(2),
+  .summaryConnector {
+    display: none;
+  }
+
+  .pipelineSummaryLine {
+    justify-content: space-between;
   }
 }

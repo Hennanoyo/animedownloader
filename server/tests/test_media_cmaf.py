@@ -66,6 +66,7 @@ async def test_cmaf_processor_creates_one_fmp4_media_set(tmp_path: Path) -> None
     assert command[command.index("-hls_segment_type") + 1] == "fmp4"
     assert command[command.index("-hls_segment_filename") + 1] == str(output / "s" / "%05d.m4s")
     assert result.init_segment_path == output / "init.mp4"
+    assert result.video_codec_string == "hvc1.2.4.L120"
     assert result.segments == (
         CMAFMediaSegment(
             number=0,
@@ -147,7 +148,14 @@ async def test_cmaf_processor_normalizes_absolute_ffmpeg_segment_paths(
             segment_path = playlist_path.parent / "s" / "00000.m4s"
             playlist_path.parent.mkdir(parents=True, exist_ok=True)
             segment_path.parent.mkdir(parents=True, exist_ok=True)
-            (playlist_path.parent / "init.mp4").write_bytes(b"init")
+            (playlist_path.parent / "init.mp4").write_bytes(
+                bytes.fromhex(
+                    "0000001568766343"
+                    "010220000000"
+                    "000000000000"
+                    "78",
+                ),
+            )
             segment_path.write_bytes(b"segment")
             playlist_path.write_text(
                 "#EXTM3U\n"

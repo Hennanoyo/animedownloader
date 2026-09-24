@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import type { Playback } from "../apps/web/src/features/playback/model/types";
 
 const episodeId = process.env.REAL_PLAYBACK_EPISODE_ID;
 
@@ -14,7 +15,7 @@ test.describe("real playback smoke", () => {
     );
 
     await page.goto(`/episodes/${episodeId}`);
-    const playback = await (await playbackResponse).json();
+    const playback = (await (await playbackResponse).json()) as Playback;
 
     const player = page.getByRole("region", { name: "Video player" });
     const video = page.getByTestId("video-player");
@@ -22,18 +23,39 @@ test.describe("real playback smoke", () => {
     await expect(player).toBeVisible();
     await expect(video).toBeVisible();
 
+    const unsupportedHevcCodec = await detectUnsupportedHevc(page, playback);
+    if (unsupportedHevcCodec !== null) {
+      test.skip(
+        true,
+        `Browser does not support the real HEVC stream (${unsupportedHevcCodec}); real media playback is skipped.`,
+      );
+    }
+
     await expect
-      .poll(() => video.evaluate((element) => (element as HTMLVideoElement).readyState))
+      .poll(
+        () =>
+          video.evaluate(
+            (element) => (element as HTMLVideoElement).readyState,
+          ),
+      )
       .toBeGreaterThanOrEqual(2);
 
-    const initialTime = await video.evaluate((element) => (element as HTMLVideoElement).currentTime);
+    const initialTime = await video.evaluate(
+      (element) => (element as HTMLVideoElement).currentTime,
+    );
 
     await page.getByRole("button", { name: "Play" }).click();
 
     await expect
-      .poll(() => video.evaluate((element) => (element as HTMLVideoElement).currentTime), {
-        timeout: 15_000,
-      })
+      .poll(
+        () =>
+          video.evaluate(
+            (element) => (element as HTMLVideoElement).currentTime,
+          ),
+        {
+          timeout: 15_000,
+        },
+      )
       .toBeGreaterThan(initialTime);
 
     const subtitleSelector = page.locator("select").first();
@@ -70,3 +92,46 @@ test.describe("real playback smoke", () => {
     ).toBeVisible();
   });
 });
+
+async function detectUnsupportedHevc(
+  page: Page,
+  playback: Playback,
+): Promise<string | null> {
+  const hlsUrl = playback.video?.hls?.url;
+  if (hlsUrl === null || hlsUrl === undefined) {
+    return null;
+  }
+
+  return page.evaluate(async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(
+        `Could not inspect the HLS master playlist (HTTP ${response.status}).`,
+      );
+    }
+
+    const playlist = await response.text();
+    const codecs = Array.from(
+      playlist.matchAll(/CODECS="([^"]+)"/g),
+      (match) => match[1],
+    )
+      .filter((value): value is string => value !== undefined)
+      .flatMap((value) => value.split(",").map((codec) => codec.trim()));
+
+    const hevcCodec = codecs.find((codec) =>
+      /^(hvc1|hev1)(?:\.|$)/i.test(codec),
+    );
+    if (hevcCodec === undefined) {
+      return null;
+    }
+
+    const codecString = codecs.join(",");
+    const supported =
+      typeof MediaSource !== "undefined" &&
+      MediaSource.isTypeSupported(
+        `video/mp4; codecs="${codecString}"`,
+      );
+
+    return supported ? null : hevcCodec;
+  }, hlsUrl);
+}

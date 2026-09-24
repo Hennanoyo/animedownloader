@@ -4,10 +4,10 @@ from pathlib import Path
 import pytest
 from animedownloader_media import (
     FFmpegCommandResult,
-    resolve_video_encoder,
     FFmpegPlayableMediaProcessingError,
     FFmpegPlayableMediaProcessor,
     PlayableMediaOperation,
+    resolve_video_encoder,
 )
 
 

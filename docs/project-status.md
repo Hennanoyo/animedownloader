@@ -365,9 +365,14 @@ Current implementation:
 - Fullscreen targets the player container so the JASSUB subtitle canvas remains inside the fullscreen subtree
 - Added a developer media-repackage command for regenerating the current CMAF package without re-downloading or re-preparing media
 
-Remaining:
+Completed browser validation coverage:
 
-- Add developer-facing browser playback smoke coverage for normal playback, ASS subtitles/fonts, thumbnail preview, and player fullscreen behavior
+- Added Playwright Chromium smoke coverage with deterministic Playback API and media/fullscreen mocks
+- Covered player initial focus, playback controls, keyboard ownership, controller focus/activation, text-input exceptions, page-scroll exceptions, thumbnail preview, and fullscreen
+- Added a developer-facing real playback smoke using the actual Compose Playback API and media resources, including JASSUB subtitle/font loading when subtitle tracks are available
+- Added CI Browser job with Chromium installation, E2E typecheck, smoke execution, and failure artifacts
+- Added `just web-browser-install`, `just web-browser-check`, and `just real-playback-smoke <episode-id>`
+
 
 Scope:
 

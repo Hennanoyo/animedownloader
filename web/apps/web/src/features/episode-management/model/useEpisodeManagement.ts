@@ -66,6 +66,9 @@ export function useUpdateEpisode() {
         ),
       );
       await queryClient.invalidateQueries({ queryKey: ["animes"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["anime-pipelines", episode.anime_id],
+      });
     },
   });
 }

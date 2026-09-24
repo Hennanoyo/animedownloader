@@ -11,11 +11,49 @@ interface Props {
 }
 
 export default function VideoPlayer({ playback }: Props) {
+  const playerRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [selectedSource, setSelectedSource] =
     useState<SelectedVideoSource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === playerRef.current);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener(
+        "fullscreenchange",
+        handleFullscreenChange,
+      );
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const player = playerRef.current;
+    if (!player) {
+      return;
+    }
+
+    try {
+      if (document.fullscreenElement === player) {
+        await document.exitFullscreen();
+      } else {
+        await player.requestFullscreen();
+      }
+      setError(null);
+    } catch (fullscreenError: unknown) {
+      setError(
+        fullscreenError instanceof Error
+          ? fullscreenError.message
+          : "Fullscreen mode could not be activated.",
+      );
+    }
+  };
   const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(
     playback.subtitles.find((subtitle) => subtitle.is_default)?.id ??
       playback.subtitles[0]?.id ??
@@ -130,16 +168,32 @@ export default function VideoPlayer({ playback }: Props) {
   }
 
   return (
-    <section className={styles.player} aria-label="Video player">
-      <video
-        ref={videoRef}
-        crossOrigin="anonymous"
-        className={styles.video}
-        controls
-        playsInline
-        preload="metadata"
-        data-testid="video-player"
-      />
+    <section
+      ref={playerRef}
+      className={styles.player}
+      aria-label="Video player"
+    >
+      <div className={styles.viewport}>
+        <video
+          ref={videoRef}
+          crossOrigin="anonymous"
+          className={styles.video}
+          controls
+          controlsList="nofullscreen"
+          playsInline
+          preload="metadata"
+          data-testid="video-player"
+        />
+        <Button
+          className={styles.fullscreenButton}
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          onPress={() => {
+            void toggleFullscreen();
+          }}
+        >
+          {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+        </Button>
+      </div>
       <div className={styles.meta}>
         {isLoading ? <span>Loading media...</span> : null}
         {selectedSource ? (

@@ -9,11 +9,14 @@ export type IconName =
   | "chevronUp"
   | "download"
   | "edit"
+  | "file"
+  | "image"
   | "more"
   | "paperclip"
   | "pause"
   | "play"
   | "refresh"
+  | "video"
   | "trash"
   | "x";
 
@@ -60,6 +63,14 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M5 19h14" />
     </>
   ),
+  file: <path d="M7 3h7l4 4v14H7z" />,
+  image: (
+    <>
+      <rect x="4" y="5" width="16" height="14" rx="2" />
+      <circle cx="9" cy="10" r="1.3" />
+      <path d="m5 17 4-4 3 3 2-2 5 4" />
+    </>
+  ),
   edit: (
     <>
       <path d="M4 20h4L19 9l-4-4L4 16v4Z" />
@@ -96,6 +107,12 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M7 7l1 13h8l1-13" />
       <path d="M10 11v5" />
       <path d="M14 11v5" />
+    </>
+  ),
+  video: (
+    <>
+      <rect x="3" y="6" width="13" height="12" rx="2" />
+      <path d="m16 10 5-3v10l-5-3" />
     </>
   ),
   x: (

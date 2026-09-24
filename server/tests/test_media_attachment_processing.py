@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 from uuid import UUID, uuid7
 
@@ -113,6 +114,8 @@ async def test_runner_extracts_font_and_uses_content_identity(
     assert len(state.completed) == 1
     assert state.completed[0][0] == attachment_id
     assert state.completed[0][3] == state.font_id
-    assert state.completed[0][1].startswith("fonts/")
-    stored_font = tmp_path / "storage" / Path(state.completed[0][1])
+    sha256 = hashlib.sha256(b"font-data").hexdigest()
+    expected_key = f"fonts/{sha256[:2]}/{sha256}.ttf"
+    assert state.completed[0][1] == expected_key
+    stored_font = tmp_path / "storage" / expected_key
     assert stored_font.read_bytes() == b"font-data"

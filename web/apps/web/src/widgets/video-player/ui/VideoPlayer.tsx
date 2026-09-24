@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import type { Playback } from "../../../features/playback/model/types";
 import { selectVideoEngine } from "../../../shared/media-engine/select";
+import { JassubSubtitleEngine } from "../../../shared/media-engine/subtitle";
 import type { SelectedVideoSource } from "../../../shared/media-engine/types";
 import styles from "./VideoPlayer.module.scss";
 
@@ -15,6 +16,20 @@ export default function VideoPlayer({ playback }: Props) {
     useState<SelectedVideoSource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(
+    playback.subtitles.find((subtitle) => subtitle.is_default)?.id ??
+      playback.subtitles[0]?.id ??
+      null,
+  );
+
+  useEffect(() => {
+    const nextId =
+      playback.subtitles.find((subtitle) => subtitle.id === selectedSubtitleId)?.id ??
+      playback.subtitles.find((subtitle) => subtitle.is_default)?.id ??
+      playback.subtitles[0]?.id ??
+      null;
+    setSelectedSubtitleId(nextId);
+  }, [playback.subtitles, selectedSubtitleId]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -73,6 +88,37 @@ export default function VideoPlayer({ playback }: Props) {
     };
   }, [playback.video]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    const subtitle = playback.subtitles.find(
+      (item) => item.id === selectedSubtitleId,
+    );
+    if (!video || !subtitle) {
+      return;
+    }
+
+    const engine = new JassubSubtitleEngine();
+    let active = true;
+
+    void engine
+      .attach(video, subtitle, playback.fonts)
+      .catch((subtitleError: unknown) => {
+        if (!active) {
+          return;
+        }
+        setError(
+          subtitleError instanceof Error
+            ? subtitleError.message
+            : "The selected subtitle could not be loaded.",
+        );
+      });
+
+    return () => {
+      active = false;
+      engine.detach();
+    };
+  }, [playback.fonts, playback.subtitles, selectedSubtitleId]);
+
   if (playback.video === null) {
     return (
       <section className={styles.player} aria-label="Video player">
@@ -105,6 +151,24 @@ export default function VideoPlayer({ playback }: Props) {
           {playback.subtitles.length === 1 ? "" : "s"}
         </span>
       </div>
+      {playback.subtitles.length > 0 ? (
+        <label className={styles.subtitleSelect}>
+          <span>Subtitles</span>
+          <select
+            value={selectedSubtitleId ?? ""}
+            onChange={(event) => setSelectedSubtitleId(event.target.value || null)}
+          >
+            <option value="">Off</option>
+            {playback.subtitles.map((subtitle) => (
+              <option key={subtitle.id} value={subtitle.id}>
+                {subtitle.title ?? subtitle.language ?? "Subtitle"}
+                {subtitle.is_forced ? " (forced)" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+
       {error ? (
         <p className={styles.error} role="alert">
           {error}

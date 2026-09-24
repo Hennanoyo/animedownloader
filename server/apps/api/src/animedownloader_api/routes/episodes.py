@@ -26,6 +26,7 @@ from animedownloader_api.dependencies import (
     get_media_variant_service,
     get_playback_service,
 )
+from animedownloader_api.playback import PlaybackService
 from animedownloader_api.schemas import (
     DownloadJobResponse,
     EpisodeResponse,
@@ -37,7 +38,6 @@ from animedownloader_api.schemas import (
     MediaVariantResponse,
     PlaybackResponse,
 )
-from animedownloader_api.playback import PlaybackService
 from animedownloader_api.task_queue import DownloadTaskDispatcher
 
 router = APIRouter(prefix="/api/episodes", tags=["episodes"])

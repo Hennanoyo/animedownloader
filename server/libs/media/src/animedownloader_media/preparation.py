@@ -9,6 +9,7 @@ from .ffmpeg import (
     FFmpegRunner,
     PlayableMediaProcessingResult,
     SubprocessFFmpegRunner,
+    _build_video_encoder_options,
 )
 from .playback import PlayableMediaOperation
 from .thumbnails import ThumbnailSpriteResult
@@ -30,6 +31,7 @@ class FFmpegMediaPreparationProcessor:
         *,
         executable: str = "ffmpeg",
         runner: FFmpegRunner | None = None,
+        video_encoder: str = "libx265",
         min_interval_seconds: float = 5.0,
         max_frames: int = 180,
         width: int = 160,
@@ -55,6 +57,7 @@ class FFmpegMediaPreparationProcessor:
 
         self._executable = executable
         self._runner = runner or SubprocessFFmpegRunner()
+        self._video_encoder = video_encoder
         self._min_interval_seconds = min_interval_seconds
         self._max_frames = max_frames
         self._width = width
@@ -108,24 +111,15 @@ class FFmpegMediaPreparationProcessor:
                 f"[thumbnail]{thumbnail_filter}[sprite]"
             )
             playable_video_map = "[playable]"
-            video_codec = "libx265"
+            video_options = _build_video_encoder_options(self._video_encoder)
             audio_codec = "aac"
             audio_options = ("-b:a", "192k")
-            video_options = (
-                "-preset",
-                "medium",
-                "-crf",
-                "28",
-                "-pix_fmt",
-                "yuv420p",
-            )
         else:
             filter_complex = f"[0:v:0]{thumbnail_filter}[sprite]"
             playable_video_map = "0:v:0"
-            video_codec = "copy"
+            video_options = ("-c:v", "copy")
             audio_codec = "copy"
             audio_options = ()
-            video_options = ()
 
         result = await self._runner.run(
             (
@@ -145,8 +139,7 @@ class FFmpegMediaPreparationProcessor:
                 "0",
                 "-sn",
                 "-dn",
-                "-c:v",
-                video_codec,
+                *video_options,
                 "-tag:v",
                 "hvc1",
                 "-c:a",

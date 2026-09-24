@@ -9,18 +9,12 @@ describe("anime pipeline query", () => {
     expect(getAnimePipelineRefetchInterval(undefined)).toBe(false);
     expect(
       getAnimePipelineRefetchInterval({
-        anime_id: "019a0000-0000-7000-8000-000000000001",
         episodes: [],
       }),
     ).toBe(false);
     expect(
       getAnimePipelineRefetchInterval({
-        anime_id: "019a0000-0000-7000-8000-000000000001",
-        episodes: [
-          {
-            active: true,
-          } as never,
-        ],
+        episodes: [{ active: true }],
       }),
     ).toBe(2000);
   });

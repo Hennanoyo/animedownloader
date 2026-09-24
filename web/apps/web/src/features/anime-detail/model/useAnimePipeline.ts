@@ -2,7 +2,7 @@ import { queryOptions, useQuery } from "@tanstack/react-query";
 import { getAnimePipeline } from "../../../entities/anime/api/pipeline";
 
 export function getAnimePipelineRefetchInterval(
-  data: import("../../../entities/anime/model/pipeline").AnimePipeline | undefined,
+  data: { episodes: readonly { active: boolean }[] } | undefined,
 ): number | false {
   return data?.episodes.some((episode) => episode.active) ? 2000 : false;
 }

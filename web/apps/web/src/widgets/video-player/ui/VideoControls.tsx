@@ -52,6 +52,7 @@ export default function VideoControls({
   const [thumbnailCues, setThumbnailCues] = useState<ThumbnailCue[]>([]);
   const [previewTime, setPreviewTime] = useState<number | null>(null);
   const [previewPercent, setPreviewPercent] = useState(0);
+  const [scrubTime, setScrubTime] = useState<number | null>(null);
 
   useEffect(() => {
     setThumbnailCues([]);
@@ -135,13 +136,17 @@ export default function VideoControls({
 
         <Slider
           aria-label="Seek"
-          value={Math.min(currentTime, duration)}
+          value={Math.min(scrubTime ?? currentTime, duration)}
           minValue={0}
           maxValue={Math.max(duration, 1)}
           step={0.1}
           isDisabled={!video || duration <= 0}
           onChange={(value) => {
+            setScrubTime(Number(value));
+          }}
+          onChangeEnd={(value) => {
             const nextTime = Number(value);
+            setScrubTime(null);
             onSeek(nextTime);
           }}
         >

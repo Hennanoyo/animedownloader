@@ -20,6 +20,18 @@ from animedownloader_storage import Storage
 
 
 class FakeStorage:
+    async def put_file(self, source_path, object_key, *, content_type=None):
+        raise NotImplementedError
+
+    async def materialize(self, object_key, destination):
+        raise NotImplementedError
+
+    async def exists(self, object_key):
+        raise NotImplementedError
+
+    async def delete(self, object_key):
+        raise NotImplementedError
+
     def public_url(self, object_key: str) -> str:
         return "https://media.example.test/" + object_key
 
@@ -33,6 +45,7 @@ async def test_playback_service_exposes_only_current_ready_resources() -> None:
 
     episode = SimpleNamespace(
         id=episode_id,
+        anime_id=uuid7(),
         episode_number=1,
         title="Episode 01",
     )
@@ -169,6 +182,7 @@ async def test_playback_service_hides_stale_video_and_incomplete_streaming() -> 
 
     episode = SimpleNamespace(
         id=episode_id,
+        anime_id=uuid7(),
         episode_number=2,
         title="Episode 02",
     )
@@ -218,6 +232,7 @@ async def test_playback_service_hides_stale_video_and_incomplete_streaming() -> 
 async def test_get_episode_playback_returns_contract() -> None:
     episode_id = uuid7()
     playback = PlaybackResponse(
+        anime_id=uuid7(),
         episode_id=episode_id,
         episode_number=3,
         title="Episode 03",

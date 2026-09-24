@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from enum import StrEnum
 from uuid import UUID
 
 from animedownloader_anime import ConversionStatus, DownloadStatus, Season, Weekday
@@ -309,19 +310,16 @@ class PlaybackResponse(BaseModel):
     thumbnails: PlaybackThumbnailResponse | None
 
 
-from typing import Literal
 
-
-EpisodePipelineStageStatus = Literal[
-    "not_started",
-    "pending",
-    "processing",
-    "downloading",
-    "completed",
-    "failed",
-    "paused",
-    "cancelled",
-]
+class EpisodePipelineStageStatus(StrEnum):
+    NOT_STARTED = "not_started"
+    PENDING = "pending"
+    PROCESSING = "processing"
+    DOWNLOADING = "downloading"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    PAUSED = "paused"
+    CANCELLED = "cancelled"
 
 
 class EpisodePipelineDownloadResponse(BaseModel):

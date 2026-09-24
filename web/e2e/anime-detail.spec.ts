@@ -47,7 +47,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("renders episode media pipeline and sprite thumbnail", async ({ page }, testInfo) => {
+test("renders episode media pipeline and sprite thumbnail", async ({ page }) => {
   await page.goto(`/animes/${ANIME_ID}`);
 
   await expect(
@@ -87,17 +87,6 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }, tes
     page.getByRole("button", { name: "Download" }),
   ).toBeVisible();
 
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.screenshot({
-    path: testInfo.outputPath("anime-detail-completed-desktop.png"),
-    fullPage: true,
-  });
-
-  await page.setViewportSize({ width: 640, height: 1000 });
-  await page.screenshot({
-    path: testInfo.outputPath("anime-detail-completed-mobile.png"),
-    fullPage: true,
-  });
 });
 
 
@@ -209,9 +198,4 @@ test("moves live download details into the full-width download panel", async ({ 
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
 
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.screenshot({
-    path: testInfo.outputPath("anime-detail-downloading-desktop.png"),
-    fullPage: true,
-  });
 });

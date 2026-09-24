@@ -1,4 +1,7 @@
 import JASSUB from "jassub";
+import modernWasmUrl from "jassub/dist/jassub-worker-modern.wasm?url";
+import wasmUrl from "jassub/dist/jassub-worker.wasm?url";
+import workerUrl from "jassub/dist/jassub-worker.js?url";
 import type { PlaybackSubtitle } from "./subtitle-types";
 import type { PlaybackFontSource } from "./subtitle-types";
 
@@ -29,6 +32,9 @@ export class JassubSubtitleEngine implements SubtitleEngine {
       video,
       subUrl: subtitle.url,
       fonts: fonts.map((font) => font.url),
+      workerUrl,
+      wasmUrl,
+      modernWasmUrl,
     });
 
     this.renderer = renderer;

@@ -322,6 +322,13 @@ class EpisodePipelineStageStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class EpisodePipelineCurrentStage(StrEnum):
+    DOWNLOAD = "download"
+    PROCESSING = "processing"
+    PREVIEW = "preview"
+    STREAMING = "streaming"
+
+
 class EpisodePipelineDownloadResponse(BaseModel):
     status: EpisodePipelineStageStatus
     downloaded_bytes: int
@@ -331,6 +338,7 @@ class EpisodePipelineDownloadResponse(BaseModel):
 
 class EpisodePipelineProcessingResponse(BaseModel):
     status: EpisodePipelineStageStatus
+    progress_percent: int = Field(ge=0, le=100)
     playable_ready: bool
     error_message: str | None
 
@@ -344,6 +352,7 @@ class EpisodePipelineStreamingResponse(BaseModel):
 
 class EpisodePipelineThumbnailResponse(BaseModel):
     status: EpisodePipelineStageStatus
+    progress_percent: int = Field(ge=0, le=100)
     url: str | None
     vtt_url: str | None
     error_message: str | None
@@ -359,6 +368,7 @@ class EpisodePipelineSummary(BaseModel):
     attachments: EpisodePipelineStageStatus
     streaming: EpisodePipelineStreamingResponse
     thumbnail: EpisodePipelineThumbnailResponse
+    current_stage: EpisodePipelineCurrentStage | None
     playback_ready: bool
     active: bool
 

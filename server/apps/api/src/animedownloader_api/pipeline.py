@@ -8,6 +8,7 @@ from animedownloader_download import DownloadJob
 from animedownloader_media_asset import (
     MediaAsset,
     MediaAttachmentStatus,
+    MediaThumbnailStatus,
     SubtitleTrackStatus,
 )
 from animedownloader_media_processing import (
@@ -26,6 +27,7 @@ from sqlalchemy.orm import selectinload
 
 from .schemas import (
     AnimePipelineResponse,
+    EpisodePipelineCurrentStage,
     EpisodePipelineDownloadResponse,
     EpisodePipelineProcessingResponse,
     EpisodePipelineStageStatus,
@@ -188,7 +190,7 @@ def build_episode_pipeline_summary(
     storage: Storage,
 ) -> EpisodePipelineSummary:
     download_status = _download_status(download_job)
-    processing_status = _processing_status(
+    processing_status, processing_progress = _processing_state(
         processing_job,
         download_status=download_status,
         asset=asset,
@@ -230,19 +232,16 @@ def build_episode_pipeline_summary(
         if asset is None
         else EpisodePipelineStageStatus(asset.thumbnail_status)
     )
-    thumbnail = EpisodePipelineThumbnailResponse(
-        status=thumbnail_status,
-        url=(
-            storage.public_url(asset.thumbnail_sprite_path)
-            if asset is not None and asset.thumbnail_ready
-            else None
-        ),
-        vtt_url=(
-            storage.public_url(asset.thumbnail_vtt_path)
-            if asset is not None and asset.thumbnail_ready
-            else None
-        ),
-        error_message=asset.thumbnail_error_message if asset is not None else None,
+    thumbnail_progress = 100 if asset is not None and asset.thumbnail_ready else 0
+    thumbnail_url = (
+        storage.public_url(asset.thumbnail_sprite_path)
+        if asset is not None and asset.thumbnail_ready
+        else None
+    )
+    thumbnail_vtt_url = (
+        storage.public_url(asset.thumbnail_vtt_path)
+        if asset is not None and asset.thumbnail_ready
+        else None
     )
 
     processing_error = _processing_error(
@@ -252,6 +251,7 @@ def build_episode_pipeline_summary(
     )
     processing = EpisodePipelineProcessingResponse(
         status=processing_status,
+        progress_percent=processing_progress,
         error_message=processing_error,
         playable_ready=playback_ready,
     )
@@ -260,6 +260,13 @@ def build_episode_pipeline_summary(
         hls_ready=hls_ready,
         dash_ready=dash_ready,
         error_message=streaming_error,
+    )
+
+    current_stage = _current_stage(
+        download_status=download_status,
+        processing_status=processing_status,
+        thumbnail_status=thumbnail_status,
+        streaming_status=streaming_status,
     )
 
     active = any(
@@ -288,7 +295,14 @@ def build_episode_pipeline_summary(
         subtitles=EpisodePipelineStageStatus(subtitles_status),
         attachments=EpisodePipelineStageStatus(attachments_status),
         streaming=streaming,
-        thumbnail=thumbnail,
+        thumbnail=EpisodePipelineThumbnailResponse(
+            status=thumbnail_status,
+            progress_percent=thumbnail_progress,
+            url=thumbnail_url,
+            vtt_url=thumbnail_vtt_url,
+            error_message=asset.thumbnail_error_message if asset is not None else None,
+        ),
+        current_stage=current_stage,
         playback_ready=playback_ready,
         active=active,
     )
@@ -300,45 +314,66 @@ def _download_status(job: DownloadJob | None) -> EpisodePipelineStageStatus:
     return EpisodePipelineStageStatus(job.status)
 
 
-def _processing_status(
+def _processing_state(
     processing_job: MediaProcessingJob | None,
     *,
     download_status: EpisodePipelineStageStatus,
     asset: MediaAsset | None,
     preparation_job: MediaPreparationJob | None,
     variant: MediaVariant | None,
-) -> EpisodePipelineStageStatus:
+) -> tuple[EpisodePipelineStageStatus, int]:
     if processing_job is None:
         if download_status is EpisodePipelineStageStatus.COMPLETED:
-            return EpisodePipelineStageStatus.PENDING
+            return EpisodePipelineStageStatus.PENDING, 0
         return (
-            EpisodePipelineStageStatus.PENDING
-            if asset is not None
-            else EpisodePipelineStageStatus.NOT_STARTED
+            (
+                EpisodePipelineStageStatus.PENDING
+                if asset is not None
+                else EpisodePipelineStageStatus.NOT_STARTED
+            ),
+            0,
         )
 
     status = MediaProcessingJobStatus(processing_job.status)
     if status is MediaProcessingJobStatus.FAILED:
-        return EpisodePipelineStageStatus.FAILED
+        return EpisodePipelineStageStatus.FAILED, 0
     if status is MediaProcessingJobStatus.PENDING:
-        return EpisodePipelineStageStatus.PENDING
+        return EpisodePipelineStageStatus.PENDING, 0
     if status is MediaProcessingJobStatus.PROCESSING:
-        return EpisodePipelineStageStatus.PROCESSING
-
-    if _is_playback_ready(asset, variant):
-        return EpisodePipelineStageStatus.COMPLETED
+        return EpisodePipelineStageStatus.PROCESSING, 0
 
     if preparation_job is None:
-        return EpisodePipelineStageStatus.PENDING
+        return EpisodePipelineStageStatus.PENDING, 0
 
     preparation_status = MediaPreparationJobStatus(preparation_job.status)
     if preparation_status is MediaPreparationJobStatus.FAILED:
-        return EpisodePipelineStageStatus.FAILED
+        return EpisodePipelineStageStatus.FAILED, 0
     if preparation_status is MediaPreparationJobStatus.PENDING:
-        return EpisodePipelineStageStatus.PENDING
+        return EpisodePipelineStageStatus.PENDING, _preparation_progress(
+            asset=asset,
+            variant=variant,
+        )
     if preparation_status is MediaPreparationJobStatus.PROCESSING:
-        return EpisodePipelineStageStatus.PROCESSING
-    return EpisodePipelineStageStatus.PENDING
+        return EpisodePipelineStageStatus.PROCESSING, _preparation_progress(
+            asset=asset,
+            variant=variant,
+        )
+
+    return EpisodePipelineStageStatus.COMPLETED, _preparation_progress(
+        asset=asset,
+        variant=variant,
+    )
+
+
+def _preparation_progress(
+    *,
+    asset: MediaAsset | None,
+    variant: MediaVariant | None,
+) -> int:
+    playable_ready = _is_playback_ready(asset, variant)
+    thumbnail_ready = asset is not None and asset.thumbnail_ready
+    completed = int(playable_ready) + int(thumbnail_ready)
+    return completed * 50
 
 
 def _asset_stage_status(
@@ -417,6 +452,36 @@ def _streaming_status(
     if hls_ready and dash_ready:
         return EpisodePipelineStageStatus.COMPLETED, True, True, None
     return EpisodePipelineStageStatus.PENDING, hls_ready, dash_ready, package.error_message
+
+
+def _current_stage(
+    *,
+    download_status: EpisodePipelineStageStatus,
+    processing_status: EpisodePipelineStageStatus,
+    thumbnail_status: EpisodePipelineStageStatus,
+    streaming_status: EpisodePipelineStageStatus,
+) -> EpisodePipelineCurrentStage | None:
+    if download_status in {
+        EpisodePipelineStageStatus.PENDING,
+        EpisodePipelineStageStatus.DOWNLOADING,
+    }:
+        return EpisodePipelineCurrentStage.DOWNLOAD
+    if processing_status in {
+        EpisodePipelineStageStatus.PENDING,
+        EpisodePipelineStageStatus.PROCESSING,
+    }:
+        return EpisodePipelineCurrentStage.PROCESSING
+    if thumbnail_status in {
+        EpisodePipelineStageStatus.PENDING,
+        EpisodePipelineStageStatus.PROCESSING,
+    }:
+        return EpisodePipelineCurrentStage.PREVIEW
+    if streaming_status in {
+        EpisodePipelineStageStatus.PENDING,
+        EpisodePipelineStageStatus.PROCESSING,
+    }:
+        return EpisodePipelineCurrentStage.STREAMING
+    return None
 
 
 def _latest_download_jobs(

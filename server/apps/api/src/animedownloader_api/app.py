@@ -29,8 +29,8 @@ from fastapi.responses import JSONResponse
 
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
 from animedownloader_api.routes import (
-    animes_router,
     anime_pipeline_router,
+    animes_router,
     download_jobs_router,
     episodes_router,
     media_packaging_jobs_router,

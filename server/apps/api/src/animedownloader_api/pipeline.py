@@ -4,15 +4,13 @@ from collections.abc import Iterable
 from uuid import UUID
 
 from animedownloader_anime import AnimeService, Episode
-from animedownloader_download import DownloadJob, DownloadJobStatus
+from animedownloader_download import DownloadJob
 from animedownloader_media_asset import (
     MediaAsset,
     MediaAttachmentStatus,
-    MediaThumbnailStatus,
     SubtitleTrackStatus,
 )
 from animedownloader_media_processing import (
-    MediaPackagingJobStatus,
     MediaPreparationJob,
     MediaPreparationJobStatus,
     MediaProcessingJob,
@@ -109,7 +107,7 @@ class AnimePipelineService:
             .where(DownloadJob.episode_id.in_(episode_ids))
             .order_by(DownloadJob.created_at.desc()),
         )
-        return _latest_by_episode(result.all())
+        return _latest_download_jobs(result.all())
 
     async def _load_processing_jobs(
         self,
@@ -120,7 +118,7 @@ class AnimePipelineService:
             .where(MediaProcessingJob.episode_id.in_(episode_ids))
             .order_by(MediaProcessingJob.created_at.desc()),
         )
-        return _latest_by_episode(result.all())
+        return _latest_processing_jobs(result.all())
 
     async def _load_assets(
         self,
@@ -147,7 +145,7 @@ class AnimePipelineService:
             .where(MediaPreparationJob.media_asset_id.in_(asset_ids))
             .order_by(MediaPreparationJob.created_at.desc()),
         )
-        return _latest_by_asset(result.all())
+        return _latest_preparation_jobs(result.all())
 
     async def _load_variants(
         self,
@@ -417,23 +415,31 @@ def _streaming_status(
     return EpisodePipelineStageStatus.PENDING, hls_ready, dash_ready, package.error_message
 
 
-def _latest_by_episode[T: object](
-    rows: Iterable[T],
-) -> dict[UUID, T]:
-    result: dict[UUID, T] = {}
+def _latest_download_jobs(
+    rows: Iterable[DownloadJob],
+) -> dict[UUID, DownloadJob]:
+    result: dict[UUID, DownloadJob] = {}
     for row in rows:
-        episode_id = getattr(row, "episode_id")
-        if episode_id not in result:
-            result[episode_id] = row
+        if row.episode_id not in result:
+            result[row.episode_id] = row
     return result
 
 
-def _latest_by_asset[T: object](
-    rows: Iterable[T],
-) -> dict[UUID, T]:
-    result: dict[UUID, T] = {}
+def _latest_processing_jobs(
+    rows: Iterable[MediaProcessingJob],
+) -> dict[UUID, MediaProcessingJob]:
+    result: dict[UUID, MediaProcessingJob] = {}
     for row in rows:
-        asset_id = getattr(row, "media_asset_id")
-        if asset_id not in result:
-            result[asset_id] = row
+        if row.episode_id not in result:
+            result[row.episode_id] = row
+    return result
+
+
+def _latest_preparation_jobs(
+    rows: Iterable[MediaPreparationJob],
+) -> dict[UUID, MediaPreparationJob]:
+    result: dict[UUID, MediaPreparationJob] = {}
+    for row in rows:
+        if row.media_asset_id not in result:
+            result[row.media_asset_id] = row
     return result

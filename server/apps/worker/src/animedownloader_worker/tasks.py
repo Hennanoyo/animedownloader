@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from taskiq import TaskiqEvents, TaskiqState
+
 from animedownloader_config import Settings
 from animedownloader_database import Database, create_database
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
@@ -282,6 +284,43 @@ async def process_media_packaging(job_id: str) -> None:
         await database.dispose()
 
 
+@broker.on_event(TaskiqEvents.WORKER_STARTUP)
+async def recover_active_media_jobs(_state: TaskiqState) -> None:
+    settings = Settings()
+    database = create_database(settings.database_url)
+    try:
+        async with database.session_factory() as session:
+            processing_jobs = await MediaProcessingJobService(session).get_active_jobs()
+            preparation_jobs = await MediaPreparationJobService(session).get_active_jobs()
+            packaging_jobs = await MediaStreamingPackageService(session).get_active_jobs()
+
+        for job in processing_jobs:
+            await process_media_job.kiq(str(job.id))
+            print(
+                "[worker] recovered media processing job: "
+                f"job_id={job.id} status={job.status}",
+                flush=True,
+            )
+
+        for job in preparation_jobs:
+            await process_media_preparation.kiq(str(job.id))
+            print(
+                "[worker] recovered media preparation job: "
+                f"job_id={job.id} status={job.status}",
+                flush=True,
+            )
+
+        for job in packaging_jobs:
+            await process_media_packaging.kiq(str(job.id))
+            print(
+                "[worker] recovered media packaging job: "
+                f"job_id={job.id} status={job.status}",
+                flush=True,
+            )
+    finally:
+        await database.dispose()
+
+
 async def _enqueue_media_packaging(
     database: Database,
     media_preparation_job_id: UUID,
@@ -301,6 +340,14 @@ async def _enqueue_media_packaging(
         )
 
     if packaging_job is None:
-        return
+        existing_job = await package_service.get_latest_job(variant.id)
+        if existing_job is None or existing_job.status != "pending":
+            return
+        packaging_job = existing_job
+        print(
+            "[worker] re-enqueuing pending media packaging job: "
+            f"job_id={packaging_job.id}",
+            flush=True,
+        )
 
     await process_media_packaging.kiq(str(packaging_job.id))

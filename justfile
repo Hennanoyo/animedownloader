@@ -34,7 +34,7 @@ storage-smoke:
 storage-media-smoke episode_id timeout="1800":
   docker compose exec -T worker uv run --package animedownloader-worker python3 /app/scripts/storage-media-smoke.py {{episode_id}} --timeout {{timeout}}
 
-storage-media-smoke-gpu episode_id timeout="900":
+storage-media-smoke-gpu episode_id timeout="1800":
   @echo "[storage-media-smoke-gpu] compatibility alias; encoder selection is automatic."
   just storage-media-smoke {{episode_id}} {{timeout}}
 

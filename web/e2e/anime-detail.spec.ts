@@ -152,12 +152,12 @@ test("offers pipeline continuation without restarting a completed download", asy
   await continueButton.click();
   await expect.poll(() => retryRequests).toBe(1);
   await expect(
-    page.getByRole("button", { name: "Download", exact: true }),
+    page.getByRole("button", { name: "Episode actions" }),
   ).toBeVisible();
 
 });
 
-test("moves live download details into the full-width download panel", async ({ page }) => {
+test("keeps live download controls inside the download stage", async ({ page }) => {
   const activePipeline = structuredClone(pipeline);
   activePipeline.episodes[0].download = {
     status: "downloading",
@@ -217,7 +217,11 @@ test("moves live download details into the full-width download panel", async ({ 
   await expect(
     page.getByLabel("Download progress").getByText("Downloading", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Pause download" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Cancel download" }),
+  ).toBeVisible();
 
 });

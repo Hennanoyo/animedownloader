@@ -4,16 +4,23 @@ const mocks = vi.hoisted(() => ({
   isSupported: vi.fn(() => true),
   loadSource: vi.fn(),
   attachMedia: vi.fn(),
-  startLoad: vi.fn(),
+  once: vi.fn(),
   destroy: vi.fn(),
 }));
 
 vi.mock("hls.js", () => ({
   default: class Hls {
     static isSupported = mocks.isSupported;
+    static Events = {
+      MEDIA_ATTACHED: "hlsMediaAttached",
+    };
     loadSource = mocks.loadSource;
     attachMedia = mocks.attachMedia;
-    startLoad = mocks.startLoad;
+    once = mocks.once.mockImplementation(
+      (_event: string, callback: () => void) => {
+        callback();
+      },
+    );
     destroy = mocks.destroy;
   },
 }));
@@ -21,7 +28,7 @@ vi.mock("hls.js", () => ({
 import { HlsVideoEngine } from "./hls";
 
 describe("HlsVideoEngine", () => {
-  it("loads and attaches an HLS source", async () => {
+  it("loads the HLS source after media is attached", async () => {
     const video = {
       pause: vi.fn(),
       removeAttribute: vi.fn(),
@@ -35,9 +42,12 @@ describe("HlsVideoEngine", () => {
 
     await engine.attach(video, source);
 
-    expect(mocks.loadSource).toHaveBeenCalledWith(source.url);
     expect(mocks.attachMedia).toHaveBeenCalledWith(video);
-    expect(mocks.startLoad).toHaveBeenCalledWith(-1);
+    expect(mocks.once).toHaveBeenCalledWith(
+      "hlsMediaAttached",
+      expect.any(Function),
+    );
+    expect(mocks.loadSource).toHaveBeenCalledWith(source.url);
   });
 
   it("destroys the HLS instance on detach", async () => {

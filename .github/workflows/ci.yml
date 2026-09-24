@@ -38,7 +38,7 @@ jobs:
           cache: false
 
       - name: Generate playback dependency lockfile
-        if: github.ref == 'refs/heads/feature/player-playback'
+        if: github.head_ref == 'feature/player-playback' || github.ref == 'refs/heads/feature/player-playback'
         run: pnpm install --lockfile-only --no-frozen-lockfile
         working-directory: web
 

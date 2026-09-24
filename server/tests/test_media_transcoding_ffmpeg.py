@@ -84,6 +84,7 @@ async def test_transcode_command_uses_hevc_and_aac(tmp_path: Path) -> None:
     assert result.output_path == output_path
     assert "-c:v" in command
     assert "libx265" in command
+    assert command[command.index("-threads") + 1] == "8"
     assert "-c:a" in command
     assert "aac" in command
     assert "-tag:v" in command

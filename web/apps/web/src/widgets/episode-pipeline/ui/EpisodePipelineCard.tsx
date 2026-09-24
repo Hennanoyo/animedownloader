@@ -263,7 +263,6 @@ function EpisodeActionMenu({
         <Button
           className={styles.iconButton}
           aria-label="Episode actions"
-          title="Episode actions"
         >
           <Icon name="more" size={18} />
         </Button>

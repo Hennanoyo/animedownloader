@@ -7,7 +7,6 @@ from .ffmpeg import (
     FFmpegPlayableMediaProcessor,
     FFmpegRunner,
     PlayableMediaProcessingResult,
-    SubprocessFFmpegRunner,
 )
 from .playback import PlayableMediaOperation
 from .thumbnails import FFmpegThumbnailSpriteProcessor, ThumbnailSpriteResult

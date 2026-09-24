@@ -45,6 +45,14 @@ The preparation job records durable execution state and a source path/metadata s
 
 The generated playable MP4 is re-inspected with FFprobe before the `MediaVariant` is marked ready.
 
+## Hardware Acceleration
+
+The default transcoder is CPU-based `libx265` so the media pipeline remains portable across CI and hosts without NVIDIA GPUs.
+
+Development environments with an NVIDIA GPU can use `hevc_nvenc` through `compose.gpu.yaml` and the `FFMPEG_VIDEO_ENCODER` setting. The NVENC path changes only the video encoder; the shared thumbnail filter graph and AAC encoding can still use CPU resources. NVIDIA GPU access in Docker requires the host NVIDIA driver and NVIDIA Container Toolkit. The Compose GPU reservation and `video` driver capability are configured by the GPU overlay.
+
+The GPU path is a development/runtime acceleration option, not a second media format. Both encoders continue to produce HEVC playable media and should be validated through FFprobe and the storage smoke test.
+
 ## Video
 
 HEVC is the primary project codec because storage capacity is constrained and the target playback devices support HEVC.

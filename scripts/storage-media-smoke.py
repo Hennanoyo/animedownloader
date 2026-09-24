@@ -637,10 +637,17 @@ def wait_for_playable(
             current = playable.get("current")
             path = playable.get("path")
             if status == "failed":
-                raise SmokeTestError(
-                    "Playable media variant failed: "
-                    f"{playable.get('error_message') or 'unknown error'}",
-                )
+                preparation_active = preparation is not None and preparation.get(
+                    "status",
+                ) in {
+                    "pending",
+                    "processing",
+                }
+                if not preparation_active:
+                    raise SmokeTestError(
+                        "Playable media variant failed: "
+                        f"{playable.get('error_message') or 'unknown error'}",
+                    )
             if status == "completed" and current is True and path:
                 return playable
 

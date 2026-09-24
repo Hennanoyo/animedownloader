@@ -1,3 +1,4 @@
+from contextlib import suppress
 from uuid import UUID
 
 from animedownloader_anime import AnimeService
@@ -198,13 +199,11 @@ class EpisodePipelineControlService:
         try:
             await self._download_dispatcher.enqueue(job_id)
         except Exception as exc:
-            try:
+            with suppress(Exception):
                 await self._downloads.mark_failed(
                     job_id,
                     error_message="Failed to enqueue download task.",
                 )
-            except Exception:
-                pass
             raise EpisodePipelineQueueError(
                 "Download task queue is temporarily unavailable",
             ) from exc
@@ -213,13 +212,11 @@ class EpisodePipelineControlService:
         try:
             await self._media_dispatcher.enqueue(job_id)
         except Exception as exc:
-            try:
+            with suppress(Exception):
                 await self._processing.mark_failed(
                     job_id,
                     error_message="Failed to enqueue media processing task.",
                 )
-            except Exception:
-                pass
             raise EpisodePipelineQueueError(
                 "Media processing task queue is temporarily unavailable",
             ) from exc
@@ -228,13 +225,11 @@ class EpisodePipelineControlService:
         try:
             await self._media_dispatcher.enqueue_preparation(job_id)
         except Exception as exc:
-            try:
+            with suppress(Exception):
                 await self._preparation.mark_failed(
                     job_id,
                     error_message="Failed to enqueue media preparation task.",
                 )
-            except Exception:
-                pass
             raise EpisodePipelineQueueError(
                 "Media preparation task queue is temporarily unavailable",
             ) from exc
@@ -243,13 +238,11 @@ class EpisodePipelineControlService:
         try:
             await self._media_dispatcher.enqueue_packaging(job_id)
         except Exception as exc:
-            try:
+            with suppress(Exception):
                 await self._streaming.mark_failed(
                     job_id,
                     error_message="Failed to enqueue media packaging task.",
                 )
-            except Exception:
-                pass
             raise EpisodePipelineQueueError(
                 "Media packaging task queue is temporarily unavailable",
             ) from exc

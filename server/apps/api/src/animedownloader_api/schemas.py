@@ -309,6 +309,67 @@ class PlaybackResponse(BaseModel):
     thumbnails: PlaybackThumbnailResponse | None
 
 
+from typing import Literal
+
+
+EpisodePipelineStageStatus = Literal[
+    "not_started",
+    "pending",
+    "processing",
+    "downloading",
+    "completed",
+    "failed",
+    "paused",
+    "cancelled",
+]
+
+
+class EpisodePipelineDownloadResponse(BaseModel):
+    status: EpisodePipelineStageStatus
+    downloaded_bytes: int
+    total_bytes: int | None
+    error_message: str | None
+
+
+class EpisodePipelineProcessingResponse(BaseModel):
+    status: EpisodePipelineStageStatus
+    playable_ready: bool
+    error_message: str | None
+
+
+class EpisodePipelineStreamingResponse(BaseModel):
+    status: EpisodePipelineStageStatus
+    hls_ready: bool
+    dash_ready: bool
+    error_message: str | None
+
+
+class EpisodePipelineThumbnailResponse(BaseModel):
+    status: EpisodePipelineStageStatus
+    url: str | None
+    vtt_url: str | None
+    error_message: str | None
+
+
+class EpisodePipelineSummary(BaseModel):
+    episode_id: UUID
+    episode_number: int
+    title: str
+    download: EpisodePipelineDownloadResponse
+    processing: EpisodePipelineProcessingResponse
+    subtitles: EpisodePipelineStageStatus
+    attachments: EpisodePipelineStageStatus
+    streaming: EpisodePipelineStreamingResponse
+    thumbnail: EpisodePipelineThumbnailResponse
+    playback_ready: bool
+    active: bool
+
+
+class AnimePipelineResponse(BaseModel):
+    anime_id: UUID
+    episodes: list[EpisodePipelineSummary]
+
+
 class MediaProcessingJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

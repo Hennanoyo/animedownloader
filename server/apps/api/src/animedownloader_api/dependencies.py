@@ -19,6 +19,7 @@ from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
+from animedownloader_api.pipeline import AnimePipelineService
 from animedownloader_api.playback import PlaybackService
 from animedownloader_api.task_queue import DownloadTaskDispatcher
 
@@ -124,3 +125,10 @@ def get_playback_service(
         streaming_package_service=streaming_package_service,
         storage=storage,
     )
+
+
+def get_anime_pipeline_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    storage: Annotated[Storage, Depends(get_media_storage)],
+) -> AnimePipelineService:
+    return AnimePipelineService(session, storage)

@@ -2,6 +2,7 @@
   "name": "AnimeDownloader",
   "dockerComposeFile": [
     "../compose.yaml",
+    "../compose.gpu.yaml",
     "docker-compose.devcontainer.yml"
   ],
   "service": "dev",

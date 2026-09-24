@@ -186,11 +186,29 @@ async def probe_video_encoder(
                 "-an",
                 "-c:v",
                 "hevc_nvenc",
+                "-preset",
+                "p5",
+                "-rc",
+                "vbr",
+                "-cq",
+                "28",
+                "-b:v",
+                "0",
+                "-pix_fmt",
+                "yuv420p",
                 "-f",
                 "null",
                 "-",
             ),
         )
+    except (FFmpegTimeoutError, OSError) as exc:
+        print(
+            "[worker] NVENC probe unavailable: "
+            f"{type(exc).__name__}: {exc}",
+            flush=True,
+        )
+        return False
+
     if result.returncode != 0:
         message = result.stderr.decode("utf-8", errors="replace").strip()
         print(

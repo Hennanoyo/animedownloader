@@ -32,6 +32,9 @@ class MediaPreparationJobService:
     ) -> MediaPreparationJob | None:
         return await self.jobs.get_latest_preparation_job(media_asset_id)
 
+    async def get_active_jobs(self) -> list[MediaPreparationJob]:
+        return await self.jobs.get_active_preparation_jobs()
+
     async def create_job(
         self,
         *,

@@ -45,6 +45,7 @@
   width: 100vw;
   height: 100vh;
   padding: 0;
+  overflow: hidden;
   border-radius: 0;
   background: #000;
 }
@@ -58,6 +59,13 @@
 
 .player:fullscreen .fullscreenButton {
   opacity: 1;
+}
+
+.player:fullscreen .meta,
+.player:fullscreen .subtitleSelect,
+.player:fullscreen .error,
+.player:fullscreen .chapters {
+  display: none;
 }
 
 .message {

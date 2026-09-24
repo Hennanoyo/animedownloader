@@ -53,7 +53,7 @@ Development environments with an NVIDIA GPU can use `hevc_nvenc` through `compos
 
 The GPU path is a development/runtime acceleration option, not a second media format. Both encoders continue to produce HEVC playable media and should be validated through FFprobe and the storage smoke test.
 
-GPU preparation also enables CUDA hardware decoding. Decoded CUDA frames stay on the GPU for the playable NVENC path; only the thumbnail branch downloads frames to system memory for CPU-side sampling and sprite filters. The CPU-only path keeps its software decoder/encoder path. Both paths use the same shared filter graph safeguards: a bounded internal frame buffer and a small filter-thread limit prevent an imbalance between the full-rate playable branch and sparse thumbnail branch from growing system-memory usage without bound.
+GPU preparation also enables CUDA hardware decoding. Decoded CUDA frames stay on the GPU for the playable NVENC path; only the thumbnail branch downloads frames to system memory for CPU-side sampling and sprite filters. The CPU-only path keeps its software decoder/encoder path. Both paths use a small filter-thread limit for the shared preparation graph. The project does not rely on FFmpeg options unavailable in the runtime image.
 
 FFmpeg subprocesses are started in their own POSIX process group so timeout or task cancellation can terminate the complete FFmpeg process tree instead of leaving an orphaned encoder/decoder running after a worker failure. The development worker defaults to one Taskiq child process because media transcoding is resource-intensive; `TASKIQ_WORKERS` can be increased explicitly when the host has capacity for concurrent jobs.
 

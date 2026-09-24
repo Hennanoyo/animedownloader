@@ -69,6 +69,7 @@ async def test_transcode_command_can_use_cuda_decode(tmp_path: Path) -> None:
         "-hwaccel_output_format",
         "cuda",
     )
+    assert "-pix_fmt" not in command
 
 
 @pytest.mark.anyio
@@ -88,6 +89,7 @@ async def test_transcode_command_can_use_nvenc(tmp_path: Path) -> None:
     command = runner.calls[0]
     assert command[command.index("-c:v") + 1] == "hevc_nvenc"
     assert command[command.index("-preset") + 1] == "p5"
+    assert command[command.index("-pix_fmt") + 1] == "yuv420p"
     assert command[command.index("-rc") + 1] == "vbr"
     assert command[command.index("-cq") + 1] == "28"
     assert command[command.index("-b:v") + 1] == "0"

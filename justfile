@@ -2,13 +2,13 @@ default:
   @just --list
 
 up:
-  @if command -v nvidia-smi >/dev/null 2>&1 && docker compose -f compose.yaml -f compose.gpu.yaml run --rm --no-deps --build --entrypoint sh worker -c 'nvidia-smi >/dev/null 2>&1'; then     echo "[up] NVIDIA GPU is available; starting GPU-enabled worker.";     docker compose -f compose.yaml -f compose.gpu.yaml up --build;   else     echo "[up] NVIDIA GPU is unavailable; starting CPU worker.";     docker compose up --build;   fi
+  @if ! command -v nvidia-smi >/dev/null 2>&1; then     echo "[up] Host NVIDIA tooling is unavailable; starting CPU worker.";     docker compose up --build;   elif docker compose -f compose.yaml -f compose.gpu.yaml run --rm --no-deps --build --entrypoint sh worker -c 'nvidia-smi >/dev/null 2>&1'; then     echo "[up] NVIDIA GPU is available to Docker; starting GPU-enabled worker.";     docker compose -f compose.yaml -f compose.gpu.yaml up --build;   else     echo "[up] Host NVIDIA tooling is present, but Docker cannot access the GPU.";     echo "[up] Run 'just gpu-check' to inspect the NVIDIA runtime; starting CPU worker.";     docker compose up --build;   fi
 
 up-gpu:
   docker compose -f compose.yaml -f compose.gpu.yaml up --build
 
 gpu-check:
-  docker compose -f compose.yaml -f compose.gpu.yaml run --rm --no-deps --entrypoint sh worker -c 'nvidia-smi && ffmpeg -hide_banner -encoders | grep -F hevc_nvenc && ffmpeg -hide_banner -v error -f lavfi -i testsrc2=size=1920x1080:rate=1 -frames:v 2 -an -c:v hevc_nvenc -preset p5 -rc vbr -cq 28 -b:v 0 -pix_fmt yuv420p -f null -'
+  docker compose -f compose.yaml -f compose.gpu.yaml run --rm --no-deps --build --entrypoint sh worker -c 'nvidia-smi && ffmpeg -hide_banner -encoders | grep -F hevc_nvenc && ffmpeg -hide_banner -v error -f lavfi -i testsrc2=size=1920x1080:rate=1 -frames:v 2 -an -c:v hevc_nvenc -preset p5 -rc vbr -cq 28 -b:v 0 -pix_fmt yuv420p -f null -'
 
 down:
   docker compose down

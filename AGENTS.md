@@ -78,6 +78,17 @@ See `docs/architecture/storage.md`.
 
 A change is complete only after relevant local checks and applicable GitHub Actions checks pass.
 
+### Visual UI Validation
+
+For frontend changes that affect layout, spacing, sizing, responsive behavior, or visual hierarchy, use browser-rendered screenshots when code inspection alone cannot reliably validate the result.
+
+- Prefer the existing Playwright Browser workflow and deterministic API/media mocks so screenshots are stable and do not require live services or real media.
+- Capture the relevant desktop and responsive viewports with `page.screenshot({ fullPage: true })` into Playwright's test output directory rather than writing screenshots into the repository.
+- Upload the screenshots as temporary workflow artifacts when a visual review is needed, then inspect the rendered result before making further layout changes.
+- Treat visual-audit screenshots as temporary evidence. Do not commit generated image files; remove temporary screenshot-only test code after the audit unless the test provides lasting regression value.
+- Keep durable browser tests focused on behavior and accessibility. Use Playwright snapshot assertions only when a lasting visual regression test is intentionally warranted.
+- When an existing UI change is difficult to judge from source alone, do not assume the layout is correct merely because lint/typecheck/tests pass; use an actual rendered screenshot.
+
 ### Runtime Smoke Tests
 
 Runtime smoke tests are developer-facing end-to-end checks for workflows that cross multiple real services or processes. They complement unit/integration tests rather than replacing them.

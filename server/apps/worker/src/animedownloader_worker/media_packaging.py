@@ -224,6 +224,7 @@ class MediaPackagingRunner:
                     size_bytes=context.size_bytes,
                     duration_seconds=context.duration_seconds,
                     video_codec=context.video_codec,
+                    video_codec_string=packaged.video_codec_string,
                     audio_codec=context.audio_codec,
                     segments=packaged.segments,
                 )

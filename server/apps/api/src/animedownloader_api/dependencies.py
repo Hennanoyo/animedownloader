@@ -13,6 +13,7 @@ from animedownloader_media_processing import (
     MediaVariantService,
 )
 from animedownloader_nyaa import NyaaClient
+from animedownloader_storage import Storage, create_storage
 from animedownloader_qbittorrent import QBittorrentClient
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -93,3 +94,7 @@ def get_media_streaming_package_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> MediaStreamingPackageService:
     return MediaStreamingPackageService(session)
+
+
+def get_media_storage(request: Request) -> Storage:
+    return request.app.state.media_storage

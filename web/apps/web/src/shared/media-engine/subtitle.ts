@@ -1,7 +1,7 @@
 import JASSUB from "jassub";
-import modernWasmUrl from "jassub/dist/jassub-worker-modern.wasm?url";
-import wasmUrl from "jassub/dist/jassub-worker.wasm?url";
-import workerUrl from "jassub/dist/jassub-worker.js?url";
+import modernWasmUrl from "jassub/dist/wasm/jassub-worker-modern.wasm?url";
+import wasmUrl from "jassub/dist/wasm/jassub-worker.wasm?url";
+import workerUrl from "jassub/dist/worker/worker.js?worker&url";
 import type { PlaybackSubtitle } from "./subtitle-types";
 import type { PlaybackFontSource } from "./subtitle-types";
 

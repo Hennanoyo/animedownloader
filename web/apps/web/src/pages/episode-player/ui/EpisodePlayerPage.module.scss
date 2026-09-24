@@ -1,0 +1,80 @@
+.page {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+}
+
+.backLink {
+  display: inline-flex;
+  margin-bottom: 1.5rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.backLink:hover,
+.backLink:focus-visible {
+  color: #e5e7eb;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.kicker {
+  margin: 0 0 0.5rem;
+  color: #60a5fa;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.title,
+.header p {
+  margin: 0;
+}
+
+.title {
+  color: #f8fafc;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+}
+
+.header p {
+  margin-top: 0.5rem;
+  color: #94a3b8;
+}
+
+.panel {
+  padding: 1rem;
+  border: 1px solid #26324a;
+  border-radius: 0.9rem;
+  background: #0f172a;
+}
+
+.state {
+  padding: 1rem;
+  border: 1px dashed #334155;
+  border-radius: 0.7rem;
+  color: #94a3b8;
+}
+
+.state h1,
+.state p {
+  margin: 0;
+}
+
+.state p {
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+
+.error {
+  color: #fecaca;
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding-inline: 1rem;
+  }
+}

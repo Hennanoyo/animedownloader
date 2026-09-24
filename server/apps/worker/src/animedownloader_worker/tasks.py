@@ -300,9 +300,12 @@ async def _enqueue_media_packaging(
         packaging_job = await package_service.create_job(
             media_variant_id=variant.id,
         )
+        if packaging_job is None:
+            existing_job = await package_service.get_latest_job(variant.id)
+        else:
+            existing_job = None
 
     if packaging_job is None:
-        existing_job = await package_service.get_latest_job(variant.id)
         if existing_job is None or existing_job.status != "pending":
             return
         packaging_job = existing_job

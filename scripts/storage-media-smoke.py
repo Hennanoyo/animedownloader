@@ -16,9 +16,28 @@ from uuid import UUID
 from redis import Redis
 
 from animedownloader_config import Settings
+from animedownloader_database import create_database
+from animedownloader_download import DownloadJobService, DownloadJobStatus
 from animedownloader_media import parse_cmaf_media_playlist
+from animedownloader_media_asset import MediaAssetService
+from animedownloader_media_processing import (
+    MediaPackagingJobStatus,
+    MediaPreparationJobService,
+    MediaPreparationJobStatus,
+    MediaProcessingJobService,
+    MediaProcessingJobStatus,
+    MediaStreamingPackageService,
+    MediaVariantService,
+)
 from animedownloader_storage import Storage, StorageError
 from animedownloader_worker.storage import create_media_storage
+from animedownloader_worker.tasks import (
+    process_media_attachments,
+    process_media_job,
+    process_media_packaging,
+    process_media_preparation,
+    process_subtitle_tracks,
+)
 
 
 class SmokeTestError(RuntimeError):
@@ -254,6 +273,290 @@ def _runtime_diagnostics(
 
     lines.extend(_redis_queue_diagnostics(settings, job_ids=job_ids))
     return "\n".join(lines)
+
+
+async def ensure_media_processing_job(episode_id: UUID) -> None:
+    settings = Settings()
+    database = create_database(settings.database_url)
+    enqueue_job_id: UUID | None = None
+
+    try:
+        async with database.session_factory() as session:
+            download_job = await DownloadJobService(session).get_latest_job(episode_id)
+            if download_job is None:
+                raise SmokeTestError(
+                    "Episode has no download job. "
+                    "storage-media-smoke does not start torrent downloads.",
+                )
+            if download_job.job_status is not DownloadJobStatus.COMPLETED:
+                raise SmokeTestError(
+                    "Episode download is not completed: "
+                    f"{download_job.job_status.value}",
+                )
+
+            service = MediaProcessingJobService(session)
+            job = await service.get_latest_job(episode_id)
+            if job is None:
+                job = await service.create_for_download_job(download_job.id)
+                enqueue_job_id = job.id
+            elif job.job_status is MediaProcessingJobStatus.FAILED:
+                job = await service.retry_job(job.id)
+                enqueue_job_id = job.id
+
+        if enqueue_job_id is not None:
+            await process_media_job.kiq(str(enqueue_job_id))
+            print(f"  media processing job enqueued: {enqueue_job_id}", flush=True)
+        else:
+            print("  media processing: existing job is running or completed", flush=True)
+    finally:
+        await database.dispose()
+
+
+async def ensure_media_preparation_job(episode_id: UUID) -> None:
+    settings = Settings()
+    database = create_database(settings.database_url)
+    enqueue_job_id: UUID | None = None
+
+    try:
+        async with database.session_factory() as session:
+            asset = await MediaAssetService(session).get_for_episode(episode_id)
+            if asset is None or asset.metadata_updated_at is None:
+                raise SmokeTestError(
+                    "Episode has no materialized MediaAsset metadata yet.",
+                )
+
+            variant = await MediaVariantService(session).get_playable_variant(asset.id)
+            playable_current = (
+                variant is not None
+                and variant.is_current(
+                    source_path=asset.path,
+                    source_metadata_updated_at=asset.metadata_updated_at,
+                )
+            )
+            needs_preparation = not playable_current or not asset.thumbnail_ready
+            if not needs_preparation:
+                print("  media preparation: playable and thumbnail are ready", flush=True)
+                return
+
+            service = MediaPreparationJobService(session)
+            job = await service.get_latest_job(asset.id)
+            if job is not None and job.job_status in {
+                MediaPreparationJobStatus.PENDING,
+                MediaPreparationJobStatus.PROCESSING,
+            }:
+                print(
+                    f"  media preparation: existing job is {job.job_status.value}: {job.id}",
+                    flush=True,
+                )
+                return
+
+            if job is None or job.job_status in {
+                MediaPreparationJobStatus.FAILED,
+                MediaPreparationJobStatus.COMPLETED,
+            }:
+                job = await service.create_job(
+                    media_asset_id=asset.id,
+                    source_path=asset.path,
+                    source_metadata_updated_at=asset.metadata_updated_at,
+                    thumbnail_ready=asset.thumbnail_ready,
+                )
+                if job is not None:
+                    enqueue_job_id = job.id
+            elif job.job_status is MediaPreparationJobStatus.PENDING:
+                enqueue_job_id = job.id
+
+        if enqueue_job_id is not None:
+            await process_media_preparation.kiq(str(enqueue_job_id))
+            print(f"  media preparation job enqueued: {enqueue_job_id}", flush=True)
+        else:
+            print("  media preparation: no new job required", flush=True)
+    finally:
+        await database.dispose()
+
+
+async def ensure_media_asset_processing(
+    *,
+    api_url: str,
+    episode_id: UUID,
+) -> None:
+    payload = http_get(
+        api_url,
+        f"/api/episodes/{episode_id}/media",
+    )
+    if not isinstance(payload, dict):
+        raise SmokeTestError("Episode does not have a materialized MediaAsset")
+
+    asset_id = payload.get("id")
+    if not isinstance(asset_id, str):
+        raise SmokeTestError("MediaAsset response has no id")
+
+    subtitle_tracks = payload.get("subtitle_tracks")
+    attachments = payload.get("attachments")
+    if not isinstance(subtitle_tracks, list) or not isinstance(attachments, list):
+        raise SmokeTestError("MediaAsset response has invalid processing collections")
+
+    enqueue_subtitles = payload.get("subtitle_tracks_processed_at") is None and not any(
+        isinstance(track, dict) and track.get("status") == "processing"
+        for track in subtitle_tracks
+    )
+    enqueue_attachments = payload.get("attachments_processed_at") is None and not any(
+        isinstance(attachment, dict) and attachment.get("status") == "processing"
+        for attachment in attachments
+    )
+
+    if enqueue_subtitles:
+        await process_subtitle_tracks.kiq(asset_id)
+        print(f"  subtitle processing task enqueued: asset={asset_id}", flush=True)
+
+    if enqueue_attachments:
+        await process_media_attachments.kiq(asset_id)
+        print(f"  attachment processing task enqueued: asset={asset_id}", flush=True)
+
+
+def wait_for_media_processing(
+    *,
+    api_url: str,
+    episode_id: UUID,
+    timeout_seconds: float,
+) -> dict[str, object]:
+    if timeout_seconds <= 0:
+        raise ValueError("timeout_seconds must be positive")
+
+    started_at = time.monotonic()
+    deadline = started_at + timeout_seconds
+    last_status: tuple[object, ...] | None = None
+
+    while time.monotonic() < deadline:
+        payload = _require_object(
+            http_get(
+                api_url,
+                f"/api/episodes/{episode_id}/media-processing-jobs/latest",
+            ),
+            "media-processing-jobs/latest",
+        )
+        signature = (
+            payload.get("status"),
+            payload.get("attempt_count"),
+            payload.get("error_message"),
+        )
+        if signature != last_status:
+            print(
+                "  media processing: "
+                f"status={payload.get('status')} "
+                f"attempts={payload.get('attempt_count', 0)}",
+                flush=True,
+            )
+            last_status = signature
+
+        status = payload.get("status")
+        if status == "completed":
+            return payload
+        if status == "failed":
+            raise SmokeTestError(
+                "Media processing failed: "
+                f"{payload.get('error_message') or 'unknown error'}",
+            )
+
+        time.sleep(2)
+
+    raise SmokeTestError(
+        "Timed out waiting for media processing after "
+        f"{time.monotonic() - started_at:.1f}s",
+    )
+
+
+def wait_for_media_asset_processing(
+    *,
+    api_url: str,
+    episode_id: UUID,
+    timeout_seconds: float,
+) -> dict[str, object]:
+    started_at = time.monotonic()
+    deadline = started_at + timeout_seconds
+    last_signature: tuple[object, ...] | None = None
+
+    while time.monotonic() < deadline:
+        payload = http_get(
+            api_url,
+            f"/api/episodes/{episode_id}/media",
+        )
+        if not isinstance(payload, dict):
+            raise SmokeTestError("Episode does not have a materialized MediaAsset")
+
+        subtitle_tracks = payload.get("subtitle_tracks")
+        attachments = payload.get("attachments")
+        if not isinstance(subtitle_tracks, list) or not isinstance(attachments, list):
+            raise SmokeTestError("MediaAsset response has invalid processing collections")
+
+        signature = (
+            payload.get("thumbnail_status"),
+            payload.get("subtitle_tracks_processed_at"),
+            tuple(
+                track.get("status")
+                for track in subtitle_tracks
+                if isinstance(track, dict)
+            ),
+            payload.get("attachments_processed_at"),
+            tuple(
+                attachment.get("status")
+                for attachment in attachments
+                if isinstance(attachment, dict)
+            ),
+        )
+        if signature != last_signature:
+            print(
+                "  derived artifacts: "
+                f"thumbnail={payload.get('thumbnail_status')} "
+                f"subtitles={payload.get('subtitle_tracks_processed_at') is not None} "
+                f"attachments={payload.get('attachments_processed_at') is not None}",
+                flush=True,
+            )
+            last_signature = signature
+
+        if payload.get("thumbnail_status") == "failed":
+            raise SmokeTestError(
+                "Thumbnail processing failed: "
+                f"{payload.get('thumbnail_error_message') or 'unknown error'}",
+            )
+
+        failed_subtitles = [
+            track
+            for track in subtitle_tracks
+            if isinstance(track, dict) and track.get("status") == "failed"
+        ]
+        if failed_subtitles:
+            raise SmokeTestError(
+                "Subtitle processing failed: "
+                f"{failed_subtitles[0].get('error_message') or 'unknown error'}",
+            )
+
+        failed_attachments = [
+            attachment
+            for attachment in attachments
+            if isinstance(attachment, dict) and attachment.get("status") == "failed"
+        ]
+        if failed_attachments:
+            raise SmokeTestError(
+                "Attachment processing failed: "
+                f"{failed_attachments[0].get('error_message') or 'unknown error'}",
+            )
+
+        thumbnail_ready = (
+            payload.get("thumbnail_status") == "completed"
+            and payload.get("thumbnail_sprite_path")
+            and payload.get("thumbnail_vtt_path")
+        )
+        subtitles_ready = payload.get("subtitle_tracks_processed_at") is not None
+        attachments_ready = payload.get("attachments_processed_at") is not None
+        if thumbnail_ready and subtitles_ready and attachments_ready:
+            return payload
+
+        time.sleep(2)
+
+    raise SmokeTestError(
+        "Timed out waiting for derived media artifacts after "
+        f"{time.monotonic() - started_at:.1f}s",
+    )
 
 
 def wait_for_playable(
@@ -727,8 +1030,8 @@ async def verify_streaming_package(
 async def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Verify that one episode's derived media artifacts are persisted "
-            "and readable through the configured storage backend."
+            "Ensure an episode's downstream media pipeline is runnable, then "
+            "verify derived artifacts through the configured storage backend."
         ),
     )
     parser.add_argument("episode_id", type=UUID)
@@ -741,7 +1044,7 @@ async def main() -> int:
         "--timeout",
         type=float,
         default=1800.0,
-        help="Wait time for a current playable media variant",
+        help="Wait time per pipeline stage",
     )
     parser.add_argument(
         "--skip-playable",
@@ -762,6 +1065,18 @@ async def main() -> int:
         raise SmokeTestError("API health check returned no response")
     print("  API health: ok")
 
+    await ensure_media_processing_job(args.episode_id)
+    wait_for_media_processing(
+        api_url=args.api_url,
+        episode_id=args.episode_id,
+        timeout_seconds=args.timeout,
+    )
+
+    await ensure_media_preparation_job(args.episode_id)
+    await ensure_media_asset_processing(
+        api_url=args.api_url,
+        episode_id=args.episode_id,
+    )
     playable = wait_for_playable(
         api_url=args.api_url,
         episode_id=args.episode_id,
@@ -769,22 +1084,20 @@ async def main() -> int:
         timeout_seconds=args.timeout,
     )
 
-    media = http_get(
-        args.api_url,
-        f"/api/episodes/{args.episode_id}/media",
+    await ensure_media_preparation_job(args.episode_id)
+    media = wait_for_media_asset_processing(
+        api_url=args.api_url,
+        episode_id=args.episode_id,
+        timeout_seconds=args.timeout,
     )
-    if not isinstance(media, dict):
-        raise SmokeTestError(
-            "Episode does not have a materialized MediaAsset",
-        )
 
     variant_key = playable.get("path")
     if not isinstance(variant_key, str) or not variant_key:
         raise SmokeTestError("Playable media has no storage object key")
 
-    streaming = wait_for_streaming_package(
-        api_url=args.api_url,
+    streaming = await _ensure_and_wait_for_streaming_package(
         episode_id=args.episode_id,
+        api_url=args.api_url,
         timeout_seconds=args.timeout,
     )
 
@@ -805,6 +1118,67 @@ async def main() -> int:
 
     print("[storage-media-smoke] PASS")
     return 0
+
+
+async def _ensure_and_wait_for_streaming_package(
+    *,
+    episode_id: UUID,
+    api_url: str,
+    timeout_seconds: float,
+) -> dict[str, object]:
+    settings = Settings()
+    database = create_database(settings.database_url)
+    enqueue_job_id: UUID | None = None
+
+    try:
+        async with database.session_factory() as session:
+            asset = await MediaAssetService(session).get_for_episode(episode_id)
+            if asset is None:
+                raise SmokeTestError("Episode does not have a materialized MediaAsset")
+
+            variant = await MediaVariantService(session).get_playable_variant(asset.id)
+            if variant is None or not variant.ready or variant.path is None:
+                raise SmokeTestError("Episode has no ready playable media variant")
+
+            service = MediaStreamingPackageService(session)
+            package = await service.get_for_variant(variant.id)
+            current = (
+                package is not None
+                and package.is_current(
+                    source_path=variant.path,
+                    source_variant_updated_at=variant.updated_at,
+                )
+            )
+            if current:
+                print("  media packaging: current package already exists", flush=True)
+            else:
+                active = await service.get_active_job(variant.id)
+                if active is not None:
+                    if active.status == MediaPackagingJobStatus.PENDING.value:
+                        enqueue_job_id = active.id
+                    else:
+                        print(
+                            f"  media packaging: already processing job={active.id}",
+                            flush=True,
+                        )
+                else:
+                    job = await service.create_job(media_variant_id=variant.id)
+                    if job is not None:
+                        enqueue_job_id = job.id
+
+        if enqueue_job_id is not None:
+            await process_media_packaging.kiq(str(enqueue_job_id))
+            print(f"  media packaging job enqueued: {enqueue_job_id}", flush=True)
+    finally:
+        await database.dispose()
+
+    return wait_for_streaming_package(
+        api_url=api_url,
+        episode_id=episode_id,
+        timeout_seconds=timeout_seconds,
+    )
+
+
 
 
 if __name__ == "__main__":

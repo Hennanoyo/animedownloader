@@ -127,7 +127,7 @@ just storage-smoke
 just storage-media-smoke <episode-id>
 ```
 
-`storage-media-smoke` waits for the current playable media variant, reads the Episode media and streaming-package APIs, materializes derived objects from the configured storage backend, validates the stored playable MP4 with FFprobe, and verifies HLS/DASH manifests and CMAF segments.
+`storage-media-smoke` is an executable developer smoke test: it requires a completed download, reconciles and enqueues missing downstream media-processing, preparation, subtitle/attachment, and streaming-packaging work, waits for the pipeline to settle, then materializes derived objects from the configured storage backend, validates the stored playable MP4 with FFprobe, and verifies thumbnails, subtitles, attachments/fonts, HLS/DASH manifests, and CMAF segments.
 
 Use `--skip-playable` when a full playable-file download is undesirable:
 

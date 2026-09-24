@@ -56,6 +56,11 @@
   pointer-events: none;
 }
 
+.controlsHidden:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .timeline {
   position: relative;
   padding: 0.4rem 0;

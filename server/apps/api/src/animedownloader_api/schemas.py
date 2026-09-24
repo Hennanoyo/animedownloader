@@ -297,6 +297,7 @@ class PlaybackThumbnailResponse(BaseModel):
 
 
 class PlaybackResponse(BaseModel):
+    anime_id: UUID
     episode_id: UUID
     episode_number: int
     title: str

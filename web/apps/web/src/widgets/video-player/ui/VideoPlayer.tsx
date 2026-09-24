@@ -65,6 +65,11 @@ export default function VideoPlayer({ playback }: Props) {
     }
   };
 
+  const keepControlsVisible = () => {
+    setControlsVisible(true);
+    clearControlsTimer();
+  };
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(document.fullscreenElement === playerRef.current);
@@ -403,21 +408,22 @@ export default function VideoPlayer({ playback }: Props) {
         }
       }}
     >
-      <video
-        ref={videoRef}
-        crossOrigin="anonymous"
-        className={styles.video}
-        playsInline
-        preload="metadata"
-        data-testid="video-player"
-        onClick={() => {
-          togglePlayPause();
-          showControls();
-        }}
-        onPointerMove={showControls}
-      />
+      <div className={styles.mediaSurface}>
+        <video
+          ref={videoRef}
+          crossOrigin="anonymous"
+          className={styles.video}
+          playsInline
+          preload="metadata"
+          data-testid="video-player"
+          onClick={() => {
+            togglePlayPause();
+            showControls();
+          }}
+          onPointerMove={showControls}
+        />
 
-      <VideoControls
+        <VideoControls
         video={videoRef.current}
         duration={duration}
         currentTime={currentTime}
@@ -433,9 +439,12 @@ export default function VideoPlayer({ playback }: Props) {
         onVolumeChange={changeVolume}
         onMuteToggle={toggleMute}
         onSubtitleChange={setSelectedSubtitleId}
-        controlsVisible={controlsVisible}
-        onFullscreenToggle={toggleFullscreen}
-      />
+          controlsVisible={controlsVisible}
+          onFullscreenToggle={toggleFullscreen}
+          onControlsEnter={keepControlsVisible}
+          onControlsLeave={showControls}
+        />
+      </div>
 
       <div className={styles.meta}>
         {isLoading ? <span>Loading media...</span> : null}

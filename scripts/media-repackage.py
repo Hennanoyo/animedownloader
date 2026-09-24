@@ -19,8 +19,8 @@ from animedownloader_media_processing import (
     MediaStreamingPackageService,
     MediaVariantService,
 )
-from animedownloader_worker.tasks import process_media_packaging
 from animedownloader_worker.storage import create_media_storage
+from animedownloader_worker.tasks import process_media_packaging
 
 
 class RepackageError(RuntimeError):

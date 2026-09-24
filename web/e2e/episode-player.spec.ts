@@ -243,6 +243,7 @@ test("covers playback controls, keyboard priority, thumbnails, and fullscreen", 
   ).toBeVisible();
 
   await page.keyboard.press("Escape");
+  await player.focus();
   await expect(
     page.getByRole("button", { name: "Enter fullscreen" }),
   ).toBeVisible();

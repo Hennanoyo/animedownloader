@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "react-aria-components";
 import type { Episode } from "../../../entities/anime/model/types";
@@ -28,138 +29,181 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
     pipeline.download.status === "pending" ||
     pipeline.download.status === "downloading" ||
     pipeline.download.status === "paused";
-  const retryAction = getRetryAction(pipeline);
+  const [expanded, setExpanded] = useState(
+    pipeline.active || hasPipelineFailure(pipeline),
+  );
+  const pipelineId = "episode-pipeline-" + episode.id;
 
   return (
     <article className={styles.card}>
       <div className={styles.topRow}>
-        <div
-          className={styles.thumbnail}
-          role="img"
+        <Link
+          className={styles.thumbnailLink}
+          to="/episodes/$episodeId"
+          params={{ episodeId: episode.id }}
           aria-label={episode.title + " thumbnail"}
-          style={
-            pipeline.thumbnail.url
-              ? { backgroundImage: `url("${pipeline.thumbnail.url}")` }
-              : undefined
-          }
         >
-          {pipeline.thumbnail.url ? null : (
-            <span className={styles.thumbnailPlaceholder}>No preview</span>
-          )}
-        </div>
+          <div
+            className={styles.thumbnail}
+            aria-hidden="true"
+            style={
+              pipeline.thumbnail.url
+                ? { backgroundImage: `url("${pipeline.thumbnail.url}")` }
+                : undefined
+            }
+          >
+            {pipeline.thumbnail.url ? null : (
+              <span className={styles.thumbnailPlaceholder}>No preview</span>
+            )}
+          </div>
+        </Link>
 
         <div className={styles.heading}>
-          <div>
-            <p className={styles.episodeNumber}>
-              Episode #{episode.episode_number}
-            </p>
-            <h3>{episode.title}</h3>
-            <p className={styles.source}>
-              {episode.source_url ? (
-                <a href={episode.source_url} target="_blank" rel="noreferrer">
-                  {episode.source}
-                </a>
-              ) : (
-                episode.source
-              )}
-              {episode.size ? " · " + episode.size : ""}
-            </p>
-          </div>
-        </div>
-
-        <div className={styles.actions}>
-          {pipeline.playback_ready ? (
+          <p className={styles.episodeNumber}>
+            Episode #{episode.episode_number}
+          </p>
+          <h3>
             <Link
-              className={styles.playButton}
+              className={styles.titleLink}
               to="/episodes/$episodeId"
               params={{ episodeId: episode.id }}
             >
-              Play
+              {episode.title}
             </Link>
-          ) : null}
+          </h3>
+          <p className={styles.source}>
+            {episode.source_url ? (
+              <a href={episode.source_url} target="_blank" rel="noreferrer">
+                {episode.source}
+              </a>
+            ) : (
+              episode.source
+            )}
+            {episode.size ? " · " + episode.size : ""}
+          </p>
+        </div>
 
-          {retryAction ? (
-            <Button
-              className={styles.retryButton}
-              onPress={() => void retryMutation.mutateAsync()}
-              isDisabled={retryMutation.isPending}
-              aria-label={retryAction.ariaLabel}
-            >
-              {retryMutation.isPending ? "Starting..." : retryAction.label}
-            </Button>
-          ) : null}
-
+        <div className={styles.actions}>
           {!downloadActive ? (
             <EpisodeDownloadControl episodeId={episode.id} compact />
-          ) : null}
-
-          {retryMutation.isError ? (
-            <span className={styles.actionError} role="alert">
-              {retryMutation.error instanceof Error
-                ? retryMutation.error.message
-                : "Failed to continue the pipeline."}
-            </span>
           ) : null}
         </div>
       </div>
 
-      <div className={styles.stages} aria-label="Media pipeline status">
-        {stages.map((stage, index) => {
-          const stageStatus = getStageStatus(stage.id, pipeline);
-          const completed = stageStatus === "completed";
-          const current = pipeline.current_stage === stage.id;
-          return (
-            <div key={stage.id} className={styles.stageWrap}>
-              {index > 0 ? (
+      <div className={styles.pipelineSection}>
+        <Button
+          className={styles.pipelineToggle}
+          onPress={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
+          aria-controls={pipelineId}
+        >
+          <span className={styles.pipelineSummaryLine}>
+            {stages.map((stage, index) => (
+              <span key={stage.id} className={styles.summaryStage}>
+                {index > 0 ? (
+                  <span className={styles.summaryConnector} aria-hidden="true">
+                    →
+                  </span>
+                ) : null}
                 <span
-                  className={styles.connector}
-                  data-completed={isPreviousStageCompleted(index, pipeline)}
+                  className={styles.summaryDot}
+                  data-status={getStageStatus(stage.id, pipeline)}
                   aria-hidden="true"
                 />
-              ) : null}
-              <div
-                className={styles.stage}
-                data-status={stageStatus}
-                data-current={current}
-                data-completed={completed}
-              >
-                <span className={styles.stageDot} aria-hidden="true" />
-                <div className={styles.stageHeader}>
-                  <span>{stage.label}</span>
-                  <span className={styles.status} data-status={stageStatus}>
-                    {formatStatus(stageStatus)}
-                  </span>
+                <span>{stage.label}</span>
+                <span className={styles.summaryStatus}>
+                  {formatCompactStatus(getStageStatus(stage.id, pipeline))}
+                </span>
+              </span>
+            ))}
+          </span>
+          <span className={styles.toggleLabel}>
+            {expanded ? "Hide details" : "Show details"}
+            <span className={styles.toggleIcon} aria-hidden="true">
+              {expanded ? "⌃" : "⌄"}
+            </span>
+          </span>
+        </Button>
+
+        {expanded ? (
+          <div id={pipelineId} className={styles.stages} aria-label="Media pipeline status">
+            {stages.map((stage) => {
+              const stageStatus = getStageStatus(stage.id, pipeline);
+              const completed = stageStatus === "completed";
+              const current = pipeline.current_stage === stage.id;
+              const action = getStageAction(stage.id, pipeline);
+
+              return (
+                <div key={stage.id} className={styles.stageWrap}>
+                  <div
+                    className={styles.stage}
+                    data-status={stageStatus}
+                    data-current={current}
+                    data-completed={completed}
+                  >
+                    <div className={styles.stageHeader}>
+                      <div className={styles.stageTitle}>
+                        <span className={styles.stageDot} aria-hidden="true" />
+                        <span>{stage.label}</span>
+                      </div>
+                      <span className={styles.status} data-status={stageStatus}>
+                        {formatStatus(stageStatus)}
+                      </span>
+                    </div>
+
+                    {stage.id === "processing" ? (
+                      <StageProgress
+                        label="Preparation"
+                        value={pipeline.processing.progress_percent}
+                      />
+                    ) : null}
+
+                    {stage.id === "preview" ? (
+                      <StageProgress
+                        label="Sprite"
+                        value={pipeline.thumbnail.progress_percent}
+                      />
+                    ) : null}
+
+                    {stage.id === "streaming" ? (
+                      <p className={styles.detail}>
+                        {formatStreamingDetail(pipeline)}
+                      </p>
+                    ) : null}
+
+                    {stage.id === "download" && pipeline.download.error_message ? (
+                      <p className={styles.error}>{pipeline.download.error_message}</p>
+                    ) : null}
+
+                    {stage.id === "processing" && pipeline.processing.error_message ? (
+                      <p className={styles.error}>{pipeline.processing.error_message}</p>
+                    ) : null}
+
+                    {stage.id === "preview" && pipeline.thumbnail.error_message ? (
+                      <p className={styles.error}>{pipeline.thumbnail.error_message}</p>
+                    ) : null}
+
+                    {stage.id === "streaming" && pipeline.streaming.error_message ? (
+                      <p className={styles.error}>{pipeline.streaming.error_message}</p>
+                    ) : null}
+
+                    {action ? (
+                      <Button
+                        className={styles.stageAction}
+                        onPress={() => void retryMutation.mutateAsync()}
+                        isDisabled={retryMutation.isPending}
+                      >
+                        {retryMutation.isPending
+                          ? "Starting..."
+                          : action}
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
-                {stage.id === "processing" ? (
-                  <StageProgress
-                    label="Preparation"
-                    value={pipeline.processing.progress_percent}
-                  />
-                ) : null}
-                {stage.id === "preview" ? (
-                  <StageProgress
-                    label="Sprite"
-                    value={pipeline.thumbnail.progress_percent}
-                  />
-                ) : null}
-                {stage.id === "streaming" ? (
-                  <p className={styles.detail}>
-                    {formatStreamingDetail(pipeline)}
-                  </p>
-                ) : null}
-                {stage.id === "processing" && pipeline.processing.error_message ? (
-                  <p className={styles.error}>{pipeline.processing.error_message}</p>
-                ) : null}
-                {stage.id === "preview" && pipeline.thumbnail.error_message ? (
-                  <p className={styles.error}>{pipeline.thumbnail.error_message}</p>
-                ) : null}
-                {stage.id === "streaming" && pipeline.streaming.error_message ? (
-                  <p className={styles.error}>{pipeline.streaming.error_message}</p>
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       <div className={styles.extras}>
@@ -178,6 +222,14 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
           </div>
           <EpisodeDownloadControl episodeId={episode.id} />
         </div>
+      ) : null}
+
+      {retryMutation.isError ? (
+        <span className={styles.actionError} role="alert">
+          {retryMutation.error instanceof Error
+            ? retryMutation.error.message
+            : "Failed to continue the pipeline."}
+        </span>
       ) : null}
     </article>
   );
@@ -225,57 +277,64 @@ function getStageStatus(
   }
 }
 
-function isPreviousStageCompleted(
-  index: number,
+function getStageAction(
+  stage: PipelineCurrentStage,
   pipeline: EpisodePipelineSummary,
-): boolean {
-  const previous = stages[index - 1];
-  return previous !== undefined && getStageStatus(previous.id, pipeline) === "completed";
-}
-
-function getRetryAction(
-  pipeline: EpisodePipelineSummary,
-): { label: "Continue" | "Retry"; ariaLabel: string } | null {
+): "Continue" | "Retry" | null {
   if (pipeline.download.status !== "completed") {
     return null;
   }
 
-  const candidates: Array<{
-    stage: PipelineCurrentStage;
-    status: PipelineStageStatus;
-    ready: boolean;
-  }> = [
-    {
-      stage: "processing",
-      status: pipeline.processing.status,
-      ready: true,
-    },
-    {
-      stage: "preview",
-      status: pipeline.thumbnail.status,
-      ready: pipeline.processing.playable_ready,
-    },
-    {
-      stage: "streaming",
-      status: pipeline.streaming.status,
-      ready: pipeline.processing.playable_ready,
-    },
-  ];
+  const candidate =
+    stage === "processing"
+      ? {
+          status: pipeline.processing.status,
+          ready: true,
+        }
+      : stage === "preview"
+        ? {
+            status: pipeline.thumbnail.status,
+            ready: pipeline.processing.playable_ready,
+          }
+        : stage === "streaming"
+          ? {
+              status: pipeline.streaming.status,
+              ready: pipeline.processing.playable_ready,
+            }
+          : null;
 
-  for (const candidate of candidates) {
-    if (
-      candidate.ready &&
-      (candidate.status === "pending" || candidate.status === "failed")
-    ) {
-      const action = candidate.status === "failed" ? "Retry" : "Continue";
-      return {
-        label: action,
-        ariaLabel: action + " " + candidate.stage,
-      };
-    }
+  if (
+    candidate?.ready &&
+    (candidate.status === "pending" || candidate.status === "failed")
+  ) {
+    return candidate.status === "failed" ? "Retry" : "Continue";
   }
 
   return null;
+}
+
+function hasPipelineFailure(pipeline: EpisodePipelineSummary): boolean {
+  return (
+    pipeline.download.status === "failed" ||
+    pipeline.processing.status === "failed" ||
+    pipeline.thumbnail.status === "failed" ||
+    pipeline.streaming.status === "failed"
+  );
+}
+
+function formatCompactStatus(status: PipelineStageStatus): string {
+  switch (status) {
+    case "completed":
+      return "✓";
+    case "not_started":
+      return "—";
+    case "failed":
+      return "!";
+    case "pending":
+      return "…";
+    default:
+      return "";
+  }
 }
 
 function formatStatus(status: PipelineStageStatus): string {

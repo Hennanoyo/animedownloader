@@ -78,22 +78,31 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
   await expect(pipelineStatus.getByText("Preview", { exact: true })).toBeVisible();
   await expect(pipelineStatus.getByText("Streaming", { exact: true })).toBeVisible();
   await expect(
-    pipelineStatus.getByText("Completed", { exact: true }).first(),
-  ).toBeVisible();
-  await expect(page.getByText("HLS ready · DASH ready")).toBeVisible();
-  await expect(
-    pipelineStatus.getByRole("progressbar", { name: "Preparation" }),
-  ).toHaveAttribute("aria-valuenow", "100");
-  await expect(
-    pipelineStatus.getByRole("progressbar", { name: "Sprite" }),
-  ).toHaveAttribute("aria-valuenow", "100");
+    pipelineStatus.locator('[data-completed="true"]'),
+  ).toHaveCount(4);
+  await expect(pipelineStatus.getByText("Playable media ready")).toBeVisible();
+  await expect(pipelineStatus.getByText("Subtitles")).toBeVisible();
+  await expect(pipelineStatus.getByText("Attachments")).toBeVisible();
+  await expect(pipelineStatus.getByText("HLS ready")).toBeVisible();
+  await expect(pipelineStatus.getByText("DASH ready")).toBeVisible();
 
   await expect(
     page.getByRole("link", { name: "Episode One", exact: true }),
   ).toHaveAttribute("href", `/episodes/${EPISODE_ID}`);
   await expect(
-    page.getByRole("button", { name: "Download", exact: true }),
+    page.getByRole("button", { name: "Episode actions" }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Episode actions" }).click();
+  await expect(
+    page.getByRole("menuitem", { name: "Download again" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("menuitem", { name: "Delete download record" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("menuitem", { name: "Delete episode" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: "Hide details" }).click();
   await expect(pipelineStatus).toBeHidden();

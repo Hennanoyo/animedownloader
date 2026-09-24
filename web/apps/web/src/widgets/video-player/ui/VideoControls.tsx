@@ -178,6 +178,7 @@ export default function VideoControls({
           <SliderTrack
             ref={trackRef}
             className={styles.timelineTrack}
+            data-testid="timeline-track"
             onPointerMove={(event) => {
               updatePreview(event.clientX);
             }}

@@ -33,6 +33,35 @@ Do not persist environment-specific public URLs as the canonical database repres
 
 Existing database columns named `path`, `normalized_path`, `extracted_path`, and similar fields may contain object keys for derived artifacts during this incremental migration. A later schema cleanup may rename these fields to `object_key` where that improves clarity.
 
+## Canonical Artifact Rules
+
+Storage identity and delivery details are separate concerns.
+
+For derived artifacts, use the following rules:
+
+| Artifact | Identity | Filename | Canonical object key |
+| --- | --- | --- | --- |
+| Playable media | `MediaVariant.id` (UUID7) | `{variant_id}.mp4` | `playable/{asset_id}/{variant_id}.mp4` |
+| Normalized subtitle | `SubtitleTrack.id` (UUID7) | `{track_id}.{extension}` | `subtitles/{asset_id}/{track_id}.{extension}` |
+| Generic attachment | `MediaAttachment.id` (UUID7) | `{attachment_id}.{extension}` | `attachments/{asset_id}/{attachment_id}.{extension}` |
+| Reusable font | SHA-256 content identity | `{sha256}.{extension}` | `fonts/{sha256[:2]}/{sha256}.{extension}` |
+| Thumbnail sprite | `MediaAsset.id` | `sprite.jpg` | `thumbnails/{asset_id}/sprite.jpg` |
+| Thumbnail VTT | `MediaAsset.id` | `sprite.vtt` | `thumbnails/{asset_id}/sprite.vtt` |
+| Streaming package | `MediaStreamingPackage.id` | package-defined names | `streaming/{package_id}/...` |
+
+UUID7 is the default artifact identity when the database row represents one logical artifact. Processing job IDs represent execution attempts and must not determine the durable artifact filename. Content-addressed resources such as fonts use their SHA-256 instead so identical content can be reused.
+
+Original filenames are metadata, not storage identity. A downloaded attachment such as `NotoSans-Regular.ttf` is therefore stored under the attachment ID plus extension while the original filename remains in `MediaAttachment.filename`.
+
+The application should keep these representations distinct:
+
+- `source_path`: a local filesystem path used by FFmpeg or other local processing.
+- `object_key`: a provider-independent relative storage key persisted in PostgreSQL.
+- public URL: a browser-facing delivery URL derived from the object key at the application boundary.
+
+Do not persist local absolute paths or provider-specific URLs in fields that represent `object_key`.
+
+The canonical key builders live in `animedownloader_storage.artifacts`. Workers should construct keys through those models instead of duplicating string formatting rules.
 ## Processing and Storage
 
 Media processing should use temporary local staging paths for FFmpeg and then upload successful outputs through the storage abstraction.

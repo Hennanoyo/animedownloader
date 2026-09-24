@@ -74,7 +74,12 @@ export default function AnimeDetailPage() {
           <AnimeEditForm
             anime={anime}
             onCancel={() => setIsEditing(false)}
-            onSaved={() => void query.refetch()}
+            onSaved={() => {
+              void query.refetch();
+              void queryClient.invalidateQueries({
+                queryKey: ["anime-pipelines", animeId],
+              });
+            }}
           />
           <EpisodeManagement anime={anime} />
         </section>

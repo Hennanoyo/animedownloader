@@ -51,6 +51,9 @@ export function useCreateEpisodeDownloadJob(episodeId: string) {
       await queryClient.invalidateQueries({
         queryKey: ["anime-pipelines"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["anime-pipelines"],
+      });
     },
     onError: (error) => {
       if (error instanceof ApiRequestError && error.status === 409) {
@@ -86,6 +89,9 @@ function useDownloadJobAction(
       await queryClient.invalidateQueries({
         queryKey: ["anime-pipelines"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["anime-pipelines"],
+      });
     },
   });
 }
@@ -114,6 +120,9 @@ export function useDeleteDownloadJob(episodeId: string) {
       );
       await queryClient.invalidateQueries({
         queryKey: ["download-jobs", "latest", episodeId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["anime-pipelines"],
       });
     },
   });

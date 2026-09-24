@@ -65,6 +65,7 @@ describe("selectVideoEngine", () => {
 
   it("uses DASH when HLS is unavailable and MediaSource exists", () => {
     hls.isSupported.mockReturnValue(false);
+    vi.stubGlobal("MediaSource", class {});
 
     const selected = selectVideoEngine(makeVideo(() => ""), {
       direct: sources.direct,
@@ -73,6 +74,7 @@ describe("selectVideoEngine", () => {
     });
 
     expect(selected?.source.kind).toBe("dash");
+    vi.unstubAllGlobals();
   });
 
   it("falls back to direct MP4", () => {

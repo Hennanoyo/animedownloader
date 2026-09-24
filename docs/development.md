@@ -137,6 +137,8 @@ STORAGE_BACKEND=seaweedfs just up
 just media-e2e-smoke <episode-id>
 ```
 
+Use `just up` rather than plain `docker compose up` when GPU acceleration should be available. `just up` tests NVIDIA access from the GPU-enabled Compose worker before choosing the GPU or CPU stack. If Docker cannot expose the NVIDIA runtime, it reports that explicitly and falls back to the CPU worker. Use `just gpu-check` to inspect GPU access directly, or `just up-gpu` to require the GPU Compose configuration.
+
 The `media-e2e-smoke` command creates a download job when needed, waits for the Torrent download to complete, then invokes `storage-media-smoke` for the complete downstream media pipeline. It is intended for local/development validation and may perform a real torrent download, so it is not part of normal CI.
 
 The `--timeout` value applies to the download stage and each downstream media stage:

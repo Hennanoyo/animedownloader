@@ -25,6 +25,8 @@ code .
 
 In VSCode, run **Dev Containers: Reopen in Container**.
 
+The Dev Container now includes the GPU Compose override. On this development machine, rebuilding the Dev Container therefore gives the Worker NVIDIA GPU access without requiring `just up`. The application still falls back to CPU encoding when NVENC is unavailable.
+
 The Dev Container configuration uses:
 
 - `dev`: development shell with Node.js 24, pnpm, Python 3.14, and uv
@@ -107,6 +109,14 @@ just check
 Use Docker Desktop or the Compose output panel to inspect service logs.
 
 Because Docker Compose is managed by the Dev Containers extension in the supported workflow, do not assume the `dev` container needs access to the host Docker socket.
+
+To verify GPU access from the repository environment:
+
+```bash
+just gpu-check
+```
+
+This checks NVIDIA visibility and performs a real `hevc_nvenc` encode probe.
 
 ## Runtime Media Storage Smoke Test
 

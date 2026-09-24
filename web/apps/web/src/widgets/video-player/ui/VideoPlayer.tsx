@@ -350,8 +350,7 @@ export default function VideoPlayer({ playback }: Props) {
           event.ctrlKey ||
           event.metaKey ||
           event.altKey ||
-          event.target instanceof HTMLInputElement ||
-          event.target instanceof HTMLSelectElement
+          (event.target !== event.currentTarget && event.target !== videoRef.current)
         ) {
           return;
         }

@@ -8,7 +8,6 @@ broker: AsyncBroker = RedisStreamBroker(
     url=settings.redis_url,
     xread_block=2000,
     socket_connect_timeout=5.0,
-    socket_timeout=10.0,
     unacknowledged_lock_timeout=30.0,
 )
 

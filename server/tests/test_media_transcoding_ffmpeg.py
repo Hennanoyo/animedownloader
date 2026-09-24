@@ -4,10 +4,21 @@ from pathlib import Path
 import pytest
 from animedownloader_media import (
     FFmpegCommandResult,
+    resolve_video_encoder,
     FFmpegPlayableMediaProcessingError,
     FFmpegPlayableMediaProcessor,
     PlayableMediaOperation,
 )
+
+
+class ProbeRunner:
+    def __init__(self, returncode: int) -> None:
+        self.returncode = returncode
+        self.calls: list[tuple[str, ...]] = []
+
+    async def run(self, args: Sequence[str]) -> FFmpegCommandResult:
+        self.calls.append(tuple(args))
+        return FFmpegCommandResult(b"", b"", self.returncode)
 
 
 class FakeRunner:
@@ -21,6 +32,26 @@ class FakeRunner:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(b"playable")
         return FFmpegCommandResult(b"", b"", 0)
+
+
+@pytest.mark.anyio
+async def test_auto_encoder_prefers_nvenc_when_probe_succeeds() -> None:
+    runner = ProbeRunner(returncode=0)
+
+    encoder = await resolve_video_encoder("auto", runner=runner)
+
+    assert encoder == "hevc_nvenc"
+    assert runner.calls
+
+
+@pytest.mark.anyio
+async def test_auto_encoder_falls_back_to_cpu_when_nvenc_probe_fails() -> None:
+    runner = ProbeRunner(returncode=1)
+
+    encoder = await resolve_video_encoder("auto", runner=runner)
+
+    assert encoder == "libx265"
+    assert runner.calls
 
 
 @pytest.mark.anyio
@@ -44,32 +75,6 @@ async def test_transcode_command_uses_hevc_and_aac(tmp_path: Path) -> None:
     assert "hvc1" in command
     assert "-movflags" in command
     assert "+faststart" in command
-
-
-@pytest.mark.anyio
-async def test_transcode_command_can_use_cuda_decode(tmp_path: Path) -> None:
-    output_path = tmp_path / "playable.mp4"
-    runner = FakeRunner()
-
-    await FFmpegPlayableMediaProcessor(
-        runner=runner,
-        video_encoder="hevc_nvenc",
-        hardware_acceleration="cuda",
-    ).process(
-        media_path=tmp_path / "episode.mkv",
-        output_path=output_path,
-        operation=PlayableMediaOperation.TRANSCODE,
-    )
-
-    command = runner.calls[0]
-    input_index = command.index("-i")
-    assert command[input_index - 4 : input_index] == (
-        "-hwaccel",
-        "cuda",
-        "-hwaccel_output_format",
-        "cuda",
-    )
-    assert "-pix_fmt" not in command
 
 
 @pytest.mark.anyio

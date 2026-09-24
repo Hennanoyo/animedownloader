@@ -49,6 +49,7 @@ class PlaybackService:
 
         if asset is None or asset.metadata_updated_at is None:
             return _empty_playback(
+                episode.anime_id,
                 episode.id,
                 episode.episode_number,
                 episode.title,
@@ -117,6 +118,7 @@ class PlaybackService:
         ]
 
         return PlaybackResponse(
+            anime_id=episode.anime_id,
             episode_id=episode.id,
             episode_number=episode.episode_number,
             title=episode.title,
@@ -138,11 +140,13 @@ class PlaybackService:
 
 
 def _empty_playback(
+    anime_id: UUID,
     episode_id: UUID,
     episode_number: int,
     title: str,
 ) -> PlaybackResponse:
     return PlaybackResponse(
+        anime_id=anime_id,
         episode_id=episode_id,
         episode_number=episode_number,
         title=title,

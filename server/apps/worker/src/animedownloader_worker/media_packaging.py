@@ -21,7 +21,7 @@ from animedownloader_media_processing import (
     MediaPackagingJobStatus,
     MediaStreamingPackageService,
 )
-from animedownloader_storage import Storage
+from animedownloader_storage import Storage, StreamingPackageArtifact
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class MediaPackagingStateProtocol(Protocol):
         job_id: UUID,
         *,
         representation: CMAFRepresentationMetadata,
-        package_root_key: str,
+        package_artifact: StreamingPackageArtifact,
     ) -> None: ...
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None: ...
@@ -125,8 +125,8 @@ class MediaPackagingState:
         async with self._session_factory() as session:
             await MediaStreamingPackageService(session).mark_completed(
                 job_id,
-                hls_master_key=f"{package_root_key}/master.m3u8",
-                dash_manifest_key=f"{package_root_key}/manifest.mpd",
+                hls_master_key=package_artifact.master_playlist_key,
+                dash_manifest_key=package_artifact.dash_manifest_key,
                 quality=representation.quality,
                 width=representation.width,
                 height=representation.height,
@@ -134,9 +134,18 @@ class MediaPackagingState:
                 video_codec=representation.video_codec,
                 audio_codec=representation.audio_codec,
                 duration_seconds=representation.duration_seconds,
-                hls_playlist_key=(f"{package_root_key}/{representation.quality}/index.m3u8"),
-                init_segment_key=(f"{package_root_key}/{representation.quality}/init.mp4"),
-                segment_directory_key=(f"{package_root_key}/{representation.quality}/s"),
+                hls_playlist_key=package_artifact.representation_key(
+                    representation.quality,
+                    "index.m3u8",
+                ),
+                init_segment_key=package_artifact.representation_key(
+                    representation.quality,
+                    "init.mp4",
+                ),
+                segment_directory_key=package_artifact.representation_key(
+                    representation.quality,
+                    "s",
+                ),
             )
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
@@ -192,12 +201,12 @@ class MediaPackagingRunner:
                 )
 
             quality = f"{context.height}p"
-            package_root_key = f"streaming/{context.variant_id}"
+            package_artifact = StreamingPackageArtifact(package_id=context.package_id)
 
             with TemporaryDirectory(prefix="animedownloader-packaging-") as staging_dir:
                 staging_root = Path(staging_dir)
                 source_path = staging_root / "source.mp4"
-                package_root = staging_root / "streaming" / str(context.variant_id)
+                package_root = staging_root / package_artifact.object_prefix
                 representation_dir = package_root / quality
 
                 await self._storage.materialize(
@@ -234,13 +243,13 @@ class MediaPackagingRunner:
                 await _upload_tree(
                     self._storage,
                     package_root,
-                    package_root_key,
+                    package_artifact.object_prefix,
                 )
 
             await self._state.mark_completed(
                 job_id,
                 representation=representation,
-                package_root_key=package_root_key,
+                package_artifact=package_artifact,
             )
         except Exception as exc:
             if context is not None:

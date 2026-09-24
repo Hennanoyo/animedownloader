@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Iterable
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from animedownloader_anime import AnimeService, Episode
 from animedownloader_download import DownloadJob
 from animedownloader_media_asset import (
@@ -21,9 +25,6 @@ from animedownloader_media_processing import (
     MediaVariant,
 )
 from animedownloader_storage import Storage
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from .schemas import (
     AnimePipelineResponse,

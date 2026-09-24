@@ -13,6 +13,13 @@ const stageStatusSchema: z.ZodType<PipelineStageStatus> = z.enum([
   "cancelled",
 ]);
 
+const currentStageSchema = z.enum([
+  "download",
+  "processing",
+  "preview",
+  "streaming",
+]);
+
 const pipelineSchema = z.object({
   episode_id: z.uuid(),
   episode_number: z.number().int().positive(),
@@ -25,6 +32,7 @@ const pipelineSchema = z.object({
   }),
   processing: z.object({
     status: stageStatusSchema,
+    progress_percent: z.number().int().min(0).max(100),
     playable_ready: z.boolean(),
     error_message: z.string().nullable(),
   }),
@@ -38,10 +46,12 @@ const pipelineSchema = z.object({
   }),
   thumbnail: z.object({
     status: stageStatusSchema,
+    progress_percent: z.number().int().min(0).max(100),
     url: z.url().nullable(),
     vtt_url: z.url().nullable(),
     error_message: z.string().nullable(),
   }),
+  current_stage: currentStageSchema.nullable(),
   playback_ready: z.boolean(),
   active: z.boolean(),
 });

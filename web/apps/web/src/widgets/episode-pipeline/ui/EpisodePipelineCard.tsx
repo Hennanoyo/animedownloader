@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { Episode } from "../../../entities/anime/model/types";
 import type {
   EpisodePipelineSummary,
+  PipelineCurrentStage,
   PipelineStageStatus,
 } from "../../../entities/anime/model/pipeline";
 import EpisodeDownloadControl from "../../../features/episode-download/ui/EpisodeDownloadControl";
@@ -11,6 +12,13 @@ interface Props {
   episode: Episode;
   pipeline: EpisodePipelineSummary;
 }
+
+const stages: { id: PipelineCurrentStage; label: string }[] = [
+  { id: "download", label: "Download" },
+  { id: "processing", label: "Processing" },
+  { id: "preview", label: "Preview" },
+  { id: "streaming", label: "Streaming" },
+];
 
 export default function EpisodePipelineCard({ episode, pipeline }: Props) {
   return (
@@ -51,53 +59,69 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
         </div>
 
         <div className={styles.stages} aria-label="Media pipeline status">
-          <PipelineStage
-            label="Download"
-            status={pipeline.download.status}
-            detail={formatDownloadProgress(pipeline.download)}
-          />
-          <PipelineStage
-            label="Processing"
-            status={pipeline.processing.status}
-            detail={
-              pipeline.processing.playable_ready
-                ? "Playable ready"
-                : pipeline.processing.error_message ?? undefined
-            }
-          />
-          <PipelineStage
-            label="Streaming"
-            status={pipeline.streaming.status}
-            detail={formatStreamingDetail(pipeline)}
-          />
-          <PipelineStage
-            label="Preview"
-            status={pipeline.thumbnail.status}
-          />
+          {stages.map((stage, index) => {
+            const stageStatus = getStageStatus(stage.id, pipeline);
+            const completed = stageStatus === "completed";
+            const current = pipeline.current_stage === stage.id;
+            return (
+              <div key={stage.id} className={styles.stageWrap}>
+                {index > 0 ? (
+                  <span
+                    className={styles.connector}
+                    data-completed={isPreviousStageCompleted(index, pipeline)}
+                    aria-hidden="true"
+                  />
+                ) : null}
+                <div
+                  className={styles.stage}
+                  data-status={stageStatus}
+                  data-current={current}
+                  data-completed={completed}
+                >
+                  <span className={styles.stageDot} aria-hidden="true" />
+                  <div className={styles.stageHeader}>
+                    <span>{stage.label}</span>
+                    <span className={styles.status} data-status={stageStatus}>
+                      {formatStatus(stageStatus)}
+                    </span>
+                  </div>
+                  {stage.id === "processing" ? (
+                    <StageProgress
+                      label="Preparation"
+                      value={pipeline.processing.progress_percent}
+                    />
+                  ) : null}
+                  {stage.id === "preview" ? (
+                    <StageProgress
+                      label="Sprite"
+                      value={pipeline.thumbnail.progress_percent}
+                    />
+                  ) : null}
+                  {stage.id === "download" ? (
+                    <DownloadProgress pipeline={pipeline} />
+                  ) : null}
+                  {stage.id === "streaming" ? (
+                    <p className={styles.detail}>
+                      {formatStreamingDetail(pipeline)}
+                    </p>
+                  ) : null}
+                  {stage.id === "processing" && pipeline.processing.error_message ? (
+                    <p className={styles.error}>{pipeline.processing.error_message}</p>
+                  ) : null}
+                  {stage.id === "preview" && pipeline.thumbnail.error_message ? (
+                    <p className={styles.error}>{pipeline.thumbnail.error_message}</p>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className={styles.extras}>
           <span>Subtitles: {formatStatus(pipeline.subtitles)}</span>
           <span>Attachments: {formatStatus(pipeline.attachments)}</span>
           {pipeline.download.error_message ? (
-            <span className={styles.error}>
-              {pipeline.download.error_message}
-            </span>
-          ) : null}
-          {pipeline.processing.error_message ? (
-            <span className={styles.error}>
-              {pipeline.processing.error_message}
-            </span>
-          ) : null}
-          {pipeline.streaming.error_message ? (
-            <span className={styles.error}>
-              {pipeline.streaming.error_message}
-            </span>
-          ) : null}
-          {pipeline.thumbnail.error_message ? (
-            <span className={styles.error}>
-              {pipeline.thumbnail.error_message}
-            </span>
+            <span className={styles.error}>{pipeline.download.error_message}</span>
           ) : null}
         </div>
       </div>
@@ -118,75 +142,75 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
   );
 }
 
-interface PipelineStageProps {
+interface StageProgressProps {
   label: string;
-  status: PipelineStageStatus;
-  detail?: string;
+  value: number;
 }
 
-function PipelineStage({ label, status, detail }: PipelineStageProps) {
+function StageProgress({ label, value }: StageProgressProps) {
   return (
-    <div className={styles.stage}>
-      <div className={styles.stageHeader}>
+    <div className={styles.progressBlock}>
+      <div className={styles.progressMeta}>
         <span>{label}</span>
-        <span className={styles.status} data-status={status}>
-          {formatStatus(status)}
-        </span>
+        <span>{value}%</span>
       </div>
-      {detail ? <p>{detail}</p> : null}
+      <div
+        className={styles.progressTrack}
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={value}
+      >
+        <div className={styles.progressFill} style={{ width: value + "%" }} />
+      </div>
     </div>
   );
+}
+
+function DownloadProgress({ pipeline }: { pipeline: EpisodePipelineSummary }) {
+  const { downloaded_bytes: downloaded, total_bytes: total } = pipeline.download;
+  if (total === null || total === 0) {
+    return null;
+  }
+  const value = Math.min(Math.round((downloaded / total) * 100), 100);
+  return <StageProgress label="Downloaded" value={value} />;
+}
+
+function getStageStatus(
+  stage: PipelineCurrentStage,
+  pipeline: EpisodePipelineSummary,
+): PipelineStageStatus {
+  switch (stage) {
+    case "download":
+      return pipeline.download.status;
+    case "processing":
+      return pipeline.processing.status;
+    case "preview":
+      return pipeline.thumbnail.status;
+    case "streaming":
+      return pipeline.streaming.status;
+  }
+}
+
+function isPreviousStageCompleted(
+  index: number,
+  pipeline: EpisodePipelineSummary,
+): boolean {
+  const previous = stages[index - 1];
+  return previous !== undefined && getStageStatus(previous.id, pipeline) === "completed";
 }
 
 function formatStatus(status: PipelineStageStatus): string {
   return status
     .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    .replace(/w/g, (letter) => letter.toUpperCase());
 }
 
-function formatDownloadProgress(download: {
-  status: PipelineStageStatus;
-  downloaded_bytes: number;
-  total_bytes: number | null;
-}): string | undefined {
-  if (download.total_bytes === null || download.total_bytes === 0) {
-    return download.status === "completed"
-      ? formatBytes(download.downloaded_bytes)
-      : undefined;
-  }
-
+function formatStreamingDetail(pipeline: EpisodePipelineSummary): string {
   return (
-    formatBytes(download.downloaded_bytes) +
-    " / " +
-    formatBytes(download.total_bytes)
+    (pipeline.streaming.hls_ready ? "HLS ready" : "HLS pending") +
+    " · " +
+    (pipeline.streaming.dash_ready ? "DASH ready" : "DASH pending")
   );
-}
-
-function formatStreamingDetail(
-  pipeline: EpisodePipelineSummary,
-): string | undefined {
-  if (
-    pipeline.streaming.status === "not_started" ||
-    pipeline.streaming.status === "failed"
-  ) {
-    return undefined;
-  }
-
-  const hls = pipeline.streaming.hls_ready ? "HLS" : "HLS…";
-  const dash = pipeline.streaming.dash_ready ? "DASH" : "DASH…";
-  return hls + " · " + dash;
-}
-
-function formatBytes(value: number): string {
-  if (value < 1024) {
-    return value + " B";
-  }
-  const units = ["KiB", "MiB", "GiB", "TiB"];
-  let size = value / 1024;
-  let unitIndex = 0;
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex += 1;
-  }
-  return size.toFixed(size >= 10 ? 0 : 1) + " " + units[unitIndex];
 }

@@ -161,10 +161,13 @@ def test_build_pipeline_summary_reports_completed_media_and_streaming() -> None:
 
     assert summary.download.status is EpisodePipelineStageStatus.COMPLETED
     assert summary.processing.status is EpisodePipelineStageStatus.COMPLETED
+    assert summary.processing.progress_percent == 100
     assert summary.streaming.status is EpisodePipelineStageStatus.COMPLETED
     assert summary.streaming.hls_ready is True
     assert summary.streaming.dash_ready is True
     assert summary.thumbnail.status is EpisodePipelineStageStatus.COMPLETED
+    assert summary.thumbnail.progress_percent == 100
+    assert summary.current_stage is None
     assert summary.thumbnail.url == storage.public_url(asset.thumbnail_sprite_path)
     assert summary.playback_ready is True
     assert summary.active is False
@@ -218,6 +221,7 @@ def test_build_pipeline_summary_keeps_playback_ready_while_streaming_runs() -> N
 
     assert summary.processing.status is EpisodePipelineStageStatus.COMPLETED
     assert summary.streaming.status is EpisodePipelineStageStatus.PROCESSING
+    assert summary.current_stage.value == "streaming"
     assert summary.playback_ready is True
     assert summary.active is True
 

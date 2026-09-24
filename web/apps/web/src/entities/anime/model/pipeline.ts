@@ -11,6 +11,15 @@ export const pipelineStageStatuses = [
 
 export type PipelineStageStatus = (typeof pipelineStageStatuses)[number];
 
+export const pipelineCurrentStages = [
+  "download",
+  "processing",
+  "preview",
+  "streaming",
+] as const;
+
+export type PipelineCurrentStage = (typeof pipelineCurrentStages)[number];
+
 export interface EpisodePipelineDownload {
   status: PipelineStageStatus;
   downloaded_bytes: number;
@@ -20,6 +29,7 @@ export interface EpisodePipelineDownload {
 
 export interface EpisodePipelineProcessing {
   status: PipelineStageStatus;
+  progress_percent: number;
   playable_ready: boolean;
   error_message: string | null;
 }
@@ -33,6 +43,7 @@ export interface EpisodePipelineStreaming {
 
 export interface EpisodePipelineThumbnail {
   status: PipelineStageStatus;
+  progress_percent: number;
   url: string | null;
   vtt_url: string | null;
   error_message: string | null;
@@ -48,6 +59,7 @@ export interface EpisodePipelineSummary {
   attachments: PipelineStageStatus;
   streaming: EpisodePipelineStreaming;
   thumbnail: EpisodePipelineThumbnail;
+  current_stage: PipelineCurrentStage | null;
   playback_ready: boolean;
   active: boolean;
 }

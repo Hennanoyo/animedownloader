@@ -16,9 +16,9 @@
   overflow: hidden;
   border-radius: 0.55rem;
   background-color: #111827;
-  background-position: 0 0;
+  background-position: center;
   background-repeat: no-repeat;
-  background-size: 1500% 1200%;
+  background-size: cover;
 }
 
 .thumbnailPlaceholder {
@@ -58,19 +58,70 @@
   text-decoration: none;
 }
 
+.source a:hover,
+.source a:focus-visible {
+  text-decoration: underline;
+}
+
 .stages {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
-  gap: 0.55rem;
-  margin-top: 0.9rem;
+  display: flex;
+  align-items: stretch;
+  margin-top: 1rem;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 0.35rem 0 0.65rem;
+}
+
+.stageWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1 1 0;
 }
 
 .stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
   min-width: 0;
-  padding: 0.6rem;
+  min-height: 7.5rem;
+  padding: 0.7rem;
   border: 1px solid #1e293b;
-  border-radius: 0.55rem;
+  border-radius: 0.65rem;
   background: #0f172a;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.stage[data-current="true"] {
+  border-color: #60a5fa;
+  transform: translateY(-2px);
+  box-shadow: 0 0.45rem 1.3rem rgb(37 99 235 / 18%);
+}
+
+.stage[data-completed="true"] {
+  border-color: #166534;
+}
+
+.stageDot {
+  display: block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-bottom: 0.45rem;
+  border-radius: 50%;
+  background: #475569;
+}
+
+.stage[data-status="completed"] .stageDot {
+  background: #4ade80;
+}
+
+.stage[data-current="true"] .stageDot {
+  animation: pulse 1.4s ease-in-out infinite;
+  background: #60a5fa;
 }
 
 .stageHeader {
@@ -81,13 +132,6 @@
   color: #cbd5e1;
   font-size: 0.72rem;
   font-weight: 700;
-}
-
-.stage p {
-  margin: 0.35rem 0 0;
-  color: #64748b;
-  font-size: 0.7rem;
-  line-height: 1.4;
 }
 
 .status {
@@ -127,18 +171,67 @@
   border-color: #475569;
 }
 
+.detail,
+.extras {
+  color: #64748b;
+  font-size: 0.7rem;
+}
+
+.detail {
+  margin: 0.5rem 0 0;
+}
+
+.progressBlock {
+  margin-top: 0.55rem;
+}
+
+.progressMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.65rem;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 0.3rem;
+  margin-top: 0.3rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #1e293b;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: #60a5fa;
+  transition: width 180ms ease;
+}
+
+.connector {
+  flex: 0 0 1.2rem;
+  height: 2px;
+  margin: 0 -1px;
+  background: #334155;
+}
+
+.connector[data-completed="true"] {
+  background: #22c55e;
+}
+
+.error {
+  margin: 0.45rem 0 0;
+  color: #fca5a5;
+  overflow-wrap: anywhere;
+  font-size: 0.68rem;
+}
+
 .extras {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 0.8rem;
   margin-top: 0.65rem;
-  color: #64748b;
-  font-size: 0.7rem;
-}
-
-.error {
-  color: #fca5a5;
-  overflow-wrap: anywhere;
 }
 
 .actions {
@@ -163,19 +256,50 @@
   text-decoration: none;
 }
 
+.playButton:hover,
+.playButton:focus-visible {
+  background: #1e3a8a;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage[data-current="true"] .stageDot {
+    animation: none;
+  }
+
+  .stage {
+    transition: none;
+  }
+
+  .progressFill {
+    transition: none;
+  }
+}
+
 @media (max-width: 960px) {
   .card {
     grid-template-columns: 160px minmax(0, 1fr);
+  }
+
+  .stageWrap {
+    flex: 0 0 12rem;
   }
 
   .actions {
     grid-column: 1 / -1;
     min-width: 0;
     flex-direction: row;
-  }
-
-  .stages {
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 }
 
@@ -189,8 +313,8 @@
     max-width: 320px;
   }
 
-  .stages {
-    grid-template-columns: 1fr;
+  .stageWrap {
+    flex-basis: 10.5rem;
   }
 
   .actions {

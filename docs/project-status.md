@@ -4,7 +4,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, and chapter/embedded attachment integration.
 
-The current phase is media storage and delivery infrastructure. PR #23, PR #24, PR #25, and PR #26 are merged; PR #27 is the next development step.
+The current phase is player and playback delivery. PR #23 through PR #27 are merged; PR #28 is the current development step.
 
 ## Completed
 
@@ -340,7 +340,20 @@ Runtime validation:
 
 ### PR #28 — Player / Playback
 
-Goal: expose current media and derived resources to the frontend player.
+**In progress on `feature/player-playback`.**
+
+Goal: expose current media and derived resources through a playback-oriented API and consume that contract from a browser player.
+
+Implementation order:
+
+1. Playback API contract and browser-facing storage URLs
+2. Frontend playback query/model
+3. Native direct/HLS playback engine and Episode player page
+4. HLS.js, dash.js, and JASSUB engine adapters
+5. Chapters, subtitles/fonts, and thumbnail seek preview
+6. Developer-facing browser playback smoke coverage
+
+Scope:
 
 Scope:
 

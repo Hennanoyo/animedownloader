@@ -41,6 +41,7 @@ class CMAFRepresentationMetadata:
     height: int
     bandwidth: int
     video_codec: str
+    video_codec_string: str
     audio_codec: str | None
     duration_seconds: float
     init_uri: str
@@ -274,8 +275,11 @@ def _find_hvcc_record(data: bytes) -> bytes | None:
 
     while True:
         marker_offset = data.find(marker, search_start)
-        if marker_offset < 4:
+        if marker_offset == -1:
             return None
+        if marker_offset < 4:
+            search_start = marker_offset + len(marker)
+            continue
 
         box_start = marker_offset - 4
         box_size = int.from_bytes(
@@ -408,6 +412,7 @@ def make_representation_metadata(
     size_bytes: int | None,
     duration_seconds: float | None,
     video_codec: str | None,
+    video_codec_string: str,
     audio_codec: str | None,
     segments: Sequence[CMAFMediaSegment],
 ) -> CMAFRepresentationMetadata:

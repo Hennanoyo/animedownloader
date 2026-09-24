@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { Button } from "react-aria-components";
+import Icon from "../../../shared/ui/Icon";
 import type { Anime } from "../../../entities/anime/model/types";
 import { useAnimeDetail } from "../../../features/anime-detail/model/useAnimeDetail";
 import { useAnimePipeline } from "../../../features/anime-detail/model/useAnimePipeline";
@@ -184,11 +185,21 @@ function AnimeHeader({
         </div>
       </div>
       <div className={styles.headerActions}>
-        <Button className={styles.secondaryButton} onPress={onEdit}>
-          Edit
+        <Button
+          className={styles.iconHeaderButton}
+          onPress={onEdit}
+          aria-label="Edit anime"
+          title="Edit anime"
+        >
+          <Icon name="edit" size={17} />
         </Button>
-        <Button className={styles.dangerButton} onPress={onDeleteConfirm}>
-          Delete
+        <Button
+          className={styles.iconHeaderButtonDanger}
+          onPress={onDeleteConfirm}
+          aria-label="Delete anime"
+          title="Delete anime"
+        >
+          <Icon name="trash" size={17} />
         </Button>
       </div>
     </header>

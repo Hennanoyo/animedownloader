@@ -21,6 +21,12 @@
   background: #000;
 }
 
+.player:focus-visible {
+  outline: 2px solid #cbd5e1;
+  outline-offset: 4px;
+  border-radius: 0.8rem;
+}
+
 .player :global(.JASSUB) {
   z-index: 1;
 }
@@ -140,6 +146,21 @@
   cursor: pointer;
 }
 
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  padding: 0.35rem;
+}
+
+.controlIcon {
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: none;
+}
+
 .controlButton:hover,
 .controlButton[data-focus-visible] {
   background: rgb(255 255 255 / 15%);
@@ -151,8 +172,8 @@
 }
 
 .playButton {
-  font-size: 1rem;
-  font-weight: 600;
+  width: 2.3rem;
+  height: 2.3rem;
 }
 
 .timeDisplay {
@@ -200,9 +221,20 @@
 .subtitleControl {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.55rem;
   color: #fff;
   font-size: 0.8rem;
+}
+
+.subtitleLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.subtitleLabel .controlIcon {
+  width: 1rem;
+  height: 1rem;
 }
 
 .subtitleControl select {

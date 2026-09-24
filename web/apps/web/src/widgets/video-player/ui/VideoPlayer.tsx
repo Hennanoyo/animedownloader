@@ -337,6 +337,98 @@ export default function VideoPlayer({ playback }: Props) {
     });
   };
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const player = playerRef.current;
+      if (
+        !player ||
+        event.defaultPrevented ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const eventTarget = event.target;
+      const isInsidePlayer =
+        eventTarget instanceof Node && player.contains(eventTarget);
+      const isPlayerHovered = player.matches(":hover");
+      const isPlayerFullscreen = document.fullscreenElement === player;
+
+      if (!isInsidePlayer && !isPlayerHovered && !isPlayerFullscreen) {
+        return;
+      }
+
+      if (isInteractiveKeyboardTarget(eventTarget)) {
+        return;
+      }
+
+      switch (event.key) {
+        case " ":
+        case "k":
+        case "K":
+          event.preventDefault();
+          togglePlayPause();
+          showControls();
+          break;
+        case "ArrowLeft":
+          event.preventDefault();
+          seek(currentTime - 5);
+          showControls();
+          break;
+        case "ArrowRight":
+          event.preventDefault();
+          seek(currentTime + 5);
+          showControls();
+          break;
+        case "ArrowUp":
+          event.preventDefault();
+          changeVolume(volume + 0.05);
+          showControls();
+          break;
+        case "ArrowDown":
+          event.preventDefault();
+          changeVolume(volume - 0.05);
+          showControls();
+          break;
+        case "m":
+        case "M":
+          event.preventDefault();
+          toggleMute();
+          showControls();
+          break;
+        case "f":
+        case "F":
+          event.preventDefault();
+          toggleFullscreen();
+          showControls();
+          break;
+        case "Escape":
+          if (isPlayerFullscreen) {
+            event.preventDefault();
+            void document.exitFullscreen();
+            showControls();
+          }
+          break;
+        default:
+          break;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    currentTime,
+    duration,
+    isMuted,
+    isPlaying,
+    showControls,
+    volume,
+  ]);
+
   return (
     <section
       ref={playerRef}
@@ -345,67 +437,6 @@ export default function VideoPlayer({ playback }: Props) {
       tabIndex={0}
       onPointerMove={showControls}
       onFocus={showControls}
-      onKeyDown={(event) => {
-        if (
-          event.ctrlKey ||
-          event.metaKey ||
-          event.altKey ||
-          (event.target !== event.currentTarget && event.target !== videoRef.current)
-        ) {
-          return;
-        }
-
-        switch (event.key) {
-          case " ":
-          case "k":
-          case "K":
-            event.preventDefault();
-            togglePlayPause();
-            showControls();
-            break;
-          case "ArrowLeft":
-            event.preventDefault();
-            seek(currentTime - 5);
-            showControls();
-            break;
-          case "ArrowRight":
-            event.preventDefault();
-            seek(currentTime + 5);
-            showControls();
-            break;
-          case "ArrowUp":
-            event.preventDefault();
-            changeVolume(volume + 0.05);
-            showControls();
-            break;
-          case "ArrowDown":
-            event.preventDefault();
-            changeVolume(volume - 0.05);
-            showControls();
-            break;
-          case "m":
-          case "M":
-            event.preventDefault();
-            toggleMute();
-            showControls();
-            break;
-          case "f":
-          case "F":
-            event.preventDefault();
-            toggleFullscreen();
-            showControls();
-            break;
-          case "Escape":
-            if (document.fullscreenElement !== null) {
-              event.preventDefault();
-              void document.exitFullscreen();
-              showControls();
-            }
-            break;
-          default:
-            break;
-        }
-      }}
     >
       <div className={styles.mediaSurface}>
         <video
@@ -416,6 +447,7 @@ export default function VideoPlayer({ playback }: Props) {
           preload="metadata"
           data-testid="video-player"
           onClick={() => {
+            playerRef.current?.focus({ preventScroll: true });
             togglePlayPause();
             showControls();
           }}
@@ -423,22 +455,22 @@ export default function VideoPlayer({ playback }: Props) {
         />
 
         <VideoControls
-        video={videoRef.current}
-        duration={duration}
-            currentTime={currentTime}
-            isPlaying={isPlaying}
-            volume={volume}
-            isMuted={isMuted}
-            isFullscreen={isFullscreen}
-            subtitles={playback.subtitles}
-            selectedSubtitleId={selectedSubtitleId}
-            thumbnails={playback.thumbnails}
-            onPlayPause={togglePlayPause}
-            onSeek={seek}
-            onVolumeChange={changeVolume}
-            onMuteToggle={toggleMute}
-            onSubtitleChange={setSelectedSubtitleId}
+          video={videoRef.current}
+          duration={duration}
+          currentTime={currentTime}
+          isPlaying={isPlaying}
+          volume={volume}
+          isMuted={isMuted}
+          isFullscreen={isFullscreen}
+          subtitles={playback.subtitles}
+          selectedSubtitleId={selectedSubtitleId}
+          thumbnails={playback.thumbnails}
           controlsVisible={controlsVisible}
+          onPlayPause={togglePlayPause}
+          onSeek={seek}
+          onVolumeChange={changeVolume}
+          onMuteToggle={toggleMute}
+          onSubtitleChange={setSelectedSubtitleId}
           onFullscreenToggle={toggleFullscreen}
           onControlsEnter={keepControlsVisible}
           onControlsLeave={showControls}
@@ -484,6 +516,18 @@ export default function VideoPlayer({ playback }: Props) {
         </div>
       ) : null}
     </section>
+  );
+}
+
+function isInteractiveKeyboardTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return (
+    target.closest(
+      "button, input, select, textarea, [contenteditable='true'], [role='slider']",
+    ) !== null
   );
 }
 

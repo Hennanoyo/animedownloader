@@ -6,8 +6,8 @@ import {
   SliderThumb,
   SliderTrack,
 } from "react-aria-components";
-import { findThumbnailCue, parseThumbnailVtt } from "../../../shared/media-engine/thumbnail";
 import type { ThumbnailCue } from "../../../shared/media-engine/thumbnail";
+import { findThumbnailCue, parseThumbnailVtt } from "../../../shared/media-engine/thumbnail";
 import type { Playback } from "../../../features/playback/model/types";
 import styles from "./VideoPlayer.module.scss";
 
@@ -32,6 +32,15 @@ interface Props {
   onControlsEnter: () => void;
   onControlsLeave: () => void;
 }
+
+type ControlIconName =
+  | "play"
+  | "pause"
+  | "volume"
+  | "volume-muted"
+  | "fullscreen-enter"
+  | "fullscreen-exit"
+  | "captions";
 
 export default function VideoControls({
   video,
@@ -189,12 +198,13 @@ export default function VideoControls({
 
       <div className={styles.controlRow}>
         <Button
-          className={`${styles.controlButton} ${styles.playButton}`}
+          className={`${styles.controlButton} ${styles.iconButton} ${styles.playButton}`}
           aria-label={isPlaying ? "Pause" : "Play"}
+          title={isPlaying ? "Pause" : "Play"}
           onPress={onPlayPause}
           isDisabled={!video}
         >
-          {isPlaying ? "❚❚" : "▶"}
+          <ControlIcon name={isPlaying ? "pause" : "play"} />
         </Button>
 
         <span className={styles.timeDisplay} aria-live="off">
@@ -203,12 +213,18 @@ export default function VideoControls({
 
         <div className={styles.volumeControls}>
           <Button
-            className={styles.controlButton}
-            aria-label={isMuted ? "Unmute" : "Mute"}
+            className={`${styles.controlButton} ${styles.iconButton}`}
+            aria-label={
+              isMuted || volume === 0 ? "Unmute" : "Mute"
+            }
+            title={isMuted || volume === 0 ? "Unmute" : "Mute"}
+            aria-pressed={isMuted || volume === 0}
             onPress={onMuteToggle}
             isDisabled={!video}
           >
-            {isMuted || volume === 0 ? "Unmute" : "Mute"}
+            <ControlIcon
+              name={isMuted || volume === 0 ? "volume-muted" : "volume"}
+            />
           </Button>
           <Slider
             aria-label="Volume"
@@ -233,7 +249,10 @@ export default function VideoControls({
 
         {subtitles.length > 0 ? (
           <Label className={styles.subtitleControl}>
-            <span>Subtitles</span>
+            <span className={styles.subtitleLabel}>
+              <ControlIcon name="captions" />
+              <span>Subtitles</span>
+            </span>
             <select
               value={selectedSubtitleId ?? ""}
               onChange={(event) =>
@@ -252,15 +271,79 @@ export default function VideoControls({
         ) : null}
 
         <Button
-          className={styles.controlButton}
+          className={`${styles.controlButton} ${styles.iconButton}`}
           aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           onPress={onFullscreenToggle}
         >
-          {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          <ControlIcon
+            name={isFullscreen ? "fullscreen-exit" : "fullscreen-enter"}
+          />
         </Button>
       </div>
     </div>
   );
+}
+
+function ControlIcon({ name }: { name: ControlIconName }) {
+  const sharedProps = {
+    className: styles.controlIcon,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+
+  switch (name) {
+    case "play":
+      return (
+        <svg {...sharedProps} fill="currentColor" stroke="none">
+          <path d="M8 5.14v13.72L19 12 8 5.14Z" />
+        </svg>
+      );
+    case "pause":
+      return (
+        <svg {...sharedProps}>
+          <path d="M7 5v14M17 5v14" />
+        </svg>
+      );
+    case "volume":
+      return (
+        <svg {...sharedProps}>
+          <path d="M4 9v6h4l5 4V5L8 9H4Z" />
+          <path d="M16 9.5a4 4 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10" />
+        </svg>
+      );
+    case "volume-muted":
+      return (
+        <svg {...sharedProps}>
+          <path d="M4 9v6h4l5 4V5L8 9H4Z" />
+          <path d="m17 9 4 6M21 9l-4 6" />
+        </svg>
+      );
+    case "fullscreen-enter":
+      return (
+        <svg {...sharedProps}>
+          <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M21 16v5h-5" />
+        </svg>
+      );
+    case "fullscreen-exit":
+      return (
+        <svg {...sharedProps}>
+          <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M21 15h-6v6" />
+        </svg>
+      );
+    case "captions":
+      return (
+        <svg {...sharedProps}>
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <path d="M7 10h4M7 14h5M14 10h3M14 14h3" />
+        </svg>
+      );
+  }
 }
 
 function formatTime(value: number): string {

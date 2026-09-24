@@ -203,6 +203,7 @@ async def process_media_preparation(job_id: str) -> None:
             preparation_processor=FFmpegMediaPreparationProcessor(
                 runner=ffmpeg_runner,
                 video_encoder=settings.ffmpeg_video_encoder,
+                hardware_acceleration=settings.ffmpeg_hwaccel,
             ),
             playable_processor=FFmpegPlayableMediaProcessor(
                 runner=ffmpeg_runner,

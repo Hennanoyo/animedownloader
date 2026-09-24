@@ -59,6 +59,10 @@ vi.mock("hls.js", () => ({
 import { HlsVideoEngine } from "./hls";
 
 describe("HlsVideoEngine", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.errorHandler = null;
+  });
   it("loads the HLS source after media is attached", async () => {
     const video = {
       pause: vi.fn(),

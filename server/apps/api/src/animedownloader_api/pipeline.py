@@ -439,11 +439,26 @@ def _streaming_status(
     dash_ready = package.dash_manifest_key is not None
 
     if status is MediaStreamingPackageStatus.FAILED:
-        return status, hls_ready, dash_ready, package.error_message
+        return (
+            EpisodePipelineStageStatus.FAILED,
+            hls_ready,
+            dash_ready,
+            package.error_message,
+        )
     if status is MediaStreamingPackageStatus.PROCESSING:
-        return status, hls_ready, dash_ready, package.error_message
+        return (
+            EpisodePipelineStageStatus.PROCESSING,
+            hls_ready,
+            dash_ready,
+            package.error_message,
+        )
     if status is MediaStreamingPackageStatus.PENDING:
-        return status, hls_ready, dash_ready, package.error_message
+        return (
+            EpisodePipelineStageStatus.PENDING,
+            hls_ready,
+            dash_ready,
+            package.error_message,
+        )
     if hls_ready and dash_ready:
         return EpisodePipelineStageStatus.COMPLETED, True, True, None
     return EpisodePipelineStageStatus.PENDING, hls_ready, dash_ready, package.error_message

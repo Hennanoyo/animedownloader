@@ -41,16 +41,6 @@ class LocalStorage:
         return path
 
     def _resolve_source(self, object_key: str) -> Path:
-        legacy = Path(object_key)
-        if legacy.is_absolute():
-            path = legacy.resolve()
-            try:
-                path.relative_to(self._root)
-            except ValueError as exc:
-                raise StorageError(
-                    f"Legacy storage path escapes storage root: {object_key}",
-                ) from exc
-            return path
         return self._resolve_key(object_key)
 
     async def put_file(

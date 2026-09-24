@@ -133,6 +133,7 @@ export default function VideoPlayer({ playback }: Props) {
     <section className={styles.player} aria-label="Video player">
       <video
         ref={videoRef}
+        crossOrigin="anonymous"
         className={styles.video}
         controls
         playsInline

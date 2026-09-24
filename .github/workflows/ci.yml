@@ -10,7 +10,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -49,6 +49,19 @@ jobs:
           name: generated-player-playback-pnpm-lock
           path: web/pnpm-lock.yaml
           if-no-files-found: error
+
+      - name: Commit generated playback dependency lockfile
+        if: github.ref == 'refs/heads/feature/player-playback'
+        working-directory: web
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "build(web): update pnpm lockfile"
+          git push
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

@@ -17,7 +17,6 @@ from animedownloader_media_asset import (
     SubtitleTrackStatus,
 )
 from animedownloader_media_processing import MediaStreamingRepresentationStatus
-from animedownloader_storage import Storage
 
 
 class FakeStorage:

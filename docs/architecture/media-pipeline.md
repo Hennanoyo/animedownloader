@@ -52,6 +52,8 @@ The NVENC path keeps software decoding and CPU-side thumbnail filtering. The pla
 
 FFmpeg subprocesses are started in their own POSIX process group so timeout or task cancellation can terminate the complete FFmpeg process tree instead of leaving an orphaned encoder/decoder running after a worker failure. The development worker defaults to one Taskiq child process because media transcoding is resource-intensive; `TASKIQ_WORKERS` can be increased explicitly when the host has capacity for concurrent jobs.
 
+The worker also reconciles active media-processing, preparation, and packaging jobs from the database when it starts. This recovers jobs whose Redis task message was lost or left pending after a worker failure; only jobs persisted as `pending` or `processing` are re-enqueued.
+
 ## Video
 
 HEVC is the primary project codec because storage capacity is constrained and the target playback devices support HEVC.

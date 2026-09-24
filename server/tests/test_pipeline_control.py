@@ -1,5 +1,4 @@
 from types import SimpleNamespace
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid7
 
@@ -91,7 +90,7 @@ async def test_retry_continues_to_streaming_without_creating_download_job() -> N
 
 @pytest.mark.anyio
 async def test_retry_failed_processing_without_creating_download_job() -> None:
-    service = build_service()
+    service, mocks = build_service()
     episode_id = uuid7()
     download_id = uuid7()
     processing_id = uuid7()
@@ -121,5 +120,5 @@ async def test_retry_failed_processing_without_creating_download_job() -> None:
     assert result.stage is EpisodePipelineCurrentStage.PROCESSING
     assert result.status is EpisodePipelineStageStatus.PENDING
     assert result.job_id == processing_id
-    service._downloads.create_job.assert_not_awaited()
+    mocks["downloads"].create_job.assert_not_awaited()
     mocks["media_dispatcher"].enqueue.assert_awaited_once_with(processing_id)

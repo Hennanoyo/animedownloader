@@ -263,9 +263,15 @@ def wait_for_playable(
     settings: Settings,
     timeout_seconds: float,
 ) -> dict[str, object]:
+    if timeout_seconds <= 0:
+        raise ValueError("timeout_seconds must be positive")
+
     started_at = time.monotonic()
     deadline = started_at + timeout_seconds
     last_signature: tuple[object, ...] | None = None
+    processing: object = None
+    preparation: dict[str, object] | None = None
+    playable: dict[str, object] | None = None
 
     while time.monotonic() < deadline:
         processing = http_get(

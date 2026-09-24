@@ -166,17 +166,17 @@ test("covers playback controls, keyboard priority, thumbnails, and fullscreen", 
 
   await page.keyboard.press("ArrowRight");
   await expect
-    .poll(() => video.evaluate((element) => element.currentTime))
+    .poll(() => video.evaluate((element) => (element as HTMLVideoElement).currentTime))
     .toBe(5);
 
   await page.keyboard.press("ArrowDown");
   await expect
-    .poll(() => video.evaluate((element) => element.volume))
+    .poll(() => video.evaluate((element) => (element as HTMLVideoElement).volume))
     .toBeCloseTo(0.95);
 
   await page.keyboard.press("m");
   await expect
-    .poll(() => video.evaluate((element) => element.muted))
+    .poll(() => video.evaluate((element) => (element as HTMLVideoElement).muted))
     .toBe(true);
 
   await player.focus();
@@ -202,7 +202,7 @@ test("covers playback controls, keyboard priority, thumbnails, and fullscreen", 
   await page.keyboard.press("m");
   await expect(input).toHaveValue("m");
   await expect
-    .poll(() => video.evaluate((element) => element.muted))
+    .poll(() => video.evaluate((element) => (element as HTMLVideoElement).muted))
     .toBe(true);
 
   await page.evaluate(() => {
@@ -226,7 +226,7 @@ test("covers playback controls, keyboard priority, thumbnails, and fullscreen", 
   await page.getByRole("region", { name: "Video player" }).focus();
   await page.keyboard.press("m");
   await expect
-    .poll(() => video.evaluate((element) => element.muted))
+    .poll(() => video.evaluate((element) => (element as HTMLVideoElement).muted))
     .toBe(false);
 
   await page.getByTestId("timeline-track").hover({ position: { x: 250, y: 2 } });

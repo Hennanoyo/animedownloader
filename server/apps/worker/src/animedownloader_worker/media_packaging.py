@@ -120,7 +120,7 @@ class MediaPackagingState:
         job_id: UUID,
         *,
         representation: CMAFRepresentationMetadata,
-        package_root_key: str,
+        package_artifact: StreamingPackageArtifact,
     ) -> None:
         async with self._session_factory() as session:
             await MediaStreamingPackageService(session).mark_completed(

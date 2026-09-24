@@ -242,16 +242,6 @@ export default function VideoPlayer({ playback }: Props) {
     };
   }, [playback.fonts, playback.subtitles, selectedSubtitleId]);
 
-  if (playback.video === null) {
-    return (
-      <section className={styles.player} aria-label="Video player">
-        <p className={styles.message}>
-          This episode does not have a current playable video yet.
-        </p>
-      </section>
-    );
-  }
-
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
     if (!video) {
@@ -433,6 +423,16 @@ export default function VideoPlayer({ playback }: Props) {
     togglePlayPause,
     volume,
   ]);
+
+  if (playback.video === null) {
+    return (
+      <section className={styles.player} aria-label="Video player">
+        <p className={styles.message}>
+          This episode does not have a current playable video yet.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section

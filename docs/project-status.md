@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is playback hardening. PR #23 through PR #28 are merged; PR #29 is the current development step.
+The current phase is media pipeline integration and Anime detail UX. PR #23 through PR #29 are merged; PR #30 is the current development step.
 
 ## Completed
 
@@ -338,7 +338,7 @@ Runtime validation:
 
 ### PR #28 — Player / Playback
 
-**In progress on `feature/player-playback`.**
+**Merged into `main` as commit `421442f28991b5d80270e8ab0ab5f4ea98d36c3e`.**
 
 Goal: expose current media and derived resources through a playback-oriented API and consume that contract from a browser player.
 
@@ -382,7 +382,7 @@ Scope:
 
 ### PR #29 — Playback Hardening
 
-**In progress on `feature/playback-hardening`.**
+**Merged into `main` as commit `6ff2d8630fb726af0ab055e300fe4c9d0e564ea3`.**
 
 Goal: make playback failures recoverable and keep playback API queries stable during normal player interaction.
 
@@ -411,6 +411,37 @@ Current implementation:
 Planned follow-up within the same phase:
 
 - none; proceed to the next playback/platform phase after PR #29
+
+
+### PR #30 — Media Pipeline Integration & Anime Detail UX
+
+**In progress on `feature/media-pipeline-detail`.**
+
+Goal: complete the user-visible connection from an Episode download through playable media, HLS/DASH packaging, thumbnail readiness, and playback readiness, while replacing the wide Episode table with a pipeline-oriented detail view.
+
+Current implementation:
+
+- Added `GET /api/animes/{anime_id}/pipeline` as a UI-oriented batched summary over DownloadJob, MediaProcessingJob, MediaPreparationJob, MediaAsset, playable MediaVariant, streaming package, subtitle/attachment processing, and thumbnail state
+- Kept execution/history records separate while projecting them into stable Episode pipeline stages
+- Preserved automatic worker chaining from completed download → media processing → preparation → CMAF/HLS/DASH packaging; updated the runtime smoke to verify packaging is reached without manually creating a packaging job
+- Added HLS/DASH readiness to the Episode pipeline summary while allowing direct playable MP4 playback as soon as the current playable variant is ready
+- Added Anime detail Episode cards with Download → Processing → Streaming → Preview stages
+- Unified Download and Conversion as one user-facing processing flow while keeping the underlying job types separate
+- Reused the existing thumbnail sprite as the Episode card preview when the sprite is ready
+- Added active-only TanStack Query polling at 2-second intervals and cache invalidation after download actions
+- Added Playwright coverage for the Anime detail pipeline UI and backend coverage for pipeline-state aggregation
+- Added post-download smoke coverage that waits for the normal pipeline to finish HLS/DASH packaging, then verifies stored HLS/DASH artifacts without enqueuing packaging itself
+
+Design constraints:
+
+- HLS and DASH continue to share the same CMAF/fMP4 segments; do not introduce duplicate video encoding for the two protocols
+- Pipeline API status is derived from the existing durable jobs/media state rather than duplicating job state in a new database record
+- Polling stops when no Episode pipeline stage is active and resumes on cache invalidation or a fresh mount
+- The existing sprite remains a derived seek-preview artifact; the current UI uses its first tile as the Episode card preview
+
+Planned follow-up:
+
+- After this PR, proceed to the next Download Management UX work rather than expanding the media pipeline further in the same branch
 
 ## Handoff Notes
 

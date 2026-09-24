@@ -34,7 +34,19 @@ test.beforeEach(async ({ page }) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: "null",
+        body: JSON.stringify({
+          id: "019a0000-0000-7000-8000-000000000099",
+          episode_id: EPISODE_ID,
+          status: "completed",
+          downloaded_bytes: 1048576,
+          total_bytes: 1048576,
+          attempt_count: 1,
+          error_message: null,
+          started_at: "2026-09-25T00:00:00Z",
+          completed_at: "2026-09-25T00:05:00Z",
+          created_at: "2026-09-25T00:00:00Z",
+          updated_at: "2026-09-25T00:05:00Z",
+        }),
       });
     },
   );

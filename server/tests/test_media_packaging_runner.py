@@ -6,7 +6,7 @@ from uuid import UUID, uuid7
 import pytest
 from animedownloader_media import CMAFMediaSegment, CMAFPackagingResult
 from animedownloader_media_processing import MediaPackagingJobStatus
-from animedownloader_storage import LocalStorage
+from animedownloader_storage import LocalStorage, StreamingPackageArtifact
 from animedownloader_worker.media_packaging import (
     MediaPackagingContext,
     MediaPackagingRunner,
@@ -17,7 +17,7 @@ class FakeState:
     def __init__(self, context: MediaPackagingContext) -> None:
         self.context = context
         self.processing_calls = 0
-        self.completed: tuple[Any, str] | None = None
+        self.completed: tuple[Any, StreamingPackageArtifact] | None = None
         self.failed_message: str | None = None
 
     async def load(self, job_id: UUID) -> MediaPackagingContext:
@@ -31,7 +31,7 @@ class FakeState:
         job_id: UUID,
         *,
         representation: Any,
-        package_root_key: str,
+        package_artifact: StreamingPackageArtifact,
     ) -> None:
         self.completed = (representation, package_root_key)
 
@@ -107,7 +107,12 @@ async def test_runner_packages_current_playable_variant(tmp_path: Path) -> None:
     representation, package_root_key = state.completed
     assert representation.quality == "1080p"
     assert representation.segments[0].uri == "s/00000.m4s"
-    assert package_root_key == f"streaming/{state.context.variant_id}"
+    assert package_artifact.object_prefix == f"streaming/{state.context.package_id}"
+    assert package_artifact.master_playlist_key == f"streaming/{state.context.package_id}/master.m3u8"
+    assert package_artifact.dash_manifest_key == f"streaming/{state.context.package_id}/manifest.mpd"
+    assert package_artifact.representation_key("1080p", "index.m3u8") == (
+        f"streaming/{state.context.package_id}/1080p/index.m3u8"
+    )
 
 
 @pytest.mark.anyio

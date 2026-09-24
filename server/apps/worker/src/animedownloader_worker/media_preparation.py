@@ -346,7 +346,7 @@ class MediaPreparationRunner:
                         )
                     print(
                         "[worker] media preparation FFmpeg started: "
-                        f"job_id={job_id} mode=combined operation={operation.value}",
+                        f"job_id={job_id} mode=staged operation={operation.value}",
                         flush=True,
                     )
                     combined = await self._preparation_processor.process(

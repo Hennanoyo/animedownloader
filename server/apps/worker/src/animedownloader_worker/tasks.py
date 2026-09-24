@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID
 
 from animedownloader_config import Settings
@@ -47,8 +48,12 @@ from .subtitle_processing import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 @broker.task(task_name=DOWNLOAD_TASK_NAME)
 async def download_episode(job_id: str) -> None:
+    logger.info("Download task started: job_id=%s", job_id)
     settings = Settings()
     database = create_database(settings.database_url)
     try:
@@ -71,12 +76,14 @@ async def download_episode(job_id: str) -> None:
                 ),
             )
             await runner.run(UUID(job_id))
+            logger.info("Download task completed: job_id=%s", job_id)
     finally:
         await database.dispose()
 
 
 @broker.task(task_name=MEDIA_PROCESSING_TASK_NAME)
 async def process_media_job(job_id: str) -> None:
+    logger.info("Media processing task started: job_id=%s", job_id)
     settings = Settings()
     database = create_database(settings.database_url)
     try:
@@ -90,12 +97,14 @@ async def process_media_job(job_id: str) -> None:
         await _enqueue_subtitle_processing(database, parsed_job_id)
         await _enqueue_media_attachment_processing(database, parsed_job_id)
         await _enqueue_media_preparation(database, parsed_job_id)
+        logger.info("Media processing task completed: job_id=%s", job_id)
     finally:
         await database.dispose()
 
 
 @broker.task(task_name=SUBTITLE_PROCESSING_TASK_NAME)
 async def process_subtitle_tracks(asset_id: str) -> None:
+    logger.info("Subtitle processing task started: asset_id=%s", asset_id)
     settings = Settings()
     database = create_database(settings.database_url)
     try:
@@ -108,6 +117,7 @@ async def process_subtitle_tracks(asset_id: str) -> None:
             processor=FFmpegSubtitleProcessor(runner=ffmpeg_runner),
         )
         await runner.run(UUID(asset_id))
+        logger.info("Subtitle processing task completed: asset_id=%s", asset_id)
     finally:
         await database.dispose()
 
@@ -178,6 +188,7 @@ async def _enqueue_media_attachment_processing(
 
 @broker.task(task_name=MEDIA_PREPARATION_TASK_NAME)
 async def process_media_preparation(job_id: str) -> None:
+    logger.info("Media preparation task started: job_id=%s", job_id)
     settings = Settings()
     database = create_database(settings.database_url)
     try:
@@ -202,6 +213,7 @@ async def process_media_preparation(job_id: str) -> None:
         parsed_job_id = UUID(job_id)
         await runner.run(parsed_job_id)
         await _enqueue_media_packaging(database, parsed_job_id)
+        logger.info("Media preparation task completed: job_id=%s", job_id)
     finally:
         await database.dispose()
 
@@ -228,13 +240,24 @@ async def _enqueue_media_preparation(
         )
 
     if preparation_job is None:
+        logger.info(
+            "Media preparation task not enqueued: an active job already exists "
+            "or the asset is already prepared: asset_id=%s",
+            asset.id,
+        )
         return
 
+    logger.info(
+        "Enqueuing media preparation task: job_id=%s asset_id=%s",
+        preparation_job.id,
+        asset.id,
+    )
     await process_media_preparation.kiq(str(preparation_job.id))
 
 
 @broker.task(task_name=MEDIA_PACKAGING_TASK_NAME)
 async def process_media_packaging(job_id: str) -> None:
+    logger.info("Media packaging task started: job_id=%s", job_id)
     settings = Settings()
     database = create_database(settings.database_url)
     try:
@@ -248,6 +271,7 @@ async def process_media_packaging(job_id: str) -> None:
         )
         parsed_job_id = UUID(job_id)
         await runner.run(parsed_job_id)
+        logger.info("Media packaging task completed: job_id=%s", job_id)
     finally:
         await database.dispose()
 

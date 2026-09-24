@@ -31,6 +31,7 @@ class CMAFPackagingResult:
     playlist_path: Path
     init_segment_path: Path
     segments: tuple[CMAFMediaSegment, ...]
+    video_codec_string: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,6 +135,7 @@ class FFmpegCMAFProcessor:
             playlist_path=playlist_path,
             init_segment_path=init_segment_path,
             segments=normalized_segments,
+            video_codec_string=codec_string_from_init_segment(init_segment_path),
         )
 
 
@@ -215,6 +217,86 @@ def _normalize_segment_uris(
     return "\n".join(normalized_content) + "\n", normalized_segments
 
 
+def codec_string_from_init_segment(init_segment_path: Path) -> str:
+    """Build an RFC 6381 HEVC codec string from the CMAF initialization segment.
+
+    The HEVCDecoderConfigurationRecord in hvcC contains the profile, profile
+    compatibility, tier, and level required for accurate codec signaling.
+    Constraint flags are intentionally omitted because an omitted constraint
+    does not assert that the media fails to meet that constraint.
+    """
+
+    data = init_segment_path.read_bytes()
+    record = _find_hvcc_record(data)
+    if record is None:
+        raise CMAFPackagingError(
+            "CMAF init segment does not contain an hvcC decoder configuration",
+        )
+    if len(record) < 13:
+        raise CMAFPackagingError(
+            "HEVC decoder configuration record is truncated",
+        )
+    if record[0] != 1:
+        raise CMAFPackagingError(
+            "Unsupported HEVC decoder configuration version: "
+            f"{record[0]}",
+        )
+
+    profile_byte = record[1]
+    profile_space = (profile_byte >> 6) & 0x03
+    tier_flag = (profile_byte >> 5) & 0x01
+    profile_idc = profile_byte & 0x1F
+    compatibility_flags = int.from_bytes(record[2:6], byteorder="big")
+    compatibility_flags = _reverse_bits32(compatibility_flags)
+    level_idc = record[12]
+
+    if profile_space == 0:
+        profile_space_prefix = ""
+    elif profile_space in {1, 2, 3}:
+        profile_space_prefix = "ABC"[profile_space - 1]
+    else:
+        raise CMAFPackagingError(
+            f"Invalid HEVC profile space: {profile_space}",
+        )
+
+    tier = "H" if tier_flag else "L"
+    return (
+        "hvc1."
+        f"{profile_space_prefix}{profile_idc}."
+        f"{compatibility_flags:x}."
+        f"{tier}{level_idc}"
+    )
+
+
+def _find_hvcc_record(data: bytes) -> bytes | None:
+    marker = b"hvcC"
+    search_start = 0
+
+    while True:
+        marker_offset = data.find(marker, search_start)
+        if marker_offset < 4:
+            return None
+
+        box_start = marker_offset - 4
+        box_size = int.from_bytes(
+            data[box_start:marker_offset],
+            byteorder="big",
+        )
+        if box_size >= 8 and box_start + box_size <= len(data):
+            return data[marker_offset + 4 : box_start + box_size]
+
+        search_start = marker_offset + len(marker)
+
+
+def _reverse_bits32(value: int) -> int:
+    value &= 0xFFFF_FFFF
+    value = ((value >> 1) & 0x5555_5555) | ((value & 0x5555_5555) << 1)
+    value = ((value >> 2) & 0x3333_3333) | ((value & 0x3333_3333) << 2)
+    value = ((value >> 4) & 0x0F0F_0F0F) | ((value & 0x0F0F_0F0F) << 4)
+    value = ((value >> 8) & 0x00FF_00FF) | ((value & 0x00FF_00FF) << 8)
+    return ((value >> 16) | (value << 16)) & 0xFFFF_FFFF
+
+
 def build_hls_master_playlist(
     representations: Sequence[CMAFRepresentationMetadata],
 ) -> str:
@@ -224,7 +306,7 @@ def build_hls_master_playlist(
     lines = ["#EXTM3U", "#EXT-X-VERSION:7"]
     for representation in representations:
         codecs = _codec_string(
-            representation.video_codec,
+            representation.video_codec_string,
             representation.audio_codec,
         )
         lines.extend(
@@ -269,7 +351,7 @@ def build_dash_manifest(
 
     for representation in representations:
         codecs = _codec_string(
-            representation.video_codec,
+            representation.video_codec_string,
             representation.audio_codec,
         )
         lines.extend(
@@ -351,6 +433,7 @@ def make_representation_metadata(
         height=height,
         bandwidth=max(1, estimated_bandwidth),
         video_codec=video_codec,
+        video_codec_string=video_codec_string,
         audio_codec=audio_codec,
         duration_seconds=duration_seconds,
         init_uri=f"{quality}/init.mp4",
@@ -359,8 +442,8 @@ def make_representation_metadata(
     )
 
 
-def _codec_string(video_codec: str, audio_codec: str | None) -> str:
-    video = "hvc1" if video_codec.casefold() == "hevc" else video_codec
+def _codec_string(video_codec_string: str, audio_codec: str | None) -> str:
+    video = video_codec_string
     codecs = [video]
     if audio_codec is not None:
         codecs.append(

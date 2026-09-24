@@ -6,7 +6,15 @@ test.describe("real playback smoke", () => {
   test.skip(!episodeId, "REAL_PLAYBACK_EPISODE_ID is required.");
 
   test("loads and exercises a real Episode playback", async ({ page }) => {
+    const playbackResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(
+          `/api/episodes/${episodeId}/playback`,
+        ) && response.ok(),
+    );
+
     await page.goto(`/episodes/${episodeId}`);
+    const playback = await (await playbackResponse).json();
 
     const player = page.getByRole("region", { name: "Video player" });
     const video = page.getByTestId("video-player");
@@ -29,20 +37,22 @@ test.describe("real playback smoke", () => {
       .toBeGreaterThan(initialTime);
 
     const subtitleSelector = page.locator("select").first();
-    if (await subtitleSelector.count()) {
+    if (playback.subtitles.length > 0) {
       await expect(subtitleSelector).toBeVisible();
-
       const subtitleOptions = await subtitleSelector.locator("option").count();
-      if (subtitleOptions > 1) {
-        await subtitleSelector.selectOption({ index: 1 });
-        await expect(page.locator(".JASSUB")).toHaveCount(1);
-      }
+      expect(subtitleOptions).toBeGreaterThan(1);
+
+      await subtitleSelector.selectOption({ index: 1 });
+      await expect
+        .poll(() => page.locator(".JASSUB").count(), {
+          timeout: 15_000,
+        })
+        .toBeGreaterThan(0);
     }
 
     const timeline = page.getByTestId("timeline-track");
-    await timeline.hover({ position: { x: 250, y: 2 } });
-
-    if (await page.getByRole("img", { name: /Preview at/ }).count()) {
+    if (playback.thumbnails !== null) {
+      await timeline.hover({ position: { x: 250, y: 2 } });
       await expect(
         page.getByRole("img", { name: /Preview at/ }),
       ).toBeVisible();

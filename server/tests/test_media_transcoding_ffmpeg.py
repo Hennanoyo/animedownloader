@@ -47,6 +47,28 @@ async def test_transcode_command_uses_hevc_and_aac(tmp_path: Path) -> None:
 
 
 @pytest.mark.anyio
+async def test_transcode_command_can_use_nvenc(tmp_path: Path) -> None:
+    output_path = tmp_path / "playable.mp4"
+    runner = FakeRunner()
+
+    await FFmpegPlayableMediaProcessor(
+        runner=runner,
+        video_encoder="hevc_nvenc",
+    ).process(
+        media_path=tmp_path / "episode.mkv",
+        output_path=output_path,
+        operation=PlayableMediaOperation.TRANSCODE,
+    )
+
+    command = runner.calls[0]
+    assert command[command.index("-c:v") + 1] == "hevc_nvenc"
+    assert command[command.index("-preset") + 1] == "p5"
+    assert command[command.index("-rc") + 1] == "vbr"
+    assert command[command.index("-cq") + 1] == "28"
+    assert command[command.index("-b:v") + 1] == "0"
+
+
+@pytest.mark.anyio
 async def test_remux_command_copies_streams(tmp_path: Path) -> None:
     output_path = tmp_path / "playable.mp4"
     runner = FakeRunner()

@@ -72,3 +72,21 @@
   color: #94a3b8;
   font-variant-numeric: tabular-nums;
 }
+
+
+.subtitleSelect {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+}
+
+.subtitleSelect select {
+  min-height: 2.1rem;
+  padding: 0 0.6rem;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  background: #0b1222;
+  color: #e5e7eb;
+}

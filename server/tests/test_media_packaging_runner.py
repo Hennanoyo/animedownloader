@@ -33,7 +33,7 @@ class FakeState:
         representation: Any,
         package_artifact: StreamingPackageArtifact,
     ) -> None:
-        self.completed = (representation, package_root_key)
+        self.completed = (representation, package_artifact)
 
     async def mark_failed(self, job_id: UUID, *, error_message: str) -> None:
         self.failed_message = error_message
@@ -104,7 +104,7 @@ async def test_runner_packages_current_playable_variant(tmp_path: Path) -> None:
 
     assert state.processing_calls == 1
     assert state.completed is not None
-    representation, package_root_key = state.completed
+    representation, package_artifact = state.completed
     assert representation.quality == "1080p"
     assert representation.segments[0].uri == "s/00000.m4s"
     assert package_artifact.object_prefix == f"streaming/{state.context.package_id}"

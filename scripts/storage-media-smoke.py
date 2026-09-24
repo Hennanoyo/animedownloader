@@ -13,6 +13,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from uuid import UUID
 
+from redis import Redis
+
 from animedownloader_config import Settings
 from animedownloader_media import parse_cmaf_media_playlist
 from animedownloader_storage import Storage, StorageError
@@ -114,13 +116,155 @@ def _state_summary(
     )
 
 
+def _format_size(size: int) -> str:
+    units = ("B", "KiB", "MiB", "GiB")
+    value = float(size)
+    for unit in units:
+        if value < 1024 or unit == units[-1]:
+            return f"{value:.1f}{unit}"
+        value /= 1024
+    return f"{size}B"
+
+
+def _active_ffmpeg_processes() -> list[str]:
+    processes: list[str] = []
+    for process_dir in Path("/proc").glob("[0-9]*"):
+        try:
+            name = process_dir.joinpath("comm").read_text(
+                encoding="utf-8",
+            ).strip()
+            if name != "ffmpeg":
+                continue
+            raw_cmdline = process_dir.joinpath("cmdline").read_bytes()
+            command = raw_cmdline.replace(b"\0", b" ").decode(
+                "utf-8",
+                errors="replace",
+            ).strip()
+            processes.append(f"pid={process_dir.name} command={command}")
+        except (OSError, UnicodeDecodeError):
+            continue
+    return processes
+
+
+def _temporary_media_outputs() -> list[str]:
+    outputs: list[str] = []
+    for directory in Path("/tmp").glob("animedownloader-preparation-*"):
+        for pattern in ("playable/**/*.mp4", "thumbnails/**/*.jpg"):
+            for path in sorted(directory.glob(pattern)):
+                try:
+                    outputs.append(
+                        f"{path.name}={_format_size(path.stat().st_size)}",
+                    )
+                except OSError:
+                    continue
+    return outputs
+
+
+def _redis_queue_diagnostics(
+    settings: Settings,
+    *,
+    job_ids: set[str],
+) -> list[str]:
+    lines: list[str] = []
+    try:
+        with Redis.from_url(
+            settings.redis_url,
+            decode_responses=True,
+            socket_connect_timeout=2,
+            socket_timeout=2,
+        ) as redis:
+            stream_info = redis.xinfo_stream("taskiq")
+            groups = redis.xinfo_groups("taskiq")
+            group = next(
+                (item for item in groups if item.get("name") == "taskiq"),
+                None,
+            )
+            if group is None:
+                lines.append("    redis: taskiq consumer group not found")
+                return lines
+
+            lines.append(
+                "    redis: "
+                f"stream_length={stream_info.get('length', '?')} "
+                f"group_pending={group.get('pending', '?')} "
+                f"lag={group.get('lag', '?')} "
+                f"last_delivered={group.get('last-delivered-id', '?')}",
+            )
+            pending = redis.execute_command(
+                "XPENDING",
+                "taskiq",
+                "taskiq",
+                "-",
+                "+",
+                100,
+            )
+            related = 0
+            for entry in pending:
+                message_id, consumer, idle_ms, deliveries = entry
+                entries = redis.xrange("taskiq", message_id, message_id)
+                if not entries:
+                    continue
+                _, fields = entries[0]
+                raw_data = fields.get("data")
+                if not raw_data:
+                    continue
+                try:
+                    message = json.loads(raw_data)
+                except json.JSONDecodeError:
+                    continue
+                task_args = message.get("args", [])
+                if not isinstance(task_args, list):
+                    task_args = []
+                if not job_ids.intersection({str(value) for value in task_args}):
+                    continue
+                related += 1
+                lines.append(
+                    "    redis pending task: "
+                    f"id={message_id} consumer={consumer} "
+                    f"idle={float(idle_ms) / 1000:.1f}s deliveries={deliveries} "
+                    f"name={message.get('task_name')!r} args={task_args!r}",
+                )
+            if related == 0:
+                lines.append("    redis pending task: none matched current job ids")
+    except Exception as exc:
+        lines.append(f"    redis diagnostics unavailable: {exc}")
+    return lines
+
+
+def _runtime_diagnostics(
+    settings: Settings,
+    *,
+    job_ids: set[str],
+) -> str:
+    lines = ["  diagnostics:"]
+
+    ffmpeg_processes = _active_ffmpeg_processes()
+    if ffmpeg_processes:
+        lines.append("    ffmpeg:")
+        lines.extend(f"      {process}" for process in ffmpeg_processes)
+    else:
+        lines.append("    ffmpeg: no active process found")
+
+    outputs = _temporary_media_outputs()
+    if outputs:
+        lines.append("    temporary media outputs:")
+        lines.extend(f"      {output}" for output in outputs[:10])
+    else:
+        lines.append("    temporary media outputs: none found")
+
+    lines.extend(_redis_queue_diagnostics(settings, job_ids=job_ids))
+    return "\n".join(lines)
+
+
 def wait_for_playable(
     *,
     api_url: str,
     episode_id: UUID,
+    settings: Settings,
     timeout_seconds: float,
 ) -> dict[str, object]:
-    deadline = time.monotonic() + timeout_seconds
+    started_at = time.monotonic()
+    deadline = started_at + timeout_seconds
     last_signature: tuple[object, ...] | None = None
 
     while time.monotonic() < deadline:
@@ -206,9 +350,23 @@ def wait_for_playable(
 
         time.sleep(2)
 
+    elapsed_seconds = time.monotonic() - started_at
+    job_ids = {
+        str(job_id)
+        for payload in (processing, preparation)
+        if isinstance(payload, dict)
+        for job_id in (payload.get("id"),)
+        if job_id
+    }
     raise SmokeTestError(
         "Timed out waiting for a current playable media variant after "
-        f"{timeout_seconds:g}s",
+        f"{elapsed_seconds:.1f}s (limit={timeout_seconds:g}s).\n"
+        f"{_state_summary(
+            processing=processing if isinstance(processing, dict) else None,
+            preparation=preparation,
+            playable=playable,
+        )}\n"
+        f"{_runtime_diagnostics(settings, job_ids=job_ids)}",
     )
 
 
@@ -518,6 +676,7 @@ async def main() -> int:
     playable = wait_for_playable(
         api_url=args.api_url,
         episode_id=args.episode_id,
+        settings=settings,
         timeout_seconds=args.timeout,
     )
 

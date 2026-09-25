@@ -96,3 +96,33 @@ class ParsedRelease:
             and self.series_title is not None
             and self.episode_number is not None
         )
+
+
+class SearchField(StrEnum):
+    GROUP = "group"
+    TITLE = "title"
+    EPISODE = "episode"
+    RESOLUTION = "resolution"
+    CODEC = "codec"
+
+
+@dataclass(frozen=True, slots=True)
+class SearchQueryContext:
+    group: str | None = None
+    title: str | None = None
+    episode: int | None = None
+    resolution: str | None = None
+    codec: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SearchTemplateSpec:
+    template: str
+    priority: int = 100
+
+
+@dataclass(frozen=True, slots=True)
+class SearchProfileSpec:
+    release_group: str
+    version: int
+    templates: tuple[SearchTemplateSpec, ...]

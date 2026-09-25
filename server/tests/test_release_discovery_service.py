@@ -1,0 +1,45 @@
+from dataclasses import replace
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from animedownloader_api.release_discovery import ReleaseDiscoveryService
+from animedownloader_releases import SearchQueryContext, build_search_queries
+
+from .test_release_parser import _release
+
+
+class FakeNyaaClient:
+    def __init__(self) -> None:
+        self.queries: list[str] = []
+
+    async def search(self, query: str) -> list:
+        self.queries.append(query)
+        if query == "ExampleSubs Frieren":
+            return [replace(_release("[ExampleSubs] Frieren - 01 [1080p]"), id="duplicate")]
+        if query == "Frieren":
+            return [_release("[ExampleSubs] Frieren - 01 [1080p]")]
+        return []
+
+
+class EmptyScalars:
+    def all(self) -> list[object]:
+        return []
+
+    def first(self) -> None:
+        return None
+
+
+@pytest.mark.anyio
+async def test_discovery_executes_progressive_queries_and_deduplicates() -> None:
+    session = MagicMock()
+    session.scalars = AsyncMock(return_value=EmptyScalars())
+    client = FakeNyaaClient()
+    service = ReleaseDiscoveryService(session, client)
+
+    result = await service.discover(title="Frieren", group="ExampleSubs", episode=1)
+
+    assert result.queries == build_search_queries(
+        SearchQueryContext(group="ExampleSubs", title="Frieren", episode=1)
+    )
+    assert client.queries == list(result.queries)
+    assert len(result.items) == 1

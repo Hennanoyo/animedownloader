@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from animedownloader_api.job_progress import JobProgressHub
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
+from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_api.pipeline import AnimePipelineService
 from animedownloader_api.pipeline_control import EpisodePipelineControlService
 from animedownloader_api.playback import PlaybackService
@@ -30,6 +31,13 @@ async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:
     database: Database = request.app.state.database
     async with database.session_factory() as session:
         yield session
+
+
+def get_release_discovery_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    client: Annotated[NyaaClient, Depends(get_nyaa_client)],
+) -> ReleaseDiscoveryService:
+    return ReleaseDiscoveryService(session, client)
 
 
 def get_anime_service(

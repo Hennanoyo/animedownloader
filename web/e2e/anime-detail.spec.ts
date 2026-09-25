@@ -464,7 +464,7 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   ).toBeVisible();
 
   await page.getByLabel("Release group").fill("ExampleSubs");
-  await page.getByLabel("Episode").fill("1");
+  await page.getByRole("spinbutton", { name: "Episode", exact: true }).fill("1");
   await page.getByLabel("Resolution").fill("1080p");
   await page.getByLabel("Video codec").fill("HEVC");
   await page.getByRole("button", { name: "Discover releases" }).click();

@@ -184,7 +184,7 @@ test("renders release profile editor and remains usable without horizontal overf
   const patternHelp = page.getByRole("button", {
     name: "Rule 1 regex pattern help",
   });
-const tooltip = page.getByRole("tooltip");
+  const tooltip = page.getByRole("tooltip");
 
   await patternHelp.hover();
   await expect(tooltip).toBeVisible();
@@ -199,7 +199,7 @@ const tooltip = page.getByRole("tooltip");
 
   await patternHelp.focus();
   await expect(tooltip).toBeVisible();
-  await page.getByRole("heading", { name: "Release profiles" }).hover();
+  await page.keyboard.press("Tab");
   await expect(tooltip).toBeHidden({ timeout: 1000 });
 
   const targetField = page.getByRole("button", {

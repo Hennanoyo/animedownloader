@@ -162,7 +162,7 @@ def test_build_pipeline_summary_reports_completed_media_and_streaming() -> None:
 
     assert summary.download.status is EpisodePipelineStageStatus.COMPLETED
     assert summary.download.job_id == download.id
-    assert summary.download.updated_at == now
+    assert summary.download.updated_at == download.updated_at
     assert summary.processing.status is EpisodePipelineStageStatus.COMPLETED
     assert summary.processing.progress_percent == 100
     assert summary.streaming.status is EpisodePipelineStageStatus.COMPLETED

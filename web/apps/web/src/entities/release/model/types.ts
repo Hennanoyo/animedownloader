@@ -64,7 +64,7 @@ export type SearchField = (typeof searchFields)[number];
 
 export interface ReleaseDiscoveryInput {
   title: string;
-  fields: SearchField[];
+  fields: readonly SearchField[];
   group?: string;
   episode?: number;
   resolution?: string;

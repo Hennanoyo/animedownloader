@@ -5,7 +5,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, cast
 
 from animedownloader_config import JOB_PROGRESS_CHANNEL, JobProgressEvent
 from redis.asyncio import Redis
@@ -48,11 +48,14 @@ class JobProgressHub:
         *,
         client: RedisClient | None = None,
     ) -> None:
-        self._redis = client or Redis.from_url(
-            redis_url,
-            decode_responses=True,
-            socket_connect_timeout=2.0,
-            socket_timeout=None,
+        self._redis: RedisClient = client or cast(
+            RedisClient,
+            Redis.from_url(
+                redis_url,
+                decode_responses=True,
+                socket_connect_timeout=2.0,
+                socket_timeout=None,
+            ),
         )
         self._subscriptions: set[JobProgressSubscription] = set()
         self._stop = asyncio.Event()

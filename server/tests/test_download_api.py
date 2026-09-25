@@ -4,6 +4,7 @@ from uuid import uuid7
 
 import httpx
 import pytest
+from animedownloader_anime import Anime, Episode
 from animedownloader_api.app import create_app
 from animedownloader_api.dependencies import (
     get_download_job_service,
@@ -13,6 +14,8 @@ from animedownloader_api.task_queue import DownloadTaskDispatcher
 from animedownloader_download import (
     ActiveDownloadJobError,
     DownloadJob,
+    DownloadJobListItem,
+    DownloadJobListResult,
     DownloadJobService,
     DownloadJobStatus,
 )
@@ -130,3 +133,81 @@ async def test_latest_episode_download_job_returns_null_when_missing() -> None:
     assert response.status_code == 200
     assert response.json() is None
     service.get_latest_job.assert_awaited_once_with(episode_id)
+
+
+@pytest.mark.anyio
+async def test_list_download_jobs_includes_anime_and_episode_context() -> None:
+    service = MagicMock(spec=DownloadJobService)
+    dispatcher = MagicMock(spec=DownloadTaskDispatcher)
+    now = datetime(2026, 9, 23, tzinfo=UTC)
+    anime = Anime(id=uuid7(), title="Frieren")
+    episode = Episode(
+        id=uuid7(),
+        anime_id=anime.id,
+        episode_number=18,
+        title="再び同じ場所へ",
+        source="nyaa",
+        torrent_url="https://e2e.invalid/download.torrent",
+    )
+    job = DownloadJob(
+        id=uuid7(),
+        episode_id=episode.id,
+        status=DownloadJobStatus.DOWNLOADING.value,
+        downloaded_bytes=500,
+        total_bytes=1000,
+        attempt_count=1,
+        error_message=None,
+        started_at=now,
+        completed_at=None,
+        created_at=now,
+        updated_at=now,
+    )
+    service.list_jobs = AsyncMock(
+        return_value=DownloadJobListResult(
+            items=[DownloadJobListItem(job=job, episode=episode, anime=anime)],
+            total=25,
+        )
+    )
+
+    async with make_client(service, dispatcher) as client:
+        response = await client.get(
+            "/api/download-jobs?status=pending&status=downloading"
+            "&page=2&page_size=10"
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["items"][0]["anime_id"] == str(anime.id)
+    assert payload["items"][0]["anime_title"] == "Frieren"
+    assert payload["items"][0]["episode_number"] == 18
+    assert payload["items"][0]["episode_title"] == "再び同じ場所へ"
+    assert payload["page"] == 2
+    assert payload["page_size"] == 10
+    assert payload["total"] == 25
+    assert payload["has_more"] is True
+    service.list_jobs.assert_awaited_once_with(
+        statuses=(DownloadJobStatus.PENDING, DownloadJobStatus.DOWNLOADING),
+        page=2,
+        page_size=10,
+    )
+
+
+@pytest.mark.anyio
+async def test_list_download_jobs_returns_empty_page() -> None:
+    service = MagicMock(spec=DownloadJobService)
+    dispatcher = MagicMock(spec=DownloadTaskDispatcher)
+    service.list_jobs = AsyncMock(
+        return_value=DownloadJobListResult(items=[], total=0)
+    )
+
+    async with make_client(service, dispatcher) as client:
+        response = await client.get("/api/download-jobs?status=failed")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "items": [],
+        "page": 1,
+        "page_size": 50,
+        "total": 0,
+        "has_more": False,
+    }

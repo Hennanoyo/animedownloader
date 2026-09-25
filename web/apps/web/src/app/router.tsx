@@ -3,6 +3,7 @@ import { z } from "zod";
 import AnimeCreatePage from "../pages/anime-create/ui/AnimeCreatePage";
 import AnimeDetailPage from "../pages/anime-detail/ui/AnimeDetailPage";
 import AnimeListPage from "../pages/animes/ui/AnimeListPage";
+import DownloadManagerPage from "../pages/downloads/ui/DownloadManagerPage";
 import EpisodePlayerPage from "../pages/episode-player/ui/EpisodePlayerPage";
 import ReleaseSearchPage from "../pages/release-search/ui/ReleaseSearchPage";
 import App from "./App";
@@ -36,6 +37,15 @@ const animeDetailRoute = createRoute({
   component: AnimeDetailPage,
 });
 
+const downloadsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/downloads",
+  validateSearch: z.object({
+    status: z.enum(["all", "active", "failed", "history"]).catch("all"),
+  }),
+  component: DownloadManagerPage,
+});
+
 const episodePlayerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/episodes/$episodeId",
@@ -47,6 +57,7 @@ const routeTree = rootRoute.addChildren([
   animesRoute,
   animeCreateRoute,
   animeDetailRoute,
+  downloadsRoute,
   episodePlayerRoute,
 ]);
 

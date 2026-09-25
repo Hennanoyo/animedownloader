@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from animedownloader_anime import Anime, Episode
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .enums import DownloadJobStatus
@@ -38,6 +39,40 @@ class DownloadJobRepository:
             .order_by(DownloadJob.created_at.desc())
         )
         return result
+
+    async def list_with_context(
+        self,
+        *,
+        statuses: tuple[DownloadJobStatus, ...] | None,
+        offset: int,
+        limit: int,
+    ) -> tuple[list[tuple[DownloadJob, Episode, Anime]], int]:
+        filters = (
+            [DownloadJob.status.in_(tuple(status.value for status in statuses))]
+            if statuses
+            else []
+        )
+
+        total = int(
+            await self.session.scalar(
+                select(func.count())
+                .select_from(DownloadJob)
+                .where(*filters)
+            )
+            or 0
+        )
+
+        result = await self.session.execute(
+            select(DownloadJob, Episode, Anime)
+            .join(Episode, DownloadJob.episode_id == Episode.id)
+            .join(Anime, Episode.anime_id == Anime.id)
+            .where(*filters)
+            .order_by(DownloadJob.created_at.desc(), DownloadJob.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+
+        return list(result.tuples().all()), total
 
     async def add(self, job: DownloadJob) -> DownloadJob:
         self.session.add(job)

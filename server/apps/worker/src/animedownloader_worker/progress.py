@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import Protocol, cast
 from uuid import UUID
 
-from animedownloader_config import JOB_PROGRESS_CHANNEL, JobProgressEvent
+from animedownloader_config import JOB_PROGRESS_CHANNEL, JobProgressEvent, JobProgressStage
 from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,7 @@ async def emit_job_progress(
     job_id: UUID,
     status: str,
     progress_percent: float | None = None,
+    stage: JobProgressStage | None = None,
     error_message: str | None = None,
 ) -> None:
     if callback is None:
@@ -30,6 +31,7 @@ async def emit_job_progress(
         job_id=job_id,
         status=status,
         progress_percent=progress_percent,
+        stage=stage,
         downloaded_bytes=None,
         total_bytes=None,
         error_message=error_message,

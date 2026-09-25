@@ -114,10 +114,9 @@ def test_progress_websocket_sends_ready_and_event() -> None:
     app.dependency_overrides[get_job_progress_hub] = lambda: hub
     app.include_router(router)
 
-    with TestClient(app) as client:
-        with client.websocket_connect(
-            "/api/job-events/ws?job_type=download",
-        ) as websocket:
+    with TestClient(app) as client, client.websocket_connect(
+        "/api/job-events/ws?job_type=download",
+    ) as websocket:
             ready = JobProgressReadyEvent.model_validate_json(
                 websocket.receive_text(),
             )

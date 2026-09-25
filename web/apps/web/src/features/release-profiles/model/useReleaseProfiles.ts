@@ -132,7 +132,7 @@ export function useCreateParserSample() {
 export function useDeleteParserSample() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ sampleId, groupId }: { sampleId: string; groupId: string }) =>
+    mutationFn: ({ sampleId }: { sampleId: string; groupId: string }) =>
       deleteParserSample(sampleId),
     onSuccess: async (_value, variables) => {
       await Promise.all([

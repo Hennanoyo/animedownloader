@@ -5,9 +5,9 @@ Revises: 0018_search_profile_fields
 Create Date: 2026-09-26
 """
 
-from alembic import op
-
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = "0019_release_parser_operations"
 down_revision = "0018_search_profile_fields"

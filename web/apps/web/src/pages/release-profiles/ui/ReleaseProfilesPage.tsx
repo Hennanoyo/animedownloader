@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Checkbox,
@@ -66,7 +66,14 @@ const EMPTY_RULE: ParserRuleInput = {
 };
 
 function toEditableRules(profile: ParserProfile): ParserRuleInput[] {
-  return profile.rules.map(({ id: _id, ...rule }) => rule);
+  return profile.rules.map((rule) => ({
+    field: rule.field,
+    pattern: rule.pattern,
+    priority: rule.priority,
+    required: rule.required,
+    flags: rule.flags,
+    transform: rule.transform,
+  }));
 }
 
 export default function ReleaseProfilesPage() {
@@ -76,11 +83,6 @@ export default function ReleaseProfilesPage() {
   const profiles = useParserProfiles(groupId);
   const samples = useParserSamples(groupId);
   const [selectedProfileId, setSelectedProfileId] = useState("");
-
-  const selectedProfile = useMemo(
-    () => profiles.data?.find((profile) => profile.id === selectedProfileId) ?? null,
-    [profiles.data, selectedProfileId],
-  );
 
   useEffect(() => {
     const nextGroup = groups.data?.find((group) => group.id === groupId);
@@ -280,8 +282,6 @@ function ReleaseProfileWorkspace({
         <ProfileEditor
           key={selectedProfile.id}
           profile={selectedProfile}
-          samples={samples}
-          samplesPending={samplesPending}
           onDraftFromObservation={handleCreateDraftFromObservation}
         />
       ) : null}
@@ -299,15 +299,11 @@ function ReleaseProfileWorkspace({
 
 interface ProfileEditorProps {
   profile: ParserProfile;
-  samples: import("../../../entities/release/api/releaseProfiles").ParserSample[];
-  samplesPending: boolean;
   onDraftFromObservation: (observationId: string) => Promise<void>;
 }
 
 function ProfileEditor({
   profile,
-  samples,
-  samplesPending,
   onDraftFromObservation,
 }: ProfileEditorProps) {
   const [rules, setRules] = useState<ParserRuleInput[]>(() => toEditableRules(profile));

@@ -37,7 +37,6 @@ from .parser import (
     validate_parser_profile,
     validate_parser_samples,
 )
-from .service import ReleaseProfileService
 from .search import (
     DEFAULT_SEARCH_FIELDS,
     MAX_SEARCH_FIELDS,
@@ -46,6 +45,7 @@ from .search import (
     normalize_release_group_slug,
     validate_search_profile,
 )
+from .service import ReleaseProfileService
 
 __all__ = [
     "MAX_INPUT_LENGTH",

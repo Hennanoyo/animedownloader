@@ -171,7 +171,12 @@ export default function EpisodePipelineCard({
                       </div>
                     </div>
 
-                    {renderStageBody(stage.id, stageStatus, pipeline)}
+                    {renderStageBody(
+                      stage.id,
+                      stageStatus,
+                      pipeline,
+                      realtimeConnected,
+                    )}
 
                     {action ? (
                       <Button
@@ -418,6 +423,7 @@ function renderStageBody(
   stage: PipelineCurrentStage,
   stageStatus: PipelineStageStatus,
   pipeline: EpisodePipelineSummary,
+  realtimeConnected: boolean,
 ) {
   if (stage === "download") {
     if (

@@ -164,7 +164,7 @@ function Hint({
   children: ReactNode;
 }) {
   return (
-    <TooltipTrigger delay={0} placement="top">
+    <TooltipTrigger delay={0}>
       <Button className={styles.hintButton} aria-label={label + " help"}>
         ?
       </Button>

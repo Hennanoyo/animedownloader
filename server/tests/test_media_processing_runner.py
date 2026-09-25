@@ -272,15 +272,22 @@ async def test_runner_inspects_and_completes(tmp_path: Path) -> None:
         )
     )
     inspector = FakeInspector(make_probe(media_path))
+    events: list[tuple[str, float | None]] = []
+
+    async def on_progress(event: object) -> None:
+        events.append((getattr(event, "status"), getattr(event, "progress_percent")))
+
     runner = MediaProcessingRunner(
         state=state,
         inspector=inspector,
         download_root=tmp_path,
+        on_progress=on_progress,
     )
 
     await runner.run(job_id)
 
     assert state.transitions == ["processing"]
+    assert events == [("processing", 0), ("completed", 100)]
     assert inspector.paths == [media_path]
     assert state.completed is not None
     assert state.completed[0] == str(media_path)

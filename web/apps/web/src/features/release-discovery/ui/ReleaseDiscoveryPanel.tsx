@@ -10,8 +10,6 @@ import {
   ListBox,
   ListBoxItem,
   Popover,
-  Select,
-  SelectValue,
   Text,
 } from "react-aria-components";
 import { z } from "zod";
@@ -153,8 +151,6 @@ export default function ReleaseDiscoveryPanel({
   const initialTitleOption = getTitleOption(titleOptions, defaultTitleSource);
   const releaseGroups = useReleaseGroups();
   const [request, setRequest] = useState<ReleaseDiscoveryInput | null>(null);
-  const [selectedTitleSource, setSelectedTitleSource] =
-    useState<ReleaseDiscoveryTitleSource>(initialTitleOption.key);
   const [fieldOrder, setFieldOrder] =
     useState<SearchField[]>(DEFAULT_FIELD_ORDER);
   const [enabledFields, setEnabledFields] =
@@ -207,16 +203,6 @@ export default function ReleaseDiscoveryPanel({
     () => fieldOrder.filter((field) => enabledFields[field]),
     [enabledFields, fieldOrder],
   );
-
-  function handleTitleSourceChange(key: string | number | null) {
-    if (key === null) return;
-    const source = String(key) as ReleaseDiscoveryTitleSource;
-    const option = getTitleOption(titleOptions, source);
-    setSelectedTitleSource(option.key);
-    if (option.key !== "custom") {
-      form.setFieldValue("title", option.value);
-    }
-  }
 
   function handleDragStart(
     event: React.DragEvent<HTMLButtonElement>,
@@ -414,34 +400,10 @@ export default function ReleaseDiscoveryPanel({
 
                   <div className={styles.fieldMeta}>
                     <span className={styles.fieldLabel}>{label}</span>
-
                     {field === "title" ? (
-                      <Select
-                        className={styles.titleSource}
-                        selectedKey={selectedTitleSource}
-                        onSelectionChange={handleTitleSourceChange}
-                      >
-                        <Button
-                          className={styles.selectButton}
-                          aria-label="Title source"
-                        >
-                          <SelectValue />
-                          <span aria-hidden="true">▾</span>
-                        </Button>
-                        <Popover className={styles.selectPopover}>
-                          <ListBox className={styles.selectListBox}>
-                            {titleOptions.map((option) => (
-                              <ListBoxItem
-                                id={option.key}
-                                key={option.key}
-                                className={styles.selectItem}
-                              >
-                                {option.label}
-                              </ListBoxItem>
-                            ))}
-                          </ListBox>
-                        </Popover>
-                      </Select>
+                      <span className={styles.fieldHint}>
+                        Choose a saved title or type a custom value
+                      </span>
                     ) : null}
                   </div>
 
@@ -449,13 +411,11 @@ export default function ReleaseDiscoveryPanel({
                     {(fieldState) => {
                       const options =
                         field === "title"
-                          ? titleOptions
-                              .filter(
-                                (option) =>
-                                  option.key !== "custom" &&
-                                  option.value.trim().length > 0,
-                              )
-                              .map((option) => option.value)
+                          ? titleOptions.filter(
+                              (option) =>
+                                option.key !== "custom" &&
+                                option.value.trim().length > 0,
+                            )
                           : field === "group"
                             ? (releaseGroups.data?.map((group) => group.name) ?? [])
                             : field === "episode"
@@ -473,16 +433,14 @@ export default function ReleaseDiscoveryPanel({
                           isInvalid={fieldState.state.meta.errors.length > 0}
                           onInputChange={(value) => {
                             fieldState.handleChange(value);
-
-                            if (field === "title") {
-                              const matchingOption = titleOptions.find(
-                                (option) =>
-                                  option.key !== "custom" &&
-                                  option.value === value,
-                              );
-                              setSelectedTitleSource(
-                                matchingOption?.key ?? "custom",
-                              );
+                          }}
+                          onSelectionChange={(key) => {
+                            if (field !== "title" || key === null) return;
+                            const option = titleOptions.find(
+                              (candidate) => candidate.key === String(key),
+                            );
+                            if (option && option.value.trim().length > 0) {
+                              form.setFieldValue("title", option.value);
                             }
                           }}
                         >
@@ -509,15 +467,32 @@ export default function ReleaseDiscoveryPanel({
                           </div>
                           <Popover className={styles.selectPopover}>
                             <ListBox className={styles.selectListBox}>
-                              {(option: string) => (
-                                <ListBoxItem
-                                  id={option}
-                                  textValue={option}
-                                  className={styles.selectItem}
-                                >
-                                  {option}
-                                </ListBoxItem>
-                              )}
+                              {(option: string | ReleaseDiscoveryTitleOption) => {
+                                if (typeof option === "string") {
+                                  return (
+                                    <ListBoxItem
+                                      id={option}
+                                      textValue={option}
+                                      className={styles.selectItem}
+                                    >
+                                      {option}
+                                    </ListBoxItem>
+                                  );
+                                }
+
+                                return (
+                                  <ListBoxItem
+                                    id={option.key}
+                                    textValue={option.value}
+                                    className={styles.selectItem}
+                                  >
+                                    <span>{option.label}</span>
+                                    <span className={styles.titleOptionValue}>
+                                      {option.value}
+                                    </span>
+                                  </ListBoxItem>
+                                );
+                              }}
                             </ListBox>
                           </Popover>
                           {fieldState.state.meta.errors.length > 0 ? (

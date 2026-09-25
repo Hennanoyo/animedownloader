@@ -54,10 +54,22 @@ async def test_discovery_executes_progressive_queries_and_deduplicates() -> None
     client = FakeNyaaClient()
     service = ReleaseDiscoveryService(session, client)
 
-    result = await service.discover(title="Frieren", group="ExampleSubs", episode=1)
+    result = await service.discover(
+        title="Frieren",
+        group="ExampleSubs",
+        episode=1,
+        resolution="1080p",
+        codec="HEVC",
+    )
 
     assert result.queries == build_search_queries(
-        SearchQueryContext(group="ExampleSubs", title="Frieren", episode=1)
+        SearchQueryContext(
+            group="ExampleSubs",
+            title="Frieren",
+            episode=1,
+            resolution="1080p",
+            codec="HEVC",
+        )
     )
     assert client.queries == list(result.queries)
     assert len(result.items) == 1

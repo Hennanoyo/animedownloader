@@ -23,6 +23,21 @@ const downloadJobSchema = z.object({
   updated_at: z.coerce.date(),
 });
 
+const downloadJobListItemSchema = downloadJobSchema.extend({
+  anime_id: z.uuid(),
+  anime_title: z.string(),
+  episode_number: z.number().int().positive(),
+  episode_title: z.string(),
+});
+
+const downloadJobListResponseSchema = z.object({
+  items: z.array(downloadJobListItemSchema),
+  page: z.number().int().positive(),
+  page_size: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  has_more: z.boolean(),
+});
+
 export class DownloadJobResponseError extends Error {
   constructor(readonly issues: z.core.$ZodIssue[]) {
     super(
@@ -36,6 +51,28 @@ export class DownloadJobResponseError extends Error {
     );
     this.name = "DownloadJobResponseError";
   }
+}
+
+
+export async function listDownloadJobs(
+  params: DownloadJobListParams = {},
+): Promise<DownloadJobListResponse> {
+  const search = new URLSearchParams();
+  for (const status of params.statuses ?? []) {
+    search.append("status", status);
+  }
+  search.set("page", String(params.page ?? 1));
+  search.set("page_size", String(params.pageSize ?? 100));
+
+  const result = downloadJobListResponseSchema.safeParse(
+    await getJson("/api/download-jobs?" + search.toString(), {
+      signal: params.signal,
+    }),
+  );
+  if (!result.success) {
+    throw new DownloadJobResponseError(result.error.issues);
+  }
+  return result.data;
 }
 
 export async function getLatestEpisodeDownloadJob(

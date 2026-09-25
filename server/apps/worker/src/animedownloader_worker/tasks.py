@@ -89,11 +89,13 @@ async def process_media_job(job_id: str) -> None:
     print(f"[worker] media processing started: job_id={job_id}", flush=True)
     settings = Settings()
     database = create_database(settings.database_url)
+    progress_publisher = RedisJobProgressPublisher(settings.redis_url)
     try:
         runner = MediaProcessingRunner(
             state=create_media_processing_state(database.session_factory),
             inspector=FFprobeInspector(),
             download_root=settings.download_root,
+            on_progress=progress_publisher.publish,
         )
         parsed_job_id = UUID(job_id)
         await runner.run(parsed_job_id)
@@ -102,6 +104,7 @@ async def process_media_job(job_id: str) -> None:
         await _enqueue_media_preparation(database, parsed_job_id)
         print(f"[worker] media processing completed: job_id={job_id}", flush=True)
     finally:
+        await progress_publisher.close()
         await database.dispose()
 
 
@@ -110,6 +113,7 @@ async def process_subtitle_tracks(asset_id: str) -> None:
     print(f"[worker] subtitle processing started: asset_id={asset_id}", flush=True)
     settings = Settings()
     database = create_database(settings.database_url)
+    progress_publisher = RedisJobProgressPublisher(settings.redis_url)
     try:
         ffmpeg_runner = SubprocessFFmpegRunner(
             timeout_seconds=settings.ffmpeg_timeout_seconds,
@@ -219,12 +223,14 @@ async def process_media_preparation(job_id: str) -> None:
             thumbnail_processor=FFmpegThumbnailSpriteProcessor(
                 runner=ffmpeg_runner,
             ),
+            on_progress=progress_publisher.publish,
         )
         parsed_job_id = UUID(job_id)
         await runner.run(parsed_job_id)
         await _enqueue_media_packaging(database, parsed_job_id)
         print(f"[worker] media preparation completed: job_id={job_id}", flush=True)
     finally:
+        await progress_publisher.close()
         await database.dispose()
 
 
@@ -271,6 +277,7 @@ async def process_media_packaging(job_id: str) -> None:
     print(f"[worker] media packaging started: job_id={job_id}", flush=True)
     settings = Settings()
     database = create_database(settings.database_url)
+    progress_publisher = RedisJobProgressPublisher(settings.redis_url)
     try:
         ffmpeg_runner = SubprocessFFmpegRunner(
             timeout_seconds=settings.ffmpeg_timeout_seconds,
@@ -279,11 +286,13 @@ async def process_media_packaging(job_id: str) -> None:
             state=create_media_packaging_state(database.session_factory),
             storage=create_media_storage(settings),
             processor=FFmpegCMAFProcessor(runner=ffmpeg_runner),
+            on_progress=progress_publisher.publish,
         )
         parsed_job_id = UUID(job_id)
         await runner.run(parsed_job_id)
         print(f"[worker] media packaging completed: job_id={job_id}", flush=True)
     finally:
+        await progress_publisher.close()
         await database.dispose()
 
 

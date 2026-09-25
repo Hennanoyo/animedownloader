@@ -5,7 +5,13 @@ import unicodedata
 from collections.abc import Iterable
 from typing import Final
 
-from .models import Release, SearchField, SearchProfileSpec, SearchQueryContext
+from .models import (
+    Release,
+    SearchField,
+    SearchProfileSpec,
+    SearchQueryContext,
+    SearchTemplateSpec,
+)
 
 MAX_SEARCH_TEMPLATE_LENGTH: Final = 300
 MAX_SEARCH_TEMPLATES: Final = 16

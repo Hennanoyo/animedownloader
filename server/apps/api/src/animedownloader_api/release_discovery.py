@@ -10,6 +10,7 @@ from animedownloader_releases import (
     ParserProfileSpec,
     ParserRuleSpec,
     ParserTransform,
+    ParserProfileStatus,
     Release,
     ReleaseGroup,
     ReleaseParserProfile,
@@ -22,7 +23,6 @@ from animedownloader_releases import (
     merge_releases,
     normalize_release_group_slug,
     parse_release,
-    ParserProfileStatus,
     SearchProfileStatus,
 )
 from sqlalchemy import func, or_, select

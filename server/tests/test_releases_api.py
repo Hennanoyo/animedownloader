@@ -12,7 +12,7 @@ from animedownloader_api.release_discovery import (
     ReleaseDiscoveryItem,
     ReleaseDiscoveryResult,
 )
-from animedownloader_releases import ParseStatus, ParsedRelease, Release
+from animedownloader_releases import ParsedRelease, ParseStatus, Release
 
 
 @dataclass

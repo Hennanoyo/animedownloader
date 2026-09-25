@@ -65,7 +65,7 @@ class ParsedReleaseResponse(BaseModel):
     parser_profile_version: int | None
 
     @classmethod
-    def from_parsed(cls, parsed: ParsedRelease) -> "ParsedReleaseResponse":
+    def from_parsed(cls, parsed: ParsedRelease) -> ParsedReleaseResponse:
         return cls(
             provider_source=parsed.provider_source,
             source_id=parsed.source_id,

@@ -400,11 +400,6 @@ export default function ReleaseDiscoveryPanel({
 
                   <div className={styles.fieldMeta}>
                     <span className={styles.fieldLabel}>{label}</span>
-                    {field === "title" ? (
-                      <span className={styles.fieldHint}>
-                        Choose a saved title or type a custom value
-                      </span>
-                    ) : null}
                   </div>
 
                   <form.Field name={field}>

@@ -325,6 +325,13 @@ class MediaPreparationRunner:
                     thumbnail_sprite_key=None,
                     thumbnail_vtt_key=None,
                 )
+                await emit_job_progress(
+                    self._on_progress,
+                    job_type="media-preparation",
+                    job_id=job_id,
+                    status=MediaPreparationJobStatus.COMPLETED.value,
+                    progress_percent=100,
+                )
                 return
 
             source_probe: MediaProbe | None = None

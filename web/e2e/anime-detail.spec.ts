@@ -485,10 +485,12 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   const groupCheckbox = discovery.getByRole("checkbox", {
     name: "Enable Group",
   });
-  const groupCheckboxLabel = groupCheckbox.locator("xpath=..");
-  await groupCheckboxLabel.click({ force: true });
+  const groupCheckboxToggle = discovery.locator(
+    '[data-search-field-toggle="group"]',
+  );
+  await groupCheckboxToggle.click();
   await expect(groupCheckbox).not.toBeChecked();
-  await groupCheckboxLabel.click({ force: true });
+  await groupCheckboxToggle.click();
   await expect(groupCheckbox).toBeChecked();
 
   const rows = discovery.locator("[data-search-field]");

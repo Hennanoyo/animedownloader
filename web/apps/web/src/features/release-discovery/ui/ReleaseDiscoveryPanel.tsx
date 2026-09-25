@@ -398,6 +398,7 @@ export default function ReleaseDiscoveryPanel({
                   </button>
 
                   <Checkbox
+                    data-search-field-toggle={field}
                     isSelected={enabledFields[field]}
                     onChange={(selected) =>
                       setEnabledFields((current) => ({

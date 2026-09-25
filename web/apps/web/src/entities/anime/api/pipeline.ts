@@ -37,6 +37,8 @@ const pipelineSchema = z.object({
     updated_at: z.string().datetime().nullable(),
   }),
   processing: z.object({
+    job_id: z.uuid().nullable(),
+    preparation_job_id: z.uuid().nullable(),
     status: stageStatusSchema,
     progress_percent: z.number().int().min(0).max(100),
     playable_ready: z.boolean(),
@@ -45,7 +47,9 @@ const pipelineSchema = z.object({
   subtitles: stageStatusSchema,
   attachments: stageStatusSchema,
   streaming: z.object({
+    job_id: z.uuid().nullable(),
     status: stageStatusSchema,
+    progress_percent: z.number().int().min(0).max(100),
     hls_ready: z.boolean(),
     dash_ready: z.boolean(),
     error_message: z.string().nullable(),

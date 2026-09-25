@@ -510,6 +510,12 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await discovery
     .getByRole("combobox", { name: "Episode", exact: true })
     .fill("1");
+  const episodeInput = discovery.getByRole("combobox", {
+    name: "Episode",
+    exact: true,
+  });
+  await episodeInput.press("Escape");
+
   await discovery
     .getByRole("combobox", { name: "Resolution", exact: true })
     .fill("1080p");

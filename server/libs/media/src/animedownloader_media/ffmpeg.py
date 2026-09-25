@@ -498,8 +498,7 @@ class FFmpegSubtitleProcessor:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         encoder = "copy" if codec in {"ass", "ssa"} else "ass"
 
-        result = await run_ffmpeg(
-            self._runner,
+        result = await self._runner.run(
             (
                 self._executable,
                 "-v",
@@ -668,7 +667,8 @@ class FFmpegPlayableMediaProcessor:
             video_options = build_video_encoder_options(self._video_encoder)
             audio_codec = "aac"
 
-        result = await self._runner.run(
+        result = await run_ffmpeg(
+            self._runner,
             (
                 self._executable,
                 "-v",

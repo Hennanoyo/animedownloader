@@ -41,7 +41,39 @@ export interface ParsedRelease {
   parser_profile_version: number | null;
 }
 
+export interface AnimeMatchCandidate {
+  anime_id: string;
+  title: string;
+  matched_titles: string[];
+}
+
+export type AnimeMatchStatus = "matched" | "ambiguous" | "unmatched";
+
+export interface AnimeMatch {
+  status: AnimeMatchStatus;
+  normalized_series_title: string | null;
+  candidates: AnimeMatchCandidate[];
+}
+
 export interface ReleaseDiscoveryItem {
+  release: Release;
+  parsed: ParsedRelease;
+  match: AnimeMatch;
+}
+
+export type EpisodeIngestionStatus =
+  | "created"
+  | "idempotent"
+  | "replacement_candidate";
+
+export interface EpisodeIngestionResponse {
+  status: EpisodeIngestionStatus;
+  episode: import("../../anime/model/types").Episode | null;
+  existing_episode: import("../../anime/model/types").Episode | null;
+}
+
+export interface EpisodeIngestionInput {
+  anime_id: string;
   release: Release;
   parsed: ParsedRelease;
 }

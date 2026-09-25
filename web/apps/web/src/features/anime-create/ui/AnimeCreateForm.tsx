@@ -103,31 +103,43 @@ function duplicateNumbers(episodes: AnimeEpisodeDraft[]): number[] {
     .sort((a, b) => a - b);
 }
 
-function getSubmitErrors(
-  errorMap: unknown,
-): string[] {
-  if (errorMap === null || typeof errorMap !== "object") {
-    return [];
+function getSubmitErrors(errorMap: unknown): string[] {
+  const messages: string[] = [];
+
+  function visit(value: unknown, path: string[] = []) {
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item, path);
+      return;
+    }
+
+    if (typeof value === "string") {
+      if (value.trim()) {
+        messages.push(path.length > 0 ? path.join(".") + ": " + value : value);
+      }
+      return;
+    }
+
+    if (value === null || typeof value !== "object") {
+      return;
+    }
+
+    if (
+      "message" in value &&
+      typeof value.message === "string" &&
+      value.message.trim()
+    ) {
+      const message = value.message.trim();
+      messages.push(path.length > 0 ? path.join(".") + ": " + message : message);
+    }
+
+    for (const [key, child] of Object.entries(value)) {
+      if (key === "message" || key === "code" || key === "path") continue;
+      visit(child, [...path, key]);
+    }
   }
 
-  return Object.values(errorMap)
-    .flatMap((issues) => (Array.isArray(issues) ? issues : [issues]))
-    .flatMap((issue) => {
-      if (
-        issue !== null &&
-        typeof issue === "object" &&
-        "message" in issue &&
-        typeof issue.message === "string"
-      ) {
-        return [issue.message];
-      }
-
-      if (typeof issue === "string") {
-        return [issue];
-      }
-
-      return [];
-    });
+  visit(errorMap);
+  return Array.from(new Set(messages));
 }
 
 export default function AnimeCreateForm() {
@@ -431,7 +443,7 @@ export default function AnimeCreateForm() {
           <div className={styles.formError} role="alert" aria-live="polite">
             <strong>Check the form before creating the anime.</strong>
             <ul className={styles.errorList}>
-              {Array.from(new Set(submitErrors)).map((error) => (
+              {submitErrors.map((error) => (
                 <li key={error}>{error}</li>
               ))}
             </ul>
@@ -522,9 +534,9 @@ export default function AnimeCreateForm() {
       </section>
 
       {mutation.isError ? (
-        <p className={styles.formError}>
-          Failed to create anime: {mutation.error.message}
-        </p>
+        <p className={styles.formError} role="alert" aria-live="polite">
+        Failed to create anime: {mutation.error.message}
+      </p>
       ) : null}
 
       <div className={styles.actions}>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Button,
   Form,
@@ -156,9 +156,6 @@ function getSubmitErrors(errorMap: unknown): string[] {
 export default function AnimeCreateForm() {
   const navigate = useNavigate();
   const mutation = useCreateAnime();
-  const [episodes, setEpisodes] = useState<AnimeEpisodeDraft[]>([
-    emptyEpisode(1),
-  ]);
   const [submitValidationErrors, setSubmitValidationErrors] = useState<string[]>(
     [],
   );
@@ -171,7 +168,7 @@ export default function AnimeCreateForm() {
     weekday: "friday",
     air_time: "",
     timezone: "Asia/Tokyo",
-    episodes,
+    episodes: [],
   };
 
   const form = useForm({
@@ -207,37 +204,6 @@ export default function AnimeCreateForm() {
     },
   });
 
-  useEffect(() => {
-    form.setFieldValue("episodes", episodes);
-  }, [episodes, form]);
-
-  function updateEpisode(index: number, update: Partial<AnimeEpisodeDraft>) {
-    setEpisodes((current) =>
-      current.map((episode, episodeIndex) =>
-        episodeIndex === index ? { ...episode, ...update } : episode,
-      ),
-    );
-  }
-
-  function addEpisode() {
-    setEpisodes((current) => {
-      const max = current.reduce(
-        (value, episode) => Math.max(value, episode.episode_number),
-        0,
-      );
-      return [...current, emptyEpisode(max + 1)];
-    });
-  }
-
-  function removeEpisode(index: number) {
-    setEpisodes((current) =>
-      current.length === 1
-        ? current
-        : current.filter((_, episodeIndex) => episodeIndex !== index),
-    );
-  }
-
-  const duplicates = duplicateNumbers(episodes);
   const submitErrors = [
     ...submitValidationErrors,
     ...getSubmitErrors(form.state.errorMap.onSubmit),
@@ -463,20 +429,36 @@ export default function AnimeCreateForm() {
               title.
             </p>
           </div>
-          <Button
-            type="button"
-            className={styles.secondaryButton}
-            onPress={addEpisode}
-          >
-            Add episode
-          </Button>
+          <form.Field name="episodes" mode="array">
+            {(episodesField) => (
+              <Button
+                type="button"
+                className={styles.secondaryButton}
+                onPress={() => {
+                  const max = episodesField.state.value.reduce(
+                    (value, episode) => Math.max(value, episode.episode_number),
+                    0,
+                  );
+                  episodesField.pushValue(emptyEpisode(max + 1));
+                }}
+              >
+                Add episode
+              </Button>
+            )}
+          </form.Field>
         </div>
 
-        {duplicates.length > 0 ? (
-          <p className={styles.warning}>
-            Duplicate episode numbers: {duplicates.join(", ")}.
-          </p>
-        ) : null}
+        <form.Field name="episodes" mode="array">
+          {(episodesField) => {
+            const duplicates = duplicateNumbers(episodesField.state.value);
+
+            return (
+              <>
+                {duplicates.length > 0 ? (
+                  <p className={styles.warning}>
+                    Duplicate episode numbers: {duplicates.join(", ")}.
+                  </p>
+                ) : null}
 
         {submitErrors.length > 0 ? (
           <div className={styles.formError} role="alert" aria-live="polite">
@@ -489,19 +471,18 @@ export default function AnimeCreateForm() {
           </div>
         ) : null}
 
-        {episodes.map((episode, index) => (
-          <article className={styles.episode} key={index}>
-            <div className={styles.episodeHeader}>
-              <strong>Episode {index + 1}</strong>
-              <Button
-                type="button"
-                className={styles.removeButton}
-                onPress={() => removeEpisode(index)}
-                isDisabled={episodes.length === 1}
-              >
-                Remove
-              </Button>
-            </div>
+                {episodesField.state.value.map((episode, index) => (
+                  <article className={styles.episode} key={index}>
+                    <div className={styles.episodeHeader}>
+                      <strong>Episode {episode.episode_number}</strong>
+                      <Button
+                        type="button"
+                        className={styles.removeButton}
+                        onPress={() => episodesField.removeValue(index)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
 
             <TextField
               className={styles.field}
@@ -524,52 +505,69 @@ export default function AnimeCreateForm() {
               ) : null}
             </TextField>
 
-            <TextField
-              className={styles.field}
-              isRequired
-              isInvalid={
-                !Number.isInteger(episode.episode_number) ||
-                episode.episode_number < 1 ||
-                episode.episode_number > 9999 ||
-                duplicates.includes(episode.episode_number)
-              }
-              validationBehavior="aria"
-            >
-              <Label>Episode number</Label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                value={String(episode.episode_number)}
-                onChange={(event) =>
-                  updateEpisode(index, {
-                    episode_number: Number(event.target.value),
-                  })
-                }
-              />
-              {duplicates.includes(episode.episode_number) ? (
-                <Text slot="errorMessage" className={styles.fieldError}>
-                  Episode number must be unique.
-                </Text>
-              ) : null}
-            </TextField>
+                    <form.Field name={`episodes[${index}].episode_number`}>
+                      {(field) => (
+                        <TextField
+                          className={styles.field}
+                          isRequired
+                          isInvalid={
+                            !Number.isInteger(field.state.value) ||
+                            field.state.value < 1 ||
+                            field.state.value > 9999 ||
+                            duplicates.includes(field.state.value)
+                          }
+                          validationBehavior="aria"
+                        >
+                          <Label>Episode number</Label>
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            value={String(field.state.value)}
+                            onBlur={field.handleBlur}
+                            onChange={(event) =>
+                              field.handleChange(Number(event.target.value))
+                            }
+                          />
+                          {duplicates.includes(field.state.value) ? (
+                            <Text slot="errorMessage" className={styles.fieldError}>
+                              Episode number must be unique.
+                            </Text>
+                          ) : null}
+                        </TextField>
+                      )}
+                    </form.Field>
 
-            <ReleasePicker
-              release={episode.release}
-              onSelect={(release) => {
-                updateEpisode(index, {
-                  release,
-                  title: episode.title.trim() ? episode.title : release.title,
-                });
-              }}
-            />
+                    <ReleasePicker
+                      release={episode.release}
+                      onSelect={(release) => {
+                        episodesField.replaceValue(index, {
+                          ...episodesField.state.value[index],
+                          release,
+                          title: episodesField.state.value[index].title.trim()
+                            ? episodesField.state.value[index].title
+                            : release.title,
+                        });
+                      }}
+                    />
 
-            {!episode.release ? (
-              <p className={styles.warning}>
-                Select a Nyaa release before submitting this anime.
-              </p>
-            ) : null}
-          </article>
-        ))}
+                    {!episode.release ? (
+                      <p className={styles.warning}>
+                        Select a Nyaa release before submitting this anime.
+                      </p>
+                    ) : null}
+                  </article>
+                ))}
+
+                {episodesField.state.value.length === 0 ? (
+                  <div className={styles.emptyEpisodes}>
+                    <p>No episodes added yet.</p>
+                    <span>Use Add episode to add the first episode.</span>
+                  </div>
+                ) : null}
+              </>
+            );
+          }}
+        </form.Field>
       </section>
 
       {mutation.isError ? (
@@ -587,8 +585,9 @@ export default function AnimeCreateForm() {
           Cancel
         </Button>
         <Button
-          type="submit"
+          type="button"
           className={styles.primaryButton}
+          onPress={() => void form.handleSubmit()}
           isDisabled={form.state.isSubmitting || mutation.isPending}
         >
           {mutation.isPending ? "Creating..." : "Create anime"}

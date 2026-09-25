@@ -1,4 +1,5 @@
 import { Link, useSearch } from "@tanstack/react-router";
+import type { UseQueryResult } from "@tanstack/react-query";
 import DownloadJobCard from "../../../features/download-management/ui/DownloadJobCard";
 import { Button } from "react-aria-components";
 import {
@@ -8,6 +9,7 @@ import {
   terminalDownloadStatuses,
   useDownloadJobs,
 } from "../../../features/download-management/model/useDownloadJobs";
+import type { DownloadJobListResponse } from "../../../entities/download/model/types";
 import styles from "./DownloadManagerPage.module.scss";
 
 const tabs = [
@@ -102,7 +104,7 @@ function DownloadSection({
   emptyMessage,
 }: {
   title: string;
-  query: ReturnType<typeof useDownloadJobs>;
+  query: UseQueryResult<DownloadJobListResponse, Error>;
   emptyMessage: string;
 }) {
   const headingId = "download-section-" + title.toLowerCase().replaceAll(" ", "-");

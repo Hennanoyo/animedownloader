@@ -15,6 +15,7 @@ const transparentPng = Buffer.from(
 );
 
 test.beforeEach(async ({ page }) => {
+  pipelineResponse = structuredClone(pipeline);
   await page.route(`**/api/animes/${ANIME_ID}`, async (route) => {
     await route.fulfill({
       status: 200,
@@ -28,7 +29,7 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(pipeline),
+      body: JSON.stringify(pipelineResponse),
     });
   });
   await page.route(
@@ -206,14 +207,7 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   activePipeline.episodes[0].current_stage = "download";
   activePipeline.episodes[0].active = true;
 
-  await page.route(`**/api/animes/${ANIME_ID}/pipeline`, async (route) => {
-    pipelineRequests += 1;
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(activePipeline),
-    });
-  });
+  pipelineResponse = activePipeline;
   await page.route(
     `**/api/episodes/${EPISODE_ID}/download-jobs/latest`,
     async (route) => {
@@ -306,13 +300,7 @@ test("offers pipeline continuation without restarting a completed download", asy
   pendingPipeline.episodes[0].current_stage = "streaming";
   pendingPipeline.episodes[0].active = true;
 
-  await page.route(`**/api/animes/${ANIME_ID}/pipeline`, async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(pendingPipeline),
-    });
-  });
+  pipelineResponse = pendingPipeline;
 
   await page.goto(`/animes/${ANIME_ID}`);
   const continueButton = page.getByRole("button", { name: "Continue" });
@@ -349,13 +337,7 @@ test("keeps live download controls inside the download stage", async ({ page }) 
   activePipeline.episodes[0].current_stage = "download";
   activePipeline.episodes[0].active = true;
 
-  await page.route(`**/api/animes/${ANIME_ID}/pipeline`, async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(activePipeline),
-    });
-  });
+  pipelineResponse = activePipeline;
   await page.route(
     `**/api/episodes/${EPISODE_ID}/download-jobs/latest`,
     async (route) => {

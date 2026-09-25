@@ -5,7 +5,10 @@ import { Button } from "react-aria-components";
 import Icon from "../../../shared/ui/Icon";
 import type { Anime } from "../../../entities/anime/model/types";
 import { useAnimeDetail } from "../../../features/anime-detail/model/useAnimeDetail";
-import { useAnimePipeline } from "../../../features/anime-detail/model/useAnimePipeline";
+import {
+  useAnimePipeline,
+} from "../../../features/anime-detail/model/useAnimePipeline";
+import { useAnimePipelineRealtime } from "../../../features/anime-detail/model/useAnimePipelineRealtime";
 import { useDeleteAnime } from "../../../features/anime-edit/model/useEditAnime";
 import AnimeEditForm from "../../../features/anime-edit/ui/AnimeEditForm";
 import EpisodeManagement from "../../../features/episode-management/ui/EpisodeManagement";
@@ -17,9 +20,13 @@ export default function AnimeDetailPage() {
   const { animeId } = useParams({ from: "/animes/$animeId" });
   const queryClient = useQueryClient();
   const query = useAnimeDetail(animeId);
-  const pipelineQuery = useAnimePipeline(animeId);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const realtime = useAnimePipelineRealtime({
+    animeId,
+    enabled: !isEditing,
+  });
+  const pipelineQuery = useAnimePipeline(animeId, realtime.connected);
 
   if (query.isPending) {
     return (

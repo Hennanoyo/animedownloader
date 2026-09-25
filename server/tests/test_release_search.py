@@ -30,6 +30,8 @@ def test_build_default_search_queries_progressively() -> None:
     )
 
     assert build_search_queries(context) == (
+        "ExampleSubs Frieren 8 1080p HEVC",
+        "Frieren 8 1080p HEVC",
         "ExampleSubs Frieren 8",
         "Frieren 8",
         "ExampleSubs Frieren",
@@ -111,4 +113,4 @@ def test_search_template_length_limit() -> None:
 
 
 def test_default_templates_are_declared() -> None:
-    assert len(DEFAULT_SEARCH_TEMPLATES) == 4
+    assert len(DEFAULT_SEARCH_TEMPLATES) == 6

@@ -20,10 +20,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from animedownloader_api.job_progress import JobProgressHub
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
-from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_api.pipeline import AnimePipelineService
 from animedownloader_api.pipeline_control import EpisodePipelineControlService
 from animedownloader_api.playback import PlaybackService
+from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_api.task_queue import DownloadTaskDispatcher
 
 

@@ -19,14 +19,16 @@ from animedownloader_releases import (
     SearchTemplateSpec,
     apply_parser_profile,
     build_search_queries,
+    merge_releases,
     normalize_release_group_slug,
     parse_release,
+    ParserProfileStatus,
+    SearchProfileStatus,
 )
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from animedownloader_releases import ParserProfileStatus, SearchProfileStatus
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,7 +80,7 @@ class ReleaseDiscoveryService:
         )
 
         failed_queries = tuple(
-            query for query, releases, failed in responses if failed
+            query for query, _releases, failed in responses if failed
         )
         merged = merge_releases(
             releases

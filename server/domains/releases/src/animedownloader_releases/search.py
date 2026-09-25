@@ -15,6 +15,8 @@ _ALLOWED_SEARCH_FIELDS: Final[frozenset[str]] = frozenset(
     field.value for field in SearchField
 )
 DEFAULT_SEARCH_TEMPLATES: Final[tuple[str, ...]] = (
+    "{group} {title} {episode} {resolution} {codec}",
+    "{title} {episode} {resolution} {codec}",
     "{group} {title} {episode}",
     "{title} {episode}",
     "{group} {title}",

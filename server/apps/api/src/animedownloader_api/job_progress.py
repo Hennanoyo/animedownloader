@@ -5,6 +5,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import suppress
 from dataclasses import dataclass
+from collections.abc import Callable
 from typing import Protocol, cast
 
 from animedownloader_config import JOB_PROGRESS_CHANNEL, JobProgressEvent
@@ -48,9 +49,10 @@ class JobProgressHub:
         *,
         client: RedisClient | None = None,
     ) -> None:
+        redis_factory = cast(Callable[..., Redis], getattr(Redis, "from_url"))
         self._redis: RedisClient = client or cast(
             RedisClient,
-            Redis.from_url(
+            redis_factory(
                 redis_url,
                 decode_responses=True,
                 socket_connect_timeout=2.0,

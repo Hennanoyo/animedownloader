@@ -345,10 +345,12 @@ class EpisodePipelineCurrentStage(StrEnum):
 
 
 class EpisodePipelineDownloadResponse(BaseModel):
+    job_id: UUID | None
     status: EpisodePipelineStageStatus
     downloaded_bytes: int
     total_bytes: int | None
     error_message: str | None
+    updated_at: datetime | None
 
 
 class EpisodePipelineProcessingResponse(BaseModel):

@@ -108,6 +108,7 @@ export default function EpisodePipelineCard({
 
         <EpisodeActionMenu
           episode={episode}
+          realtimeConnected={realtimeConnected}
           onDeleteEpisode={() => setConfirmAction("delete-episode")}
         />
       </div>
@@ -251,14 +252,16 @@ export default function EpisodePipelineCard({
 
 interface EpisodeActionMenuProps {
   episode: Episode;
+  realtimeConnected: boolean;
   onDeleteEpisode: () => void;
 }
 
 function EpisodeActionMenu({
   episode,
+  realtimeConnected,
   onDeleteEpisode,
 }: EpisodeActionMenuProps) {
-  const query = useEpisodeDownload(episode.id);
+  const query = useEpisodeDownload(episode.id, realtimeConnected);
   const createMutation = useCreateEpisodeDownloadJob(episode.id);
   const deleteMutation = useDeleteDownloadJob(episode.id);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -436,6 +439,17 @@ function renderStageBody(
           episodeId={pipeline.episode_id}
           inline
           realtimeConnected={realtimeConnected}
+          job={
+            pipeline.download.job_id
+              ? {
+                  id: pipeline.download.job_id,
+                  status: stageStatus,
+                  downloaded_bytes: pipeline.download.downloaded_bytes,
+                  total_bytes: pipeline.download.total_bytes,
+                  error_message: pipeline.download.error_message,
+                }
+              : undefined
+          }
         />
       );
     }

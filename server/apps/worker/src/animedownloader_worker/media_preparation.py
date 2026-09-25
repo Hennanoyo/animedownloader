@@ -655,7 +655,7 @@ class MediaPreparationRunner:
             job_id=job_id,
             status=status,
             progress_percent=progress_percent,
-            stage=stage,  # type: ignore[arg-type]
+            stage=stage,
             error_message=error_message,
         )
 

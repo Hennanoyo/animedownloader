@@ -53,6 +53,12 @@ export default function AnimeEditForm({ anime, onCancel, onSaved }: Props) {
   const form = useForm({
     defaultValues: {
       title: anime.title,
+      titles: {
+        romaji: anime.titles.romaji ?? "",
+        jp: anime.titles.jp ?? "",
+        ko: anime.titles.ko ?? "",
+        en: anime.titles.en ?? "",
+      },
       year: anime.year,
       season: anime.season,
       weekday: anime.weekday,
@@ -65,6 +71,11 @@ export default function AnimeEditForm({ anime, onCancel, onSaved }: Props) {
     onSubmit: async ({ value }) => {
       await mutation.mutateAsync({
         title: value.title.trim(),
+        titles: Object.fromEntries(
+          Object.entries(value.titles)
+            .map(([key, title]) => [key, title.trim()])
+            .filter(([, title]) => title !== ""),
+        ),
         year: value.year,
         season: value.season,
         weekday: value.weekday,
@@ -103,6 +114,59 @@ export default function AnimeEditForm({ anime, onCancel, onSaved }: Props) {
                   {field.state.meta.errors.map(String).join(", ")}
                 </Text>
               ) : null}
+            </TextField>
+          )}
+        </form.Field>
+
+        <form.Field name="titles.romaji">
+          {(field) => (
+            <TextField className={styles.field} validationBehavior="aria">
+              <Label>Romaji title</Label>
+              <Input
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="Sousou no Frieren"
+              />
+            </TextField>
+          )}
+        </form.Field>
+
+        <form.Field name="titles.jp">
+          {(field) => (
+            <TextField className={styles.field} validationBehavior="aria">
+              <Label>Japanese title</Label>
+              <Input
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
+            </TextField>
+          )}
+        </form.Field>
+
+        <form.Field name="titles.ko">
+          {(field) => (
+            <TextField className={styles.field} validationBehavior="aria">
+              <Label>Korean title</Label>
+              <Input
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
+            </TextField>
+          )}
+        </form.Field>
+
+        <form.Field name="titles.en">
+          {(field) => (
+            <TextField className={styles.field} validationBehavior="aria">
+              <Label>English title</Label>
+              <Input
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
             </TextField>
           )}
         </form.Field>

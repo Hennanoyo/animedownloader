@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is Realtime Anime Detail Pipeline. PR #23 through PR #32 are merged; PR #33 is the next development step.
+The current phase is Release Discovery & Episode Automation. PR #23 through PR #33 are merged; PR #34 is the next development step.
 
 ## Completed
 
@@ -525,45 +525,61 @@ Acceptance criteria:
 
 ### PR #33 — Realtime Anime Detail Pipeline
 
-**In progress on `feature/realtime-anime-detail`.**
+**Merged into `main` as commit `e07dd0c087cb1731a52e8b285df8e0dfe21a0a44`.**
 
-Goal: extend the existing realtime job transport from DownloadJob to the Anime detail Episode pipeline, so download, processing, preview, and streaming-stage changes update without page polling.
+- Extended the shared realtime `JobProgressEvent` flow to media processing, preparation, and packaging jobs
+- Reused the existing WebSocket transport for both Download Manager and Anime detail
+- Replaced healthy Anime detail pipeline polling with realtime updates and HTTP snapshot recovery on connect/reconnect
+- Kept download byte-progress updates cache-local while media-stage lifecycle changes trigger pipeline snapshot refreshes
+- Added backend, frontend, and Playwright coverage for realtime Anime detail progress
+- Preserved PostgreSQL as the durable source of truth and Redis Pub/Sub as ephemeral delivery
 
-Planned scope:
+The PR deliberately reports coarse media-stage lifecycle progress rather than inventing fine-grained FFmpeg percentages.
 
-- Extend the existing `JobProgressEvent` contract usage to MediaProcessingJob, MediaPreparationJob, and MediaPackagingJob
-- Publish lifecycle/stage progress from the worker for those jobs without turning PostgreSQL into an event stream
-- Keep progress honest and stage-based; do not introduce fine-grained FFmpeg percentage reporting unless an existing processor already exposes reliable checkpoints
-- Connect the Anime detail pipeline to the same WebSocket transport and use the existing HTTP pipeline response as the initial snapshot/reconnect recovery source
-- Stop the current 2-second Anime detail pipeline polling while realtime connectivity is healthy, and resume it when the WebSocket is unavailable
-- Update Episode pipeline cards from realtime events while preserving the existing Download → Processing → Preview → Streaming presentation
-- Keep Download Manager realtime behavior unchanged and reuse the same WebSocket hub, schemas, and reconnect strategy
-- Add backend event-emission coverage, frontend cache/state coverage, and Playwright coverage for realtime Anime detail progress
+## Release Discovery & Episode Automation
+
+The next phase focuses on reducing the amount of manual work between Nyaa release discovery and an Anime's Episode catalog. The existing workflow still depends on manual Episode creation/release selection, while the media pipeline and realtime job transport are now established.
+
+### PR #34 — Release Discovery & Episode Automation
+
+**Planned next development step.**
+
+Goal: turn release discovery into a reusable, deterministic Episode-ingestion flow without coupling it to automatic downloading.
+
+Scope:
+
+- Define a persisted release identity/provenance model suitable for deduplicating repeated Nyaa observations without storing raw RSS search results
+- Add a release discovery service that can normalize Nyaa results into domain-level release candidates
+- Add deterministic matching from release candidates to existing Anime records using explicit query/configuration rules
+- Add an Anime detail release-candidate view so users can inspect and select discovered episodes
+- Add an Episode ingestion action that creates or updates Episode records from a selected release candidate
+- Preserve the existing manual Episode CRUD path alongside the new release-ingestion path
+- Keep download-job creation as a separate explicit action; discovery must not silently start torrents
+- Add backend/frontend tests and Playwright coverage for discovery, deduplication, selection, and ingestion
 
 Design constraints:
 
-- PostgreSQL remains the durable source of truth
-- Redis Pub/Sub remains ephemeral delivery only; reconnects recover through the pipeline HTTP snapshot
-- Do not duplicate WebSocket hubs or create a second realtime protocol for media jobs
-- Do not redesign the Episode pipeline UI in this PR
-- Do not add queue scheduling or concurrency controls
+- Do not persist complete RSS search-result payloads; persist only the normalized provenance/identity fields needed for deduplication and auditing
+- Do not introduce automatic download scheduling, queue prioritization, or background torrent creation in this PR
+- Keep Nyaa access behind the existing release/infrastructure boundaries
+- Keep Episode metadata ownership explicit; discovery should propose/normalize release-derived values rather than overwrite user-edited Anime metadata
+- Preserve the existing DownloadJob, media pipeline, and realtime transport behavior
 
 Out of scope:
 
-- Fine-grained FFmpeg progress bars
-- Media pipeline architecture changes
-- New media artifacts or storage changes
-- Queue prioritization/concurrency
-- Download Manager redesign
+- Automatic periodic download scheduling
+- Queue prioritization/concurrency controls
+- Anime metadata scraping from external databases
+- Full-site crawler integration beyond the release discovery boundary
+- Changes to playback or media packaging
 
 Acceptance criteria:
 
-- Anime detail loads its current pipeline snapshot before applying realtime events
-- Download, processing, preparation/preview, and packaging/streaming state changes appear without periodic polling while WebSocket connectivity is healthy
-- Realtime disconnect causes automatic polling fallback and reconnect recovers from the HTTP snapshot
-- A terminal or stage transition does not leave an Episode card stale until the next polling interval
-- Redis/WebSocket failures do not change durable job outcomes
-- Existing Download Manager realtime behavior remains green
+- Repeated discovery of the same release does not create duplicate Episode records
+- A user can inspect discovered releases from Anime detail and explicitly ingest one as an Episode
+- Existing manual Episode creation/edit/delete remains functional
+- Ingesting a release does not automatically create a DownloadJob
+- Existing Download Manager, media pipeline, and realtime progress behavior remain green
 - Backend, Frontend, Browser, and Integration CI remains green
 
 ## Handoff Notes

@@ -113,7 +113,6 @@ async def process_subtitle_tracks(asset_id: str) -> None:
     print(f"[worker] subtitle processing started: asset_id={asset_id}", flush=True)
     settings = Settings()
     database = create_database(settings.database_url)
-    progress_publisher = RedisJobProgressPublisher(settings.redis_url)
     try:
         ffmpeg_runner = SubprocessFFmpegRunner(
             timeout_seconds=settings.ffmpeg_timeout_seconds,
@@ -200,6 +199,7 @@ async def process_media_preparation(job_id: str) -> None:
     print(f"[worker] media preparation started: job_id={job_id}", flush=True)
     settings = Settings()
     database = create_database(settings.database_url)
+    progress_publisher = RedisJobProgressPublisher(settings.redis_url)
     try:
         ffmpeg_runner = SubprocessFFmpegRunner(
             timeout_seconds=settings.ffmpeg_timeout_seconds,

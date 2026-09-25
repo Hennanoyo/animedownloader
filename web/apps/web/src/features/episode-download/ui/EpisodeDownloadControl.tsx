@@ -320,7 +320,7 @@ export default function EpisodeDownloadControl({
 }
 
 interface InlineDownloadStateProps {
-  job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
+  job: DownloadJobSnapshot;
   statusLabel: string;
   pending: boolean;
   isPausing: boolean;
@@ -425,7 +425,7 @@ function InlineDownloadState({
 
 interface TerminalDownloadControlProps {
   compact?: boolean;
-  job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
+  job: DownloadJobSnapshot;
   onDownload: () => void;
   onDelete: () => void;
   deleteMutation: ReturnType<typeof useDeleteDownloadJob>;

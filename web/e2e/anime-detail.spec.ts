@@ -7,7 +7,7 @@ let pipelineResponse: AnimePipeline;
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
 
-const anime = {"id":"019a0000-0000-7000-8000-000000000010","title":"Browser Smoke Anime","year":2026,"season":"fall","weekday":"friday","air_time":"23:00:00","timezone":"Asia/Tokyo","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z","episodes":[{"id":"019a0000-0000-7000-8000-000000000011","anime_id":"019a0000-0000-7000-8000-000000000010","episode_number":1,"title":"Episode One","source":"nyaa","source_id":"e2e-1","source_title":"Episode One","source_url":"https://e2e.invalid/release/1","torrent_url":"https://e2e.invalid/download/1.torrent","size":"1 GiB","seeders":8,"leechers":1,"downloads":10,"info_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","download_status":"completed","conversion_status":"completed","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z"}]};
+const anime = {"id":"019a0000-0000-7000-8000-000000000010","title":"Browser Smoke Anime","titles":{"romaji":"Browser Smoke Anime","jp":"ブラウザスモークアニメ"},"year":2026,"season":"fall","weekday":"friday","air_time":"23:00:00","timezone":"Asia/Tokyo","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z","episodes":[{"id":"019a0000-0000-7000-8000-000000000011","anime_id":"019a0000-0000-7000-8000-000000000010","episode_number":1,"title":"Episode One","source":"nyaa","source_id":"e2e-1","source_title":"Episode One","source_url":"https://e2e.invalid/release/1","torrent_url":"https://e2e.invalid/download/1.torrent","size":"1 GiB","seeders":8,"leechers":1,"downloads":10,"info_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","download_status":"completed","conversion_status":"completed","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z"}]};
 const pipeline: AnimePipeline = {"anime_id":"019a0000-0000-7000-8000-000000000010","episodes":[{"episode_id":"019a0000-0000-7000-8000-000000000011","episode_number":1,"title":"Episode One","download":{"job_id":"019a0000-0000-7000-8000-000000000099","status":"completed","downloaded_bytes":1048576,"total_bytes":1048576,"error_message":null,"updated_at":"2026-09-25T00:05:00Z"},"processing":{"job_id":"019a0000-0000-7000-8000-000000000100","preparation_job_id":"019a0000-0000-7000-8000-000000000101","status":"completed","progress_percent":100,"playable_ready":true,"error_message":null},"subtitles":"completed","attachments":"completed","streaming":{"job_id":"019a0000-0000-7000-8000-000000000102","status":"completed","progress_percent":100,"hls_ready":true,"dash_ready":true,"error_message":null},"thumbnail":{"status":"completed","progress_percent":100,"url":"https://e2e.invalid/anime/episode-one-sprite.jpg","vtt_url":"https://e2e.invalid/anime/episode-one-sprite.vtt","error_message":null},"current_stage":null,"playback_ready":true,"active":false}]};
 
 const transparentPng = Buffer.from(
@@ -40,8 +40,7 @@ test.beforeEach(async ({ page }) => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          queries: ["ExampleSubs Browser Smoke Anime 1", "Browser Smoke Anime 1"],
-          failed_queries: [],
+          query: "ExampleSubs Browser Smoke Anime 1",
           warnings: [],
           search_profile_version: null,
           items: [
@@ -464,6 +463,7 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
     discovery.getByRole("heading", { name: "Find releases" }),
   ).toBeVisible();
 
+  await expect(discovery.getByLabel("Anime title")).toHaveValue("Browser Smoke Anime");
   await discovery.getByLabel("Release group").fill("ExampleSubs");
   await discovery
     .getByRole("spinbutton", { name: "Episode", exact: true })

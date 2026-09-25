@@ -716,29 +716,34 @@ Out of scope:
 - Additional providers
 - Media-processing/player changes
 
-### PR #38 — Anime Matching & Episode Ingestion
+### PR #38 — Release Discovery UX Refinement
 
-Goal: turn an ephemeral parsed release candidate into an explicit Anime/Episode association and persist it safely.
+Goal: make the Anime-detail release-discovery workflow fast and explicit without changing the single-query Search Profile architecture.
 
 Scope:
 
-- deterministic Anime title canonicalization and matching
-- `matched` / `ambiguous` / `unmatched` states
-- year/season as supporting evidence only
-- explicit user review before persistence
-- Episode ingestion transaction
-- same-source ingestion idempotency
-- same episode number + different release identity becomes an explicit replacement candidate and never silently replaces an existing Episode
-- preserve user-edited Episode title and execution state
-- DB duplicate/race protection
-- reuse the existing Episode → DownloadJob flow, but do not auto-create or start a DownloadJob
-- backend, transaction, and integration coverage
-- Anime-detail candidate acceptance/review UI
+- replace arrow-only field reordering with drag-and-drop field rows
+- retain keyboard-accessible reordering through the focused drag handle
+- keep field enable/disable state as an explicit checkbox with a visible check mark
+- move all search-value editing inline into each Search field row
+- add an Anime-title source selector for Romaji, Japanese, Korean, English, Main title, or Custom
+- prefer `titles.romaji` as the default Anime-detail search title, falling back to `title`
+- keep Custom/search-title edits transient and never persist them to Anime
+- show live query preview from the exact current field order, enabled state, and values
+- add Browser coverage for title-source selection, inline editing, field reordering, and single-query discovery
+
+Design constraints:
+
+- Search Profile data remains responsible only for the default field recipe
+- Current UI edits are request-local overrides and do not mutate Search Profile or Anime metadata
+- Discovery still executes exactly one provider query per click
+- Preserve the provider → Release → Parse → Match → Ingest boundaries
 
 Out of scope:
 
-- periodic discovery or scheduling
-- additional release providers
+- Anime matching and Episode ingestion
+- parser/search profile administration
+- automatic discovery or downloads
 - media/player changes
 
 ### PR #39 — Release Profile Operations & Drift Detection
@@ -767,6 +772,10 @@ Out of scope:
 - Automatic parser self-modification
 - Automatic profile activation
 - Automatic downloads
+
+### Deferred — Anime Matching & Episode Ingestion
+
+Keep the previously planned explicit Anime/Episode association and transactional ingestion work queued after the release-discovery UX and profile-operations phases. Its matching, ambiguity, replacement, idempotency, and user-review requirements remain unchanged.
 
 Follow-up candidate:
 

@@ -1,0 +1,235 @@
+.card {
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #26324a;
+  border-radius: 0.75rem;
+  background: #0f172a;
+}
+
+.card[data-status="pending"],
+.card[data-status="downloading"] {
+  border-color: #2c4d78;
+}
+
+.card[data-status="failed"] {
+  border-color: #6b2530;
+}
+
+.header {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.identity {
+  min-width: 0;
+}
+
+.animeLink {
+  color: #93c5fd;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.animeLink:hover,
+.animeLink:focus-visible,
+.episodeLink:hover,
+.episodeLink:focus-visible {
+  text-decoration: underline;
+}
+
+.identity h2 {
+  margin: 0.25rem 0 0;
+  min-width: 0;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.episodeLink {
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.8rem;
+  padding: 0 0.55rem;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.status[data-status="pending"],
+.status[data-status="downloading"] {
+  border-color: #365d90;
+  color: #bfdbfe;
+}
+
+.status[data-status="paused"] {
+  color: #fde68a;
+}
+
+.status[data-status="completed"] {
+  color: #bbf7d0;
+}
+
+.status[data-status="failed"] {
+  border-color: #7f1d1d;
+  color: #fecaca;
+}
+
+.status[data-status="cancelled"] {
+  color: #cbd5e1;
+}
+
+.progressArea {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.progressMeta {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.progressMeta > * {
+  min-width: 0;
+}
+
+.progressMeta span:last-child {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #1e293b;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: #60a5fa;
+}
+
+.detail,
+.mutedAction,
+.error {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+}
+
+.detail,
+.mutedAction {
+  color: #94a3b8;
+}
+
+.error {
+  color: #fecaca;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.secondaryButton,
+.primaryButton,
+.dangerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.25rem;
+  max-width: 100%;
+  padding: 0 0.7rem;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  background: #111827;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.primaryButton {
+  border-color: #60a5fa;
+  background: #2563eb;
+  color: #fff;
+}
+
+.dangerButton {
+  border-color: #7f1d1d;
+  background: #2a1014;
+  color: #fecaca;
+}
+
+.secondaryButton:focus-visible,
+.primaryButton:focus-visible,
+.dangerButton:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.confirm {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.65rem;
+  border: 1px solid #7f1d1d;
+  border-radius: 0.6rem;
+  background: #2a1014;
+}
+
+.confirm p {
+  margin: 0;
+  color: #fecaca;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.confirmActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.mutedAction {
+  align-self: center;
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .status {
+    align-self: flex-start;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .actions > * {
+    width: 100%;
+  }
+}

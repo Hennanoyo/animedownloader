@@ -34,7 +34,7 @@ const pipelineSchema = z.object({
     downloaded_bytes: z.number().int().nonnegative(),
     total_bytes: z.number().int().nonnegative().nullable(),
     error_message: z.string().nullable(),
-    updated_at: z.coerce.date().nullable(),
+    updated_at: z.string().datetime().nullable(),
   }),
   processing: z.object({
     status: stageStatusSchema,

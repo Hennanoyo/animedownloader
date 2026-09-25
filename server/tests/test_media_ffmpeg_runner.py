@@ -43,7 +43,7 @@ async def test_timeout_kills_ffmpeg_process_group(tmp_path: Path) -> None:
 
 @pytest.mark.anyio
 async def test_ffmpeg_progress_parser_reports_input_timeline() -> None:
-    from animedownloader_media.ffmpeg import _consume_ffmpeg_progress
+    from animedownloader_media.ffmpeg import consume_ffmpeg_progress
 
     stdout = asyncio.StreamReader()
     stdout.feed_data(b"out_time_us=1000000\n")

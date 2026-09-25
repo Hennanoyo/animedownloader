@@ -111,6 +111,7 @@ export function applyAnimePipelineEvent(
   });
 
   if (isDownloadJobStatus(event.status)) {
+    const downloadStatus: DownloadJobStatus = event.status;
     const latestQueryKey = [
       "download-jobs",
       "latest",
@@ -122,7 +123,7 @@ export function applyAnimePipelineEvent(
       }
       return {
         ...job,
-        status: event.status,
+        status: downloadStatus,
         downloaded_bytes:
           event.downloaded_bytes ?? job.downloaded_bytes,
         total_bytes: event.total_bytes ?? job.total_bytes,

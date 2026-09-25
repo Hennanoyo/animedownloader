@@ -20,7 +20,6 @@ from animedownloader_api.schemas import (
     AnimeMatchCandidateResponse,
     AnimeMatchResponse,
     EpisodeIngestionRequest,
-    EpisodeIngestionStatus as EpisodeIngestionStatusResponse,
     EpisodeIngestionResponse,
     EpisodeResponse,
     ParsedReleaseResponse,
@@ -28,6 +27,10 @@ from animedownloader_api.schemas import (
     ReleaseDiscoveryResponse,
     ReleaseResponse,
     ReleaseSearchResponse,
+) 
+
+from animedownloader_api.schemas import (
+    EpisodeIngestionStatus as EpisodeIngestionStatusResponse,
 )
 
 router = APIRouter(prefix="/api/releases", tags=["releases"])

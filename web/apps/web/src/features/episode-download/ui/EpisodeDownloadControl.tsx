@@ -16,14 +16,16 @@ interface Props {
   episodeId: string;
   compact?: boolean;
   inline?: boolean;
+  realtimeConnected?: boolean;
 }
 
 export default function EpisodeDownloadControl({
   episodeId,
   compact = false,
   inline = false,
+  realtimeConnected = false,
 }: Props) {
-  const query = useEpisodeDownload(episodeId);
+  const query = useEpisodeDownload(episodeId, realtimeConnected);
   const createMutation = useCreateEpisodeDownloadJob(episodeId);
   const pauseMutation = usePauseDownloadJob(episodeId);
   const resumeMutation = useResumeDownloadJob(episodeId);

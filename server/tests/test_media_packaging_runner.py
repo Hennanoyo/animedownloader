@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from pathlib import Path
+from collections.abc import Awaitable
 from typing import Any
 from uuid import UUID, uuid7
 
@@ -46,8 +47,13 @@ class FakeProcessor:
         *,
         media_path: Path,
         output_dir: Path,
+        duration_seconds: float | None = None,
+        on_progress=None,
     ) -> CMAFPackagingResult:
-        del media_path
+        del media_path, duration_seconds
+        if on_progress is not None:
+            await on_progress(25.0)
+            await on_progress(60.0)
         segment_path = output_dir / "s" / "00000.m4s"
         segment_path.parent.mkdir(parents=True, exist_ok=True)
         segment_path.write_bytes(b"segment")
@@ -105,10 +111,10 @@ async def test_runner_packages_current_playable_variant(tmp_path: Path) -> None:
     source.parent.mkdir(parents=True)
     source.write_bytes(b"playable")
 
-    events: list[tuple[str, float | None]] = []
+    events: list[tuple[str, float | None, str | None]] = []
 
     async def on_progress(event: JobProgressEvent) -> None:
-        events.append((event.status, event.progress_percent))
+        events.append((event.status, event.progress_percent, event.stage))
 
     await MediaPackagingRunner(
         state=state,
@@ -118,7 +124,12 @@ async def test_runner_packages_current_playable_variant(tmp_path: Path) -> None:
     ).run(state.context.job_id)
 
     assert state.processing_calls == 1
-    assert events == [("processing", 0), ("completed", 100)]
+    assert events == [
+        ("processing", 0, "streaming"),
+        ("processing", 25.0, "streaming"),
+        ("processing", 60.0, "streaming"),
+        ("completed", 100, "streaming"),
+    ]
     assert state.completed is not None
     representation, package_artifact = state.completed
     assert representation.quality == "1080p"

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatZodIssues } from "../../../shared/lib/validation";
 import { getJson } from "../../../shared/api/client";
 import type {
   ReleaseDiscoveryInput,
@@ -68,13 +69,7 @@ const responseSchema = z.object({
 export class ReleaseDiscoveryResponseError extends Error {
   constructor(readonly issues: z.core.$ZodIssue[]) {
     super(
-      "Invalid release discovery response: " +
-        issues
-          .map(
-            (issue) =>
-              (issue.path.join(".") || "<root>") + ": " + issue.message,
-          )
-          .join("; "),
+      "Invalid release discovery response: " + formatZodIssues(issues),
     );
     this.name = "ReleaseDiscoveryResponseError";
   }

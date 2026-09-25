@@ -3,6 +3,7 @@ from pathlib import Path
 from uuid import UUID, uuid7
 
 import pytest
+from animedownloader_config import JobProgressEvent
 from animedownloader_media import (
     MediaChapter,
     MediaFormat,
@@ -274,8 +275,8 @@ async def test_runner_inspects_and_completes(tmp_path: Path) -> None:
     inspector = FakeInspector(make_probe(media_path))
     events: list[tuple[str, float | None]] = []
 
-    async def on_progress(event: object) -> None:
-        events.append((getattr(event, "status"), getattr(event, "progress_percent")))
+    async def on_progress(event: JobProgressEvent) -> None:
+        events.append((event.status, event.progress_percent))
 
     runner = MediaProcessingRunner(
         state=state,

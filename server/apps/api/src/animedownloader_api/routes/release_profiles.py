@@ -1,12 +1,9 @@
 from typing import Annotated
-from typing import Annotated
 from uuid import UUID
 
 from animedownloader_releases import (
     InvalidReleaseParserProfileError,
-    ParserField,
     ParserRuleSpec,
-    ParserTransform,
     ReleaseGroupNotFoundError,
     ReleaseParserObservationNotFoundError,
     ReleaseParserProfile,

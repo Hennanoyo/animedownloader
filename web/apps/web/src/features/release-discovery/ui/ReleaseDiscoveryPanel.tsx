@@ -410,10 +410,11 @@ export default function ReleaseDiscoveryPanel({
                     <span className={styles.checkboxMark} aria-hidden="true" />
                   </Checkbox>
 
-                  <span className={styles.fieldLabel}>{label}</span>
+                  <div className={styles.fieldMeta}>
+                    <span className={styles.fieldLabel}>{label}</span>
 
-                  {field === "title" ? (
-                    <Select
+                    {field === "title" ? (
+                      <Select
                       aria-label="Title source"
                       className={styles.titleSource}
                       selectedKey={selectedTitleSource}
@@ -436,10 +437,9 @@ export default function ReleaseDiscoveryPanel({
                           ))}
                         </ListBox>
                       </Popover>
-                    </Select>
-                  ) : (
-                    <span className={styles.fieldSourcePlaceholder} aria-hidden="true" />
-                  )}
+                      </Select>
+                    ) : null}
+                  </div>
 
                   <form.Field name={field}>
                     {(fieldState) => {
@@ -486,6 +486,7 @@ export default function ReleaseDiscoveryPanel({
                           <Label className={styles.inlineLabel}>{label}</Label>
                           <div className={styles.comboControl}>
                             <Input
+                              aria-label={label}
                               placeholder={
                                 field === "title"
                                   ? "Sousou no Frieren"

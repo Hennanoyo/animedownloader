@@ -16,6 +16,7 @@ import {
   parserFields,
   type ParserProfile,
   type ParserRule,
+  type ReleaseGroupSummary,
   type ParserRuleInput,
 } from "../../../entities/release/api/releaseProfiles";
 import { useReleaseGroups } from "../../../entities/release/model/useReleaseGroups";
@@ -151,7 +152,7 @@ export default function ReleaseProfilesPage() {
           </div>
           <Popover className={styles.popover}>
             <ListBox className={styles.listBox}>
-              {(group) => (
+              {(group: ReleaseGroupSummary) => (
                 <ListBoxItem
                   id={group.id}
                   textValue={group.name}

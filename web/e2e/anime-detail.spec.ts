@@ -357,7 +357,9 @@ test("reviews release parser profile health and validates activation", async ({ 
   await expect(
     page.getByRole("combobox", { name: "Release group" }),
   ).toHaveValue("ExampleSubs");
-  await expect(page.getByText("v2")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "v2 draft 1 rules" }),
+  ).toBeVisible();
   await expect(page.getByText("Drift signal")).toBeVisible();
   await expect(
     page.getByText("parser failure rate is 30% across 10 observations"),

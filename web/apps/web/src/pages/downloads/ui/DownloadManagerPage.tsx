@@ -1,6 +1,7 @@
 import { Link, useSearch } from "@tanstack/react-router";
 import type { UseQueryResult } from "@tanstack/react-query";
 import DownloadJobCard from "../../../features/download-management/ui/DownloadJobCard";
+import { useDownloadJobRealtime } from "../../../features/download-management/model/useDownloadJobRealtime";
 import { Button } from "react-aria-components";
 import {
   activeDownloadStatuses,
@@ -25,6 +26,10 @@ export default function DownloadManagerPage() {
   const activeQuery = useDownloadJobs({
     statuses: [...activeDownloadStatuses],
     enabled: status === "all" || status === "active",
+    realtimeConnected: realtime.connected,
+  });
+  const realtime = useDownloadJobRealtime({
+    enabled: (status === "all" || status === "active") && activeQuery.isSuccess,
   });
   const terminalQuery = useDownloadJobs({
     statuses: [...terminalDownloadStatuses],

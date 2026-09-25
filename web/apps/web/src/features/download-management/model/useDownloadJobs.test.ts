@@ -84,6 +84,22 @@ describe("download management query", () => {
     ).toBe(false);
   });
 
+  it("stops polling while realtime is connected", () => {
+    expect(
+      getDownloadJobsRefetchInterval(
+        {
+          items: [item],
+          page: 1,
+          page_size: 100,
+          total: 1,
+          has_more: false,
+        },
+        activeDownloadStatuses,
+        true,
+      ),
+    ).toBe(false);
+  });
+
   it("disables focus refetching", () => {
     const options = downloadJobsQueryOptions({
       statuses: activeDownloadStatuses,

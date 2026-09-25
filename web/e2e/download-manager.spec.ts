@@ -8,6 +8,7 @@ const ANIME_ID = "019a0000-0000-7000-8000-000000000030";
 
 let activeStatus: "downloading" | "paused" | "cancelled" = "downloading";
 let historyDeleted = false;
+let downloadListRequests = 0;
 
 function makeActiveJob(
   status: "downloading" | "paused" | "cancelled",
@@ -60,8 +61,10 @@ const historyJob = {
 test.beforeEach(async ({ page }) => {
   activeStatus = "downloading";
   historyDeleted = false;
+  downloadListRequests = 0;
 
   await page.route("**/api/download-jobs?*", async (route) => {
+    downloadListRequests += 1;
     const url = new URL(route.request().url());
     const statuses = url.searchParams.getAll("status");
 
@@ -171,7 +174,9 @@ test("manages active download and terminal filters", async ({ page }) => {
   await expect(
     page.getByRole("link", { name: "Browser Download Anime", exact: true }),
   ).toHaveCount(2);
-  await expect(page.locator('article[data-status="downloading"]')).toBeVisible();
+  await expect(
+    page.locator('article[data-status="downloading"]'),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Pause download for Episode One" }),
   ).toBeVisible();
@@ -179,7 +184,9 @@ test("manages active download and terminal filters", async ({ page }) => {
   await page
     .getByRole("button", { name: "Pause download for Episode One" })
     .click();
-  await expect(page.locator('article[data-status="paused"]')).toBeVisible();
+  await expect(
+    page.locator('article[data-status="paused"]'),
+  ).toBeVisible();
 
   await page
     .getByRole("button", { name: "Cancel download for Episode One" })
@@ -207,6 +214,96 @@ test("manages active download and terminal filters", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Retry Episode Two" }),
   ).toBeVisible();
+});
+
+test("receives live progress without polling while realtime is healthy", async ({ page }) => {
+  await page.addInitScript(() => {
+    class MockWebSocket {
+      static instances: MockWebSocket[] = [];
+      readonly url: string;
+      readyState = 0;
+      onopen: ((event: Event) => void) | null = null;
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onerror: ((event: Event) => void) | null = null;
+      onclose: ((event: Event) => void) | null = null;
+
+      constructor(url: string) {
+        this.url = url;
+        MockWebSocket.instances.push(this);
+        setTimeout(() => {
+          this.readyState = 1;
+          this.onopen?.(new Event("open"));
+          this.onmessage?.(
+            new MessageEvent("message", {
+              data: JSON.stringify({
+                version: 1,
+                type: "job.ready",
+                job_type: "download",
+                emitted_at: "2026-09-25T00:00:00Z",
+              }),
+            }),
+          );
+        }, 0);
+      }
+
+      close() {
+        if (this.readyState === 3) {
+          return;
+        }
+        this.readyState = 3;
+        this.onclose?.(new Event("close"));
+      }
+
+      emit(payload: unknown) {
+        this.onmessage?.(
+          new MessageEvent("message", {
+            data: JSON.stringify(payload),
+          }),
+        );
+      }
+    }
+
+    Object.defineProperty(globalThis, "WebSocket", {
+      configurable: true,
+      value: MockWebSocket,
+    });
+    Object.defineProperty(window, "__emitDownloadEvent", {
+      configurable: true,
+      value: (payload: unknown) => {
+        MockWebSocket.instances.at(-1)?.emit(payload);
+      },
+    });
+  });
+
+  await page.goto("/downloads");
+  await expect(
+    page.locator('article[data-status="downloading"]'),
+  ).toBeVisible();
+
+  await page.waitForTimeout(1000);
+  const requestsAfterRealtimeConnect = downloadListRequests;
+
+  await page.evaluate(() => {
+    const windowWithEmitter = window as Window & {
+      __emitDownloadEvent: (payload: unknown) => void;
+    };
+    windowWithEmitter.__emitDownloadEvent({
+      version: 1,
+      type: "job.progress",
+      job_type: "download",
+      job_id: JOB_ACTIVE,
+      status: "downloading",
+      progress_percent: 65,
+      downloaded_bytes: 650,
+      total_bytes: 1000,
+      error_message: null,
+      emitted_at: "2026-09-25T00:01:00Z",
+    });
+  });
+
+  await expect(page.getByText("650 B / 1000 B", { exact: true })).toBeVisible();
+  await page.waitForTimeout(2500);
+  expect(downloadListRequests).toBe(requestsAfterRealtimeConnect);
 });
 
 test("renders history and delete confirmation", async ({ page }) => {

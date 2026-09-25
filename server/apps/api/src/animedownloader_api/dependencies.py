@@ -15,9 +15,10 @@ from animedownloader_media_processing import (
 from animedownloader_nyaa import NyaaClient
 from animedownloader_qbittorrent import QBittorrentClient
 from animedownloader_storage import Storage
-from fastapi import Depends, Request
+from fastapi import Depends, Request, WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from animedownloader_api.job_progress import JobProgressHub
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
 from animedownloader_api.pipeline import AnimePipelineService
 from animedownloader_api.pipeline_control import EpisodePipelineControlService
@@ -45,6 +46,10 @@ def get_download_job_service(
 
 def get_download_task_dispatcher(request: Request) -> DownloadTaskDispatcher:
     return request.app.state.download_task_dispatcher
+
+
+def get_job_progress_hub(websocket: WebSocket) -> JobProgressHub:
+    return websocket.app.state.job_progress_hub
 
 
 def get_media_asset_service(

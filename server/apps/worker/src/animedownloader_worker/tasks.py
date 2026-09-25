@@ -33,6 +33,7 @@ from animedownloader_media_processing import (
 from animedownloader_qbittorrent import QBittorrentClient
 
 from .broker import broker
+from .progress import RedisJobProgressPublisher
 from .media_attachment_processing import (
     MediaAttachmentProcessingRunner,
     create_media_attachment_processing_state,
@@ -55,6 +56,7 @@ async def download_episode(job_id: str) -> None:
     print(f"[worker] download started: job_id={job_id}", flush=True)
     settings = Settings()
     database = create_database(settings.database_url)
+    progress_publisher = RedisJobProgressPublisher(settings.redis_url)
     try:
         api_key = (
             settings.qbittorrent_api_key.get_secret_value()
@@ -73,10 +75,12 @@ async def download_episode(job_id: str) -> None:
                     database,
                     completed_job_id,
                 ),
+                on_progress=progress_publisher.publish,
             )
             await runner.run(UUID(job_id))
             print(f"[worker] download completed: job_id={job_id}", flush=True)
     finally:
+        await progress_publisher.close()
         await database.dispose()
 
 

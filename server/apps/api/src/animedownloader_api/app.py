@@ -27,11 +27,13 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from animedownloader_api.job_progress import JobProgressHub
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
 from animedownloader_api.routes import (
     anime_pipeline_router,
     animes_router,
     download_jobs_router,
+    job_events_router,
     episode_pipeline_router,
     episodes_router,
     media_packaging_jobs_router,
@@ -51,6 +53,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     task_broker = create_task_broker(app_settings.redis_url)
     task_dispatcher = DownloadTaskDispatcher(task_broker)
     media_processing_task_dispatcher = MediaProcessingTaskDispatcher(task_broker)
+    job_progress_hub = JobProgressHub(app_settings.redis_url)
     media_storage = create_storage(
         backend=app_settings.storage_backend,
         local_root=app_settings.media_root,
@@ -61,9 +64,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
         await task_broker.startup()
+        await job_progress_hub.start()
         try:
             yield
         finally:
+            await job_progress_hub.stop()
             await task_broker.shutdown()
             await database.dispose()
 
@@ -74,6 +79,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.database = database
     app.state.download_task_dispatcher = task_dispatcher
+    app.state.job_progress_hub = job_progress_hub
     app.state.media_processing_task_dispatcher = media_processing_task_dispatcher
     app.state.media_storage = media_storage
     app.state.settings = app_settings
@@ -115,6 +121,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(episode_pipeline_router)
     app.include_router(episodes_router)
     app.include_router(download_jobs_router)
+    app.include_router(job_events_router)
     app.include_router(media_packaging_jobs_router)
     app.include_router(media_preparation_jobs_router)
     app.include_router(media_processing_jobs_router)

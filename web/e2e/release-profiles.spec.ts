@@ -185,6 +185,7 @@ test("renders release profile editor and remains usable without horizontal overf
 
   const targetField = page.getByRole("button", {
     name: "Rule 1 target field",
+    exact: true,
   });
   await expect(targetField).toHaveCSS("min-height", "38.4px");
 
@@ -193,7 +194,10 @@ test("renders release profile editor and remains usable without horizontal overf
   });
   await expect(sampleInput).toHaveCSS("min-height", "38.4px");
 
-  await page.getByRole("button", { name: "Rule 2 transform" }).click();
+  await page.getByRole("button", {
+    name: "Rule 2 transform",
+    exact: true,
+  }).click();
   await expect(page.getByRole("option", { name: "Convert to integer" })).toBeVisible();
   await expect(page.getByRole("option", { name: "Normalize spaces" })).toBeVisible();
 

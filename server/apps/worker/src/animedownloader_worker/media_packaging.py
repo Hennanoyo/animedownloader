@@ -24,6 +24,8 @@ from animedownloader_media_processing import (
 from animedownloader_storage import Storage, StreamingPackageArtifact
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from .progress import JobProgressCallback, emit_job_progress
+
 logger = logging.getLogger(__name__)
 
 
@@ -172,16 +174,25 @@ class MediaPackagingRunner:
         state: MediaPackagingStateProtocol,
         processor: CMAFPackagingProcessor,
         storage: Storage,
+        on_progress: JobProgressCallback | None = None,
     ) -> None:
         self._state = state
         self._processor = processor
         self._storage = storage
+        self._on_progress = on_progress
 
     async def run(self, job_id: UUID) -> None:
         context: MediaPackagingContext | None = None
         try:
             context = await self._state.load(job_id)
             if context.status is MediaPackagingJobStatus.COMPLETED:
+                await emit_job_progress(
+                    self._on_progress,
+                    job_type="media-packaging",
+                    job_id=job_id,
+                    status=MediaPackagingJobStatus.COMPLETED.value,
+                    progress_percent=100,
+                )
                 return
             if not context.source_is_current:
                 raise MediaPackagingExecutionError(
@@ -195,6 +206,17 @@ class MediaPackagingRunner:
 
             if context.status is MediaPackagingJobStatus.PENDING:
                 await self._state.mark_processing(job_id)
+
+            await emit_job_progress(
+                self._on_progress,
+                job_type="media-packaging",
+                job_id=job_id,
+                status=MediaPackagingJobStatus.PROCESSING.value,
+                progress_percent=0,
+            )
+
+            if context.status is MediaPackagingJobStatus.PROCESSING:
+                pass
             elif context.status is not MediaPackagingJobStatus.PROCESSING:
                 raise MediaPackagingExecutionError(
                     f"Packaging job cannot be executed from status {context.status.value}",
@@ -252,6 +274,13 @@ class MediaPackagingRunner:
                 representation=representation,
                 package_artifact=package_artifact,
             )
+            await emit_job_progress(
+                self._on_progress,
+                job_type="media-packaging",
+                job_id=job_id,
+                status=MediaPackagingJobStatus.COMPLETED.value,
+                progress_percent=100,
+            )
         except Exception as exc:
             if context is not None:
                 try:
@@ -264,6 +293,14 @@ class MediaPackagingRunner:
                         "Failed to persist media packaging failure for job %s",
                         job_id,
                     )
+            await emit_job_progress(
+                self._on_progress,
+                job_type="media-packaging",
+                job_id=job_id,
+                status=MediaPackagingJobStatus.FAILED.value,
+                progress_percent=0,
+                error_message=_format_error(exc),
+            )
             raise
 
 

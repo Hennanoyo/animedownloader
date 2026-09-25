@@ -1,8 +1,10 @@
 from datetime import UTC, datetime, time
-from uuid import uuid7
+from typing import cast
+from uuid import UUID, uuid7
 
 import pytest
 from animedownloader_anime import Anime, AnimeNotFoundError, Episode
+from sqlalchemy.ext.asyncio import AsyncSession
 from animedownloader_api.release_ingestion import (
     EpisodeIngestionService,
     ReleaseDoesNotMatchAnimeError,
@@ -100,7 +102,7 @@ def _anime() -> Anime:
     )
 
 
-def _episode(anime_id, *, title: str = "User title") -> Episode:
+def _episode(anime_id: UUID, *, title: str = "User title") -> Episode:
     now = datetime(2026, 9, 25, tzinfo=UTC)
     return Episode(
         id=uuid7(),
@@ -128,7 +130,7 @@ def _episode(anime_id, *, title: str = "User title") -> Episode:
 async def test_ingestion_creates_new_episode_without_download_job() -> None:
     anime = _anime()
     session = FakeSession([anime, None, None])
-    service = EpisodeIngestionService(session)
+    service = EpisodeIngestionService(cast(AsyncSession, session))
 
     result = await service.ingest(
         anime_id=anime.id,
@@ -151,7 +153,7 @@ async def test_same_release_is_idempotent_and_preserves_user_state() -> None:
     anime = _anime()
     episode = _episode(anime.id)
     session = FakeSession([anime, episode])
-    service = EpisodeIngestionService(session)
+    service = EpisodeIngestionService(cast(AsyncSession, session))
 
     result = await service.ingest(
         anime_id=anime.id,
@@ -174,7 +176,7 @@ async def test_different_release_same_episode_returns_replacement_candidate() ->
     anime = _anime()
     existing = _episode(anime.id)
     session = FakeSession([anime, None, existing])
-    service = EpisodeIngestionService(session)
+    service = EpisodeIngestionService(cast(AsyncSession, session))
 
     result = await service.ingest(
         anime_id=anime.id,
@@ -193,7 +195,7 @@ async def test_different_release_same_episode_returns_replacement_candidate() ->
 async def test_mismatched_series_is_rejected() -> None:
     anime = _anime()
     session = FakeSession([anime])
-    service = EpisodeIngestionService(session)
+    service = EpisodeIngestionService(cast(AsyncSession, session))
 
     with pytest.raises(ReleaseDoesNotMatchAnimeError):
         await service.ingest(
@@ -207,7 +209,7 @@ async def test_mismatched_series_is_rejected() -> None:
 async def test_missing_anime_is_rejected() -> None:
     anime_id = uuid7()
     session = FakeSession([None])
-    service = EpisodeIngestionService(session)
+    service = EpisodeIngestionService(cast(AsyncSession, session))
 
     with pytest.raises(AnimeNotFoundError):
         await service.ingest(
@@ -233,7 +235,7 @@ async def test_non_actionable_release_is_rejected(
 ) -> None:
     anime = _anime()
     session = FakeSession([anime])
-    service = EpisodeIngestionService(session)
+    service = EpisodeIngestionService(cast(AsyncSession, session))
 
     with pytest.raises(ReleaseNotActionableError):
         await service.ingest(

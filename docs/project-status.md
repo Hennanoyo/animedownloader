@@ -525,6 +525,8 @@ Acceptance criteria:
 
 ### PR #33 — Realtime Anime Detail Pipeline
 
+**In progress on `feature/realtime-anime-detail`.**
+
 Goal: extend the existing realtime job transport from DownloadJob to the Anime detail Episode pipeline, so download, processing, preview, and streaming-stage changes update without page polling.
 
 Planned scope:
@@ -563,8 +565,6 @@ Acceptance criteria:
 - Redis/WebSocket failures do not change durable job outcomes
 - Existing Download Manager realtime behavior remains green
 - Backend, Frontend, Browser, and Integration CI remains green
-
-## Handoff Notes
 
 ## Handoff Notes
 

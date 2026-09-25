@@ -127,6 +127,7 @@ test("creates an Anime after all required fields and a release are selected", as
   await page.getByLabel("Air time", { exact: true }).fill("23:00");
   await page.getByLabel("Timezone", { exact: true }).fill("Asia/Tokyo");
 
+  await page.getByRole("button", { name: "Add episode" }).click();
   await page.getByLabel("Search Nyaa releases", { exact: true }).fill("Browser Create Anime 01");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByRole("button", { name: "Select" })).toBeVisible();
@@ -142,6 +143,70 @@ test("creates an Anime after all required fields and a release are selected", as
   ).toBeVisible();
 });
 
+test("creates an Anime without episodes when none have been added", async ({
+  page,
+}) => {
+  let createRequests = 0;
+
+  await page.route("**/api/animes", async (route) => {
+    if (route.request().method() === "POST") {
+      createRequests += 1;
+      const body = JSON.parse(route.request().postData() ?? "{}") as {
+        episodes?: unknown[];
+      };
+
+      expect(body.episodes).toEqual([]);
+
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ...createdAnime,
+          title: "Anime Without Episodes",
+          episodes: [],
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([]),
+    });
+  });
+
+  await page.goto("/animes/new");
+
+  await page.getByLabel("Title", { exact: true }).fill("Anime Without Episodes");
+  await page.getByLabel("Year", { exact: true }).fill("2026");
+  await page.getByLabel("Air time", { exact: true }).fill("23:00");
+  await page.getByLabel("Timezone", { exact: true }).fill("Asia/Tokyo");
+
+  await page.getByRole("button", { name: "Create anime" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Anime", exact: true }),
+  ).toBeVisible();
+  await expect.poll(() => createRequests).toBe(1);
+});
+
+test("can add and remove an episode before creating an Anime", async ({
+  page,
+}) => {
+  await page.goto("/animes/new");
+
+  await expect(page.getByText("No episodes added yet.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Add episode" }).click();
+  await expect(page.getByText("Episode 1", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Remove" }).click();
+
+  await expect(page.getByText("No episodes added yet.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove" })).toHaveCount(0);
+});
+
 test("shows actionable validation feedback when an episode release is missing", async ({
   page,
 }) => {
@@ -152,9 +217,10 @@ test("shows actionable validation feedback when an episode release is missing", 
   await page.getByLabel("Air time", { exact: true }).fill("23:00");
   await page.getByLabel("Timezone", { exact: true }).fill("Asia/Tokyo");
 
+  await page.getByRole("button", { name: "Add episode" }).click();
   await page.getByRole("button", { name: "Create anime" }).click();
 
   await expect(page.getByRole("alert")).toContainText(
-    "Episode 1: Select a Nyaa release.",
+    "Select a Nyaa release.",
   );
 });

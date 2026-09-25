@@ -197,6 +197,21 @@
   font-weight: 700;
 }
 
+.fieldHint {
+  min-width: 0;
+  color: #64748b;
+  font-size: 0.62rem;
+  line-height: 1.35;
+}
+
+.titleOptionValue {
+  display: block;
+  margin-top: 0.12rem;
+  color: #64748b;
+  font-size: 0.64rem;
+  overflow-wrap: anywhere;
+}
+
 .selectButton {
   display: inline-flex;
   min-height: 1.85rem;

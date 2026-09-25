@@ -255,26 +255,25 @@
 }
 
 .ruleRow {
-  display: grid;
-  gap: 0.85rem;
   min-width: 0;
-  padding: 0.9rem;
+  padding: 0.65rem;
   border: 1px solid #26324a;
   border-radius: 0.7rem;
   background: #0b1222;
 }
 
-.ruleMain {
+.ruleSummary {
   display: grid;
-  grid-template-columns: 2.5rem minmax(12rem, 0.8fr) minmax(0, 2fr) auto;
-  gap: 0.75rem;
+  grid-template-columns: 1.5rem 2.4rem minmax(0, 1fr) 2.4rem;
+  gap: 0.6rem;
   min-width: 0;
-  align-items: end;
+  align-items: center;
+  min-height: 2.4rem;
 }
 
 .ruleNumber {
   display: grid;
-  min-width: 0;
+  width: 2.4rem;
   height: 2.4rem;
   place-items: center;
   box-sizing: border-box;
@@ -286,20 +285,18 @@
   font-weight: 800;
 }
 
-.ruleControl,
-.ruleControlCompact,
-.rulePattern {
-  display: grid;
+.ruleSummaryField {
   min-width: 0;
-  gap: 0.35rem;
 }
 
-.rulePattern {
-  position: relative;
+.ruleSummaryField :global(.react-aria-Select),
+.detailField :global(.react-aria-Select) {
+  display: block;
+  min-width: 0;
 }
 
-.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button),
-.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button) {
+.ruleSummaryField :global(.react-aria-Select) > :global(.react-aria-Button),
+.detailField :global(.react-aria-Select) > :global(.react-aria-Button) {
   display: flex;
   width: 100%;
   min-width: 0;
@@ -321,32 +318,83 @@
   outline: none;
 }
 
-.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button):hover,
-.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button)[data-focused],
-.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button)[data-pressed],
-.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button):hover,
-.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button)[data-focused],
-.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button)[data-pressed] {
+.ruleSummaryField :global(.react-aria-Select) > :global(.react-aria-Button):hover,
+.ruleSummaryField :global(.react-aria-Select) > :global(.react-aria-Button)[data-focused],
+.ruleSummaryField :global(.react-aria-Select) > :global(.react-aria-Button)[data-pressed],
+.detailField :global(.react-aria-Select) > :global(.react-aria-Button):hover,
+.detailField :global(.react-aria-Select) > :global(.react-aria-Button)[data-focused],
+.detailField :global(.react-aria-Select) > :global(.react-aria-Button)[data-pressed] {
   border-color: #475569;
   background: #111827;
   color: #f8fafc;
 }
 
-.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button)[data-focus-visible],
-.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button)[data-focus-visible] {
+.ruleSummaryField :global(.react-aria-Select) > :global(.react-aria-Button)[data-focus-visible],
+.detailField :global(.react-aria-Select) > :global(.react-aria-Button)[data-focus-visible] {
   outline: 2px solid #60a5fa;
   outline-offset: 1px;
 }
 
-.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button)[data-disabled],
-.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button)[data-disabled] {
-  cursor: not-allowed;
-  opacity: 0.6;
+.expandButton {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  background: #101827;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.expandButton:hover,
+.expandButton[data-focused="true"],
+.expandButton[data-pressed="true"] {
+  border-color: #475569;
+  background: #172036;
+  color: #f8fafc;
+}
+
+.expandButton[data-focus-visible] {
+  outline: 2px solid #60a5fa;
+  outline-offset: 1px;
+}
+
+.expandIcon {
+  display: block;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: transform 140ms ease;
+}
+
+.expandIcon[data-expanded="true"] {
+  transform: rotate(90deg);
+}
+
+.ruleDetails {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #1e293b;
+}
+
+.ruleDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(10rem, 0.65fr);
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.detailField {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
 }
 
 .controlLabel {
   display: block;
-  margin-bottom: 0.28rem;
   color: #94a3b8;
   font-size: 0.66rem;
   font-weight: 800;
@@ -354,52 +402,127 @@
   text-transform: uppercase;
 }
 
-.rulePattern > input,
-.ruleControlCompact > input {
-  width: 100%;
-  min-width: 0;
-  min-height: 2.2rem;
-  box-sizing: border-box;
-  padding: 0 0.6rem;
-  border: 1px solid #334155;
-  border-radius: 0.45rem;
-  background: #0f172a;
-  color: #f8fafc;
-}
-
-.rulePattern > input:focus-visible,
-.ruleControlCompact > input:focus-visible,
-.sampleInput input:focus-visible {
-  outline: 2px solid #60a5fa;
-  outline-offset: 1px;
-}
-
-.ruleOptions {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.65rem;
-  align-items: start;
-  min-width: 0;
-  padding: 0.7rem;
-  border: 1px solid #1e293b;
-  border-radius: 0.55rem;
-  background: #0f172a;
-}
-
-.ruleControlCompact {
-  padding: 0;
-}
-
 .labelRow {
   display: flex;
   min-width: 0;
+  min-height: 1.15rem;
   align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.28rem;
+  gap: 0.45rem;
 }
 
 .labelRow .controlLabel {
-  margin-bottom: 0;
+  margin: 0;
+}
+
+.detailField > input,
+.detailField > :global(.react-aria-Select) > :global(.react-aria-Button) {
+  width: 100%;
+}
+
+.detailField > input {
+  min-width: 0;
+  min-height: 2.4rem;
+  height: 2.4rem;
+  box-sizing: border-box;
+  padding: 0 0.7rem;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  background: #0f172a;
+  color: #f8fafc;
+  outline: none;
+}
+
+.detailField > input:focus-visible {
+  border-color: #60a5fa;
+  outline: 2px solid rgb(96 165 250 / 18%);
+  outline-offset: 1px;
+}
+
+.requiredCheckbox {
+  display: grid;
+  width: 1.5rem;
+  min-width: 1.5rem;
+  height: 2.4rem;
+  min-height: 2.4rem;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.checkboxMark {
+  position: relative;
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #64748b;
+  border-radius: 0.25rem;
+  background: #0f172a;
+  transition:
+    border-color 100ms ease,
+    background-color 100ms ease;
+}
+
+.checkboxMark::after {
+  color: #eff6ff;
+  content: "✓";
+  font-size: 0.7rem;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0;
+  transform: scale(0.75);
+  transition:
+    opacity 100ms ease,
+    transform 100ms ease;
+}
+
+.requiredCheckbox[data-selected="true"] .checkboxMark {
+  border-color: #60a5fa;
+  background: #2563eb;
+}
+
+.requiredCheckbox[data-selected="true"] .checkboxMark::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.ruleActionRow {
+  min-width: 0;
+}
+
+.removeRuleButton {
+  display: flex;
+  width: 100%;
+  min-height: 2.4rem;
+  height: 2.4rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0 0.75rem;
+  border: 1px solid #7f1d1d;
+  border-radius: 0.55rem;
+  background: #2a1014;
+  color: #fecaca;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.removeRuleButton:hover,
+.removeRuleButton[data-focused="true"],
+.removeRuleButton[data-pressed="true"] {
+  border-color: #991b1b;
+  background: #3a1218;
+  color: #fee2e2;
+}
+
+.removeRuleButton[data-focus-visible] {
+  outline: 2px solid #fca5a5;
+  outline-offset: 1px;
 }
 
 .hintButton {
@@ -436,6 +559,7 @@
   box-sizing: border-box;
   width: min(24rem, calc(100vw - 1rem));
   max-width: calc(100vw - 1rem);
+  margin: 0.4rem;
   padding: 0.7rem 0.8rem;
   border: 1px solid #3b4a63;
   border-radius: 0.55rem;
@@ -461,66 +585,17 @@
   overflow-wrap: anywhere;
 }
 
-.requiredCheckbox {
-  display: flex;
-  min-width: 0;
-  min-height: 2.4rem;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0 0.1rem;
-  color: #cbd5e1;
-  cursor: pointer;
-}
-
-.requiredLabel {
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.requiredLabel strong {
+.readOnlyNumber {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  border: 1px solid #26324a;
+  border-radius: 0.45rem;
+  background: #101827;
+  color: #64748b;
   font-size: 0.72rem;
-}
-
-.checkboxMark {
-  position: relative;
-  display: inline-flex;
-  flex: 0 0 auto;
-  width: 1rem;
-  height: 1rem;
-  box-sizing: border-box;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #64748b;
-  border-radius: 0.25rem;
-  background: #0f172a;
-  transition:
-    border-color 100ms ease,
-    background-color 100ms ease;
-}
-
-.checkboxMark::after {
-  color: #eff6ff;
-  content: "✓";
-  font-size: 0.7rem;
-  font-weight: 900;
-  line-height: 1;
-  opacity: 0;
-  transform: scale(0.75);
-  transition:
-    opacity 100ms ease,
-    transform 100ms ease;
-}
-
-.requiredCheckbox[data-selected="true"] .checkboxMark {
-  border-color: #60a5fa;
-  background: #2563eb;
-}
-
-.requiredCheckbox[data-selected="true"] .checkboxMark::after {
-  opacity: 1;
-  transform: scale(1);
+  font-weight: 800;
 }
 
 .readOnlyRule {
@@ -866,12 +941,8 @@
 }
 
 @media (max-width: 1050px) {
-  .ruleMain {
-    grid-template-columns: auto minmax(10rem, 0.8fr) minmax(0, 1.7fr) auto;
-  }
-
-  .ruleOptions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .ruleDetailGrid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(9rem, 0.65fr);
   }
 
   .healthGrid {
@@ -893,18 +964,14 @@
     justify-content: flex-start;
   }
 
-  .ruleMain,
-  .ruleOptions,
+  .ruleSummary {
+    grid-template-columns: 1.5rem 2.4rem minmax(0, 1fr) 2.4rem;
+    gap: 0.45rem;
+  }
+
+  .ruleDetailGrid,
   .readOnlyRule {
     grid-template-columns: 1fr;
-  }
-
-  .ruleMain {
-    gap: 0.55rem;
-  }
-
-  .ruleNumber {
-    padding-top: 0;
   }
 
   .failureItem {

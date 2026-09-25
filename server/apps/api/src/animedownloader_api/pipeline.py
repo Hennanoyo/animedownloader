@@ -204,9 +204,9 @@ def build_episode_pipeline_summary(
     asset: MediaAsset | None,
     preparation_job: MediaPreparationJob | None,
     variant: MediaVariant | None,
-    packaging_job: MediaPackagingJob | None,
     package: MediaStreamingPackage | None,
     storage: Storage,
+    packaging_job: MediaPackagingJob | None = None,
 ) -> EpisodePipelineSummary:
     download_status = _download_status(download_job)
     (

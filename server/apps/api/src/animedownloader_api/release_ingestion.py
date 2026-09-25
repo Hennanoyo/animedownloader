@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from animedownloader_anime import Anime, Episode
+from animedownloader_anime import Anime, AnimeNotFoundError, Episode
 from animedownloader_releases import EpisodeIngestionStatus, ParsedRelease, Release
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,9 +49,7 @@ class EpisodeIngestionService:
                 .with_for_update(),
             )
             if anime is None:
-                raise ReleaseDoesNotMatchAnimeError(
-                    "selected anime does not exist",
-                )
+                raise AnimeNotFoundError(anime_id)
 
             match = AnimeMatcher([anime]).match(parsed)
             if match.status.value != "matched" or not any(

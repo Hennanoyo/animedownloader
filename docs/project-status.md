@@ -618,45 +618,136 @@ Acceptance criteria:
 
 ### Next Phase — Release Discovery & Episode Ingestion
 
-The next feature phase should reduce manual Episode creation by turning external release discovery into a controlled ingestion workflow while keeping raw Nyaa RSS/search results ephemeral.
+The next feature phase reduces manual Episode creation by turning external release discovery into a controlled, reviewable ingestion workflow while keeping raw Nyaa RSS/search results ephemeral.
 
-### PR #35 — Release Discovery & Automatic Episode Ingestion
+See `docs/architecture/release-discovery.md` and `docs/decisions/ADR-007-release-discovery-and-versioned-parser-profiles.md` for the accepted architecture and design constraints.
 
-Goal: discover candidate releases, match them to existing Anime records, and create or update Episodes through an explicit, idempotent ingestion flow without coupling discovery to automatic downloading.
+### PR #35 — Release Discovery Foundation
+
+Goal: establish the provider-neutral release model, generic parsing pipeline, versioned release-group profiles, and deterministic parser validation without yet coupling discovery to Episode persistence.
 
 Scope:
 
-- Define an ephemeral release-discovery DTO/model; do not persist raw Nyaa RSS search results as general-purpose database records
-- Isolate Nyaa/RSS access behind a release-discovery service and provider adapter boundary
-- Normalize release titles and extract episode/release metadata needed for deterministic matching
-- Match discovered releases to an existing Anime using explicit, testable rules
-- Detect duplicates using stable source identity such as source ID and info hash
-- Add an Episode ingestion workflow that creates or updates an Episode from an accepted release
-- Keep title cleanup/editing available before persistence when automatic parsing is uncertain
-- Add API and Anime-detail UI support for discovering candidates and accepting an ingestion result
-- Add deterministic tests for parsing, matching, duplicate detection, and ingestion transactions
-- Reuse the existing DownloadJob flow but do not silently start downloads during discovery or ingestion
-- Keep manual Episode CRUD available as the fallback for ambiguous cases
-
-Design constraints:
-
-- Discovery results are ephemeral and are not stored as a release cache
-- Provider-specific behavior remains behind explicit adapters/services
-- The same source identity must produce an idempotent ingestion result
-- Ambiguous parsing must fail safely rather than creating an incorrect Episode
-- Do not introduce queue prioritization or automatic download scheduling in this PR
+- Preserve raw provider releases as ephemeral data; do not introduce a release-result cache
+- Keep Nyaa behind the existing provider/client boundary
+- Add a generic parser that extracts high-confidence series, episode, group, and technical metadata
+- Add `parsed` / `ambiguous` / `unparsed` / `unsupported` outcomes
+- Add release-group identity and versioned Parser Profiles
+- Store declarative parser rules, including regex patterns, as validated database configuration
+- Add draft/active/retired profile lifecycle
+- Add parser-rule validation with representative multi-sample tests
+- Keep profile versions immutable after activation
+- Add deterministic parser/profile tests
 
 Out of scope:
 
-- Automatic periodic release-discovery scheduling
-- Automatic downloading of newly ingested Episodes
-- Additional release providers
-- Subtitle/media-processing changes
-- Player changes
+- Anime matching
+- Episode ingestion
+- Release discovery UI
+- Automatic downloads
+- Search-profile execution
+
+Acceptance criteria:
+
+- Representative Nyaa-style release titles are parsed deterministically
+- Unknown release groups safely fall back to the generic parser
+- Ambiguous episode forms are not silently converted into normal Episodes
+- A new parser profile can be drafted and validated without changing application code
+- Active parser behavior is reproducible through an explicit profile version
+
+### PR #36 — Release Search Profiles & Discovery
+
+Goal: turn parser-ready release knowledge into a robust discovery workflow with profile-driven, progressively specific Nyaa queries.
+
+Scope:
+
+- Add versioned Search Profiles for release groups
+- Support query templates built from group/title/episode/resolution/codec fields
+- Support configurable token ordering independent from parser ordering
+- Execute multiple progressively specific queries when useful
+- Merge and deduplicate results in memory
+- Expose parsed discovery candidates through the API
+- Add Anime-detail discovery UI that lets users constrain group/title/episode/quality/codec search
+- Preserve raw search results as ephemeral data
+- Add deterministic search-template, merge, deduplication, and API/UI tests
+
+Design constraints:
+
+- Search Profile and Parser Profile remain independent
+- A failed highly-specific query must not prevent broader discovery
+- Search execution never creates or downloads an Episode
+- Stable source identity is preferred for deduplication
+
+Out of scope:
+
+- Episode persistence
+- Automatic downloads
+- Periodic scheduling
+- Automatic release ranking
+
+### PR #37 — Anime Matching & Episode Ingestion
+
+Goal: connect parsed discovery candidates to existing Anime records and explicitly create/update Episodes through a safe, idempotent transaction.
+
+Scope:
+
+- Add deterministic Anime title canonicalization and matching
+- Return `matched` / `ambiguous` / `unmatched` match results
+- Use year/season only as supporting evidence, not authoritative release-date inference
+- Add explicit user review before persistence
+- Add Episode ingestion transaction
+- Make same-source ingestion idempotent
+- Preserve existing Episode when the same episode number has a different release identity
+- Preserve user-edited Episode title and execution state during routine re-ingestion
+- Add duplicate/race-condition protections at the database boundary where appropriate
+- Reuse the existing Episode → DownloadJob flow without automatically creating or starting DownloadJob
+- Add backend, transaction, and integration coverage
+- Add Anime-detail candidate acceptance/review UI
+
+Design constraints:
+
+- Do not silently replace an existing Episode with a different release
+- Do not auto-create Anime records for unmatched candidates
+- Do not start torrents during ingestion
+- Ambiguous parsing or matching must fail safely
+
+Out of scope:
+
+- Automatic periodic discovery
+- Automatic download scheduling
+- Additional providers
+- Media-processing/player changes
+
+### PR #38 — Release Profile Operations & Drift Detection
+
+Goal: make release-profile maintenance a first-class operational workflow after real-world releases have accumulated.
+
+Scope:
+
+- Add parser profile administration UI
+- Show profile version history and activation state
+- Store/review representative parser samples
+- Compare active and draft parser results
+- Add parser-health aggregates such as parse-success/failure rates where justified
+- Surface likely naming-convention drift for manual review
+- Allow creation of a new profile version from observed failures
+- Add deterministic profile validation and regression coverage
+
+Design constraints:
+
+- Drift detection is an observation/maintenance aid, not automatic profile activation
+- A detected drift must be reviewed and validated before becoming active
+- Do not persist raw RSS feeds merely to calculate profile health
+
+Out of scope:
+
+- Automatic parser self-modification
+- Automatic profile activation
+- Automatic downloads
 
 Follow-up candidate:
 
-Media Source Lifecycle & Recovery can then reconcile completed DownloadJob records with the physical source input, recover missing media when appropriate, and define explicit orphan/cleanup policies.
+Media Source Lifecycle & Recovery can reconcile completed DownloadJob records with the physical source input, recover missing media when appropriate, and define explicit orphan/cleanup policies.
 
 ## Handoff Notes
 

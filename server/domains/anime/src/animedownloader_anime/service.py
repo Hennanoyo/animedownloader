@@ -13,10 +13,8 @@ from .models import Anime, Episode
 from .repository import AnimeRepository, EpisodeRepository
 
 
-MAX_TITLE_LENGTH = 200
-
-
 class AnimeService:
+    MAX_TITLE_LENGTH = 200
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.animes = AnimeRepository(session)
@@ -165,7 +163,7 @@ class AnimeService:
             normalized_value = value.strip()
             if not normalized_value:
                 continue
-            if len(normalized_value) > MAX_TITLE_LENGTH:
+            if len(normalized_value) > AnimeService.MAX_TITLE_LENGTH:
                 raise ValueError(f"anime title exceeds {MAX_TITLE_LENGTH} characters: {normalized_key}")
             cleaned[normalized_key] = normalized_value
         return cleaned

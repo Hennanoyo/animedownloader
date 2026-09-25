@@ -2,17 +2,17 @@ from dataclasses import replace
 
 import pytest
 from animedownloader_releases import (
-    DEFAULT_SEARCH_TEMPLATES,
+    DEFAULT_SEARCH_FIELDS,
     Release,
+    SearchField,
     SearchProfileSpec,
     SearchQueryContext,
-    SearchTemplateSpec,
-    build_search_queries,
+    build_search_query,
     merge_releases,
     normalize_release_group_slug,
     validate_search_profile,
-    validate_search_template,
 )
+
 
 def _release(title: str) -> Release:
     return Release(
@@ -30,13 +30,11 @@ def _release(title: str) -> Release:
     )
 
 
-
-
 def test_normalize_release_group_slug() -> None:
     assert normalize_release_group_slug(" Example Subs ") == "example-subs"
 
 
-def test_build_default_search_queries_progressively() -> None:
+def test_build_default_search_query() -> None:
     context = SearchQueryContext(
         group="ExampleSubs",
         title="Frieren",
@@ -45,63 +43,58 @@ def test_build_default_search_queries_progressively() -> None:
         codec="HEVC",
     )
 
-    assert build_search_queries(context) == (
-        "ExampleSubs Frieren 8 1080p HEVC",
-        "Frieren 8 1080p HEVC",
-        "ExampleSubs Frieren 8",
-        "Frieren 8",
-        "ExampleSubs Frieren",
-        "Frieren",
+    assert build_search_query(context) == "ExampleSubs Frieren 8 1080p HEVC"
+
+
+def test_build_search_query_respects_field_order_and_selection() -> None:
+    context = SearchQueryContext(
+        group="ExampleSubs",
+        title="Frieren",
+        episode=8,
+        resolution="1080p",
+        codec="HEVC",
     )
 
+    assert build_search_query(
+        context,
+        fields=(
+            SearchField.TITLE,
+            SearchField.GROUP,
+            SearchField.EPISODE,
+        ),
+    ) == "Frieren ExampleSubs 8"
 
-def test_build_profile_search_queries_preserves_profile_order() -> None:
+
+def test_build_search_query_skips_empty_selected_fields() -> None:
+    context = SearchQueryContext(title="Frieren")
+
+    assert build_search_query(
+        context,
+        fields=(SearchField.GROUP, SearchField.TITLE, SearchField.CODEC),
+    ) == "Frieren"
+
+
+def test_validate_search_profile_rejects_duplicate_fields() -> None:
+    profile = SearchProfileSpec(
+        release_group="ExampleSubs",
+        version=1,
+        fields=(SearchField.TITLE, SearchField.TITLE),
+    )
+
+    assert validate_search_profile(profile) == ("duplicate search field",)
+
+
+def test_search_profile_uses_declared_field_order() -> None:
     profile = SearchProfileSpec(
         release_group="ExampleSubs",
         version=3,
-        templates=(
-            SearchTemplateSpec("{title} {episode} {codec}", priority=20),
-            SearchTemplateSpec("{group} {title} {episode}", priority=10),
-        ),
+        fields=(SearchField.TITLE, SearchField.EPISODE, SearchField.CODEC),
     )
 
-    assert build_search_queries(
-        SearchQueryContext(group="ExampleSubs", title="Frieren", episode=8, codec="HEVC"),
+    assert build_search_query(
+        SearchQueryContext(title="Frieren", episode=8, codec="HEVC"),
         profile,
-    ) == (
-        "ExampleSubs Frieren 8",
-        "Frieren 8 HEVC",
-    )
-
-
-def test_build_search_queries_skips_templates_missing_all_values() -> None:
-    profile = SearchProfileSpec(
-        release_group="ExampleSubs",
-        version=1,
-        templates=(SearchTemplateSpec("{resolution} {codec}"),),
-    )
-
-    assert build_search_queries(
-        SearchQueryContext(title="Frieren"),
-        profile,
-    ) == ()
-
-
-def test_validate_search_template_rejects_unknown_placeholder() -> None:
-    assert "unsupported search field: source" in validate_search_template("{title} {source}")
-
-
-def test_validate_search_profile_rejects_duplicate_priorities() -> None:
-    profile = SearchProfileSpec(
-        release_group="ExampleSubs",
-        version=1,
-        templates=(
-            SearchTemplateSpec("{title}", priority=10),
-            SearchTemplateSpec("{episode}", priority=10),
-        ),
-    )
-
-    assert "duplicate template priority: 10" in validate_search_profile(profile)
+    ) == "Frieren 8 HEVC"
 
 
 def test_merge_releases_deduplicates_source_and_info_hash() -> None:
@@ -116,17 +109,11 @@ def test_merge_releases_deduplicates_source_and_info_hash() -> None:
     )
 
 
-def test_search_template_length_limit() -> None:
-    with pytest.raises(ValueError, match="template"):
-        build_search_queries(
-            SearchQueryContext(title="Frieren"),
-            SearchProfileSpec(
-                release_group="ExampleSubs",
-                version=1,
-                templates=(SearchTemplateSpec("x" * 301),),
-            ),
-        )
-
-
-def test_default_templates_are_declared() -> None:
-    assert len(DEFAULT_SEARCH_TEMPLATES) == 6
+def test_default_search_fields_are_declared() -> None:
+    assert DEFAULT_SEARCH_FIELDS == (
+        SearchField.GROUP,
+        SearchField.TITLE,
+        SearchField.EPISODE,
+        SearchField.RESOLUTION,
+        SearchField.CODEC,
+    )

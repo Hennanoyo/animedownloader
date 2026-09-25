@@ -2,7 +2,7 @@ from datetime import UTC, datetime, time
 from uuid import uuid7
 
 import pytest
-from animedownloader_anime import Anime, Episode, AnimeNotFoundError
+from animedownloader_anime import Anime, AnimeNotFoundError, Episode
 from animedownloader_api.release_ingestion import (
     EpisodeIngestionService,
     ReleaseDoesNotMatchAnimeError,
@@ -18,10 +18,10 @@ class FakeSession:
         self.flushed = False
         self.refreshed: list[object] = []
 
-    def begin(self) -> "FakeSession":
+    def begin(self) -> FakeSession:
         return self
 
-    async def __aenter__(self) -> "FakeSession":
+    async def __aenter__(self) -> FakeSession:
         return self
 
     async def __aexit__(self, *_: object) -> None:

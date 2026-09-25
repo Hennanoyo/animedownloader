@@ -1,11 +1,11 @@
 from .entities import ParserProfileStatus, ReleaseGroup, ReleaseParserProfile, ReleaseParserRule
 from .models import (
-    ParseStatus,
     ParsedRelease,
     ParserField,
     ParserProfileSpec,
     ParserRuleSpec,
     ParserTransform,
+    ParseStatus,
     Release,
 )
 from .parser import (

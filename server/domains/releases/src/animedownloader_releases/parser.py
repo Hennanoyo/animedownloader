@@ -8,12 +8,12 @@ from typing import Final
 
 from .models import (
     SUPPORTED_PARSER_TRANSFORMS,
-    ParseStatus,
     ParsedRelease,
     ParserField,
     ParserProfileSpec,
     ParserRuleSpec,
     ParserTransform,
+    ParseStatus,
     Release,
 )
 

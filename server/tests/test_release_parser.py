@@ -2,11 +2,11 @@ from dataclasses import replace
 
 import pytest
 from animedownloader_releases import (
-    ParseStatus,
     ParserField,
     ParserProfileSpec,
     ParserRuleSpec,
     ParserTransform,
+    ParseStatus,
     Release,
     normalize_release_title,
     parse_release,

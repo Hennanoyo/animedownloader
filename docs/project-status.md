@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is Download Management UX. PR #23 through PR #30 are merged; PR #31 is the current development step.
+The current phase is Realtime Job Progress. PR #23 through PR #31 are merged; PR #32 is the current development step.
 
 ## Completed
 
@@ -446,13 +446,11 @@ Planned follow-up:
 
 ### PR #31 — Download Management UX
 
-**In progress on `feature/download-management`.**
+**Merged into `main` as commit `7ae502f484fd1563c1f02d61bf543676699e9662`.**
 
 Goal: provide a coherent place to monitor and control downloads across Episodes instead of requiring users to manage each download only from the Anime detail Episode card.
 
-
-
-Current implementation:
+Completed implementation:
 
 - Added `GET /api/download-jobs` with repeated `status` filters and bounded page/page_size pagination
 - Joined DownloadJob with Episode and Anime so the management response contains stable display context without N+1 frontend requests
@@ -460,45 +458,74 @@ Current implementation:
 - Added All / Active / Failed / History filters through TanStack Router search state
 - Added responsive download job cards with Pause / Resume / Cancel / Retry / Download again / Delete record actions
 - Reused the existing Episode download mutations and invalidates both detail and management query caches after actions
-- Poll only `pending` / `downloading` management entries; paused and terminal entries do not poll
+- Limited management polling to `pending` / `downloading`; paused and terminal entries do not poll
 - Added backend, frontend API/query, and Playwright coverage, including a narrow viewport horizontal-overflow regression check
+- Verified the full repository GitHub Actions CI after resolving browser-test selector and formatting issues
 
-Out of scope:
+### PR #32 — Realtime Job Progress
 
-- FFmpeg realtime progress events
-- Redis Pub/Sub or WebSocket transport for media-processing progress
-- Changes to the media preparation, thumbnail, CMAF, or playback pipeline
-- Automatic scheduling/prioritization or a multi-download queue
+Goal: replace active Download Manager polling with a shared realtime progress transport that can later serve long-running download and media-processing jobs without making PostgreSQL the event bus.
 
-Scope:
+Planned architecture:
 
-- Add a download-management API that can list current and recent DownloadJobs with stable Episode/Anime context
-- Keep PostgreSQL as the durable source of truth while continuing to poll qBittorrent from the worker
-- Add a dedicated frontend download manager for active, paused, failed, completed, and cancelled jobs
-- Reuse the existing Pause / Resume / Cancel / Retry / Download again / Delete record actions and their existing state semantics
-- Keep active download status polling limited to jobs that can actually change; do not introduce FFmpeg progress or media-pipeline WebSocket streaming in this PR
-- Preserve the existing Anime detail pipeline controls and make cache invalidation consistent between the detail page and the management view
-- Add focused API/frontend/browser coverage for queue presentation, terminal-state actions, and refresh/reload recovery
+```
+Download worker / media worker
+        │
+        │ progress event
+        ▼
+      Redis
+   (Pub/Sub channel)
+        │
+        ▼
+   FastAPI WebSocket
+        │
+        ▼
+ Download Manager / future Media Pipeline UI
+```
+
+Initial scope:
+
+- Define a small versioned progress-event schema that identifies job type, job ID, status, downloaded/total bytes where available, optional progress percent, and emitted timestamp
+- Add a Redis publisher abstraction in the infrastructure layer rather than coupling domain services directly to Redis
+- Publish coarse download progress events from the worker without writing every progress sample to PostgreSQL
+- Add a FastAPI WebSocket endpoint that subscribes to the relevant Redis channel and forwards validated events to connected browsers
+- Keep the existing HTTP download-job list/detail endpoints as the initial snapshot and recovery source
+- Update the Download Manager so the initial page load uses HTTP state, then active cards consume WebSocket updates and invalidate/refetch on reconnect or terminal transitions
+- Preserve the existing Pause / Resume / Cancel / Retry / Download again / Delete record semantics
+- Add focused Redis/event unit tests, WebSocket API tests, frontend event/state tests, and Playwright coverage for live progress and reconnect behavior
 
 Design constraints:
 
-- Do not duplicate DownloadJob state in a new database table
-- Keep qBittorrent behind the existing TorrentClient abstraction
-- Do not turn PostgreSQL into a per-progress-event realtime transport
-- Keep media-processing progress architecture separate so download management can ship independently
+- PostgreSQL remains the durable source of truth, not a per-progress-event transport
+- Redis Pub/Sub is treated as ephemeral delivery; a reconnect must recover from the HTTP snapshot instead of assuming missed events can be replayed
+- Event publishing must not make a download or media job fail when realtime delivery is unavailable
+- Keep the event contract generic enough to support both DownloadJob and MediaProcessingJob later
+- Do not move FFmpeg/media-pipeline processing logic into the WebSocket layer
+- Avoid introducing queue scheduling/prioritization or concurrency controls in this PR
 
 Out of scope:
 
-- FFmpeg realtime progress events
-- Redis Pub/Sub or WebSocket transport for media-processing progress
-- Changes to the media preparation, thumbnail, CMAF, or playback pipeline
-- Automatic scheduling/prioritization of a multi-download queue
+- Persistent event history or replayable event storage
+- Automatic download scheduling/prioritization
+- Major changes to FFmpeg preparation or CMAF packaging
+- Multi-resolution transcoding
+- UI redesign beyond wiring realtime state into the existing Download Manager
 
-Future follow-up after PR #31:
+Acceptance criteria:
 
-- Evaluate a shared realtime progress event transport (Redis + WebSocket) for long-running download/media jobs if polling becomes insufficient
-- Add coarse durable checkpoints/heartbeat only where recovery semantics require them
-- Consider queue prioritization and concurrency controls after the download-management UI is established
+- Active Download Manager cards stop using periodic status polling during healthy WebSocket connectivity
+- A newly connected client renders the current HTTP snapshot before applying realtime events
+- Download progress changes are reflected without a full page refresh
+- Terminal transitions remove/update the active card without waiting for the polling interval
+- WebSocket disconnect/reconnect recovers from an HTTP snapshot and does not leave stale progress indefinitely
+- Redis/WebSocket delivery failures do not change the durable DownloadJob outcome
+- Existing Backend, Frontend, Browser, and Integration CI remains green
+
+Future follow-up after PR #32:
+
+- Extend the same event contract to MediaProcessingJob and the Anime detail media pipeline
+- Add coarse durable heartbeats/checkpoints only where restart/recovery semantics benefit from them
+- Consider queue prioritization and concurrency controls after realtime job state is stable
 
 ## Handoff Notes
 

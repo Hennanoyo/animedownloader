@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import suppress
 from dataclasses import dataclass
-from collections.abc import Callable
 from typing import Protocol, cast
 
 from animedownloader_config import JOB_PROGRESS_CHANNEL, JobProgressEvent
@@ -49,10 +48,9 @@ class JobProgressHub:
         *,
         client: RedisClient | None = None,
     ) -> None:
-        redis_factory = cast(Callable[..., Redis], getattr(Redis, "from_url"))
         self._redis: RedisClient = client or cast(
             RedisClient,
-            redis_factory(
+            Redis.from_url(  # pyright: ignore[reportUnknownMemberType]
                 redis_url,
                 decode_responses=True,
                 socket_connect_timeout=2.0,

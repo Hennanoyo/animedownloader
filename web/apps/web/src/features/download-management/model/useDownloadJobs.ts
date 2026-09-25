@@ -87,7 +87,11 @@ export function downloadJobsQueryOptions({
     enabled,
     refetchOnWindowFocus: false,
     refetchInterval: (query) =>
-      getDownloadJobsRefetchInterval(query.state.data, normalizedStatuses),
+      getDownloadJobsRefetchInterval(
+        query.state.data,
+        normalizedStatuses,
+        realtimeConnected,
+      ),
   });
 }
 

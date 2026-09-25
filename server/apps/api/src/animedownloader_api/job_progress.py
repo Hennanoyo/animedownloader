@@ -152,10 +152,8 @@ class JobProgressHub:
             try:
                 subscription.queue.put_nowait(event)
             except asyncio.QueueFull:
-                try:
+                with suppress(asyncio.QueueEmpty):
                     subscription.queue.get_nowait()
-                except asyncio.QueueEmpty:
-                    pass
                 subscription.queue.put_nowait(event)
 
     def _disconnect_subscribers(self) -> None:

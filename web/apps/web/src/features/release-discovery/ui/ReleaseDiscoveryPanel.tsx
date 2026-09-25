@@ -511,6 +511,10 @@ export default function ReleaseDiscoveryPanel({
         {dragAnnouncement}
       </div>
 
+    </section>
+  );
+}
+
 interface DiscoveryResultsProps {
   items: ReleaseDiscoveryItem[];
   query: string;

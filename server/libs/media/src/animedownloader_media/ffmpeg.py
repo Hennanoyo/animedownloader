@@ -307,6 +307,8 @@ async def consume_ffmpeg_progress(
 
         if percent is None:
             continue
+        if percent >= 100.0 and last_percent >= 100.0:
+            continue
 
         now = time.monotonic()
         if percent < 100.0 and (

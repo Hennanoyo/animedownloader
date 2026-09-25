@@ -28,15 +28,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from animedownloader_api.job_progress import JobProgressHub
-from animedownloader_api.job_progress import JobProgressHub
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
 from animedownloader_api.routes import (
     anime_pipeline_router,
     animes_router,
     download_jobs_router,
-    job_events_router,
     episode_pipeline_router,
     episodes_router,
+    job_events_router,
     media_packaging_jobs_router,
     media_preparation_jobs_router,
     media_processing_jobs_router,

@@ -21,10 +21,12 @@ export const pipelineCurrentStages = [
 export type PipelineCurrentStage = (typeof pipelineCurrentStages)[number];
 
 export interface EpisodePipelineDownload {
+  job_id: string | null;
   status: PipelineStageStatus;
   downloaded_bytes: number;
   total_bytes: number | null;
   error_message: string | null;
+  updated_at: string | null;
 }
 
 export interface EpisodePipelineProcessing {

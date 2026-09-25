@@ -74,12 +74,10 @@ async def discover_releases(
         warnings=list(result.warnings),
         search_profile_version=result.search_profile_version,
         items=[
-            {
-                ReleaseDiscoveryItemResponse(
-                    release=ReleaseResponse.model_validate(item.release),
-                    parsed=ParsedReleaseResponse.from_parsed(item.parsed),
-                ),
-            }
+            ReleaseDiscoveryItemResponse(
+                release=ReleaseResponse.model_validate(item.release),
+                parsed=ParsedReleaseResponse.from_parsed(item.parsed),
+            )
             for item in result.items
         ],
     )

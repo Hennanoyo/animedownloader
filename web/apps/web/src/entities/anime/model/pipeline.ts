@@ -37,7 +37,9 @@ export interface EpisodePipelineProcessing {
 }
 
 export interface EpisodePipelineStreaming {
+  job_id: string | null;
   status: PipelineStageStatus;
+  progress_percent: number;
   hls_ready: boolean;
   dash_ready: boolean;
   error_message: string | null;

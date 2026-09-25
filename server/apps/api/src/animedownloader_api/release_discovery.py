@@ -56,7 +56,7 @@ class ReleaseDiscoveryService:
     def __init__(
         self,
         session: AsyncSession,
-        client: NyaaClient,
+        client: ReleaseSearchClient,
     ) -> None:
         self._session = session
         self._client = client

@@ -122,6 +122,7 @@ class FakePreparationProcessor:
         vtt_path: Path,
         duration_seconds: float | None,
         operation: PlayableMediaOperation,
+        on_progress=None,
     ) -> MediaPreparationProcessingResult:
         self.calls.append(
             (
@@ -162,6 +163,8 @@ class FakePlayableProcessor:
         media_path: Path,
         output_path: Path,
         operation: PlayableMediaOperation,
+        duration_seconds: float | None = None,
+        on_progress=None,
     ) -> PlayableMediaProcessingResult:
         self.operations.append(operation)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -182,6 +185,7 @@ class FakeThumbnailProcessor:
         media_path: Path,
         output_dir: Path,
         duration_seconds: float | None,
+        on_progress=None,
     ) -> ThumbnailSpriteResult:
         self.calls += 1
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -332,7 +336,12 @@ async def test_runner_combines_playable_and_thumbnail_generation(tmp_path: Path)
     assert state.process_calls == [
         (MediaTranscodingOperation.TRANSCODE, True, True),
     ]
-    assert events == [("processing", 0), ("completed", 100)]
+    assert events == [
+        ("processing", 0),
+        ("processing", 100),
+        ("preview", 0),
+        ("preview", 100),
+    ]
     assert len(preparation.calls) == 1
     assert preparation.calls[0][-1] is PlayableMediaOperation.TRANSCODE
     assert playable.operations == []

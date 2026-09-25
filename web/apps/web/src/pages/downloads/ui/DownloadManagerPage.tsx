@@ -1,4 +1,5 @@
 import { Link, useSearch } from "@tanstack/react-router";
+import DownloadJobCard from "../../../features/download-management/ui/DownloadJobCard";
 import { Button } from "react-aria-components";
 import {
   activeDownloadStatuses,

@@ -685,6 +685,8 @@ Out of scope and deferred to the next discovery PRs: Episode persistence, explic
 
 ### PR #37 — Anime Titles & Single-Query Discovery Refinement
 
+Status: **Merged** (`2b36773525f21ecefe1b5a5f49e5f319d5b1d74f`)
+
 Goal: make Anime title metadata useful for release discovery and make every discovery action explicit and user-controlled.
 
 Scope:
@@ -714,7 +716,32 @@ Out of scope:
 - Additional providers
 - Media-processing/player changes
 
-### PR #38 — Release Profile Operations & Drift Detection
+### PR #38 — Anime Matching & Episode Ingestion
+
+Goal: turn an ephemeral parsed release candidate into an explicit Anime/Episode association and persist it safely.
+
+Scope:
+
+- deterministic Anime title canonicalization and matching
+- `matched` / `ambiguous` / `unmatched` states
+- year/season as supporting evidence only
+- explicit user review before persistence
+- Episode ingestion transaction
+- same-source ingestion idempotency
+- same episode number + different release identity becomes an explicit replacement candidate and never silently replaces an existing Episode
+- preserve user-edited Episode title and execution state
+- DB duplicate/race protection
+- reuse the existing Episode → DownloadJob flow, but do not auto-create or start a DownloadJob
+- backend, transaction, and integration coverage
+- Anime-detail candidate acceptance/review UI
+
+Out of scope:
+
+- periodic discovery or scheduling
+- additional release providers
+- media/player changes
+
+### PR #39 — Release Profile Operations & Drift Detection
 
 Goal: make release-profile maintenance a first-class operational workflow after real-world releases have accumulated.
 

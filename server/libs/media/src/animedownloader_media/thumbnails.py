@@ -207,7 +207,7 @@ def _validate_ffmpeg_result(
     )
 
 
-def _write_webvtt(
+def write_thumbnail_webvtt(
     *,
     path: Path,
     frame_count: int,

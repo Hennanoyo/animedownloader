@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import Protocol, cast
 
 from animedownloader_config import JOB_PROGRESS_CHANNEL, JobProgressEvent
@@ -22,9 +23,10 @@ class RedisJobProgressPublisher:
         *,
         client: RedisPublisher | None = None,
     ) -> None:
+        redis_factory = cast(Callable[..., Redis], getattr(Redis, "from_url"))
         self._redis: RedisPublisher = client or cast(
             RedisPublisher,
-            Redis.from_url(
+            redis_factory(
                 redis_url,
                 decode_responses=True,
                 socket_connect_timeout=2.0,

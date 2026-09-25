@@ -32,7 +32,7 @@ _VIDEO_CODEC_RE = re.compile(
     re.I,
 )
 _AUDIO_CODEC_RE = re.compile(
-    r"(?<!\\w)(?P<value>"
+    r"(?<!\w)(?P<value>"
     r"e[- .]?ac[- .]?3|eac3|ac3|aac|flac|opus|vorbis|"
     r"dts(?:[- .]?hd)?(?:[- .]?ma)?"
     r")",

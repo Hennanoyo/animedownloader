@@ -760,6 +760,7 @@ Scope:
 - Surface likely naming-convention drift for manual review
 - Allow creation of a new profile version from observed failures
 - Add deterministic profile validation and regression coverage
+- Use consistent ComboBox-based discovery values, with persisted release-group suggestions
 
 Design constraints:
 

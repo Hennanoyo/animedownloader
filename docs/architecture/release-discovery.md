@@ -65,6 +65,25 @@ Episode Ingestion
 Existing Episode → DownloadJob flow
 ```
 
+## Release profile operations
+
+Parser profiles have an explicit maintenance workflow after real-world release titles have accumulated.
+
+For each release group:
+
+1. keep the active parser profile immutable
+2. create a new draft version when a convention changes or an observed failure needs review
+3. maintain a representative sample set containing varied release-title shapes
+4. validate the draft against the full sample set
+5. compare draft output with the currently active profile
+6. activate only after explicit user review and successful validation
+
+Operational health is aggregate state attached to the parser profile. It counts observations by parse status and stores only non-parsed observation titles needed for manual investigation. Raw Nyaa/RSS payloads are not retained merely to calculate health.
+
+A drift signal is deliberately heuristic. It highlights sustained failure rates or a cluster of recent failures for manual review; it never edits rules, creates or activates a profile automatically, or starts a download.
+
+A failure observation can seed a draft and add its release title to the representative sample set. The resulting draft still follows the same validation and explicit-activation workflow.
+
 ## Release is ephemeral
 
 Raw Nyaa RSS results must not become a general-purpose release cache.

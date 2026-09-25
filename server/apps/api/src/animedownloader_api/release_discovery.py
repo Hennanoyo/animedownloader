@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from uuid import UUID
 from typing import Protocol
+from uuid import UUID
 
 from animedownloader_nyaa import NyaaError
-from animedownloader_releases import ReleaseProfileService
 from animedownloader_releases import (
     ParsedRelease,
     ParserField,
@@ -16,6 +15,7 @@ from animedownloader_releases import (
     Release,
     ReleaseGroup,
     ReleaseParserProfile,
+    ReleaseProfileService,
     ReleaseSearchProfile,
     SearchField,
     SearchProfileSpec,

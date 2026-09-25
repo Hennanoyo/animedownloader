@@ -24,7 +24,6 @@ from animedownloader_api.release_profile_schemas import (
     ReleaseGroupSummaryResponse,
     ReleaseParserObservationResponse,
     ReleaseParserProfileResponse,
-    ReleaseParserRuleInput,
     ReleaseParserRuleResponse,
     ReleaseParserSampleCreate,
     ReleaseParserSampleResponse,

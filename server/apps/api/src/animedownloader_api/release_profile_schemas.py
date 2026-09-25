@@ -1,9 +1,10 @@
 from datetime import datetime
 from uuid import UUID
 
+from pydantic import BaseModel, ConfigDict, Field
+
 from animedownloader_api.schemas import ParsedReleaseResponse
 from animedownloader_releases import ParserField, ParserTransform
-from pydantic import BaseModel, ConfigDict, Field
 
 
 class ReleaseGroupSummaryResponse(BaseModel):

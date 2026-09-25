@@ -11,15 +11,11 @@ from animedownloader_releases import (
     ParsedRelease,
     ParseStatus,
     ParserField,
-    ParserRuleSpec,
     ParserTransform,
     Release,
     ReleaseProfileService,
 )
 from animedownloader_releases.service import (
-    ParserComparisonResult,
-    ParserDifference,
-    ParserHealthResult,
     ParserSampleResult,
     ParserValidationResult,
 )
@@ -102,7 +98,6 @@ async def test_release_groups_endpoint() -> None:
 
 @pytest.mark.anyio
 async def test_validate_parser_profile_endpoint() -> None:
-    group_id = uuid7()
     profile_id = uuid7()
     sample_id = uuid7()
     parsed = _parsed()

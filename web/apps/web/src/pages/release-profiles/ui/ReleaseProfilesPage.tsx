@@ -894,7 +894,7 @@ function RuleRow({
 function ReadOnlyRule({ rule }: { rule: ParserRule }) {
   return (
     <div className={styles.readOnlyRule}>
-      <span className={styles.ruleNumber}>#{rule.priority}</span>
+      <span className={styles.readOnlyNumber}>#{rule.priority}</span>
       <strong>{FIELD_LABELS[rule.field]}</strong>
       <code>{rule.pattern}</code>
       <span>{rule.required ? "Required" : "Optional"}</span>

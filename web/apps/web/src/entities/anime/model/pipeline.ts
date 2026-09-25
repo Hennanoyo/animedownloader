@@ -30,6 +30,8 @@ export interface EpisodePipelineDownload {
 }
 
 export interface EpisodePipelineProcessing {
+  job_id: string | null;
+  preparation_job_id: string | null;
   status: PipelineStageStatus;
   progress_percent: number;
   playable_ready: boolean;

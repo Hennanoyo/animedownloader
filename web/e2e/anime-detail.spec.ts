@@ -241,7 +241,7 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   if (await showDetails.isVisible()) {
     await showDetails.click();
   }
-  await expect(page.getByLabel("Download progress")).toBeVisible();
+  await expect(page.locator('[aria-label="Download progress"]')).toBeVisible();
 
   await page.waitForTimeout(1000);
   const requestsAfterRealtimeConnect = pipelineRequests;
@@ -371,9 +371,9 @@ test("keeps live download controls inside the download stage", async ({ page }) 
   if (await showDetails.isVisible()) {
     await showDetails.click();
   }
-  await expect(page.getByLabel("Download progress")).toBeVisible();
+  await expect(page.locator('[aria-label="Download progress"]')).toBeVisible();
   await expect(
-    page.getByLabel("Download progress").getByText("Downloading", { exact: true }),
+    page.locator('[aria-label="Download progress"]').getByText("Downloading", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Pause download" }),

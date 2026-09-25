@@ -16,3 +16,48 @@ export interface ReleaseSearchResponse {
   query: string;
   items: Release[];
 }
+
+
+export type ReleaseParseStatus = "parsed" | "ambiguous" | "unparsed" | "unsupported";
+
+export interface ParsedRelease {
+  provider_source: string;
+  source_id: string;
+  original_title: string;
+  normalized_title: string;
+  release_group: string | null;
+  series_title: string | null;
+  episode_number: number | null;
+  episode_title: string | null;
+  season_number: number | null;
+  resolution: string | null;
+  source: string | null;
+  video_codec: string | null;
+  audio_codec: string | null;
+  bit_depth: number | null;
+  status: ReleaseParseStatus;
+  warnings: string[];
+  failed_required_fields: string[];
+  parser_profile_version: number | null;
+}
+
+export interface ReleaseDiscoveryItem {
+  release: Release;
+  parsed: ParsedRelease;
+}
+
+export interface ReleaseDiscoveryResponse {
+  queries: string[];
+  failed_queries: string[];
+  warnings: string[];
+  search_profile_version: number | null;
+  items: ReleaseDiscoveryItem[];
+}
+
+export interface ReleaseDiscoveryInput {
+  title: string;
+  group?: string;
+  episode?: number;
+  resolution?: string;
+  codec?: string;
+}

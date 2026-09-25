@@ -459,17 +459,24 @@ test("keeps live download controls inside the download stage", async ({ page }) 
 test("discovers parsed releases from the anime detail page", async ({ page }) => {
   await page.goto("/animes/" + ANIME_ID);
 
+  const discovery = page.getByRole("region", { name: "Find releases" });
   await expect(
-    page.getByRole("heading", { name: "Find releases" }),
+    discovery.getByRole("heading", { name: "Find releases" }),
   ).toBeVisible();
 
-  await page.getByLabel("Release group").fill("ExampleSubs");
-  await page.getByRole("spinbutton", { name: "Episode", exact: true }).fill("1");
-  await page.getByLabel("Resolution").fill("1080p");
-  await page.getByLabel("Video codec").fill("HEVC");
-  await page.getByRole("button", { name: "Discover releases" }).click();
+  await discovery.getByLabel("Release group").fill("ExampleSubs");
+  await discovery
+    .getByRole("spinbutton", { name: "Episode", exact: true })
+    .fill("1");
+  await discovery.getByLabel("Resolution").fill("1080p");
+  await discovery.getByLabel("Video codec").fill("HEVC");
+  await discovery
+    .getByRole("button", { name: "Discover releases" })
+    .click();
 
-  await expect(page.getByText("1 candidates", { exact: true })).toBeVisible();
+  await expect(
+    discovery.locator("strong").filter({ hasText: "1 candidates" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", {
       name: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",

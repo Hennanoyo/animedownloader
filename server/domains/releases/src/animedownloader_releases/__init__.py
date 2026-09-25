@@ -36,7 +36,6 @@ from .search import (
     merge_releases,
     normalize_release_group_slug,
     validate_search_profile,
-    validate_search_template,
 )
 
 __all__ = [
@@ -71,5 +70,4 @@ __all__ = [
     "merge_releases",
     "normalize_release_group_slug",
     "validate_search_profile",
-    "validate_search_template",
 ]

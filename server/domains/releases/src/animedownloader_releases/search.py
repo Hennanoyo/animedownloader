@@ -10,7 +10,6 @@ from .models import (
     SearchField,
     SearchProfileSpec,
     SearchQueryContext,
-    SearchTemplateSpec,
 )
 
 MAX_SEARCH_FIELDS: Final = len(SearchField)
@@ -113,20 +112,6 @@ def merge_releases(results: Iterable[Iterable[Release]]) -> tuple[Release, ...]:
 def _normalize_release_title(value: str) -> str:
     normalized = unicodedata.normalize("NFKC", value).strip().casefold()
     return re.sub(r"\s+", " ", normalized)
-
-
-def _render_template(
-    template: str,
-    values: dict[str, str | None],
-) -> str | None:
-    rendered = _SEARCH_TOKEN_RE.sub(
-        lambda match: values.get(match.group(1)) or "",
-        template,
-    )
-    rendered = re.sub(r"\s+", " ", rendered).strip()
-    rendered = re.sub(r"\s+([,._-])", r"\1", rendered)
-    rendered = re.sub(r"([,._-])\s+", r"\1 ", rendered)
-    return rendered or None
 
 
 def _clean_value(value: str | None) -> str | None:

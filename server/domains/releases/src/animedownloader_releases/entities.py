@@ -160,7 +160,7 @@ class ReleaseSearchField(Base):
         UniqueConstraint(
             "profile_id",
             "priority",
-            name="uq_release_search_templates_profile_priority",
+            name="uq_release_search_fields_profile_priority",
         ),
     )
 

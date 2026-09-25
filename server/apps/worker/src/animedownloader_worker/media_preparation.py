@@ -26,6 +26,8 @@ from animedownloader_media_processing import (
 from animedownloader_storage import PlayableArtifact, Storage, ThumbnailArtifact
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from .progress import JobProgressCallback, emit_job_progress
+
 logger = logging.getLogger(__name__)
 
 
@@ -256,6 +258,7 @@ class MediaPreparationRunner:
         playable_processor: PlayableMediaProcessor,
         thumbnail_processor: ThumbnailProcessor,
         storage: Storage,
+        on_progress: JobProgressCallback | None = None,
     ) -> None:
         self._state = state
         self._inspector = inspector
@@ -264,6 +267,7 @@ class MediaPreparationRunner:
         self._playable_processor = playable_processor
         self._thumbnail_processor = thumbnail_processor
         self._storage = storage
+        self._on_progress = on_progress
 
     async def run(self, job_id: UUID) -> None:
         context: MediaPreparationContext | None = None
@@ -279,8 +283,22 @@ class MediaPreparationRunner:
                 flush=True,
             )
             if context.status is MediaPreparationJobStatus.COMPLETED:
+                await emit_job_progress(
+                    self._on_progress,
+                    job_type="media-preparation",
+                    job_id=job_id,
+                    status=MediaPreparationJobStatus.COMPLETED.value,
+                    progress_percent=100,
+                )
                 return
             if context.status is MediaPreparationJobStatus.FAILED:
+                await emit_job_progress(
+                    self._on_progress,
+                    job_type="media-preparation",
+                    job_id=job_id,
+                    status=MediaPreparationJobStatus.FAILED.value,
+                    progress_percent=0,
+                )
                 print(
                     f"[worker] media preparation task ignored for failed job: job_id={job_id}",
                     flush=True,
@@ -334,7 +352,21 @@ class MediaPreparationRunner:
                     playable_required=playable_required,
                     thumbnail_required=thumbnail_required,
                 )
+                await emit_job_progress(
+                    self._on_progress,
+                    job_type="media-preparation",
+                    job_id=job_id,
+                    status=MediaPreparationJobStatus.PROCESSING.value,
+                    progress_percent=0,
+                )
             elif context.status is MediaPreparationJobStatus.PROCESSING:
+                await emit_job_progress(
+                    self._on_progress,
+                    job_type="media-preparation",
+                    job_id=job_id,
+                    status=MediaPreparationJobStatus.PROCESSING.value,
+                    progress_percent=0,
+                )
                 if (
                     operation is not None
                     and context.operation is not None
@@ -472,6 +504,13 @@ class MediaPreparationRunner:
                 thumbnail_sprite_key=thumbnail_sprite_key,
                 thumbnail_vtt_key=thumbnail_vtt_key,
             )
+            await emit_job_progress(
+                self._on_progress,
+                job_type="media-preparation",
+                job_id=job_id,
+                status=MediaPreparationJobStatus.COMPLETED.value,
+                progress_percent=100,
+            )
         except Exception as exc:
             if context is not None:
                 try:
@@ -484,6 +523,14 @@ class MediaPreparationRunner:
                         "Failed to persist media preparation failure for job %s",
                         job_id,
                     )
+            await emit_job_progress(
+                self._on_progress,
+                job_type="media-preparation",
+                job_id=job_id,
+                status=MediaPreparationJobStatus.FAILED.value,
+                progress_percent=0,
+                error_message=_format_error(exc),
+            )
             raise
 
 

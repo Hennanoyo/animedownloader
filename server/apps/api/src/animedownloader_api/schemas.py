@@ -3,8 +3,6 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, StringConstraints
-
 from animedownloader_anime import ConversionStatus, DownloadStatus, Season, Weekday
 from animedownloader_download import DownloadJobStatus
 from animedownloader_media_asset import (
@@ -23,6 +21,7 @@ from animedownloader_media_processing import (
     MediaVariantStatus,
 )
 from animedownloader_releases import ParsedRelease
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, StringConstraints
 
 
 AnimeTitleKey = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,31}$")]

@@ -202,27 +202,27 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   await page.waitForTimeout(1000);
   const requestsAfterRealtimeConnect = pipelineRequests;
 
-  await page.evaluate(
-    (payload) => {
+  const emitPipelineEvent = (payload: unknown) =>
+    page.evaluate((eventPayload) => {
       const windowWithEmitter = window as unknown as {
         __emitPipelineEvent: (payload: unknown) => void;
       };
-      windowWithEmitter.__emitPipelineEvent(payload);
-    },
-    {
-      version: 1,
-      type: "job.progress",
-      job_type: "download",
-      job_id: "019a0000-0000-7000-8000-000000000099",
-      status: "downloading",
-      progress_percent: 100,
-      downloaded_bytes: 1048576,
-      total_bytes: 1048576,
-      error_message: null,
-      stage: null,
-      emitted_at: "2026-09-25T00:06:00Z",
-    },
-  );
+      windowWithEmitter.__emitPipelineEvent(eventPayload);
+    }, payload);
+
+  await emitPipelineEvent({
+    version: 1,
+    type: "job.progress",
+    job_type: "download",
+    job_id: "019a0000-0000-7000-8000-000000000099",
+    status: "downloading",
+    progress_percent: 100,
+    downloaded_bytes: 1048576,
+    total_bytes: 1048576,
+    error_message: null,
+    stage: null,
+    emitted_at: "2026-09-25T00:06:00Z",
+  });
 
   await expect(page.getByText("1.0 MiB / 1.0 MiB", { exact: true })).toBeVisible();
 
@@ -242,14 +242,6 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   await expect(
     page.getByRole("progressbar", { name: "Preparing" }),
   ).toBeVisible();
-
-
-    page.evaluate((eventPayload) => {
-      const windowWithEmitter = window as unknown as {
-        __emitPipelineEvent: (payload: unknown) => void;
-      };
-      windowWithEmitter.__emitPipelineEvent(eventPayload);
-    }, payload);
 
   await emitPipelineEvent({
     version: 1,

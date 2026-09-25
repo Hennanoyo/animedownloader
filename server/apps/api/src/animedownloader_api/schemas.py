@@ -24,10 +24,6 @@ from animedownloader_releases import ParsedRelease
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, StringConstraints
 
 
-AnimeTitleKey = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,31}$")]
-AnimeTitleValue = Annotated[str, StringConstraints(max_length=200)]
-
-
 class ReleaseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -166,6 +162,10 @@ class EpisodeResponse(BaseModel):
 
 def _empty_episodes() -> list[EpisodeCreate]:
     return []
+
+
+AnimeTitleKey = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,31}$")]
+AnimeTitleValue = Annotated[str, StringConstraints(max_length=200)]
 
 
 class AnimeCreate(BaseModel):

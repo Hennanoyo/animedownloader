@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { Button } from "react-aria-components";
@@ -22,11 +22,19 @@ export default function AnimeDetailPage() {
   const query = useAnimeDetail(animeId);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [realtimeEnabled, setRealtimeEnabled] = useState(false);
+  const pipelineQuery = useAnimePipeline(
+    animeId,
+    realtimeEnabled ? undefined : false,
+  );
   const realtime = useAnimePipelineRealtime({
     animeId,
-    enabled: !isEditing,
+    enabled: realtimeEnabled && !isEditing,
   });
-  const pipelineQuery = useAnimePipeline(animeId, realtime.connected);
+
+  useEffect(() => {
+    setRealtimeEnabled(!isEditing && pipelineQuery.isSuccess);
+  }, [isEditing, pipelineQuery.isSuccess]);
 
   if (query.isPending) {
     return (

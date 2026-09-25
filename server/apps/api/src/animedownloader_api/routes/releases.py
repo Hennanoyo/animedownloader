@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from animedownloader_nyaa import NyaaClient, NyaaError
+from animedownloader_releases import SearchField
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from animedownloader_api.dependencies import (
@@ -56,6 +57,7 @@ async def discover_releases(
     episode: Annotated[int | None, Query(ge=1, le=9999)] = None,
     resolution: Annotated[str | None, Query(max_length=32)] = None,
     codec: Annotated[str | None, Query(max_length=32)] = None,
+    fields: Annotated[list[SearchField] | None, Query()] = None,
 ) -> ReleaseDiscoveryResponse:
     normalized_title = title.strip()
     if not normalized_title:
@@ -67,10 +69,10 @@ async def discover_releases(
         episode=episode,
         resolution=resolution.strip() if resolution else None,
         codec=codec.strip() if codec else None,
+        fields=tuple(fields) if fields else None,
     )
     return ReleaseDiscoveryResponse(
-        queries=list(result.queries),
-        failed_queries=list(result.failed_queries),
+        query=result.query,
         warnings=list(result.warnings),
         search_profile_version=result.search_profile_version,
         items=[

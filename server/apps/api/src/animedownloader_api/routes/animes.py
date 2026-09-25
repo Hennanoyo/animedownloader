@@ -55,6 +55,7 @@ async def update_anime(
         anime_id,
         AnimeUpdateData(
             title=payload.title,
+            titles=payload.titles,
             year=payload.year,
             season=payload.season,
             weekday=payload.weekday,
@@ -100,6 +101,7 @@ async def create_episode(
 def _to_anime_create_data(payload: AnimeCreate) -> AnimeCreateData:
     return AnimeCreateData(
         title=payload.title,
+        titles=payload.titles,
         year=payload.year,
         season=payload.season,
         weekday=payload.weekday,

@@ -14,6 +14,7 @@ from .repository import AnimeRepository, EpisodeRepository
 
 
 class AnimeService:
+    MAX_TITLE_LENGTH = 200
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.animes = AnimeRepository(session)
@@ -37,6 +38,7 @@ class AnimeService:
         async with self.session.begin():
             anime = Anime(
                 title=data.title.strip(),
+                titles=self._clean_titles(data.titles),
                 year=data.year,
                 season=data.season.value,
                 weekday=data.weekday.value,
@@ -56,6 +58,8 @@ class AnimeService:
             anime = await self.get_anime(anime_id)
             if data.title is not None:
                 anime.title = data.title.strip()
+            if data.titles is not None:
+                anime.titles = self._clean_titles(data.titles)
             if data.year is not None:
                 anime.year = data.year
             if data.season is not None:
@@ -150,6 +154,22 @@ class AnimeService:
         async with self.session.begin():
             episode = await self.get_episode(episode_id)
             await self.episodes.delete(episode)
+
+    @staticmethod
+    def _clean_titles(titles: dict[str, str]) -> dict[str, str]:
+        cleaned: dict[str, str] = {}
+        for key, value in titles.items():
+            normalized_key = key.strip().lower()
+            normalized_value = value.strip()
+            if not normalized_value:
+                continue
+            if len(normalized_value) > AnimeService.MAX_TITLE_LENGTH:
+                raise ValueError(
+                    f"anime title exceeds {AnimeService.MAX_TITLE_LENGTH} characters: "
+                    f"{normalized_key}"
+                )
+            cleaned[normalized_key] = normalized_value
+        return cleaned
 
     @staticmethod
     def _build_episode(anime: Anime, data: EpisodeCreateData) -> Episode:

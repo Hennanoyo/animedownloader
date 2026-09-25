@@ -10,6 +10,7 @@ export interface AnimeEpisodeDraft {
 
 export interface AnimeCreateFormValues {
   title: string;
+  titles: { romaji: string; jp: string; ko: string; en: string };
   year: number;
   season: Season;
   weekday: Weekday;
@@ -21,6 +22,12 @@ export interface AnimeCreateFormValues {
 export const animeCreateFormSchema = z
   .object({
     title: z.string().trim().min(1, "Enter an anime title.").max(200),
+    titles: z.object({
+      romaji: z.string().trim().max(200),
+      jp: z.string().trim().max(200),
+      ko: z.string().trim().max(200),
+      en: z.string().trim().max(200),
+    }),
     year: z.number().int().min(1900).max(2100),
     season: z.enum(["winter", "spring", "summer", "fall"]),
     weekday: z.enum([

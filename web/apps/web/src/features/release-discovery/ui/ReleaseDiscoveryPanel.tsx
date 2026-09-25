@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import {
   Button,
+  Checkbox,
   Form,
   Input,
   Label,
@@ -14,6 +15,7 @@ import { ReleaseDiscoveryResponseError } from "../../../entities/release/api/dis
 import type {
   ReleaseDiscoveryInput,
   ReleaseDiscoveryItem,
+  SearchField,
 } from "../../../entities/release/model/types";
 import { useReleaseDiscovery } from "../model/useReleaseDiscovery";
 import styles from "./ReleaseDiscoveryPanel.module.scss";
@@ -24,10 +26,7 @@ const schema = z.object({
     .trim()
     .min(1, "Enter an anime title.")
     .max(200, "Anime title must be 200 characters or fewer."),
-  group: z
-    .string()
-    .trim()
-    .max(128, "Release group must be 128 characters or fewer."),
+  group: z.string().trim().max(128, "Release group is too long."),
   episode: z.string().trim().refine(
     (value) =>
       value === "" ||
@@ -38,12 +37,77 @@ const schema = z.object({
   codec: z.string().trim().max(32, "Codec is too long."),
 });
 
+const DEFAULT_FIELD_ORDER: SearchField[] = [
+  "group",
+  "title",
+  "episode",
+  "resolution",
+  "codec",
+];
+
+const FIELD_LABELS: Record<SearchField, string> = {
+  group: "Release group",
+  title: "Anime title",
+  episode: "Episode",
+  resolution: "Resolution",
+  codec: "Video codec",
+};
+
+type Values = z.infer<typeof schema>;
+
+function getFieldValue(values: Values, field: SearchField): string {
+  switch (field) {
+    case "group":
+      return values.group;
+    case "title":
+      return values.title;
+    case "episode":
+      return values.episode;
+    case "resolution":
+      return values.resolution;
+    case "codec":
+      return values.codec;
+  }
+}
+
+function buildQueryPreview(values: Values, fields: SearchField[]): string {
+  return fields
+    .map((field) => getFieldValue(values, field).trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function moveField(
+  order: SearchField[],
+  field: SearchField,
+  direction: -1 | 1,
+): SearchField[] {
+  const index = order.indexOf(field);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= order.length) return order;
+
+  const next = [...order];
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
+
 export default function ReleaseDiscoveryPanel({
   animeTitle,
 }: {
   animeTitle: string;
 }) {
   const [request, setRequest] = useState<ReleaseDiscoveryInput | null>(null);
+  const [fieldOrder, setFieldOrder] =
+    useState<SearchField[]>(DEFAULT_FIELD_ORDER);
+  const [enabledFields, setEnabledFields] =
+    useState<Record<SearchField, boolean>>({
+      group: true,
+      title: true,
+      episode: true,
+      resolution: true,
+      codec: true,
+    });
+
   const form = useForm({
     defaultValues: {
       title: animeTitle,
@@ -54,8 +118,12 @@ export default function ReleaseDiscoveryPanel({
     },
     validators: { onSubmit: schema },
     onSubmit: ({ value }) => {
+      const fields = fieldOrder.filter((field) => enabledFields[field]);
+      if (!buildQueryPreview(value, fields)) return;
+
       setRequest({
         title: value.title.trim(),
+        fields,
         ...(value.group.trim() ? { group: value.group.trim() } : {}),
         ...(value.episode.trim()
           ? { episode: Number(value.episode.trim()) }
@@ -67,19 +135,25 @@ export default function ReleaseDiscoveryPanel({
       });
     },
   });
+
   const query = useReleaseDiscovery(request);
+  const activeFields = useMemo(
+    () => fieldOrder.filter((field) => enabledFields[field]),
+    [enabledFields, fieldOrder],
+  );
 
   return (
     <section
       className={styles.panel}
       aria-labelledby="release-discovery-heading"
+      aria-label="Find releases"
     >
       <div>
         <p className={styles.kicker}>Release discovery</p>
         <h2 id="release-discovery-heading">Find releases</h2>
         <p className={styles.description}>
-          Searches Nyaa with progressively broader queries, merges duplicates,
-          and parses candidates without creating an Episode or starting a download.
+          Runs exactly one Nyaa search per click. Enable, disable, or reorder
+          fields, then edit their values before searching again.
         </p>
       </div>
 
@@ -90,6 +164,79 @@ export default function ReleaseDiscoveryPanel({
           void form.handleSubmit();
         }}
       >
+        <section
+          className={styles.queryConfig}
+          aria-labelledby="search-fields-heading"
+        >
+          <div>
+            <h3 id="search-fields-heading">Search fields</h3>
+            <p>Enabled fields are sent in the order shown here.</p>
+          </div>
+
+          <ol className={styles.fieldOrder}>
+            {fieldOrder.map((field, index) => {
+              const label = FIELD_LABELS[field];
+              return (
+                <li className={styles.fieldOrderItem} key={field}>
+                  <Checkbox
+                    isSelected={enabledFields[field]}
+                    onChange={(selected) =>
+                      setEnabledFields((current) => ({
+                        ...current,
+                        [field]: selected,
+                      }))
+                    }
+                  >
+                    <span className={styles.checkboxMark} aria-hidden="true" />
+                    <span>{label}</span>
+                  </Checkbox>
+
+                  <div className={styles.orderButtons}>
+                    <Button
+                      type="button"
+                      className={styles.orderButton}
+                      onPress={() =>
+                        setFieldOrder((current) =>
+                          moveField(current, field, -1),
+                        )
+                      }
+                      isDisabled={index === 0}
+                      aria-label={"Move " + label + " up"}
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      type="button"
+                      className={styles.orderButton}
+                      onPress={() =>
+                        setFieldOrder((current) =>
+                          moveField(current, field, 1),
+                        )
+                      }
+                      isDisabled={index === fieldOrder.length - 1}
+                      aria-label={"Move " + label + " down"}
+                    >
+                      ↓
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+
+          <form.Subscribe selector={({ values }) => values}>
+            {(values) => (
+              <div className={styles.preview}>
+                <strong>Query preview</strong>
+                <code>
+                  {buildQueryPreview(values, activeFields) ||
+                    "Select at least one non-empty field."}
+                </code>
+              </div>
+            )}
+          </form.Subscribe>
+        </section>
+
         <div className={styles.fields}>
           <form.Field name="title">
             {(field) => (
@@ -102,7 +249,7 @@ export default function ReleaseDiscoveryPanel({
                 <Label>Anime title</Label>
                 <Input
                   value={field.state.value}
-                  placeholder="Frieren"
+                  placeholder="Sousou no Frieren"
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
                 />
@@ -117,11 +264,7 @@ export default function ReleaseDiscoveryPanel({
 
           <form.Field name="group">
             {(field) => (
-              <TextField
-                className={styles.field}
-                isInvalid={field.state.meta.errors.length > 0}
-                validationBehavior="aria"
-              >
+              <TextField className={styles.field} validationBehavior="aria">
                 <Label>Release group</Label>
                 <Input
                   value={field.state.value}
@@ -129,11 +272,6 @@ export default function ReleaseDiscoveryPanel({
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
                 />
-                {field.state.meta.errors.length > 0 ? (
-                  <Text slot="errorMessage">
-                    {String(field.state.meta.errors[0])}
-                  </Text>
-                ) : null}
               </TextField>
             )}
           </form.Field>
@@ -165,11 +303,7 @@ export default function ReleaseDiscoveryPanel({
 
           <form.Field name="resolution">
             {(field) => (
-              <TextField
-                className={styles.field}
-                isInvalid={field.state.meta.errors.length > 0}
-                validationBehavior="aria"
-              >
+              <TextField className={styles.field} validationBehavior="aria">
                 <Label>Resolution</Label>
                 <Input
                   value={field.state.value}
@@ -177,22 +311,13 @@ export default function ReleaseDiscoveryPanel({
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
                 />
-                {field.state.meta.errors.length > 0 ? (
-                  <Text slot="errorMessage">
-                    {String(field.state.meta.errors[0])}
-                  </Text>
-                ) : null}
               </TextField>
             )}
           </form.Field>
 
           <form.Field name="codec">
             {(field) => (
-              <TextField
-                className={styles.field}
-                isInvalid={field.state.meta.errors.length > 0}
-                validationBehavior="aria"
-              >
+              <TextField className={styles.field} validationBehavior="aria">
                 <Label>Video codec</Label>
                 <Input
                   value={field.state.value}
@@ -200,11 +325,6 @@ export default function ReleaseDiscoveryPanel({
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
                 />
-                {field.state.meta.errors.length > 0 ? (
-                  <Text slot="errorMessage">
-                    {String(field.state.meta.errors[0])}
-                  </Text>
-                ) : null}
               </TextField>
             )}
           </form.Field>
@@ -220,9 +340,11 @@ export default function ReleaseDiscoveryPanel({
           </Button>
           {request ? (
             <span className={styles.searchState}>
-              {query.data
-                ? query.data.items.length + " candidates"
-                : "Searching Nyaa"}
+              {query.isFetching
+                ? "Searching Nyaa"
+                : query.data
+                  ? query.data.items.length + " candidates"
+                  : "Ready"}
             </span>
           ) : null}
         </div>
@@ -237,8 +359,7 @@ export default function ReleaseDiscoveryPanel({
       {query.isSuccess ? (
         <DiscoveryResults
           items={query.data.items}
-          queries={query.data.queries}
-          failedQueries={query.data.failed_queries}
+          query={query.data.query}
           warnings={query.data.warnings}
           profileVersion={query.data.search_profile_version}
         />
@@ -249,16 +370,14 @@ export default function ReleaseDiscoveryPanel({
 
 interface DiscoveryResultsProps {
   items: ReleaseDiscoveryItem[];
-  queries: string[];
-  failedQueries: string[];
+  query: string;
   warnings: string[];
   profileVersion: number | null;
 }
 
 function DiscoveryResults({
   items,
-  queries,
-  failedQueries,
+  query,
   warnings,
   profileVersion,
 }: DiscoveryResultsProps) {
@@ -270,26 +389,15 @@ function DiscoveryResults({
           <span>
             {profileVersion
               ? "Search profile v" + profileVersion
-              : "Default progressive search"}
+              : "Default field order"}
           </span>
         </div>
-        {queries.length > 0 ? (
-          <details className={styles.queries}>
-            <summary>Queries ({queries.length})</summary>
-            <ul>
-              {queries.map((query) => (
-                <li key={query}>{query}</li>
-              ))}
-            </ul>
-          </details>
-        ) : null}
+        <details className={styles.queries}>
+          <summary>Query</summary>
+          <code>{query}</code>
+        </details>
       </div>
 
-      {failedQueries.map((query) => (
-        <p className={styles.warning} key={query}>
-          Search query skipped: <code>{query}</code>
-        </p>
-      ))}
       {warnings.map((warning) => (
         <p className={styles.warning} key={warning}>
           {warning}
@@ -307,7 +415,10 @@ function DiscoveryResults({
                   <h3>{item.release.title}</h3>
                   <p>{formatReleaseMeta(item)}</p>
                 </div>
-                <span className={styles.status} data-status={item.parsed.status}>
+                <span
+                  className={styles.status}
+                  data-status={item.parsed.status}
+                >
                   {item.parsed.status}
                 </span>
               </div>

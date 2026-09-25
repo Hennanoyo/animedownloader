@@ -5,7 +5,8 @@ from datetime import datetime, time
 from uuid import UUID
 
 from animedownloader_database import Base
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Time, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Time, UniqueConstraint, func, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
@@ -14,6 +15,12 @@ class Anime(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     title: Mapped[str] = mapped_column(String(200))
+    titles: Mapped[dict[str, str]] = mapped_column(
+        JSONB,
+        default=dict,
+        server_default=text("'{}'::jsonb"),
+        nullable=False,
+    )
     year: Mapped[int] = mapped_column(Integer)
     season: Mapped[str] = mapped_column(String(16))
     weekday: Mapped[str] = mapped_column(String(16))

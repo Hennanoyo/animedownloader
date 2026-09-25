@@ -17,6 +17,12 @@ const release = {
 
 const base = {
   title: "Frieren",
+  titles: {
+    romaji: "Sousou no Frieren",
+    jp: "葬送のフリーレン",
+    ko: "장송의 프리렌",
+    en: "Frieren: Beyond Journey's End",
+  },
   year: 2026,
   season: "fall" as const,
   weekday: "friday" as const,

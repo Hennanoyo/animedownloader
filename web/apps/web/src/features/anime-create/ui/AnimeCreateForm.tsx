@@ -52,6 +52,11 @@ function emptyEpisode(number: number): AnimeEpisodeDraft {
 function toCreateInput(value: AnimeCreateFormValues): CreateAnimeInput {
   return {
     title: value.title.trim(),
+    titles: Object.fromEntries(
+      Object.entries(value.titles)
+        .map(([key, title]) => [key, title.trim()])
+        .filter(([, title]) => title !== ""),
+    ),
     year: value.year,
     season: value.season,
     weekday: value.weekday,
@@ -134,6 +139,7 @@ export default function AnimeCreateForm() {
 
   const defaultValues: AnimeCreateFormValues = {
     title: "",
+    titles: { romaji: "", jp: "", ko: "", en: "" },
     year: new Date().getFullYear(),
     season: "fall",
     weekday: "friday",
@@ -215,6 +221,59 @@ export default function AnimeCreateForm() {
                   {field.state.meta.errors.map(String).join(", ")}
                 </Text>
               ) : null}
+            </TextField>
+          )}
+        </form.Field>
+
+        <form.Field name="titles.romaji">
+          {(field) => (
+            <TextField className={styles.field} validationBehavior="aria">
+              <Label>Romaji title</Label>
+              <Input
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="Sousou no Frieren"
+              />
+            </TextField>
+          )}
+        </form.Field>
+
+        <form.Field name="titles.jp">
+          {(field) => (
+            <TextField className={styles.field} validationBehavior="aria">
+              <Label>Japanese title</Label>
+              <Input
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
+            </TextField>
+          )}
+        </form.Field>
+
+        <form.Field name="titles.ko">
+          {(field) => (
+            <TextField className={styles.field} validationBehavior="aria">
+              <Label>Korean title</Label>
+              <Input
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
+            </TextField>
+          )}
+        </form.Field>
+
+        <form.Field name="titles.en">
+          {(field) => (
+            <TextField className={styles.field} validationBehavior="aria">
+              <Label>English title</Label>
+              <Input
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
             </TextField>
           )}
         </form.Field>

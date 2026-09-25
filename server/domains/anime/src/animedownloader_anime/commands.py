@@ -43,6 +43,7 @@ class EpisodeUpdateData:
 @dataclass(frozen=True, slots=True)
 class AnimeCreateData:
     title: str
+    titles: dict[str, str]
     year: int
     season: Season
     weekday: Weekday
@@ -54,6 +55,7 @@ class AnimeCreateData:
 @dataclass(frozen=True, slots=True)
 class AnimeUpdateData:
     title: str | None = None
+    titles: dict[str, str] | None = None
     year: int | None = None
     season: Season | None = None
     weekday: Weekday | None = None

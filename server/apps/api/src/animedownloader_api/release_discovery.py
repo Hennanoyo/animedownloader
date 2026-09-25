@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -16,13 +15,12 @@ from animedownloader_releases import (
     ReleaseGroup,
     ReleaseParserProfile,
     ReleaseSearchProfile,
+    SearchField,
     SearchProfileSpec,
     SearchProfileStatus,
     SearchQueryContext,
-    SearchTemplateSpec,
     apply_parser_profile,
-    build_search_queries,
-    merge_releases,
+    build_search_query,
     normalize_release_group_slug,
     parse_release,
 )
@@ -45,8 +43,7 @@ class ReleaseDiscoveryItem:
 
 @dataclass(frozen=True, slots=True)
 class ReleaseDiscoveryResult:
-    queries: tuple[str, ...]
-    failed_queries: tuple[str, ...]
+    query: str
     warnings: tuple[str, ...]
     search_profile_version: int | None
     items: tuple[ReleaseDiscoveryItem, ...]
@@ -69,6 +66,7 @@ class ReleaseDiscoveryService:
         episode: int | None = None,
         resolution: str | None = None,
         codec: str | None = None,
+        fields: tuple[SearchField, ...] | None = None,
     ) -> ReleaseDiscoveryResult:
         context = SearchQueryContext(
             group=group,
@@ -79,19 +77,19 @@ class ReleaseDiscoveryService:
         )
         search_profile = await self._load_search_profile(group)
         search_spec = self._to_search_profile_spec(search_profile) if search_profile else None
-        queries = build_search_queries(context, search_spec)
+        query = build_search_query(context, search_spec, fields=fields)
+        if query is None:
+            raise ValueError("at least one non-empty search field is required")
 
-        responses = await asyncio.gather(
-            *(self._search(query) for query in queries),
-        )
-
-        failed_queries = tuple(
-            query for query, _releases, failed in responses if failed
-        )
-        merged = merge_releases(
-            releases
-            for _, releases, _ in responses
-        )
+        try:
+            releases = tuple(await self._client.search(query))
+        except NyaaError:
+            return ReleaseDiscoveryResult(
+                query=query,
+                warnings=(f"Search query failed: {query}",),
+                search_profile_version=search_profile.version if search_profile else None,
+                items=(),
+            )
 
         parser_profiles = await self._load_parser_profiles()
         parser_map: dict[str, ParserProfileSpec] = {}
@@ -101,14 +99,9 @@ class ReleaseDiscoveryService:
             parser_map[spec.release_group.casefold()] = spec
 
         warnings: list[str] = []
-        if failed_queries:
-            warnings.extend(
-                f"Search query failed and was skipped: {query}"
-                for query in failed_queries
-            )
 
         items: list[ReleaseDiscoveryItem] = []
-        for release in merged:
+        for release in releases:
             try:
                 parsed = parse_release(release)
                 if parsed.release_group:
@@ -124,24 +117,13 @@ class ReleaseDiscoveryService:
                 )
 
         return ReleaseDiscoveryResult(
-            queries=queries,
-            failed_queries=failed_queries,
+            query=query,
             warnings=tuple(warnings),
             search_profile_version=(
                 search_profile.version if search_profile is not None else None
             ),
             items=tuple(items),
         )
-
-    async def _search(
-        self,
-        query: str,
-    ) -> tuple[str, tuple[Release, ...], bool]:
-        try:
-            releases = await self._client.search(query)
-        except NyaaError:
-            return query, (), True
-        return query, tuple(releases), False
 
     async def _load_search_profile(
         self,
@@ -163,7 +145,7 @@ class ReleaseDiscoveryService:
                 ),
             )
             .options(
-                selectinload(ReleaseSearchProfile.templates),
+                selectinload(ReleaseSearchProfile.fields),
             )
         )
         return result.first()
@@ -190,13 +172,7 @@ class ReleaseDiscoveryService:
         return SearchProfileSpec(
             release_group=profile.release_group.name,
             version=profile.version,
-            templates=tuple(
-                SearchTemplateSpec(
-                    template=item.template,
-                    priority=item.priority,
-                )
-                for item in profile.templates
-            ),
+            fields=tuple(SearchField(item.field) for item in profile.fields),
         )
 
     @staticmethod

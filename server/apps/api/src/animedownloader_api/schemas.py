@@ -1,5 +1,6 @@
 from datetime import datetime, time
 from enum import StrEnum
+from typing import Annotated
 from uuid import UUID
 
 from animedownloader_anime import ConversionStatus, DownloadStatus, Season, Weekday
@@ -20,7 +21,7 @@ from animedownloader_media_processing import (
     MediaVariantStatus,
 )
 from animedownloader_releases import ParsedRelease
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, StringConstraints
 
 
 class ReleaseResponse(BaseModel):
@@ -94,8 +95,7 @@ class ReleaseDiscoveryItemResponse(BaseModel):
 
 
 class ReleaseDiscoveryResponse(BaseModel):
-    queries: list[str]
-    failed_queries: list[str]
+    query: str
     warnings: list[str]
     search_profile_version: int | None
     items: list[ReleaseDiscoveryItemResponse]
@@ -164,8 +164,13 @@ def _empty_episodes() -> list[EpisodeCreate]:
     return []
 
 
+AnimeTitleKey = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,31}$")]
+AnimeTitleValue = Annotated[str, StringConstraints(max_length=200)]
+
+
 class AnimeCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
+    titles: dict[AnimeTitleKey, AnimeTitleValue] = Field(default_factory=dict)
     year: int = Field(ge=1900, le=2100)
     season: Season
     weekday: Weekday
@@ -178,6 +183,7 @@ class AnimeUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str | None = Field(default=None, min_length=1, max_length=200)
+    titles: dict[AnimeTitleKey, AnimeTitleValue] | None = None
     year: int | None = Field(default=None, ge=1900, le=2100)
     season: Season | None = None
     weekday: Weekday | None = None
@@ -190,6 +196,7 @@ class AnimeResponse(BaseModel):
 
     id: UUID
     title: str
+    titles: dict[str, str]
     year: int
     season: Season
     weekday: Weekday

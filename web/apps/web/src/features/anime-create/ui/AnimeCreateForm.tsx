@@ -133,7 +133,17 @@ function getSubmitErrors(errorMap: unknown): string[] {
     }
 
     for (const [key, child] of Object.entries(value)) {
-      if (key === "message" || key === "code" || key === "path") continue;
+      if (
+        key === "message" ||
+        key === "code" ||
+        key === "path" ||
+        key === "onSubmit" ||
+        key === "onChange" ||
+        key === "onBlur"
+      ) {
+        visit(child, path);
+        continue;
+      }
       visit(child, [...path, key]);
     }
   }

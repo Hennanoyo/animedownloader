@@ -101,6 +101,12 @@ class ParsedRelease:
 
 
 
+class EpisodeIngestionStatus(StrEnum):
+    CREATED = "created"
+    IDEMPOTENT = "idempotent"
+    REPLACEMENT_CANDIDATE = "replacement_candidate"
+
+
 class AnimeMatchStatus(StrEnum):
     MATCHED = "matched"
     AMBIGUOUS = "ambiguous"

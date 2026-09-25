@@ -411,11 +411,13 @@ export default function ReleaseDiscoveryPanel({
                     {(fieldState) => {
                       const options =
                         field === "title"
-                          ? titleOptions.filter(
-                              (option) =>
-                                option.key !== "custom" &&
-                                option.value.trim().length > 0,
-                            )
+                          ? titleOptions
+                              .filter(
+                                (option) =>
+                                  option.key !== "custom" &&
+                                  option.value.trim().length > 0,
+                              )
+                              .map((option) => option.value)
                           : field === "group"
                             ? (releaseGroups.data?.map((group) => group.name) ?? [])
                             : field === "episode"
@@ -437,7 +439,7 @@ export default function ReleaseDiscoveryPanel({
                           onSelectionChange={(key) => {
                             if (field !== "title" || key === null) return;
                             const option = titleOptions.find(
-                              (candidate) => candidate.key === String(key),
+                              (candidate) => candidate.value === String(key),
                             );
                             if (option && option.value.trim().length > 0) {
                               form.setFieldValue("title", option.value);
@@ -467,29 +469,27 @@ export default function ReleaseDiscoveryPanel({
                           </div>
                           <Popover className={styles.selectPopover}>
                             <ListBox className={styles.selectListBox}>
-                              {(option: string | ReleaseDiscoveryTitleOption) => {
-                                if (typeof option === "string") {
-                                  return (
-                                    <ListBoxItem
-                                      id={option}
-                                      textValue={option}
-                                      className={styles.selectItem}
-                                    >
-                                      {option}
-                                    </ListBoxItem>
-                                  );
-                                }
+                              {(option: string) => {
+                                const titleOption = titleOptions.find(
+                                  (candidate) => candidate.value === option,
+                                );
 
                                 return (
                                   <ListBoxItem
-                                    id={option.key}
-                                    textValue={option.value}
+                                    id={option}
+                                    textValue={option}
                                     className={styles.selectItem}
                                   >
-                                    <span>{option.label}</span>
-                                    <span className={styles.titleOptionValue}>
-                                      {option.value}
-                                    </span>
+                                    {titleOption ? (
+                                      <>
+                                        <span>{titleOption.label}</span>
+                                        <span className={styles.titleOptionValue}>
+                                          {titleOption.value}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      option
+                                    )}
                                   </ListBoxItem>
                                 );
                               }}

@@ -41,6 +41,7 @@ def make_anime() -> Anime:
     anime = Anime(
         id=anime_id,
         title="Frieren: Beyond Journey's End",
+        titles={"romaji": "Sousou no Frieren", "jp": "葬送のフリーレン"},
         year=2026,
         season="fall",
         weekday="friday",
@@ -67,6 +68,7 @@ async def test_create_anime() -> None:
             "/api/animes",
             json={
                 "title": "Frieren: Beyond Journey's End",
+                "titles": {"romaji": "Sousou no Frieren", "jp": "葬送のフリーレン"},
                 "year": 2026,
                 "season": "fall",
                 "weekday": "friday",
@@ -92,6 +94,7 @@ async def test_create_anime() -> None:
         )
 
     assert response.status_code == 201
+    assert response.json()["titles"]["romaji"] == "Sousou no Frieren"
     assert response.json()["episodes"][0]["download_status"] == "not_started"
     service.create_anime.assert_awaited_once()
 

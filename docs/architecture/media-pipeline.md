@@ -32,13 +32,13 @@ The downloaded `MediaAsset.path` remains the canonical source. Derived playable 
 
 ## Media Preparation
 
-Playable media and thumbnails are derived from the same source, but they run as separate FFmpeg processes whenever both are needed.
+Playable media and thumbnails are derived from the same source. When both artifacts are required in the same preparation pass, the preferred implementation is one FFmpeg invocation with a shared input/decode path and separate output/filter branches.
 
-For a TRANSCODE operation, one process creates the playable HEVC MP4 and a later process extracts the sampled thumbnail frames and assembles the sprite. This intentionally decodes the source twice so the playable transcode cannot be coupled to the thumbnail filter's slower output cadence or retain a large shared filter graph in memory.
+For a TRANSCODE operation, the decoded video can feed both the HEVC playable encoder branch and the sampled thumbnail branch.
 
-For a REMUX operation, one process copies compatible video/audio streams into MP4 and a later process extracts the thumbnail frames and builds the sprite.
+For a REMUX operation, the playable branch can copy compatible video/audio streams while the thumbnail branch decodes the source video; the source is still opened once by the FFmpeg process.
 
-The preparation job records durable execution state and a source path/metadata snapshot. Playable and thumbnail artifact state remains independent so retries can process only the missing artifact after a partial failure.
+The preparation job records durable execution state and a source path/metadata snapshot. Playable and thumbnail artifact state remains independently consumable so a partial failure or retry can process only the missing artifact. Shared execution should improve source-read/decode efficiency without turning the thumbnail branch into an unbounded memory sink; thumbnail sampling remains bounded by the configured sprite capacity and interval.
 
 The generated playable MP4 is re-inspected with FFprobe before the `MediaVariant` is marked ready.
 
@@ -89,6 +89,12 @@ Generate a thumbnail sprite together with timing information suitable for hover/
 The sprite image plus WebVTT timing/region metadata is the preferred conceptual representation.
 
 Thumbnail generation is part of the media preparation pass when a playable artifact is also required, but it runs in its own FFmpeg process. If the playable artifact is already current, thumbnail-only retry uses the thumbnail processor without regenerating the playable file.
+
+## Realtime Progress
+
+Long-running media preparation and packaging jobs expose incremental progress through the shared Redis Pub/Sub → FastAPI WebSocket transport. Progress percentages are transient observations, not durable job state.
+
+For combined preparation, a single FFmpeg process may report the shared input timeline to both the Processing and Preview UI stages. The UI should treat this as progress through the common source-processing timeline rather than as two independent workloads.
 
 ## Outputs
 

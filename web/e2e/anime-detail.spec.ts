@@ -166,7 +166,7 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   const activePipeline = structuredClone(pipeline);
   activePipeline.episodes[0].download = {
     ...activePipeline.episodes[0].download,
-    job_id: "019a0000-0000-0000-0000-000000000099",
+    job_id: "019a0000-0000-7000-8000-000000000099",
     status: "downloading",
     downloaded_bytes: 524288,
     total_bytes: 1048576,
@@ -213,7 +213,7 @@ test("receives live pipeline updates without polling", async ({ page }) => {
       version: 1,
       type: "job.progress",
       job_type: "download",
-      job_id: "019a0000-0000-0000-0000-000000000099",
+      job_id: "019a0000-0000-7000-8000-000000000099",
       status: "downloading",
       progress_percent: 100,
       downloaded_bytes: 1048576,
@@ -274,7 +274,7 @@ test("keeps live download controls inside the download stage", async ({ page }) 
   const activePipeline = structuredClone(pipeline);
   activePipeline.episodes[0].download = {
     ...activePipeline.episodes[0].download,
-    job_id: "019a0000-0000-0000-0000-000000000099",
+    job_id: "019a0000-0000-7000-8000-000000000099",
     status: "downloading",
     downloaded_bytes: 524288,
     total_bytes: 1048576,

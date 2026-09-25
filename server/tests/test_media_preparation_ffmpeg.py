@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Awaitable, Sequence
 from pathlib import Path
 
 import pytest
@@ -13,25 +13,39 @@ from animedownloader_media import (
 class FakeRunner:
     def __init__(self) -> None:
         self.calls: list[tuple[str, ...]] = []
+        self.progress: list[float] = []
 
     async def run(self, args: Sequence[str]) -> FFmpegCommandResult:
+        return self._record(args)
+
+    async def run_with_progress(
+        self,
+        args: Sequence[str],
+        *,
+        duration_seconds: float,
+        on_progress: Awaitable | object,
+    ) -> FFmpegCommandResult:
+        del duration_seconds
+        result = self._record(args)
+        callback = on_progress
+        for percent in (20.0, 60.0, 100.0):
+            self.progress.append(percent)
+            await callback(percent)  # type: ignore[operator]
+        return result
+
+    def _record(self, args: Sequence[str]) -> FFmpegCommandResult:
         command = tuple(args)
         self.calls.append(command)
-
-        output = Path(command[-1])
-        if "%05d" in command[-1]:
-            output.parent.mkdir(parents=True, exist_ok=True)
-            for index in range(1, 4):
-                output.with_name(f"frame-{index:05d}.jpg").write_bytes(b"frame")
-        else:
-            output.parent.mkdir(parents=True, exist_ok=True)
-            output.write_bytes(b"output")
-
+        for value in command:
+            path = Path(value)
+            if path.suffix in {".mp4", ".jpg"}:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"output")
         return FFmpegCommandResult(stdout=b"", stderr=b"", returncode=0)
 
 
 @pytest.mark.anyio
-async def test_preparation_transcodes_and_generates_thumbnail_in_separate_processes(
+async def test_preparation_uses_one_ffmpeg_process_for_playable_and_thumbnail(
     tmp_path: Path,
 ) -> None:
     source = tmp_path / "source.mkv"
@@ -42,6 +56,10 @@ async def test_preparation_transcodes_and_generates_thumbnail_in_separate_proces
 
     runner = FakeRunner()
     processor = FFmpegMediaPreparationProcessor(runner=runner)
+    progress: list[float] = []
+
+    async def on_progress(percent: float) -> None:
+        progress.append(percent)
 
     result = await processor.process(
         media_path=source,
@@ -50,32 +68,27 @@ async def test_preparation_transcodes_and_generates_thumbnail_in_separate_proces
         vtt_path=vtt,
         duration_seconds=12.0,
         operation=PlayableMediaOperation.TRANSCODE,
+        on_progress=on_progress,
     )
 
     assert isinstance(result, MediaPreparationProcessingResult)
-    assert len(runner.calls) == 3
-
-    playable_command = runner.calls[0]
-    assert "-filter_complex" not in playable_command
-    assert playable_command[playable_command.index("-c:v") + 1] == "libx265"
-    assert playable_command[playable_command.index("-threads") + 1] == "8"
-    assert playable_command[-1] == str(playable)
-
-    extraction_command = runner.calls[1]
-    assert "-vf" in extraction_command
-    assert "fps=" in extraction_command[extraction_command.index("-vf") + 1]
-    assert extraction_command[-1].endswith("frame-%05d.jpg")
-
-    sprite_command = runner.calls[2]
-    assert "-vf" in sprite_command
-    assert sprite_command[sprite_command.index("-vf") + 1].startswith("tile=15x12")
-    assert sprite_command[-1] == str(sprite)
+    assert len(runner.calls) == 1
+    command = runner.calls[0]
+    assert "-filter_complex" in command
+    filter_graph = command[command.index("-filter_complex") + 1]
+    assert "split=2" in filter_graph
+    assert "tile=15x12" in filter_graph
+    assert command[command.index("-c:v") + 1] == "libx265"
+    assert command[command.index("-threads") + 1] == "8"
+    assert str(playable) in command
+    assert str(sprite) in command
 
     assert result.playable.output_path == playable
     assert result.thumbnail.sprite_path == sprite
     assert result.thumbnail.vtt_path == vtt
     assert result.thumbnail.frame_count == 3
     assert vtt.read_text(encoding="utf-8").startswith("WEBVTT\n")
+    assert progress == [20.0, 60.0, 100.0]
 
 
 @pytest.mark.anyio
@@ -111,7 +124,7 @@ async def test_preparation_can_use_nvenc_for_transcode(tmp_path: Path) -> None:
 
 
 @pytest.mark.anyio
-async def test_preparation_remuxes_and_generates_thumbnail_in_separate_processes(
+async def test_preparation_remuxes_playable_and_decodes_thumbnail_in_one_process(
     tmp_path: Path,
 ) -> None:
     source = tmp_path / "source.mp4"
@@ -132,14 +145,15 @@ async def test_preparation_remuxes_and_generates_thumbnail_in_separate_processes
         operation=PlayableMediaOperation.REMUX,
     )
 
-    assert len(runner.calls) == 3
-    playable_command = runner.calls[0]
-    assert "-filter_complex" not in playable_command
-    assert playable_command[playable_command.index("-c:v") + 1] == "copy"
-    assert playable_command[-1] == str(playable)
-
-    assert runner.calls[1][-1].endswith("frame-%05d.jpg")
-    assert runner.calls[2][-1] == str(sprite)
+    assert len(runner.calls) == 1
+    command = runner.calls[0]
+    assert command[command.index("-c:v:0") + 1] == "copy"
+    assert "-filter_complex" in command
+    filter_graph = command[command.index("-filter_complex") + 1]
+    assert "fps=" in filter_graph
+    assert "tile=15x12" in filter_graph
+    assert str(playable) in command
+    assert str(sprite) in command
 
 
 @pytest.mark.anyio
@@ -149,6 +163,7 @@ async def test_preparation_propagates_ffmpeg_failure(tmp_path: Path) -> None:
 
     class FailedRunner:
         async def run(self, args: Sequence[str]) -> FFmpegCommandResult:
+            del args
             return FFmpegCommandResult(
                 stdout=b"",
                 stderr=b"encoder failed",

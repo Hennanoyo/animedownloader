@@ -4,6 +4,7 @@ import type { AnimePipeline } from "../apps/web/src/entities/anime/model/pipelin
 const ANIME_ID = "019a0000-0000-7000-8000-000000000010";
 let pipelineRequests = 0;
 let pipelineResponse: AnimePipeline;
+let latestDownloadJobResponse: Record<string, unknown>;
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
 
@@ -17,6 +18,19 @@ const transparentPng = Buffer.from(
 
 test.beforeEach(async ({ page }) => {
   pipelineResponse = structuredClone(pipeline);
+  latestDownloadJobResponse = {
+    id: "019a0000-0000-0000-0000-000000000099",
+    episode_id: EPISODE_ID,
+    status: "completed",
+    downloaded_bytes: 1048576,
+    total_bytes: 1048576,
+    attempt_count: 1,
+    error_message: null,
+    started_at: "2026-09-25T00:00:00Z",
+    completed_at: "2026-09-25T00:05:00Z",
+    created_at: "2026-09-25T00:00:00Z",
+    updated_at: "2026-09-25T00:05:00Z",
+  };
   await page.route(`**/api/animes/${ANIME_ID}`, async (route) => {
     await route.fulfill({
       status: 200,
@@ -39,19 +53,7 @@ test.beforeEach(async ({ page }) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          id: "019a0000-0000-7000-8000-000000000099",
-          episode_id: EPISODE_ID,
-          status: "completed",
-          downloaded_bytes: 1048576,
-          total_bytes: 1048576,
-          attempt_count: 1,
-          error_message: null,
-          started_at: "2026-09-25T00:00:00Z",
-          completed_at: "2026-09-25T00:05:00Z",
-          created_at: "2026-09-25T00:00:00Z",
-          updated_at: "2026-09-25T00:05:00Z",
-        }),
+        body: JSON.stringify(latestDownloadJobResponse),
       });
     },
   );
@@ -209,45 +211,25 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   activePipeline.episodes[0].active = true;
 
   pipelineResponse = activePipeline;
-  await page.route(
-    `**/api/episodes/${EPISODE_ID}/download-jobs/latest`,
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "019a0000-0000-0000-0000-000000000099",
-          episode_id: EPISODE_ID,
-          status: "downloading",
-          downloaded_bytes: 524288,
-          total_bytes: 1048576,
-          attempt_count: 1,
-          error_message: null,
-          started_at: "2026-09-25T00:00:00Z",
-          completed_at: null,
-          created_at: "2026-09-25T00:00:00Z",
-          updated_at: "2026-09-25T00:05:00Z",
-        }),
-      });
-    },
-  );
+  latestDownloadJobResponse = {
+    id: "019a0000-0000-0000-0000-000000000099",
+    episode_id: EPISODE_ID,
+    status: "downloading",
+    downloaded_bytes: 524288,
+    total_bytes: 1048576,
+    attempt_count: 1,
+    error_message: null,
+    started_at: "2026-09-25T00:00:00Z",
+    completed_at: null,
+    created_at: "2026-09-25T00:00:00Z",
+    updated_at: "2026-09-25T00:05:00Z",
+  };
 
   await page.goto(`/animes/${ANIME_ID}`);
-  console.log(
-    "ANIME REALTIME BODY:",
-    await page.locator("body").innerText(),
-  );
   const showDetails = page.getByRole("button", { name: "Show details" });
   if (await showDetails.isVisible()) {
     await showDetails.click();
   }
-  console.log(
-    "ANIME DETAIL DEBUG",
-    JSON.stringify({
-      pipelineRequests,
-      body: await page.locator("body").innerText(),
-    }),
-  );
   await expect(page.locator('[aria-label="Download progress"]')).toBeVisible();
 
   await page.waitForTimeout(1000);
@@ -346,34 +328,21 @@ test("keeps live download controls inside the download stage", async ({ page }) 
   activePipeline.episodes[0].active = true;
 
   pipelineResponse = activePipeline;
-  await page.route(
-    `**/api/episodes/${EPISODE_ID}/download-jobs/latest`,
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "019a0000-0000-7000-8000-000000000098",
-          episode_id: EPISODE_ID,
-          status: "downloading",
-          downloaded_bytes: 524288,
-          total_bytes: 1048576,
-          attempt_count: 1,
-          error_message: null,
-          started_at: "2026-09-25T00:00:00Z",
-          completed_at: null,
-          created_at: "2026-09-25T00:00:00Z",
-          updated_at: "2026-09-25T00:00:00Z",
-        }),
-      });
-    },
-  );
+  latestDownloadJobResponse = {
+    id: "019a0000-0000-0000-0000-000000000098",
+    episode_id: EPISODE_ID,
+    status: "downloading",
+    downloaded_bytes: 524288,
+    total_bytes: 1048576,
+    attempt_count: 1,
+    error_message: null,
+    started_at: "2026-09-25T00:00:00Z",
+    completed_at: null,
+    created_at: "2026-09-25T00:00:00Z",
+    updated_at: "2026-09-25T00:00:00Z",
+  };
 
   await page.goto(`/animes/${ANIME_ID}`);
-  console.log(
-    "ANIME ACTIVE BODY:",
-    await page.locator("body").innerText(),
-  );
   const showDetails = page.getByRole("button", { name: "Show details" });
   if (await showDetails.isVisible()) {
     await showDetails.click();

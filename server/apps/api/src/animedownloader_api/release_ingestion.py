@@ -7,6 +7,7 @@ from animedownloader_anime import Anime, AnimeNotFoundError, Episode
 from animedownloader_releases import EpisodeIngestionStatus, ParsedRelease, Release
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from .release_matching import AnimeMatcher
 
@@ -59,7 +60,7 @@ class EpisodeIngestionService:
                     "release series title does not match the selected anime",
                 )
 
-            identity_clauses = []
+            identity_clauses: list[ColumnElement[bool]] = []
             if release.id:
                 identity_clauses.append(Episode.source_id == release.id)
             if release.info_hash:

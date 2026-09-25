@@ -4,13 +4,13 @@ from uuid import uuid7
 
 import httpx
 import pytest
+from animedownloader_anime import Anime, Episode
 from animedownloader_api.app import create_app
 from animedownloader_api.dependencies import (
     get_download_job_service,
     get_download_task_dispatcher,
 )
 from animedownloader_api.task_queue import DownloadTaskDispatcher
-from animedownloader_anime import Anime, Episode
 from animedownloader_download import (
     ActiveDownloadJobError,
     DownloadJob,

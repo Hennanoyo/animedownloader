@@ -17,6 +17,8 @@ from .ffmpeg import (
     FFmpegCommandResult,
     FFmpegPlayableMediaProcessingError,
     FFmpegPlayableMediaProcessor,
+    FFmpegProgressCallback,
+    FFmpegProgressRunner,
     FFmpegRunner,
     FFmpegSubtitleProcessor,
     FFmpegTimeoutError,
@@ -53,6 +55,7 @@ from .thumbnails import (
     FFmpegThumbnailProcessingError,
     FFmpegThumbnailSpriteProcessor,
     ThumbnailSpriteResult,
+    write_thumbnail_webvtt,
 )
 
 __all__ = [
@@ -67,6 +70,8 @@ __all__ = [
     "FFmpegCommandResult",
     "FFmpegPlayableMediaProcessingError",
     "FFmpegPlayableMediaProcessor",
+    "FFmpegProgressCallback",
+    "FFmpegProgressRunner",
     "FFmpegMediaPreparationProcessingError",
     "FFmpegMediaPreparationProcessor",
     "FFmpegRunner",
@@ -95,6 +100,7 @@ __all__ = [
     "SubprocessProbeRunner",
     "SubtitleProcessingError",
     "ThumbnailSpriteResult",
+    "write_thumbnail_webvtt",
     "UnsupportedSubtitleCodecError",
     "build_dash_manifest",
     "build_hls_master_playlist",

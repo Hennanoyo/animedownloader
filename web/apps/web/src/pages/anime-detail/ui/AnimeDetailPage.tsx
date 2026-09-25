@@ -165,6 +165,7 @@ export default function AnimeDetailPage() {
       {!isEditing ? (
         <>
           <ReleaseDiscoveryPanel
+            animeId={anime.id}
             titleOptions={availableReleaseTitleOptions}
             defaultTitleSource={defaultReleaseTitleSource}
           />

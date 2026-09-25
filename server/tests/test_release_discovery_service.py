@@ -6,7 +6,22 @@ from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_nyaa import NyaaError
 from animedownloader_releases import Release, SearchQueryContext, build_search_queries
 
-from .test_release_parser import make_release
+
+
+def _release(title: str) -> Release:
+    return Release(
+        source="nyaa",
+        id=f"https://nyaa.si/view/{abs(hash(title))}",
+        title=title,
+        page_url="https://nyaa.si/view/example",
+        torrent_url="https://nyaa.si/download/example.torrent",
+        published_at=None,
+        size="1 GiB",
+        seeders=10,
+        leechers=1,
+        downloads=2,
+        info_hash=None,
+    )
 
 
 class FakeNyaaClient:
@@ -16,7 +31,7 @@ class FakeNyaaClient:
     async def search(self, query: str) -> list[Release]:
         self.queries.append(query)
         if query == "ExampleSubs Frieren":
-            return [replace(make_release("[ExampleSubs] Frieren - 01 [1080p]"), id="duplicate")]
+            return [replace(_release("[ExampleSubs] Frieren - 01 [1080p]"), id="duplicate")]
         if query == "Frieren":
             return [make_release("[ExampleSubs] Frieren - 01 [1080p]")]
         if query == "ExampleSubs Frieren 8 1080p HEVC":

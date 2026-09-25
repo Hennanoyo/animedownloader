@@ -13,7 +13,25 @@ from animedownloader_releases import (
     validate_search_template,
 )
 
-from .test_release_parser import make_release
+from animedownloader_releases import Release
+
+
+def _release(title: str) -> Release:
+    return Release(
+        source="nyaa",
+        id=f"https://nyaa.si/view/{abs(hash(title))}",
+        title=title,
+        page_url="https://nyaa.si/view/example",
+        torrent_url="https://nyaa.si/download/example.torrent",
+        published_at=None,
+        size="1 GiB",
+        seeders=10,
+        leechers=1,
+        downloads=2,
+        info_hash=None,
+    )
+
+
 
 
 def test_normalize_release_group_slug() -> None:

@@ -507,6 +507,21 @@ export default function ReleaseDiscoveryPanel({
         </div>
       </Form>
 
+      {query.isError ? (
+        <p className={styles.error} role="alert">
+          {getErrorMessage(query.error)}
+        </p>
+      ) : null}
+
+      {query.isSuccess ? (
+        <DiscoveryResults
+          items={query.data.items}
+          query={query.data.query}
+          warnings={query.data.warnings}
+          profileVersion={query.data.search_profile_version}
+        />
+      ) : null}
+
       <div className={styles.srOnly} aria-live="polite" aria-atomic="true">
         {dragAnnouncement}
       </div>

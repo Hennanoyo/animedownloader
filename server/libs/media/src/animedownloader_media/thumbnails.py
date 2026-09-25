@@ -161,7 +161,7 @@ class FFmpegThumbnailSpriteProcessor:
                 f"FFmpeg completed without creating thumbnail sprite: {sprite_path}",
             )
 
-        _write_webvtt(
+        write_thumbnail_webvtt(
             path=vtt_path,
             frame_count=len(frame_paths),
             interval_seconds=interval,

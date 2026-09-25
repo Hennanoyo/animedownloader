@@ -1,10 +1,11 @@
-from collections.abc import Awaitable, Sequence
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
 from animedownloader_media import (
     FFmpegCommandResult,
     FFmpegMediaPreparationProcessor,
+    FFmpegProgressCallback,
     MediaPreparationProcessingResult,
     PlayableMediaOperation,
 )
@@ -23,14 +24,13 @@ class FakeRunner:
         args: Sequence[str],
         *,
         duration_seconds: float,
-        on_progress: Awaitable | object,
+        on_progress: FFmpegProgressCallback,
     ) -> FFmpegCommandResult:
         del duration_seconds
         result = self._record(args)
-        callback = on_progress
         for percent in (20.0, 60.0, 100.0):
             self.progress.append(percent)
-            await callback(percent)  # type: ignore[operator]
+            await on_progress(percent)
         return result
 
     def _record(self, args: Sequence[str]) -> FFmpegCommandResult:

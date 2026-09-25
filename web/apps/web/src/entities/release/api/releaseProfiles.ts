@@ -18,7 +18,6 @@ import {
   patchJson,
   postJson,
 } from "../../../shared/api/client";
-import { parserFields } from "../model/types";
 
 const releaseGroupSchema = z.object({
   id: z.uuid(),

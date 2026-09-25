@@ -243,7 +243,7 @@ test("receives live pipeline updates without polling", async ({ page }) => {
     page.getByRole("progressbar", { name: "Preparing" }),
   ).toBeVisible();
 
-  const emitPipelineEvent = (payload: unknown) =>
+
     page.evaluate((eventPayload) => {
       const windowWithEmitter = window as unknown as {
         __emitPipelineEvent: (payload: unknown) => void;

@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is Release Discovery & Episode Automation. PR #23 through PR #33 are merged; PR #34 is the next development step.
+The current phase is Unified Media Preparation & Realtime Stage Progress. PR #23 through PR #33 are merged; PR #34 is the next development step.
 
 ## Completed
 
@@ -536,50 +536,84 @@ Acceptance criteria:
 
 The PR deliberately reports coarse media-stage lifecycle progress rather than inventing fine-grained FFmpeg percentages.
 
-## Release Discovery & Episode Automation
+## Media Preparation Optimization & Realtime Stage Progress
 
-The next phase focuses on reducing the amount of manual work between Nyaa release discovery and an Anime's Episode catalog. The existing workflow still depends on manual Episode creation/release selection, while the media pipeline and realtime job transport are now established.
+The media pipeline currently reaches the correct user-visible stages, but the shared preparation path still decodes the source video twice when both playable media and thumbnail previews are required. The realtime transport also currently carries only coarse 0/100 lifecycle signals for media jobs.
 
-### PR #34 — Release Discovery & Episode Automation
+### PR #34 — Unified Media Preparation & Realtime Stage Progress
 
 **Planned next development step.**
 
-Goal: turn release discovery into a reusable, deterministic Episode-ingestion flow without coupling it to automatic downloading.
+Goal: make the Processing → Preview pipeline perform at most one source-video decode when both outputs are required, while exposing honest realtime progress for Processing, Preview, and Streaming.
 
 Scope:
 
-- Define a persisted release identity/provenance model suitable for deduplicating repeated Nyaa observations without storing raw RSS search results
-- Add a release discovery service that can normalize Nyaa results into domain-level release candidates
-- Add deterministic matching from release candidates to existing Anime records using explicit query/configuration rules
-- Add an Anime detail release-candidate view so users can inspect and select discovered episodes
-- Add an Episode ingestion action that creates or updates Episode records from a selected release candidate
-- Preserve the existing manual Episode CRUD path alongside the new release-ingestion path
-- Keep download-job creation as a separate explicit action; discovery must not silently start torrents
-- Add backend/frontend tests and Playwright coverage for discovery, deduplication, selection, and ingestion
+- Replace the current combined preparation implementation's two sequential FFmpeg executions with one FFmpeg invocation whenever playable media and thumbnails are both required
+- Use a shared input/decode path with separate output/filter branches for playable media and thumbnail generation
+- Preserve the current REMUX/TRANSCODE planning behavior: skip video transcoding when the source already satisfies the playable constraints, while still generating thumbnails from the source
+- Keep thumbnail VTT generation and derived-artifact persistence independent of the playable MediaVariant state even though their source decode is shared
+- Extend the FFmpeg runner with incremental progress reporting based on FFmpeg's machine-readable progress output
+- Emit realtime progress events during media preparation rather than only at 0% and 100%
+- Add stage/substage information to realtime progress events so one MediaPreparationJob can update both the Processing and Preview UI stages without inventing duplicate jobs
+- Add realtime progress for CMAF packaging and expose it as Streaming stage progress
+- Update the Anime detail pipeline cache directly from realtime media-stage progress while retaining HTTP snapshot recovery for connection/reconnect
+- Keep durable PostgreSQL job state coarse-grained; do not persist every FFmpeg progress sample as a database write
+- Add deterministic FFmpeg runner/processor tests and Playwright coverage for progressing Processing, Preview, and Streaming stages
 
 Design constraints:
 
-- Do not persist complete RSS search-result payloads; persist only the normalized provenance/identity fields needed for deduplication and auditing
-- Do not introduce automatic download scheduling, queue prioritization, or background torrent creation in this PR
-- Keep Nyaa access behind the existing release/infrastructure boundaries
-- Keep Episode metadata ownership explicit; discovery should propose/normalize release-derived values rather than overwrite user-edited Anime metadata
-- Preserve the existing DownloadJob, media pipeline, and realtime transport behavior
+- When both playable and thumbnail artifacts are missing, the source video should be decoded once and branched inside a single FFmpeg process
+- The shared filter graph must keep memory bounded; do not introduce a design that accumulates the entire source or an unbounded thumbnail frame queue
+- Thumbnail sampling remains bounded by the existing sprite capacity and interval rules
+- REMUX must not unnecessarily decode the video for the playable output; only the thumbnail branch should require video decoding
+- PostgreSQL remains the durable source of truth; Redis Pub/Sub remains ephemeral delivery
+- Realtime progress is an observation channel, not durable job state
+- Reconnects must recover job status and artifact completion from the HTTP pipeline snapshot even when an intermediate progress percentage was missed
+- Do not change HLS/DASH artifact layout or encode additional video representations
+- Preserve the existing Download Manager realtime transport and behavior
+
+Realtime progress model:
+
+```
+FFmpeg / worker
+    │
+    ├─ Processing progress ─────→ shared JobProgressEvent(stage=processing)
+    │
+    ├─ Preview progress ────────→ shared JobProgressEvent(stage=preview)
+    │
+    └─ Packaging progress ─────→ shared JobProgressEvent(stage=streaming)
+                                      │
+                                      ▼
+                               Redis Pub/Sub
+                                      │
+                                      ▼
+                              FastAPI WebSocket
+                                      │
+                                      ▼
+                              Anime Detail UI
+```
+
+For a combined preparation job, Processing and Preview progress may advance from the same decoded input timeline because both outputs are produced by the same FFmpeg invocation. A displayed percentage represents progress through the source media being processed, not a claim that the two outputs consume equal work.
 
 Out of scope:
 
-- Automatic periodic download scheduling
-- Queue prioritization/concurrency controls
-- Anime metadata scraping from external databases
-- Full-site crawler integration beyond the release discovery boundary
-- Changes to playback or media packaging
+- Automatic release discovery or Episode ingestion
+- Automatic download scheduling
+- Fine-grained queue/concurrency management
+- New media artifacts or storage backends
+- Multi-resolution transcoding
+- Playback/player redesign
 
 Acceptance criteria:
 
-- Repeated discovery of the same release does not create duplicate Episode records
-- A user can inspect discovered releases from Anime detail and explicitly ingest one as an Episode
-- Existing manual Episode creation/edit/delete remains functional
-- Ingesting a release does not automatically create a DownloadJob
-- Existing Download Manager, media pipeline, and realtime progress behavior remain green
+- When both playable media and thumbnails are required, only one FFmpeg process reads/decodes the source video
+- A source that only needs REMUX skips unnecessary transcoding while still producing thumbnails
+- Processing and Preview show live percentage updates during preparation when realtime connectivity is healthy
+- Streaming shows live packaging percentage updates
+- Realtime progress updates do not create per-sample PostgreSQL writes
+- WebSocket disconnect/reconnect recovers correct durable stage state through the existing HTTP snapshot
+- Partial artifact completion and retry remain independent
+- Existing Download Manager realtime behavior remains green
 - Backend, Frontend, Browser, and Integration CI remains green
 
 ## Handoff Notes

@@ -27,11 +27,8 @@ from animedownloader_api.schemas import (
     ReleaseDiscoveryResponse,
     ReleaseResponse,
     ReleaseSearchResponse,
-) 
-
-from animedownloader_api.schemas import (
-    EpisodeIngestionStatus as EpisodeIngestionStatusResponse,
 )
+
 
 router = APIRouter(prefix="/api/releases", tags=["releases"])
 
@@ -164,16 +161,18 @@ def _release_from_response(payload: ReleaseResponse) -> Release:
 def _ingestion_response(
     result: EpisodeIngestionResult,
 ) -> EpisodeIngestionResponse:
-    return EpisodeIngestionResponse(
-        status=EpisodeIngestionStatusResponse(result.status.value),
-        episode=(
-            EpisodeResponse.model_validate(result.episode)
-            if result.episode is not None
-            else None
-        ),
-        existing_episode=(
-            EpisodeResponse.model_validate(result.existing_episode)
-            if result.existing_episode is not None
-            else None
-        ),
+    return EpisodeIngestionResponse.model_validate(
+        {
+            "status": result.status.value,
+            "episode": (
+                EpisodeResponse.model_validate(result.episode)
+                if result.episode is not None
+                else None
+            ),
+            "existing_episode": (
+                EpisodeResponse.model_validate(result.existing_episode)
+                if result.existing_episode is not None
+                else None
+            ),
+        },
     )

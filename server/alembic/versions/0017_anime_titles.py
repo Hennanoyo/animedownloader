@@ -5,8 +5,8 @@ Revises: 0016_release_search_profiles
 Create Date: 2026-09-26
 """
 
-from sqlalchemy.dialects import postgresql
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 from alembic import op
 

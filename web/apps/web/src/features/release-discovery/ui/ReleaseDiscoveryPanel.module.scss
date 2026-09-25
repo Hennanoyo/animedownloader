@@ -261,6 +261,31 @@
   outline: 0;
 }
 
+.selectListBox {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 transparent;
+}
+
+.selectListBox::-webkit-scrollbar {
+  width: 0.45rem;
+}
+
+.selectListBox::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.selectListBox::-webkit-scrollbar-thumb {
+  border: 0.1rem solid transparent;
+  border-radius: 999px;
+  background: #334155;
+  background-clip: padding-box;
+}
+
+.selectListBox::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+  background-clip: padding-box;
+}
+
 .selectItem {
   padding: 0.45rem 0.55rem;
   border-radius: 0.4rem;

@@ -12,6 +12,7 @@ describe("releaseDiscoveryQueryOptions", () => {
   it("uses all discovery constraints as a stable query key", () => {
     const input = {
       title: "Frieren",
+      fields: ["group", "title", "episode", "resolution", "codec"] as const,
       group: "ExampleSubs",
       episode: 8,
       resolution: "1080p",

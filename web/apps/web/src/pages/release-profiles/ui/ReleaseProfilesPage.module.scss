@@ -905,6 +905,31 @@
   outline: 0;
 }
 
+.listBox {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 transparent;
+}
+
+.listBox::-webkit-scrollbar {
+  width: 0.45rem;
+}
+
+.listBox::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.listBox::-webkit-scrollbar-thumb {
+  border: 0.1rem solid transparent;
+  border-radius: 999px;
+  background: #334155;
+  background-clip: padding-box;
+}
+
+.listBox::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+  background-clip: padding-box;
+}
+
 .listItem {
   display: grid;
   gap: 0.08rem;

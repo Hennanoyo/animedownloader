@@ -30,9 +30,9 @@ from animedownloader_releases import (
 )
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from .release_matching import AnimeMatcher
-from sqlalchemy.orm import selectinload
 
 
 

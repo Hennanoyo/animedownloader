@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatZodIssues } from "../../../shared/lib/validation";
 import { postJson } from "../../../shared/api/client";
 import type {
   EpisodeIngestionInput,
@@ -45,13 +46,7 @@ const responseSchema = z.object({
 export class EpisodeIngestionResponseError extends Error {
   constructor(readonly issues: z.core.$ZodIssue[]) {
     super(
-      "Invalid episode ingestion response: " +
-        issues
-          .map(
-            (issue) =>
-              (issue.path.join(".") || "<root>") + ": " + issue.message,
-          )
-          .join("; "),
+      "Invalid episode ingestion response: " + formatZodIssues(issues),
     );
     this.name = "EpisodeIngestionResponseError";
   }

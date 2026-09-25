@@ -200,7 +200,8 @@ export default function ReleaseDiscoveryPanel({
     [enabledFields, fieldOrder],
   );
 
-  function handleTitleSourceChange(key: string | number) {
+  function handleTitleSourceChange(key: string | number | null) {
+    if (key === null) return;
     const source = String(key) as ReleaseDiscoveryTitleSource;
     const option = getTitleOption(titleOptions, source);
     setSelectedTitleSource(option.key);
@@ -370,7 +371,7 @@ export default function ReleaseDiscoveryPanel({
                   }}
                   onDrop={(event) => handleDrop(event, field)}
                 >
-                  <Button
+                  <button
                     type="button"
                     className={styles.dragHandle}
                     draggable
@@ -386,7 +387,7 @@ export default function ReleaseDiscoveryPanel({
                     onKeyDown={(event) => handleReorderKeyDown(event, field)}
                   >
                     <span aria-hidden="true">☰</span>
-                  </Button>
+                  </button>
 
                   <Checkbox
                     isSelected={enabledFields[field]}

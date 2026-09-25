@@ -8,6 +8,7 @@ const jobProgressEventSchema = z.object({
   job_id: z.uuid(),
   status: z.string().min(1),
   progress_percent: z.number().min(0).max(100).nullable(),
+  stage: z.enum(["processing", "preview", "streaming"]).nullable(),
   downloaded_bytes: z.number().int().nonnegative().nullable(),
   total_bytes: z.number().int().nonnegative().nullable(),
   error_message: z.string().max(2000).nullable(),

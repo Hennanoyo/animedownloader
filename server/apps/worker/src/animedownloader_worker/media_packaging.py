@@ -206,6 +206,10 @@ class MediaPackagingRunner:
 
             if context.status is MediaPackagingJobStatus.PENDING:
                 await self._state.mark_processing(job_id)
+            elif context.status is not MediaPackagingJobStatus.PROCESSING:
+                raise MediaPackagingExecutionError(
+                    f"Packaging job cannot be executed from status {context.status.value}",
+                )
 
             await emit_job_progress(
                 self._on_progress,
@@ -214,13 +218,6 @@ class MediaPackagingRunner:
                 status=MediaPackagingJobStatus.PROCESSING.value,
                 progress_percent=0,
             )
-
-            if context.status is MediaPackagingJobStatus.PROCESSING:
-                pass
-            elif context.status is not MediaPackagingJobStatus.PROCESSING:
-                raise MediaPackagingExecutionError(
-                    f"Packaging job cannot be executed from status {context.status.value}",
-                )
 
             quality = f"{context.height}p"
             package_artifact = StreamingPackageArtifact(package_id=context.package_id)

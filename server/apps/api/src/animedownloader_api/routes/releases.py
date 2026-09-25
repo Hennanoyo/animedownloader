@@ -29,7 +29,6 @@ from animedownloader_api.schemas import (
     ReleaseSearchResponse,
 )
 
-
 router = APIRouter(prefix="/api/releases", tags=["releases"])
 
 

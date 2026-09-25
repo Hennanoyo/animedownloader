@@ -8,6 +8,7 @@ from .ffmpeg import (
     FFmpegProgressCallback,
     FFmpegRunner,
     PlayableMediaProcessingResult,
+    SubprocessFFmpegRunner,
     build_video_encoder_options,
     run_ffmpeg,
 )
@@ -56,10 +57,7 @@ class FFmpegMediaPreparationProcessor:
             )
 
         self._executable = executable
-        self._runner = runner or __import__(
-            "animedownloader_media.ffmpeg",
-            fromlist=["SubprocessFFmpegRunner"],
-        ).SubprocessFFmpegRunner()
+        self._runner = runner or SubprocessFFmpegRunner()
         self._video_encoder = video_encoder
         build_video_encoder_options(video_encoder)
         self._min_interval_seconds = min_interval_seconds

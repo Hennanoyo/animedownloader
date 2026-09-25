@@ -16,6 +16,7 @@ import type {
 import {
   useCreateEpisodeDownloadJob,
   useDeleteDownloadJob,
+  type DownloadJobSnapshot,
 } from "../../../features/episode-download/model/useEpisodeDownload";
 import EpisodeDownloadControl from "../../../features/episode-download/ui/EpisodeDownloadControl";
 import { useDeleteEpisode } from "../../../features/episode-management/model/useEpisodeManagement";
@@ -380,20 +381,6 @@ function EpisodeActionMenu({
   );
 }
 
-type DownloadJobSnapshot = {
-  id: string;
-  status:
-    | "pending"
-    | "downloading"
-    | "paused"
-    | "completed"
-    | "failed"
-    | "cancelled";
-  downloaded_bytes: number;
-  total_bytes: number | null;
-  error_message: string | null;
-};
-
 function getDownloadJobSnapshot(
   download: EpisodePipelineSummary["download"],
 ): DownloadJobSnapshot | null {
@@ -475,6 +462,7 @@ function renderStageBody(
           episodeId={pipeline.episode_id}
           inline
           realtimeConnected={realtimeConnected}
+          jobSnapshot={getDownloadJobSnapshot(pipeline.download)}
         />
       );
     }

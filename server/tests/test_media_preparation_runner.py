@@ -286,6 +286,7 @@ def make_runner(
     preparation: FakePreparationProcessor,
     playable: FakePlayableProcessor,
     thumbnail: FakeThumbnailProcessor,
+    on_progress=None,
 ) -> MediaPreparationRunner:
     return MediaPreparationRunner(
         state=state,
@@ -295,6 +296,7 @@ def make_runner(
         playable_processor=playable,
         thumbnail_processor=thumbnail,
         storage=LocalStorage(tmp_path / "storage", "http://localhost:8888"),
+        on_progress=on_progress,
     )
 
 
@@ -308,13 +310,27 @@ async def test_runner_combines_playable_and_thumbnail_generation(tmp_path: Path)
     playable = FakePlayableProcessor()
     thumbnail = FakeThumbnailProcessor()
 
-    runner = make_runner(tmp_path, state, inspector, preparation, playable, thumbnail)
+    events: list[tuple[str, float | None]] = []
+
+    async def on_progress(event: object) -> None:
+        events.append((getattr(event, "status"), getattr(event, "progress_percent")))
+
+    runner = make_runner(
+        tmp_path,
+        state,
+        inspector,
+        preparation,
+        playable,
+        thumbnail,
+        on_progress,
+    )
 
     await runner.run(state.context.job_id)
 
     assert state.process_calls == [
         (MediaTranscodingOperation.TRANSCODE, True, True),
     ]
+    assert events == [("processing", 0), ("completed", 100)]
     assert len(preparation.calls) == 1
     assert preparation.calls[0][-1] is PlayableMediaOperation.TRANSCODE
     assert playable.operations == []

@@ -27,6 +27,7 @@ import styles from "./EpisodePipelineCard.module.scss";
 interface Props {
   episode: Episode;
   pipeline: EpisodePipelineSummary;
+  realtimeConnected?: boolean;
 }
 
 const stages: { id: PipelineCurrentStage; label: string }[] = [
@@ -36,7 +37,11 @@ const stages: { id: PipelineCurrentStage; label: string }[] = [
   { id: "streaming", label: "Streaming" },
 ];
 
-export default function EpisodePipelineCard({ episode, pipeline }: Props) {
+export default function EpisodePipelineCard({
+  episode,
+  pipeline,
+  realtimeConnected = false,
+}: Props) {
   const retryMutation = useRetryEpisodePipeline(episode.id);
   const deleteEpisodeMutation = useDeleteEpisode(episode.anime_id);
   const [expanded, setExpanded] = useState(
@@ -424,6 +429,7 @@ function renderStageBody(
         <EpisodeDownloadControl
           episodeId={pipeline.episode_id}
           inline
+          realtimeConnected={realtimeConnected}
         />
       );
     }

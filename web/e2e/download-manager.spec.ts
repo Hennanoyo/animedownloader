@@ -189,7 +189,12 @@ test("manages active download and terminal filters", async ({ page }) => {
       name: "Cancel download for Episode One",
     }),
   ).toBeVisible();
-  await page\n    .getByRole("alertdialog", {\n      name: "Cancel download for Episode One",\n    })\n    .getByRole("button", { name: "Cancel download", exact: true })\n    .click();
+  await page
+    .getByRole("alertdialog", {
+      name: "Cancel download for Episode One",
+    })
+    .getByRole("button", { name: "Cancel download", exact: true })
+    .click();
   await expect(
     page.getByText("No downloads are currently active."),
   ).toBeVisible();

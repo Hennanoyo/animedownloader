@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .ffmpeg import (
+    FFmpegCommandResult,
     FFmpegProgressCallback,
     FFmpegRunner,
     PlayableMediaProcessingResult,
@@ -112,7 +113,9 @@ class FFmpegMediaPreparationProcessor:
                 "[0:v:0]split=2[playable_v][thumbnail_v];"
                 f"[thumbnail_v]{thumbnail_filter}[sprite]"
             )
-            playable_video_options = build_video_encoder_options(self._video_encoder)
+            playable_video_options = build_video_encoder_options(
+                self._video_encoder,
+            )
         else:
             filter_graph = f"[0:v:0]{thumbnail_filter}[sprite]"
             playable_video_options = ("-c:v:0", "copy")
@@ -139,7 +142,11 @@ class FFmpegMediaPreparationProcessor:
             "hvc1",
             "-c:a",
             "copy" if operation is PlayableMediaOperation.REMUX else "aac",
-            *(( "-b:a", "192k") if operation is PlayableMediaOperation.TRANSCODE else ()),
+            *(
+                ("-b:a", "192k")
+                if operation is PlayableMediaOperation.TRANSCODE
+                else ()
+            ),
             "-movflags",
             "+faststart",
             str(playable_path),
@@ -215,16 +222,15 @@ def _remove_existing_outputs(*paths: Path) -> None:
 
 
 def _validate_ffmpeg_result(
-    result: object,
+    result: FFmpegCommandResult,
     output_path: Path,
     operation: str,
 ) -> None:
-    returncode = getattr(result, "returncode", 1)
+    returncode = result.returncode
     if returncode == 0 and output_path.is_file():
         return
 
-    stderr = getattr(result, "stderr", b"")
-    message = stderr.decode("utf-8", errors="replace").strip()
+    message = result.stderr.decode("utf-8", errors="replace").strip()
     raise FFmpegMediaPreparationProcessingError(
         message
         or f"FFmpeg {operation} failed with exit code {returncode}",

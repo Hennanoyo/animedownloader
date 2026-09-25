@@ -439,17 +439,6 @@ function renderStageBody(
           episodeId={pipeline.episode_id}
           inline
           realtimeConnected={realtimeConnected}
-          job={
-            pipeline.download.job_id
-              ? {
-                  id: pipeline.download.job_id,
-                  status: stageStatus,
-                  downloaded_bytes: pipeline.download.downloaded_bytes,
-                  total_bytes: pipeline.download.total_bytes,
-                  error_message: pipeline.download.error_message,
-                }
-              : undefined
-          }
         />
       );
     }

@@ -464,12 +464,12 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   ).toBeVisible();
 
   await expect(discovery.getByRole("textbox", { name: "Anime title", exact: true })).toHaveValue("Browser Smoke Anime");
-  await discovery.getByLabel("Release group").fill("ExampleSubs");
+  await discovery.getByRole("textbox", { name: "Release group", exact: true }).fill("ExampleSubs");
   await discovery
     .getByRole("spinbutton", { name: "Episode", exact: true })
     .fill("1");
-  await discovery.getByLabel("Resolution").fill("1080p");
-  await discovery.getByLabel("Video codec").fill("HEVC");
+  await discovery.getByRole("textbox", { name: "Resolution", exact: true }).fill("1080p");
+  await discovery.getByRole("textbox", { name: "Video codec", exact: true }).fill("HEVC");
   await discovery
     .getByRole("button", { name: "Discover releases" })
     .click();

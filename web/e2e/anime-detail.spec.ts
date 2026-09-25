@@ -477,13 +477,16 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await expect(
     discovery.locator("strong").filter({ hasText: "1 candidates" }),
   ).toBeVisible();
+  const resultCard = discovery.locator("article").filter({
+    hasText: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
+  });
   await expect(
-    page.getByRole("heading", {
+    resultCard.getByRole("heading", {
       name: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
     }),
   ).toBeVisible();
-  await expect(page.getByText("parsed", { exact: true })).toBeVisible();
-  await expect(page.getByText("Browser Smoke Anime", { exact: true })).toBeVisible();
-  await expect(page.getByText("1080p", { exact: true })).toBeVisible();
-  await expect(page.getByText("HEVC", { exact: true })).toBeVisible();
+  await expect(resultCard).toContainText("parsed");
+  await expect(resultCard).toContainText("Browser Smoke Anime");
+  await expect(resultCard).toContainText("1080p");
+  await expect(resultCard).toContainText("HEVC");
 });

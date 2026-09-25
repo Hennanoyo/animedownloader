@@ -20,8 +20,18 @@ const episodeSchema = z.object({
   leechers: z.number().int().nonnegative().nullable(),
   downloads: z.number().int().nonnegative().nullable(),
   info_hash: z.string().nullable(),
-  download_status: z.string(),
-  conversion_status: z.string(),
+  download_status: z.enum([
+    "not_started",
+    "downloading",
+    "completed",
+    "failed",
+  ]),
+  conversion_status: z.enum([
+    "not_started",
+    "converting",
+    "completed",
+    "failed",
+  ]),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date(),
 });

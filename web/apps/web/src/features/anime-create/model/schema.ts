@@ -43,15 +43,13 @@ export const animeCreateFormSchema = z
       .string()
       .regex(/^$|^(?:[01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM format."),
     timezone: z.string().trim().min(1).max(64),
-    episodes: z
-      .array(
-        z.object({
-          episode_number: z.number().int().min(1).max(9999),
-          title: z.string().trim().min(1).max(300),
-          release: z.custom<Release>().nullable(),
-        }),
-      )
-      .min(1, "Add at least one episode."),
+    episodes: z.array(
+      z.object({
+        episode_number: z.number().int().min(1).max(9999),
+        title: z.string().trim().min(1).max(300),
+        release: z.custom<Release>().nullable(),
+      }),
+    ),
   })
   .superRefine((value, ctx) => {
     const seen = new Set<number>();
@@ -71,11 +69,6 @@ export const animeCreateFormSchema = z
           code: "custom",
           path: ["episodes", index, "release"],
           message: "Select a Nyaa release.",
-        });
-        ctx.addIssue({
-          code: "custom",
-          path: [],
-          message: `Episode ${index + 1}: Select a Nyaa release.`,
         });
       }
     });

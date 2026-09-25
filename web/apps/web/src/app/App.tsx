@@ -30,7 +30,7 @@ export default function App() {
             activeProps={{ className: styles.navLinkActive }}
             to="/release-profiles"
           >
-            Release Profiles
+            Release profiles
           </Link>
           <Link
             className={styles.navLink}

@@ -34,6 +34,12 @@ const episodePayload = {
 const payload = {
   id: "0198a2a8-5b7c-7d7d-8a1f-9f0b8d53f000",
   title: "Frieren: Beyond Journey's End",
+  titles: {
+    romaji: "Sousou no Frieren",
+    jp: "葬送のフリーレン",
+    ko: "장송의 프리렌",
+    en: "Frieren: Beyond Journey's End",
+  },
   year: 2026,
   season: "fall",
   weekday: "friday",
@@ -53,6 +59,7 @@ describe("anime API", () => {
 
     const result = await createAnime({
       title: payload.title,
+      titles: payload.titles,
       year: payload.year,
       season: "fall",
       weekday: "friday",

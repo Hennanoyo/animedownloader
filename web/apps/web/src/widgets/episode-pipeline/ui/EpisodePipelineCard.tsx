@@ -580,6 +580,18 @@ function renderStageBody(
     return <p className={styles.detail}>Waiting for playable media.</p>;
   }
 
+  if (
+    stageStatus === "processing" ||
+    (stageStatus === "pending" && pipeline.streaming.progress_percent > 0)
+  ) {
+    return (
+      <StageProgress
+        label="Packaging"
+        value={pipeline.streaming.progress_percent}
+      />
+    );
+  }
+
   if (stageStatus === "completed") {
     return (
       <OutputStatusList

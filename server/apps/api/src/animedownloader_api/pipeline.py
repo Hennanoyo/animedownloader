@@ -282,10 +282,12 @@ def build_episode_pipeline_summary(
         episode_number=episode.episode_number,
         title=episode.title,
         download=EpisodePipelineDownloadResponse(
+            job_id=download_job.id if download_job else None,
             status=download_status,
             downloaded_bytes=download_job.downloaded_bytes if download_job else 0,
             total_bytes=download_job.total_bytes if download_job else None,
             error_message=download_job.error_message if download_job else None,
+            updated_at=download_job.updated_at if download_job else None,
         ),
         processing=processing,
         subtitles=EpisodePipelineStageStatus(subtitles_status),

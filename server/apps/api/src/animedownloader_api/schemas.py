@@ -20,7 +20,7 @@ from animedownloader_media_processing import (
     MediaVariantKind,
     MediaVariantStatus,
 )
-from animedownloader_releases import AnimeMatchResult, ParsedRelease
+from animedownloader_releases import ParsedRelease
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, StringConstraints
 
 
@@ -88,7 +88,7 @@ class ParsedReleaseResponse(BaseModel):
             parser_profile_version=parsed.parser_profile_version,
         )
     def to_parsed(self) -> ParsedRelease:
-        from animedownloader_releases import ParseStatus, ParserField
+        from animedownloader_releases import ParserField, ParseStatus
 
         return ParsedRelease(
             provider_source=self.provider_source,

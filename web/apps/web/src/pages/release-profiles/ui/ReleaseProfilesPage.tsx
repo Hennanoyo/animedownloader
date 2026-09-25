@@ -163,9 +163,20 @@ function Hint({
   label: string;
   children: ReactNode;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <TooltipTrigger delay={0}>
-      <Button className={styles.hintButton} aria-label={label + " help"}>
+    <TooltipTrigger
+      delay={0}
+      isOpen={isOpen}
+      onOpenChange={setIsOpen}
+    >
+      <Button
+        className={styles.hintButton}
+        aria-label={label + " help"}
+        onPointerLeave={() => setIsOpen(false)}
+        onBlur={() => setIsOpen(false)}
+      >
         ?
       </Button>
       <Tooltip className={styles.hintTooltip}>{children}</Tooltip>
@@ -694,20 +705,28 @@ function RuleRow({
   onChange: (patch: Partial<ParserRuleInput>) => void;
   onRemove: () => void;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const guidance = RULE_GUIDANCE[rule.field];
+  const detailsId = `rule-details-${index + 1}`;
 
   return (
-    <div className={styles.ruleRow}>
-      <div className={styles.ruleMain}>
-        <div className={styles.ruleNumber}>#{index + 1}</div>
+    <article
+      className={styles.ruleRow}
+      data-expanded={isExpanded}
+    >
+      <div className={styles.ruleSummary}>
+        <Checkbox
+          className={styles.requiredCheckbox}
+          isSelected={rule.required}
+          onChange={(selected) => onChange({ required: selected })}
+          aria-label={`Rule ${index + 1} required`}
+        >
+          <span className={styles.checkboxMark} aria-hidden="true" />
+        </Checkbox>
 
-        <div className={styles.ruleControl}>
-          <div className={styles.labelRow}>
-            <span className={styles.controlLabel}>Target field</span>
-            <Hint label={"Rule " + (index + 1) + " target field"}>
-              {guidance.description}
-            </Hint>
-          </div>
+        <span className={styles.ruleNumber}>#{index + 1}</span>
+
+        <div className={styles.ruleSummaryField}>
           <Select
             selectedKey={rule.field}
             onSelectionChange={(key) => {
@@ -715,7 +734,7 @@ function RuleRow({
                 onChange({ field: String(key) as ParserRuleInput["field"] });
               }
             }}
-            aria-label={"Rule " + (index + 1) + " target field"}
+            aria-label={`Rule ${index + 1} target field`}
           >
             <Button>
               <span>{FIELD_LABELS[rule.field]}</span>
@@ -724,7 +743,11 @@ function RuleRow({
             <Popover className={styles.popover}>
               <ListBox className={styles.listBox}>
                 {parserFields.map((field) => (
-                  <ListBoxItem key={field} id={field} className={styles.listItem}>
+                  <ListBoxItem
+                    key={field}
+                    id={field}
+                    className={styles.listItem}
+                  >
                     {FIELD_LABELS[field]}
                   </ListBoxItem>
                 ))}
@@ -733,130 +756,138 @@ function RuleRow({
           </Select>
         </div>
 
-        <div className={styles.rulePattern}>
-          <div className={styles.labelRow}>
-            <span className={styles.controlLabel}>Regex pattern</span>
-            <Hint label={"Rule " + (index + 1) + " regex pattern"}>
-              <strong>How regex matching works</strong>
-              <p>
-                The rule searches the normalized release title. Prefer a named
-                capture matching the target field, such as{" "}
-                <code>(?P&lt;episode_number&gt;\d{"{1,4}"})</code>. If no named
-                capture exists, one capture group is used; otherwise the full
-                match becomes the value.
-              </p>
-              <p>
-                Example: <code>{guidance.example}</code>
-              </p>
-              <p>
-                The pattern is checked before activation and against every
-                representative sample during validation.
-              </p>
-            </Hint>
-          </div>
-          <Input
-            aria-label={"Rule " + (index + 1) + " pattern"}
-            value={rule.pattern}
-            onChange={(event) => onChange({ pattern: event.target.value })}
-            placeholder={guidance.placeholder}
-          />
-        </div>
-
         <Button
-          className={styles.dangerButton}
-          onPress={onRemove}
-          aria-label={"Remove rule " + (index + 1)}
+          className={styles.expandButton}
+          aria-label={`${isExpanded ? "Collapse" : "Expand"} rule ${index + 1}`}
+          aria-expanded={isExpanded}
+          aria-controls={detailsId}
+          onPress={() => setIsExpanded((value) => !value)}
         >
-          Remove
+          <span
+            className={styles.expandIcon}
+            data-expanded={isExpanded}
+            aria-hidden="true"
+          >
+            ▸
+          </span>
         </Button>
       </div>
 
-      <div className={styles.ruleOptions}>
-        <div className={styles.ruleControlCompact}>
-          <div className={styles.labelRow}>
-            <span className={styles.controlLabel}>Priority</span>
-            <Hint label={"Rule " + (index + 1) + " priority"}>
-              Lower numbers run first. Use the priority to control the order
-              in which parser rules are evaluated.
-            </Hint>
+      {isExpanded ? (
+        <div className={styles.ruleDetails} id={detailsId}>
+          <div className={styles.ruleDetailGrid}>
+            <div className={styles.detailField}>
+              <div className={styles.labelRow}>
+                <span className={styles.controlLabel}>Regex pattern</span>
+                <Hint label={`Rule ${index + 1} regex pattern`}>
+                  <strong>How regex matching works</strong>
+                  <p>
+                    The rule searches the normalized release title. Prefer a named
+                    capture matching the target field, such as{" "}
+                    <code>(?P&lt;episode_number&gt;\d{"{1,4}"})</code>.
+                  </p>
+                  <p>
+                    Example: <code>{guidance.example}</code>
+                  </p>
+                </Hint>
+              </div>
+              <Input
+                aria-label={`Rule ${index + 1} pattern`}
+                value={rule.pattern}
+                onChange={(event) => onChange({ pattern: event.target.value })}
+                placeholder={guidance.placeholder}
+              />
+            </div>
+
+            <div className={styles.detailField}>
+              <div className={styles.labelRow}>
+                <span className={styles.controlLabel}>Priority</span>
+                <Hint label={`Rule ${index + 1} priority`}>
+                  Lower numbers run first. Rules are evaluated in priority order.
+                </Hint>
+              </div>
+              <Input
+                type="number"
+                min={0}
+                aria-label={`Rule ${index + 1} priority`}
+                value={String(rule.priority)}
+                onChange={(event) =>
+                  onChange({ priority: Number(event.target.value) || 0 })
+                }
+              />
+            </div>
           </div>
-          <Input
-            type="number"
-            min={0}
-            aria-label={"Rule " + (index + 1) + " priority"}
-            value={String(rule.priority)}
-            onChange={(event) =>
-              onChange({ priority: Number(event.target.value) || 0 })
-            }
-          />
-        </div>
 
-        <Checkbox
-          className={styles.requiredCheckbox}
-          isSelected={rule.required}
-          onChange={(selected) => onChange({ required: selected })}
-          aria-label={"Rule " + (index + 1) + " required"}
-        >
-          <span className={styles.checkboxMark} aria-hidden="true" />
-          <span className={styles.requiredLabel}>
-            <strong>Required</strong>
-            <Hint label={"Rule " + (index + 1) + " required"}>
-              If this rule does not match, validation treats the sample as
-              missing a required field and the profile cannot be activated.
-            </Hint>
-          </span>
-        </Checkbox>
+          <div className={styles.ruleDetailGrid}>
+            <div className={styles.detailField}>
+              <div className={styles.labelRow}>
+                <span className={styles.controlLabel}>Regex flags</span>
+                <Hint label={`Rule ${index + 1} regex flags`}>
+                  i = ignore case · m = multiline · s = dot matches newline · x =
+                  verbose · a = ASCII.
+                </Hint>
+              </div>
+              <Input
+                aria-label={`Rule ${index + 1} regex flags`}
+                value={rule.flags}
+                onChange={(event) => onChange({ flags: event.target.value })}
+                placeholder="i"
+              />
+            </div>
 
-        <div className={styles.ruleControlCompact}>
-          <span className={styles.controlLabel}>Regex flags</span>
-          <Input
-            aria-label={"Rule " + (index + 1) + " regex flags"}
-            value={rule.flags}
-            onChange={(event) => onChange({ flags: event.target.value })}
-            placeholder="i"
-          />
-        </div>
-
-        <div className={styles.ruleControlCompact}>
-          <div className={styles.labelRow}>
-            <span className={styles.controlLabel}>Transform</span>
-            <Hint label={"Rule " + (index + 1) + " transform"}>
-              {TRANSFORM_DESCRIPTIONS[rule.transform]}
-            </Hint>
+            <div className={styles.detailField}>
+              <div className={styles.labelRow}>
+                <span className={styles.controlLabel}>Transform</span>
+                <Hint label={`Rule ${index + 1} transform`}>
+                  {TRANSFORM_DESCRIPTIONS[rule.transform]}
+                </Hint>
+              </div>
+              <Select
+                selectedKey={rule.transform}
+                onSelectionChange={(key) => {
+                  if (key !== null) {
+                    onChange({
+                      transform: String(key) as ParserRuleInput["transform"],
+                    });
+                  }
+                }}
+                aria-label={`Rule ${index + 1} transform`}
+              >
+                <Button>
+                  <span>{TRANSFORM_LABELS[rule.transform]}</span>
+                  <span aria-hidden="true">▾</span>
+                </Button>
+                <Popover className={styles.popover}>
+                  <ListBox className={styles.listBox}>
+                    {TRANSFORMS.map((transform) => (
+                      <ListBoxItem
+                        key={transform}
+                        id={transform}
+                        className={styles.listItem}
+                        textValue={TRANSFORM_LABELS[transform]}
+                      >
+                        <span>{TRANSFORM_LABELS[transform]}</span>
+                      </ListBoxItem>
+                    ))}
+                  </ListBox>
+                </Popover>
+              </Select>
+            </div>
           </div>
-          <Select
-            selectedKey={rule.transform}
-            onSelectionChange={(key) => {
-              if (key !== null) {
-                onChange({
-                  transform: String(key) as ParserRuleInput["transform"],
-                });
-              }
-            }}
-            aria-label={"Rule " + (index + 1) + " transform"}
-          >
-            <Button className={styles.selectButton}>
-              <span>{TRANSFORM_LABELS[rule.transform]}</span>
-              <span aria-hidden="true">▾</span>
+
+          <div className={styles.ruleActionRow}>
+            <Button
+              className={styles.removeRuleButton}
+              onPress={onRemove}
+              aria-label={`Remove rule ${index + 1}`}
+            >
+              <span aria-hidden="true">×</span>
+              <span>Remove rule</span>
             </Button>
-            <Popover className={styles.popover}>
-              <ListBox className={styles.listBox}>
-                {TRANSFORMS.map((transform) => (
-                  <ListBoxItem
-                    key={transform}
-                    id={transform}
-                    className={styles.listItem}
-                    textValue={TRANSFORM_LABELS[transform]}
-                  >
-                    <span>{TRANSFORM_LABELS[transform]}</span>
-                  </ListBoxItem>
-                ))}
-              </ListBox>
-            </Popover>
-          </Select>
+          </div>
         </div>
-      </div>
-    </div>
+      ) : null}
+    </article>
   );
 }
 

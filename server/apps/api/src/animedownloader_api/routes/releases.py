@@ -17,6 +17,7 @@ from animedownloader_api.release_ingestion import (
     ReleaseNotActionableError,
 )
 from animedownloader_api.schemas import (
+    AnimeMatchCandidateResponse,
     AnimeMatchResponse,
     EpisodeIngestionRequest,
     EpisodeIngestionResponse,
@@ -130,11 +131,11 @@ def _match_response(match: AnimeMatchResult) -> AnimeMatchResponse:
         status=match.status.value,
         normalized_series_title=match.normalized_series_title,
         candidates=[
-            {
-                "anime_id": candidate.anime_id,
-                "title": candidate.title,
-                "matched_titles": list(candidate.matched_titles),
-            }
+            AnimeMatchCandidateResponse(
+                anime_id=candidate.anime_id,
+                title=candidate.title,
+                matched_titles=list(candidate.matched_titles),
+            )
             for candidate in match.candidates
         ],
     )
@@ -160,7 +161,7 @@ def _ingestion_response(
     result: EpisodeIngestionResult,
 ) -> EpisodeIngestionResponse:
     return EpisodeIngestionResponse(
-        status=result.status,
+        status=result.status.value,
         episode=(
             EpisodeResponse.model_validate(result.episode)
             if result.episode is not None

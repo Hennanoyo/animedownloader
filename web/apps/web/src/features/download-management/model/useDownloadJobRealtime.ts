@@ -160,7 +160,7 @@ export function applyDownloadJobEvent(
     },
   );
 
-  if (isTerminalDownloadStatus(event.status)) {
+  if (isTerminalDownloadStatus(status)) {
     void queryClient.invalidateQueries({ queryKey: ["download-jobs", "list"] });
   }
 }

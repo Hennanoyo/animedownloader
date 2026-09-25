@@ -194,6 +194,10 @@ class SubprocessFFmpegRunner:
             stderr=asyncio.subprocess.PIPE,
             start_new_session=(sys.platform != "win32"),
         )
+        if process.stdout is None or process.stderr is None:
+            await _terminate_process(process)
+            raise RuntimeError("FFmpeg progress runner requires piped stdout/stderr")
+
         print(
             "[worker] FFmpeg started with progress: "
             f"pid={process.pid} command={shlex.join(progress_command)}",

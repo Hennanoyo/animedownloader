@@ -205,7 +205,7 @@ class SubprocessFFmpegRunner:
         )
 
         progress_task = asyncio.create_task(
-            _consume_ffmpeg_progress(
+            consume_ffmpeg_progress(
                 process.stdout,
                 duration_seconds=duration_seconds,
                 on_progress=on_progress,

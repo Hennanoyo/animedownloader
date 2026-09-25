@@ -8,14 +8,15 @@ from animedownloader_releases import (
     ParsedRelease,
     ParserField,
     ParserProfileSpec,
+    ParserProfileStatus,
     ParserRuleSpec,
     ParserTransform,
-    ParserProfileStatus,
     Release,
     ReleaseGroup,
     ReleaseParserProfile,
     ReleaseSearchProfile,
     SearchProfileSpec,
+    SearchProfileStatus,
     SearchQueryContext,
     SearchTemplateSpec,
     apply_parser_profile,
@@ -23,7 +24,6 @@ from animedownloader_releases import (
     merge_releases,
     normalize_release_group_slug,
     parse_release,
-    SearchProfileStatus,
 )
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession

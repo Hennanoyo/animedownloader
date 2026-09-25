@@ -23,14 +23,16 @@ export default function AnimeDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [realtimeEnabled, setRealtimeEnabled] = useState(false);
-  const pipelineQuery = useAnimePipeline(
-    animeId,
-    realtimeEnabled ? undefined : false,
-  );
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
+  const pipelineQuery = useAnimePipeline(animeId, realtimeConnected);
   const realtime = useAnimePipelineRealtime({
     animeId,
     enabled: realtimeEnabled && !isEditing,
   });
+
+  useEffect(() => {
+    setRealtimeConnected(realtime.connected);
+  }, [realtime.connected]);
 
   useEffect(() => {
     setRealtimeEnabled(!isEditing && pipelineQuery.isSuccess);

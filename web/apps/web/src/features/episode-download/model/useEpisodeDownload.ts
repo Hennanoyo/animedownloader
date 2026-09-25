@@ -15,11 +15,17 @@ import {
 } from "../../../entities/download/api/downloadJobs";
 import type { DownloadJob } from "../../../entities/download/model/types";
 
-export function episodeDownloadQueryOptions(episodeId: string) {
+export function episodeDownloadQueryOptions(
+  episodeId: string,
+  realtimeConnected = false,
+) {
   return queryOptions({
     queryKey: ["download-jobs", "latest", episodeId] as const,
     queryFn: ({ signal }) => getLatestEpisodeDownloadJob(episodeId, signal),
     refetchInterval: (query) => {
+      if (realtimeConnected) {
+        return false;
+      }
       const job = query.state.data;
       return job?.status === "pending" || job?.status === "downloading"
         ? 2000
@@ -28,8 +34,11 @@ export function episodeDownloadQueryOptions(episodeId: string) {
   });
 }
 
-export function useEpisodeDownload(episodeId: string) {
-  return useQuery(episodeDownloadQueryOptions(episodeId));
+export function useEpisodeDownload(
+  episodeId: string,
+  realtimeConnected = false,
+) {
+  return useQuery(episodeDownloadQueryOptions(episodeId, realtimeConnected));
 }
 
 export function useCreateEpisodeDownloadJob(episodeId: string) {

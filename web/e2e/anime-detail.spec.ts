@@ -519,9 +519,18 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await discovery
     .getByRole("combobox", { name: "Resolution", exact: true })
     .fill("1080p");
-  await discovery
-    .getByRole("combobox", { name: "Codec", exact: true })
-    .fill("HEVC");
+  const resolutionInput = discovery.getByRole("combobox", {
+    name: "Resolution",
+    exact: true,
+  });
+  await resolutionInput.press("Escape");
+
+  const codecInput = discovery.getByRole("combobox", {
+    name: "Codec",
+    exact: true,
+  });
+  await codecInput.fill("HEVC");
+  await codecInput.press("Escape");
   await discovery
     .getByRole("button", { name: "Discover releases" })
     .click();

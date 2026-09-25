@@ -200,8 +200,7 @@ export default function ReleaseDiscoveryPanel({
     [enabledFields, fieldOrder],
   );
 
-  function handleTitleSourceChange(key: string | number | null) {
-    if (key === null) return;
+  function handleTitleSourceChange(key: string | number) {
     const source = String(key) as ReleaseDiscoveryTitleSource;
     const option = getTitleOption(titleOptions, source);
     setSelectedTitleSource(option.key);
@@ -219,7 +218,7 @@ export default function ReleaseDiscoveryPanel({
     setDraggedField(field);
     setDropTarget(null);
     setDragAnnouncement(
-      `Dragging ${FIELD_LABELS[field]}. Drop it before or after another field.`,
+      \`Dragging \${FIELD_LABELS[field]}. Drop it before or after another field.\`,
     );
   }
 
@@ -260,7 +259,7 @@ export default function ReleaseDiscoveryPanel({
     setDraggedField(null);
     setDropTarget(null);
     setDragAnnouncement(
-      `${FIELD_LABELS[source]} moved ${placeAfter ? "after" : "before"} ${FIELD_LABELS[field]}.`,
+      \`\${FIELD_LABELS[source]} moved \${placeAfter ? "after" : "before"} \${FIELD_LABELS[field]}.\`,
     );
   }
 
@@ -274,8 +273,8 @@ export default function ReleaseDiscoveryPanel({
       setKeyboardGrabbedField(grabbing ? null : field);
       setDragAnnouncement(
         grabbing
-          ? `${FIELD_LABELS[field]} released.`
-          : `${FIELD_LABELS[field]} grabbed. Use Arrow Up or Arrow Down to move it, then Space to release.`,
+          ? \`\${FIELD_LABELS[field]} released.\`
+          : \`\${FIELD_LABELS[field]} grabbed. Use Arrow Up or Arrow Down to move it, then Space to release.\`,
       );
       return;
     }
@@ -283,7 +282,7 @@ export default function ReleaseDiscoveryPanel({
     if (event.key === "Escape" && keyboardGrabbedField === field) {
       event.preventDefault();
       setKeyboardGrabbedField(null);
-      setDragAnnouncement(`${FIELD_LABELS[field]} released.`);
+      setDragAnnouncement(\`\${FIELD_LABELS[field]} released.\`);
       return;
     }
 
@@ -302,7 +301,7 @@ export default function ReleaseDiscoveryPanel({
     setFieldOrder(nextOrder);
     const position = nextOrder.indexOf(field) + 1;
     setDragAnnouncement(
-      `${FIELD_LABELS[field]} moved to position ${position} of ${nextOrder.length}.`,
+      \`\${FIELD_LABELS[field]} moved to position \${position} of \${nextOrder.length}.\`,
     );
   }
 
@@ -371,12 +370,12 @@ export default function ReleaseDiscoveryPanel({
                   }}
                   onDrop={(event) => handleDrop(event, field)}
                 >
-                  <button
+                  <Button
                     type="button"
                     className={styles.dragHandle}
                     draggable
                     aria-describedby="search-fields-reorder-help"
-                    aria-label={`Reorder ${label}`}
+                    aria-label={\`Reorder \${label}\`}
                     aria-pressed={keyboardGrabbedField === field}
                     data-drag-handle={field}
                     onDragStart={(event) => handleDragStart(event, field)}
@@ -387,7 +386,7 @@ export default function ReleaseDiscoveryPanel({
                     onKeyDown={(event) => handleReorderKeyDown(event, field)}
                   >
                     <span aria-hidden="true">☰</span>
-                  </button>
+                  </Button>
 
                   <Checkbox
                     isSelected={enabledFields[field]}
@@ -397,7 +396,7 @@ export default function ReleaseDiscoveryPanel({
                         [field]: selected,
                       }))
                     }
-                    aria-label={`Enable ${label}`}
+                    aria-label={\`Enable \${label}\`}
                   >
                     <span className={styles.checkboxMark} aria-hidden="true" />
                   </Checkbox>
@@ -508,28 +507,9 @@ export default function ReleaseDiscoveryPanel({
         </div>
       </Form>
 
-      {query.isError ? (
-        <p className={styles.error} role="alert">
-          {getErrorMessage(query.error)}
-        </p>
-      ) : null}
-
-      {query.isSuccess ? (
-        <DiscoveryResults
-          items={query.data.items}
-          query={query.data.query}
-          warnings={query.data.warnings}
-          profileVersion={query.data.search_profile_version}
-        />
-      ) : null}
-
       <div className={styles.srOnly} aria-live="polite" aria-atomic="true">
         {dragAnnouncement}
       </div>
-
-    </section>
-  );
-}
 
 interface DiscoveryResultsProps {
   items: ReleaseDiscoveryItem[];

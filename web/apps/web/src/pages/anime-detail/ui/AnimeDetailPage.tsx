@@ -73,7 +73,7 @@ export default function AnimeDetailPage() {
   }
 
   const anime = query.data;
-  const releaseTitleOptions: ReleaseDiscoveryTitleOption[] = [
+  const releaseTitleOptions = [
     {
       key: "romaji",
       label: "Romaji",
@@ -104,7 +104,11 @@ export default function AnimeDetailPage() {
       label: "Custom",
       value: "",
     },
-  ].filter((option) => option.key === "custom" || option.value.trim().length > 0);
+  ] satisfies ReleaseDiscoveryTitleOption[];
+
+  const availableReleaseTitleOptions = releaseTitleOptions.filter(
+    (option) => option.key === "custom" || option.value.trim().length > 0,
+  );
 
   const defaultReleaseTitleSource = anime.titles.romaji?.trim()
     ? "romaji"
@@ -161,7 +165,7 @@ export default function AnimeDetailPage() {
       {!isEditing ? (
         <>
           <ReleaseDiscoveryPanel
-            titleOptions={releaseTitleOptions}
+            titleOptions={availableReleaseTitleOptions}
             defaultTitleSource={defaultReleaseTitleSource}
           />
           <section

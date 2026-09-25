@@ -242,6 +242,10 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   if (await showDetails.isVisible()) {
     await showDetails.click();
   }
+  console.log(
+    "LIVE PIPELINE BODY:",
+    await page.locator("body").innerText(),
+  );
   await expect(page.getByLabel("Download progress")).toBeVisible();
 
   await page.waitForTimeout(1000);

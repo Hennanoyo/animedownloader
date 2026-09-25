@@ -158,15 +158,24 @@ test("renders release profile editor and remains usable without horizontal overf
   ).toBeVisible();
 
   await expect(
+    page.getByRole("checkbox", { name: "Rule 1 required" }),
+  ).toBeChecked();
+  await expect(
     page.getByRole("button", { name: "Rule 1 target field", exact: true }),
   ).toContainText("Release group");
   await expect(
-    page.getByRole("button", { name: "Rule 2 transform", exact: true }),
-  ).toContainText("Convert to integer");
+    page.getByRole("button", { name: "Expand rule 1" }),
+  ).toBeVisible();
 
   const firstPattern = page.getByRole("textbox", {
     name: "Rule 1 pattern",
   });
+  await expect(firstPattern).toBeHidden();
+
+  await page.getByRole("button", { name: "Expand rule 1" }).click();
+  await expect(
+    page.getByRole("button", { name: "Collapse rule 1" }),
+  ).toBeVisible();
   await expect(firstPattern).toHaveAttribute(
     "placeholder",
     "^\\[(?P<release_group>[^\\]]+)\\]",
@@ -182,6 +191,8 @@ test("renders release profile editor and remains usable without horizontal overf
   await expect(tooltip).toContainText(
     "Example: [ExampleSubs] Frieren - 08 → ExampleSubs",
   );
+  await page.getByRole("heading", { name: "Release profiles" }).hover();
+  await expect(tooltip).toBeHidden({ timeout: 1000 });
 
   const targetField = page.getByRole("button", {
     name: "Rule 1 target field",
@@ -194,12 +205,21 @@ test("renders release profile editor and remains usable without horizontal overf
   });
   await expect(sampleInput).toHaveCSS("min-height", "38.4px");
 
+  await expect(firstPattern).toHaveAttribute(
+    "placeholder",
+    "^\\[(?P<release_group>[^\\]]+)\\]",
+  );
+
   await page.getByRole("button", {
-    name: "Rule 2 transform",
+    name: "Rule 1 transform",
     exact: true,
   }).click();
-  await expect(page.getByRole("option", { name: "Convert to integer" })).toBeVisible();
-  await expect(page.getByRole("option", { name: "Normalize spaces" })).toBeVisible();
+  await expect(
+    page.getByRole("option", { name: "Convert to integer" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("option", { name: "Normalize spaces" }),
+  ).toBeVisible();
 
   await expect(
     page.getByRole("button", {

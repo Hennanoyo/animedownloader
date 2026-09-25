@@ -300,10 +300,13 @@ test("offers pipeline continuation without restarting a completed download", asy
 test("keeps live download controls inside the download stage", async ({ page }) => {
   const activePipeline = structuredClone(pipeline);
   activePipeline.episodes[0].download = {
+    ...activePipeline.episodes[0].download,
+    job_id: "019a0000-0000-0000-0000-000000000099",
     status: "downloading",
     downloaded_bytes: 524288,
     total_bytes: 1048576,
     error_message: null,
+    updated_at: "2026-09-25T00:05:00Z",
   };
   activePipeline.episodes[0].processing.status = "pending";
   activePipeline.episodes[0].processing.progress_percent = 0;

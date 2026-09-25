@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from animedownloader_media import FFmpegTimeoutError, SubprocessFFmpegRunner
+from animedownloader_media.ffmpeg import consume_ffmpeg_progress
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="requires POSIX process groups")
@@ -43,8 +44,6 @@ async def test_timeout_kills_ffmpeg_process_group(tmp_path: Path) -> None:
 
 @pytest.mark.anyio
 async def test_ffmpeg_progress_parser_reports_input_timeline() -> None:
-    from animedownloader_media.ffmpeg import consume_ffmpeg_progress
-
     stdout = asyncio.StreamReader()
     stdout.feed_data(b"out_time_us=1000000\n")
     stdout.feed_data(b"progress=continue\n")
@@ -57,7 +56,7 @@ async def test_ffmpeg_progress_parser_reports_input_timeline() -> None:
     async def on_progress(percent: float) -> None:
         progress.append(percent)
 
-    result = await _consume_ffmpeg_progress(
+    result = await consume_ffmpeg_progress(
         stdout,
         duration_seconds=5.0,
         on_progress=on_progress,

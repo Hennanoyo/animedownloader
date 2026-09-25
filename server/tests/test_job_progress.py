@@ -71,7 +71,7 @@ class FakeHub:
 
 def make_event() -> JobProgressEvent:
     return JobProgressEvent(
-        job_type="download",
+        job_type="media-processing",
         job_id=uuid7(),
         status="downloading",
         progress_percent=50,
@@ -149,14 +149,14 @@ def test_progress_websocket_sends_ready_and_event() -> None:
     app.include_router(router)
 
     with TestClient(app) as client, client.websocket_connect(
-        "/api/job-events/ws?job_type=download",
+        "/api/job-events/ws?job_type=media-processing",
     ) as websocket:
-            ready = JobProgressReadyEvent.model_validate_json(
-                websocket.receive_text(),
-            )
-            received = JobProgressEvent.model_validate_json(
-                websocket.receive_text(),
-            )
+        ready = JobProgressReadyEvent.model_validate_json(
+            websocket.receive_text(),
+        )
+        received = JobProgressEvent.model_validate_json(
+            websocket.receive_text(),
+        )
 
-    assert ready.job_type == "download"
+    assert ready.job_type == "media-processing"
     assert received == event

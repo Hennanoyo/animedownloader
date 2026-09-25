@@ -505,7 +505,7 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await expect(rows.nth(2)).toHaveAttribute("data-search-field", "title");
 
   await discovery
-    .getByRole("textbox", { name: "Episode", exact: true })
+    .getByRole("spinbutton", { name: "Episode", exact: true })
     .fill("1");
   await discovery
     .getByRole("textbox", { name: "Resolution", exact: true })

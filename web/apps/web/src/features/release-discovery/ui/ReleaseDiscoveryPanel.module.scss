@@ -589,6 +589,100 @@
   line-height: 1.45;
 }
 
+.matchPanel {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-top: 0.8rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid #26324a;
+  border-radius: 0.55rem;
+  background: #0f172a;
+}
+
+.matchPanel > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.matchPanel strong {
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.matchPanel span {
+  min-width: 0;
+  color: #64748b;
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.matchActions {
+  display: flex;
+  min-width: 0;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.ingestButton {
+  min-height: 2.2rem;
+  padding: 0 0.75rem;
+  border: 1px solid #2563eb;
+  border-radius: 0.5rem;
+  background: #1d4ed8;
+  color: #eff6ff;
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+.ingestButton:hover,
+.ingestButton[data-focused="true"],
+.ingestButton[data-pressed="true"] {
+  background: #2563eb;
+}
+
+.ingestButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.matchStatus {
+  padding: 0.32rem 0.5rem;
+  border: 1px solid #334155;
+  border-radius: 0.45rem;
+}
+
+.matchStatus[data-status="ambiguous"] {
+  border-color: #854d0e;
+  color: #fde68a;
+}
+
+.matchStatus[data-status="unmatched"] {
+  border-color: #475569;
+  color: #94a3b8;
+}
+
+.ingestResult {
+  margin: 0.55rem 0 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #166534;
+  border-radius: 0.45rem;
+  background: #0c2115;
+  color: #bbf7d0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.ingestResult[data-status="replacement_candidate"] {
+  border-color: #854d0e;
+  background: #1c1710;
+  color: #fde68a;
+}
+
 .links {
   display: flex;
   flex-wrap: wrap;
@@ -614,6 +708,22 @@
 }
 
 @media (max-width: 640px) {
+  .matchPanel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .matchActions {
+    width: 100%;
+  }
+
+  .ingestButton,
+  .matchStatus {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
   .fields {
     grid-template-columns: 1fr;
   }

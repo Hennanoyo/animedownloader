@@ -179,7 +179,7 @@ test("manages active download and terminal filters", async ({ page }) => {
   await page
     .getByRole("button", { name: "Pause download for Episode One" })
     .click();
-  await expect(page.getByText("Paused")).toBeVisible();
+  await expect(page.locator('article[data-status="paused"]')).toBeVisible();
 
   await page
     .getByRole("button", { name: "Cancel download for Episode One" })

@@ -98,6 +98,29 @@ function jsonHeaders(headers?: HeadersInit): Headers {
   return result;
 }
 
+function formatFastApiLocation(value: unknown): string {
+  if (!Array.isArray(value)) return "";
+
+  const segments = value
+    .filter(
+      (segment): segment is string | number =>
+        typeof segment === "string" || typeof segment === "number",
+    )
+    .map((segment) =>
+      typeof segment === "number" ? "[" + (segment + 1) + "]" : segment,
+    );
+
+  let path = "";
+  for (const segment of segments) {
+    if (typeof segment === "number") {
+      path += "[" + segment + "]";
+    } else {
+      path = path ? path + "." + segment : segment;
+    }
+  }
+  return path;
+}
+
 function extractErrorDetail(responseBody: string): string | null {
   try {
     const payload: unknown = JSON.parse(responseBody);
@@ -124,24 +147,7 @@ function extractErrorDetail(responseBody: string): string | null {
           if (!message) return [];
 
           const location =
-            "loc" in issue && Array.isArray(issue.loc)
-              ? issue.loc
-                  .filter(
-                    (segment): segment is string | number =>
-                      typeof segment === "string" || typeof segment === "number",
-                  )
-                  .map((segment) =>
-                    typeof segment === "number"
-                      ? "[" + (segment + 1) + "]"
-                      : segment,
-                  )
-                  .reduce((path, segment) => {
-                    if (typeof segment === "string") {
-                      return path ? path + "." + segment : segment;
-                    }
-                    return path + segment;
-                  }, "")
-              : "";
+            "loc" in issue ? formatFastApiLocation(issue.loc) : "";
 
           return [location ? location + ": " + message : message];
         });

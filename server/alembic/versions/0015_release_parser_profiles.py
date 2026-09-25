@@ -73,6 +73,13 @@ def upgrade() -> None:
         "release_parser_profiles",
         ["release_group_id"],
     )
+    op.create_index(
+        "uq_release_parser_profiles_group_active",
+        "release_parser_profiles",
+        ["release_group_id"],
+        unique=True,
+        postgresql_where=sa.text("status = 'active'"),
+    )
 
     op.create_table(
         "release_parser_rules",
@@ -106,6 +113,10 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_release_parser_rules_profile_id", table_name="release_parser_rules")
     op.drop_table("release_parser_rules")
+    op.drop_index(
+        "uq_release_parser_profiles_group_active",
+        table_name="release_parser_profiles",
+    )
     op.drop_index(
         "ix_release_parser_profiles_release_group_id",
         table_name="release_parser_profiles",

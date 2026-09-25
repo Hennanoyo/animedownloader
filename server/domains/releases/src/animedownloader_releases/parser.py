@@ -20,7 +20,6 @@ from .models import (
 MAX_INPUT_LENGTH: Final = 1000
 MAX_PATTERN_LENGTH: Final = 2000
 MAX_RULES_PER_PROFILE: Final = 64
-REGEX_TIMEOUT_SECONDS: Final = 0.05
 
 _RESOLUTION_RE = re.compile(r"(?<!\w)(?P<value>2160p|1440p|1080p|720p|576p|480p|360p)(?!\w)", re.I)
 _DIMENSIONS_RE = re.compile(r"(?<!\w)(?P<width>\d{3,4})x(?P<height>\d{3,4})(?!\w)", re.I)
@@ -33,7 +32,10 @@ _VIDEO_CODEC_RE = re.compile(
     re.I,
 )
 _AUDIO_CODEC_RE = re.compile(
-    r"(?<!\w)(?P<value)e[- .]?ac[- .]?3|eac3|ac3|aac|flac|opus|vorbis|dts(?:[- .]?hd)?(?:[- .]?ma)?",
+    r"(?<!\\w)(?P<value>"
+    r"e[- .]?ac[- .]?3|eac3|ac3|aac|flac|opus|vorbis|"
+    r"dts(?:[- .]?hd)?(?:[- .]?ma)?"
+    r")",
     re.I,
 )
 _BIT_DEPTH_RE = re.compile(r"(?<!\w)(?P<value>8|10|12)[- ]?bit(?!\w)", re.I)
@@ -124,6 +126,8 @@ def apply_parser_profile(
             continue
 
         value = match.groupdict().get(rule.field.value)
+        if value is None and pattern.groups == 1:
+            value = match.group(1)
         if value is None:
             value = match.group(0)
         try:
@@ -345,7 +349,11 @@ def _extract_episode_title(value: str, episode_end: int | None) -> str | None:
     return tail.strip() or None
 
 
-def _clean_series_title(value: str, episode_start: int | None, episode_end: int | None) -> str | None:
+def _clean_series_title(
+    value: str,
+    episode_start: int | None,
+    episode_end: int | None,
+) -> str | None:
     if episode_start is None:
         candidate = _TECHNICAL_BRACKET_RE.sub(" ", value)
     else:
@@ -368,7 +376,10 @@ def _is_plausible_episode(value: str) -> bool:
 
 def _looks_like_technical_token(value: str) -> bool:
     lowered = value.casefold()
-    return any(token in lowered for token in ("1080", "720", "2160", "hevc", "x265", "web", "bluray"))
+    return any(
+        token in lowered
+        for token in ("1080", "720", "2160", "hevc", "x265", "web", "bluray")
+    )
 
 
 def _normalize_codec(value: str | None) -> str | None:
@@ -422,7 +433,13 @@ def _validate_rule(rule: ParserRuleSpec) -> None:
 
 def _parse_flags(flags: str) -> re.RegexFlag:
     result = re.RegexFlag(0)
-    allowed = {"a": re.ASCII, "i": re.IGNORECASE, "m": re.MULTILINE, "s": re.DOTALL, "x": re.VERBOSE}
+    allowed = {
+        "a": re.ASCII,
+        "i": re.IGNORECASE,
+        "m": re.MULTILINE,
+        "s": re.DOTALL,
+        "x": re.VERBOSE,
+    }
     for flag in flags:
         try:
             result |= allowed[flag]

@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { AnimePipeline } from "../apps/web/src/entities/anime/model/pipeline";
 
 const ANIME_ID = "019a0000-0000-7000-8000-000000000010";
+let pipelineRequests = 0;
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
 
@@ -21,7 +22,9 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify(anime),
     });
   });
+  pipelineRequests = 0;
   await page.route(`**/api/animes/${ANIME_ID}/pipeline`, async (route) => {
+    pipelineRequests += 1;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -118,6 +121,130 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
 
   await page.getByRole("button", { name: "Hide details" }).click();
   await expect(pipelineStatus).toBeHidden();
+});
+
+
+test("receives live pipeline updates without polling", async ({ page }) => {
+  await page.addInitScript(() => {
+    class MockWebSocket {
+      static instances: MockWebSocket[] = [];
+      readonly url: string;
+      readyState = 0;
+      onopen: ((event: Event) => void) | null = null;
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onerror: ((event: Event) => void) | null = null;
+      onclose: ((event: Event) => void) | null = null;
+
+      constructor(url: string) {
+        this.url = url;
+        MockWebSocket.instances.push(this);
+        setTimeout(() => {
+          this.readyState = 1;
+          this.onopen?.(new Event("open"));
+          this.onmessage?.(
+            new MessageEvent("message", {
+              data: JSON.stringify({
+                version: 1,
+                type: "job.ready",
+                job_type: "all",
+                emitted_at: "2026-09-25T00:00:00Z",
+              }),
+            }),
+          );
+        }, 0);
+      }
+
+      close() {
+        if (this.readyState === 3) {
+          return;
+        }
+        this.readyState = 3;
+        this.onclose?.(new Event("close"));
+      }
+
+      emit(payload: unknown) {
+        this.onmessage?.(
+          new MessageEvent("message", {
+            data: JSON.stringify(payload),
+          }),
+        );
+      }
+    }
+
+    Object.defineProperty(globalThis, "WebSocket", {
+      configurable: true,
+      value: MockWebSocket,
+    });
+    Object.defineProperty(window, "__emitPipelineEvent", {
+      configurable: true,
+      value: (payload: unknown) => {
+        MockWebSocket.instances.at(-1)?.emit(payload);
+      },
+    });
+  });
+
+  const activePipeline = structuredClone(pipeline);
+  activePipeline.episodes[0].download = {
+    ...activePipeline.episodes[0].download,
+    status: "downloading",
+    downloaded_bytes: 524288,
+    total_bytes: 1048576,
+    error_message: null,
+    updated_at: "2026-09-25T00:05:00Z",
+  };
+  activePipeline.episodes[0].processing.status = "pending";
+  activePipeline.episodes[0].processing.progress_percent = 0;
+  activePipeline.episodes[0].playback_ready = false;
+  activePipeline.episodes[0].thumbnail.status = "pending";
+  activePipeline.episodes[0].thumbnail.progress_percent = 0;
+  activePipeline.episodes[0].thumbnail.url = null;
+  activePipeline.episodes[0].thumbnail.vtt_url = null;
+  activePipeline.episodes[0].streaming.status = "pending";
+  activePipeline.episodes[0].streaming.hls_ready = false;
+  activePipeline.episodes[0].streaming.dash_ready = false;
+  activePipeline.episodes[0].current_stage = "download";
+  activePipeline.episodes[0].active = true;
+
+  await page.unroute(`**/api/animes/${ANIME_ID}/pipeline`);
+  await page.route(`**/api/animes/${ANIME_ID}/pipeline`, async (route) => {
+    pipelineRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(activePipeline),
+    });
+  });
+
+  await page.goto(`/animes/${ANIME_ID}`);
+  await expect(page.getByLabel("Download progress")).toBeVisible();
+
+  await page.waitForTimeout(1000);
+  const requestsAfterRealtimeConnect = pipelineRequests;
+
+  await page.evaluate(
+    (payload) => {
+      const windowWithEmitter = window as unknown as {
+        __emitPipelineEvent: (payload: unknown) => void;
+      };
+      windowWithEmitter.__emitPipelineEvent(payload);
+    },
+    {
+      version: 1,
+      type: "job.progress",
+      job_type: "download",
+      job_id: "019a0000-0000-0000-0000-000000000099",
+      status: "downloading",
+      progress_percent: 100,
+      downloaded_bytes: 1048576,
+      total_bytes: 1048576,
+      error_message: null,
+      emitted_at: "2026-09-25T00:06:00Z",
+    },
+  );
+
+  await expect(page.getByText("1 MiB / 1 MiB", { exact: true })).toBeVisible();
+  await page.waitForTimeout(2500);
+  expect(pipelineRequests).toBe(requestsAfterRealtimeConnect);
 });
 
 

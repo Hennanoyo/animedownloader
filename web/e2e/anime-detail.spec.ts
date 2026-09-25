@@ -233,6 +233,10 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   );
 
   await page.goto(`/animes/${ANIME_ID}`);
+  console.log(
+    "ANIME REALTIME BODY:",
+    await page.locator("body").innerText(),
+  );
   const showDetails = page.getByRole("button", { name: "Show details" });
   if (await showDetails.isVisible()) {
     await showDetails.click();
@@ -359,6 +363,10 @@ test("keeps live download controls inside the download stage", async ({ page }) 
   );
 
   await page.goto(`/animes/${ANIME_ID}`);
+  console.log(
+    "ANIME ACTIVE BODY:",
+    await page.locator("body").innerText(),
+  );
   const showDetails = page.getByRole("button", { name: "Show details" });
   if (await showDetails.isVisible()) {
     await showDetails.click();

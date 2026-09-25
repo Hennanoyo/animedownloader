@@ -7,7 +7,10 @@ import type {
   AnimePipeline,
   EpisodePipelineSummary,
 } from "../../../entities/anime/model/pipeline";
-import type { DownloadJob } from "../../../entities/download/model/types";
+import type {
+  DownloadJob,
+  DownloadJobStatus,
+} from "../../../entities/download/model/types";
 
 const animePipelineQueryKey = (animeId: string) =>
   ["anime-pipelines", animeId] as const;
@@ -107,31 +110,27 @@ export function applyAnimePipelineEvent(
     episodes,
   });
 
-  const latestQueryKey = [
-    "download-jobs",
-    "latest",
-    nextEpisode.episode_id,
-  ] as const;
-  queryClient.setQueryData<DownloadJob>(latestQueryKey, (job) => {
-    if (!job || job.id !== event.job_id) {
-      return job;
-    }
-    return {
-      ...job,
-      status: event.status,
-      downloaded_bytes:
-        event.downloaded_bytes ?? job.downloaded_bytes,
-      total_bytes: event.total_bytes ?? job.total_bytes,
-      error_message: event.error_message,
-      updated_at: event.emitted_at.toISOString(),
-      completed_at:
-        event.status === "completed" ||
-        event.status === "failed" ||
-        event.status === "cancelled"
-          ? job.completed_at
-          : job.completed_at,
-    };
-  });
+  if (isDownloadJobStatus(event.status)) {
+    const latestQueryKey = [
+      "download-jobs",
+      "latest",
+      nextEpisode.episode_id,
+    ] as const;
+    queryClient.setQueryData<DownloadJob>(latestQueryKey, (job) => {
+      if (!job || job.id !== event.job_id) {
+        return job;
+      }
+      return {
+        ...job,
+        status: event.status,
+        downloaded_bytes:
+          event.downloaded_bytes ?? job.downloaded_bytes,
+        total_bytes: event.total_bytes ?? job.total_bytes,
+        error_message: event.error_message,
+        updated_at: event.emitted_at.toISOString(),
+      };
+    });
+  }
 
   if (
     event.status === "completed" ||
@@ -140,6 +139,17 @@ export function applyAnimePipelineEvent(
   ) {
     void queryClient.invalidateQueries({ queryKey });
   }
+}
+
+function isDownloadJobStatus(status: string): status is DownloadJobStatus {
+  return [
+    "pending",
+    "downloading",
+    "paused",
+    "completed",
+    "failed",
+    "cancelled",
+  ].includes(status);
 }
 
 function isPipelineStageStatus(

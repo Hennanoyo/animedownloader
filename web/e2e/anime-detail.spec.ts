@@ -223,7 +223,7 @@ test("receives live pipeline updates without polling", async ({ page }) => {
     },
   );
 
-  await expect(page.getByText("1 MiB / 1 MiB", { exact: true })).toBeVisible();
+  await expect(page.getByText("1.0 MiB / 1.0 MiB", { exact: true })).toBeVisible();
   await page.waitForTimeout(2500);
   expect(pipelineRequests).toBe(requestsAfterRealtimeConnect);
 });

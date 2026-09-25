@@ -29,10 +29,12 @@ const pipelineSchema = z.object({
   episode_number: z.number().int().positive(),
   title: z.string(),
   download: z.object({
+    job_id: z.uuid().nullable(),
     status: stageStatusSchema,
     downloaded_bytes: z.number().int().nonnegative(),
     total_bytes: z.number().int().nonnegative().nullable(),
     error_message: z.string().nullable(),
+    updated_at: z.string().datetime().nullable(),
   }),
   processing: z.object({
     status: stageStatusSchema,

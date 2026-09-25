@@ -16,7 +16,7 @@ import type {
 import {
   useCreateEpisodeDownloadJob,
   useDeleteDownloadJob,
-  useEpisodeDownload,
+  type DownloadJobSnapshot,
 } from "../../../features/episode-download/model/useEpisodeDownload";
 import EpisodeDownloadControl from "../../../features/episode-download/ui/EpisodeDownloadControl";
 import { useDeleteEpisode } from "../../../features/episode-management/model/useEpisodeManagement";
@@ -27,6 +27,7 @@ import styles from "./EpisodePipelineCard.module.scss";
 interface Props {
   episode: Episode;
   pipeline: EpisodePipelineSummary;
+  realtimeConnected?: boolean;
 }
 
 const stages: { id: PipelineCurrentStage; label: string }[] = [
@@ -36,7 +37,11 @@ const stages: { id: PipelineCurrentStage; label: string }[] = [
   { id: "streaming", label: "Streaming" },
 ];
 
-export default function EpisodePipelineCard({ episode, pipeline }: Props) {
+export default function EpisodePipelineCard({
+  episode,
+  pipeline,
+  realtimeConnected = false,
+}: Props) {
   const retryMutation = useRetryEpisodePipeline(episode.id);
   const deleteEpisodeMutation = useDeleteEpisode(episode.anime_id);
   const [expanded, setExpanded] = useState(
@@ -103,6 +108,7 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
 
         <EpisodeActionMenu
           episode={episode}
+          download={pipeline.download}
           onDeleteEpisode={() => setConfirmAction("delete-episode")}
         />
       </div>
@@ -166,7 +172,12 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
                       </div>
                     </div>
 
-                    {renderStageBody(stage.id, stageStatus, pipeline)}
+                    {renderStageBody(
+                      stage.id,
+                      stageStatus,
+                      pipeline,
+                      realtimeConnected,
+                    )}
 
                     {action ? (
                       <Button
@@ -241,19 +252,20 @@ export default function EpisodePipelineCard({ episode, pipeline }: Props) {
 
 interface EpisodeActionMenuProps {
   episode: Episode;
+  download: EpisodePipelineSummary["download"];
   onDeleteEpisode: () => void;
 }
 
 function EpisodeActionMenu({
   episode,
+  download,
   onDeleteEpisode,
 }: EpisodeActionMenuProps) {
-  const query = useEpisodeDownload(episode.id);
   const createMutation = useCreateEpisodeDownloadJob(episode.id);
   const deleteMutation = useDeleteDownloadJob(episode.id);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const job = query.data;
+  const job = getDownloadJobSnapshot(download);
   const isDeleteDisabled =
     createMutation.isPending || deleteMutation.isPending;
 
@@ -272,8 +284,7 @@ function EpisodeActionMenu({
           offset={6}
         >
           <Menu className={styles.menu} aria-label="Episode actions">
-            {!query.isPending && !query.isError ? (
-              <>
+            <>
                 {job?.status === "pending" ||
                 job?.status === "downloading" ||
                 job?.status === "paused" ? null : (
@@ -310,7 +321,6 @@ function EpisodeActionMenu({
                   </MenuItem>
                 ) : null}
               </>
-            ) : null}
             <MenuItem
               className={styles.menuItem + " " + styles.menuItemDanger}
               onAction={onDeleteEpisode}
@@ -371,6 +381,32 @@ function EpisodeActionMenu({
   );
 }
 
+function getDownloadJobSnapshot(
+  download: EpisodePipelineSummary["download"],
+): DownloadJobSnapshot | null {
+  if (!download.job_id) {
+    return null;
+  }
+
+  switch (download.status) {
+    case "pending":
+    case "downloading":
+    case "paused":
+    case "completed":
+    case "failed":
+    case "cancelled":
+      return {
+        id: download.job_id,
+        status: download.status,
+        downloaded_bytes: download.downloaded_bytes,
+        total_bytes: download.total_bytes,
+        error_message: download.error_message,
+      };
+    default:
+      return null;
+  }
+}
+
 function StageStatusIcon({
   status,
   current,
@@ -413,6 +449,7 @@ function renderStageBody(
   stage: PipelineCurrentStage,
   stageStatus: PipelineStageStatus,
   pipeline: EpisodePipelineSummary,
+  realtimeConnected: boolean,
 ) {
   if (stage === "download") {
     if (
@@ -424,6 +461,8 @@ function renderStageBody(
         <EpisodeDownloadControl
           episodeId={pipeline.episode_id}
           inline
+          realtimeConnected={realtimeConnected}
+          jobSnapshot={getDownloadJobSnapshot(pipeline.download)}
         />
       );
     }

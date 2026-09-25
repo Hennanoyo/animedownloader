@@ -19,6 +19,15 @@ describe("anime pipeline query", () => {
     ).toBe(2000);
   });
 
+  it("stops polling while realtime is connected", () => {
+    expect(
+      getAnimePipelineRefetchInterval(
+        { episodes: [{ active: true }] },
+        true,
+      ),
+    ).toBe(false);
+  });
+
   it("keeps pipeline queries independent of window focus", () => {
     const options = animePipelineQueryOptions(
       "019a0000-0000-7000-8000-000000000001",

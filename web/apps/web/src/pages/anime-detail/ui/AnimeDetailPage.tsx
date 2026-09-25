@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { Button } from "react-aria-components";
 import Icon from "../../../shared/ui/Icon";
 import type { Anime } from "../../../entities/anime/model/types";
 import { useAnimeDetail } from "../../../features/anime-detail/model/useAnimeDetail";
-import { useAnimePipeline } from "../../../features/anime-detail/model/useAnimePipeline";
+import {
+  useAnimePipeline,
+} from "../../../features/anime-detail/model/useAnimePipeline";
+import { useAnimePipelineRealtime } from "../../../features/anime-detail/model/useAnimePipelineRealtime";
 import { useDeleteAnime } from "../../../features/anime-edit/model/useEditAnime";
 import AnimeEditForm from "../../../features/anime-edit/ui/AnimeEditForm";
 import EpisodeManagement from "../../../features/episode-management/ui/EpisodeManagement";
@@ -17,9 +20,23 @@ export default function AnimeDetailPage() {
   const { animeId } = useParams({ from: "/animes/$animeId" });
   const queryClient = useQueryClient();
   const query = useAnimeDetail(animeId);
-  const pipelineQuery = useAnimePipeline(animeId);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [realtimeEnabled, setRealtimeEnabled] = useState(false);
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
+  const pipelineQuery = useAnimePipeline(animeId, realtimeConnected);
+  const realtime = useAnimePipelineRealtime({
+    animeId,
+    enabled: realtimeEnabled && !isEditing,
+  });
+
+  useEffect(() => {
+    setRealtimeConnected(realtime.connected);
+  }, [realtime.connected]);
+
+  useEffect(() => {
+    setRealtimeEnabled(!isEditing && pipelineQuery.isSuccess);
+  }, [isEditing, pipelineQuery.isSuccess]);
 
   if (query.isPending) {
     return (
@@ -114,9 +131,9 @@ export default function AnimeDetailPage() {
             </div>
           </div>
 
-          {pipelineQuery.isPending ? (
+          {pipelineQuery.isPending && pipelineQuery.data === undefined ? (
             <p className={styles.pipelineState}>Loading media status...</p>
-          ) : pipelineQuery.isError ? (
+          ) : pipelineQuery.isError && pipelineQuery.data === undefined ? (
             <div className={styles.pipelineState} role="alert">
               <p>
                 Failed to load media pipeline status.
@@ -146,6 +163,7 @@ export default function AnimeDetailPage() {
                     key={episode.id}
                     episode={episode}
                     pipeline={pipeline}
+                    realtimeConnected={realtime.connected}
                   />
                 ) : null;
               })}

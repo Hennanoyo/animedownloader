@@ -9,6 +9,7 @@ import {
   useEpisodeDownload,
   usePauseDownloadJob,
   useResumeDownloadJob,
+  type DownloadJobSnapshot,
 } from "../model/useEpisodeDownload";
 import styles from "./EpisodeDownloadControl.module.scss";
 
@@ -16,14 +17,22 @@ interface Props {
   episodeId: string;
   compact?: boolean;
   inline?: boolean;
+  realtimeConnected?: boolean;
+  jobSnapshot?: DownloadJobSnapshot | null;
 }
 
 export default function EpisodeDownloadControl({
   episodeId,
   compact = false,
   inline = false,
+  realtimeConnected = false,
+  jobSnapshot,
 }: Props) {
-  const query = useEpisodeDownload(episodeId);
+  const query = useEpisodeDownload(
+    episodeId,
+    realtimeConnected,
+    jobSnapshot === undefined,
+  );
   const createMutation = useCreateEpisodeDownloadJob(episodeId);
   const pauseMutation = usePauseDownloadJob(episodeId);
   const resumeMutation = useResumeDownloadJob(episodeId);
@@ -31,11 +40,11 @@ export default function EpisodeDownloadControl({
   const deleteMutation = useDeleteDownloadJob(episodeId);
   const [confirm, setConfirm] = useState<"cancel" | "delete" | null>(null);
 
-  if (query.isPending) {
+  if (jobSnapshot === undefined && query.isPending) {
     return <span className={styles.message}>Checking...</span>;
   }
 
-  if (query.isError) {
+  if (jobSnapshot === undefined && query.isError) {
     return (
       <div className={styles.control}>
         <span className={styles.error}>Failed to load download status.</span>
@@ -49,7 +58,7 @@ export default function EpisodeDownloadControl({
     );
   }
 
-  const job = query.data;
+  const job = jobSnapshot ?? query.data;
 
   if (job?.status === "pending" || job?.status === "downloading") {
     const pending = pauseMutation.isPending || cancelMutation.isPending;
@@ -311,7 +320,7 @@ export default function EpisodeDownloadControl({
 }
 
 interface InlineDownloadStateProps {
-  job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
+  job: DownloadJobSnapshot;
   statusLabel: string;
   pending: boolean;
   isPausing: boolean;
@@ -416,7 +425,7 @@ function InlineDownloadState({
 
 interface TerminalDownloadControlProps {
   compact?: boolean;
-  job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
+  job: DownloadJobSnapshot;
   onDownload: () => void;
   onDelete: () => void;
   deleteMutation: ReturnType<typeof useDeleteDownloadJob>;

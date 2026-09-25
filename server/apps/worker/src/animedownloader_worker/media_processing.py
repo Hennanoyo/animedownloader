@@ -20,6 +20,8 @@ from animedownloader_media_processing import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from .progress import JobProgressCallback, emit_job_progress
+
 logger = logging.getLogger(__name__)
 
 
@@ -142,10 +144,12 @@ class MediaProcessingRunner:
         state: MediaProcessingStateProtocol,
         inspector: MediaInspector,
         download_root: Path,
+        on_progress: JobProgressCallback | None = None,
     ) -> None:
         self._state = state
         self._inspector = inspector
         self._download_root = download_root
+        self._on_progress = on_progress
 
     async def run(self, job_id: UUID) -> None:
         job_loaded = False
@@ -155,6 +159,13 @@ class MediaProcessingRunner:
             job_loaded = True
             persist_failure = context.status is not MediaProcessingJobStatus.COMPLETED
             if context.status is MediaProcessingJobStatus.COMPLETED and context.media_asset_ready:
+                await emit_job_progress(
+                    self._on_progress,
+                    job_type="media-processing",
+                    job_id=job_id,
+                    status=MediaProcessingJobStatus.COMPLETED.value,
+                    progress_percent=100,
+                )
                 return
 
             if context.status is MediaProcessingJobStatus.FAILED:
@@ -166,6 +177,14 @@ class MediaProcessingRunner:
             if context.status is MediaProcessingJobStatus.PENDING:
                 await self._state.mark_processing(job_id)
 
+            await emit_job_progress(
+                self._on_progress,
+                job_type="media-processing",
+                job_id=job_id,
+                status=MediaProcessingJobStatus.PROCESSING.value,
+                progress_percent=0,
+            )
+
             media_path = _find_media_file(
                 self._download_root / context.download_directory,
             )
@@ -174,6 +193,13 @@ class MediaProcessingRunner:
                 job_id,
                 media_path=str(media_path),
                 probe=probe,
+            )
+            await emit_job_progress(
+                self._on_progress,
+                job_type="media-processing",
+                job_id=job_id,
+                status=MediaProcessingJobStatus.COMPLETED.value,
+                progress_percent=100,
             )
         except Exception as exc:
             if job_loaded and persist_failure:
@@ -187,6 +213,14 @@ class MediaProcessingRunner:
                         "Failed to persist media processing failure for job %s",
                         job_id,
                     )
+            await emit_job_progress(
+                self._on_progress,
+                job_type="media-processing",
+                job_id=job_id,
+                status=MediaProcessingJobStatus.FAILED.value,
+                progress_percent=0,
+                error_message=_format_error(exc),
+            )
             raise
 
 

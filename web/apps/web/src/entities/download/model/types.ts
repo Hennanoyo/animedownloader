@@ -22,3 +22,26 @@ export interface DownloadJob {
   created_at: Date;
   updated_at: Date;
 }
+
+
+export interface DownloadJobListItem extends DownloadJob {
+  anime_id: string;
+  anime_title: string;
+  episode_number: number;
+  episode_title: string;
+}
+
+export interface DownloadJobListResponse {
+  items: DownloadJobListItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface DownloadJobListParams {
+  statuses?: DownloadJobStatus[];
+  page?: number;
+  pageSize?: number;
+  signal?: AbortSignal;
+}

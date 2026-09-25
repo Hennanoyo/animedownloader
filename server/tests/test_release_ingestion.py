@@ -4,13 +4,13 @@ from uuid import UUID, uuid7
 
 import pytest
 from animedownloader_anime import Anime, AnimeNotFoundError, Episode
-from sqlalchemy.ext.asyncio import AsyncSession
 from animedownloader_api.release_ingestion import (
     EpisodeIngestionService,
     ReleaseDoesNotMatchAnimeError,
     ReleaseNotActionableError,
 )
 from animedownloader_releases import EpisodeIngestionStatus, ParsedRelease, ParseStatus, Release
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class FakeSession:

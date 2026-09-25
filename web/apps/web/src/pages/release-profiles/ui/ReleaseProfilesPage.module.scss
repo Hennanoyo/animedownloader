@@ -298,6 +298,52 @@
   position: relative;
 }
 
+.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button),
+.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button) {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.4rem;
+  height: 2.4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.7rem;
+  box-sizing: border-box;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  background: #0b1222;
+  color: #cbd5e1;
+  font-size: 0.74rem;
+  line-height: 1;
+  cursor: pointer;
+  appearance: none;
+  outline: none;
+}
+
+.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button):hover,
+.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button)[data-focused],
+.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button)[data-pressed],
+.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button):hover,
+.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button)[data-focused],
+.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button)[data-pressed] {
+  border-color: #475569;
+  background: #111827;
+  color: #f8fafc;
+}
+
+.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button)[data-focus-visible],
+.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button)[data-focus-visible] {
+  outline: 2px solid #60a5fa;
+  outline-offset: 1px;
+}
+
+.ruleControl :global(.react-aria-Select) > :global(.react-aria-Button)[data-disabled],
+.ruleControlCompact :global(.react-aria-Select) > :global(.react-aria-Button)[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .controlLabel {
   display: block;
   margin-bottom: 0.28rem;
@@ -776,7 +822,11 @@
 .listBox {
   display: grid;
   min-width: 0;
+  max-height: min(18rem, calc(100vh - 2rem));
   gap: 0.15rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   outline: 0;
 }
 

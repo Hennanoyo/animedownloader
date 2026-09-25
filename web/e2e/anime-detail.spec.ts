@@ -470,7 +470,8 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await expect(titleInput).toHaveValue("Browser Smoke Romaji");
 
   const titleSourceButton = discovery.getByRole("button", {
-    name: "Title source",
+    name: "Romaji",
+    exact: true,
   });
   await titleSourceButton.click();
   await expect(

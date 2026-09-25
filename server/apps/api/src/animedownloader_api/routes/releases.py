@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from animedownloader_nyaa import NyaaClient, NyaaError
-from animedownloader_releases import SearchField
+from animedownloader_releases import Release, SearchField
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from animedownloader_api.dependencies import (
@@ -19,6 +19,7 @@ from animedownloader_api.release_ingestion import (
 from animedownloader_api.schemas import (
     EpisodeIngestionRequest,
     EpisodeIngestionResponse,
+    EpisodeResponse,
     ParsedReleaseResponse,
     ReleaseDiscoveryItemResponse,
     ReleaseDiscoveryResponse,
@@ -138,9 +139,7 @@ def _match_response(match):
     }
 
 
-def _release_from_response(payload: ReleaseResponse):
-    from animedownloader_releases import Release
-
+def _release_from_response(payload: ReleaseResponse) -> Release:
     return Release(
         source=payload.source,
         id=payload.id,
@@ -162,14 +161,12 @@ def _ingestion_response(
     return EpisodeIngestionResponse(
         status=result.status,
         episode=(
-            __import__("animedownloader_api.schemas", fromlist=["EpisodeResponse"])
-            .EpisodeResponse.model_validate(result.episode)
+            EpisodeResponse.model_validate(result.episode)
             if result.episode is not None
             else None
         ),
         existing_episode=(
-            __import__("animedownloader_api.schemas", fromlist=["EpisodeResponse"])
-            .EpisodeResponse.model_validate(result.existing_episode)
+            EpisodeResponse.model_validate(result.existing_episode)
             if result.existing_episode is not None
             else None
         ),

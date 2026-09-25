@@ -1,6 +1,5 @@
 from dataclasses import replace
 
-import pytest
 from animedownloader_releases import (
     DEFAULT_SEARCH_FIELDS,
     Release,

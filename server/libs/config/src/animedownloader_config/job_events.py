@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 JOB_PROGRESS_CHANNEL = "animedownloader:job-progress"
 
+JobProgressStage = Literal["processing", "preview", "streaming"]
+
 
 class JobProgressEvent(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -16,6 +18,7 @@ class JobProgressEvent(BaseModel):
     job_id: UUID
     status: str = Field(min_length=1, max_length=64)
     progress_percent: float | None = Field(default=None, ge=0, le=100)
+    stage: JobProgressStage | None = None
     downloaded_bytes: int | None = Field(default=None, ge=0)
     total_bytes: int | None = Field(default=None, ge=0)
     error_message: str | None = Field(default=None, max_length=2000)

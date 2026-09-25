@@ -542,7 +542,7 @@ The media pipeline currently reaches the correct user-visible stages, but the sh
 
 ### PR #34 — Unified Media Preparation & Realtime Stage Progress
 
-**Completed.**
+**Merged into `main` as commit `44c8c649fbdca983d83db5c055b84707f1edb2cf`.**
 
 Goal: make the Processing → Preview pipeline perform at most one source-video decode when both outputs are required, while exposing honest realtime progress for Processing, Preview, and Streaming.
 

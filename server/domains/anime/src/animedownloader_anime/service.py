@@ -1,4 +1,3 @@
-import re
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +13,6 @@ from .models import Anime, Episode
 from .repository import AnimeRepository, EpisodeRepository
 
 
-TITLE_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
 MAX_TITLE_LENGTH = 200
 
 
@@ -167,8 +165,6 @@ class AnimeService:
             normalized_value = value.strip()
             if not normalized_value:
                 continue
-            if not TITLE_KEY_PATTERN.fullmatch(normalized_key):
-                raise ValueError(f"invalid anime title key: {key}")
             if len(normalized_value) > MAX_TITLE_LENGTH:
                 raise ValueError(f"anime title exceeds {MAX_TITLE_LENGTH} characters: {normalized_key}")
             cleaned[normalized_key] = normalized_value

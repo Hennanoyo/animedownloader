@@ -10,13 +10,20 @@ import {
   usePauseDownloadJob,
   useResumeDownloadJob,
 } from "../model/useEpisodeDownload";
+import type { DownloadJob } from "../../../entities/download/model/types";
 import styles from "./EpisodeDownloadControl.module.scss";
+
+type DownloadJobSnapshot = Pick<
+  DownloadJob,
+  "id" | "status" | "downloaded_bytes" | "total_bytes" | "error_message"
+>;
 
 interface Props {
   episodeId: string;
   compact?: boolean;
   inline?: boolean;
   realtimeConnected?: boolean;
+  job?: DownloadJobSnapshot;
 }
 
 export default function EpisodeDownloadControl({
@@ -24,8 +31,13 @@ export default function EpisodeDownloadControl({
   compact = false,
   inline = false,
   realtimeConnected = false,
+  job: jobSnapshot,
 }: Props) {
-  const query = useEpisodeDownload(episodeId, realtimeConnected);
+  const query = useEpisodeDownload(
+    episodeId,
+    realtimeConnected,
+    jobSnapshot === undefined,
+  );
   const createMutation = useCreateEpisodeDownloadJob(episodeId);
   const pauseMutation = usePauseDownloadJob(episodeId);
   const resumeMutation = useResumeDownloadJob(episodeId);
@@ -51,7 +63,7 @@ export default function EpisodeDownloadControl({
     );
   }
 
-  const job = query.data;
+  const job = jobSnapshot ?? query.data;
 
   if (job?.status === "pending" || job?.status === "downloading") {
     const pending = pauseMutation.isPending || cancelMutation.isPending;

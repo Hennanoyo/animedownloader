@@ -753,7 +753,11 @@ Goal: make release-profile maintenance a first-class operational workflow after 
 UI follow-up refinements in the current PR:
 
 - Anime-detail title discovery now uses one ComboBox for saved language variants and transient custom values instead of a separate title-source Select.
-- Parser Rule editing uses responsive two-level layout, explicit labels, field-aware regex placeholders, inline regex guidance, and human-readable transform names.
+- Anime-detail search ComboBox popovers are height-constrained and vertically scrollable so long Episode lists stay inside the overlay.
+- Parser Rule editing uses a compact two-level layout with consistently styled controls, field-aware regex placeholders, and human-readable transform names.
+- Rule explanations are exposed as on-demand RAC tooltips instead of persistent microcopy, keeping the editor visually quiet while retaining guidance.
+- Required-rule checkbox animation matches the Search fields interaction, and Transform choices no longer inflate the popover horizontally.
+- Release Group and Representative sample inputs use the same full-width control treatment as the rest of the page.
 - Representative sample cards use a stable content/action grid and wrap long release titles without introducing horizontal overflow.
 - Browser visual smoke coverage captures desktop and mobile Release Profiles layouts and asserts the page remains free of horizontal overflow.
 

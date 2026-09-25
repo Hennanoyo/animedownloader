@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is Unified Media Preparation & Realtime Stage Progress. PR #23 through PR #33 are merged; PR #34 is the next development step.
+The current phase is Unified Media Preparation & Realtime Stage Progress. PR #23 through PR #33 are merged; PR #34 is in development.
 
 ## Completed
 
@@ -542,7 +542,7 @@ The media pipeline currently reaches the correct user-visible stages, but the sh
 
 ### PR #34 — Unified Media Preparation & Realtime Stage Progress
 
-**Planned next development step.**
+**In development.**
 
 Goal: make the Processing → Preview pipeline perform at most one source-video decode when both outputs are required, while exposing honest realtime progress for Processing, Preview, and Streaming.
 

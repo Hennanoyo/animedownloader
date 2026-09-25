@@ -25,6 +25,7 @@ from animedownloader_api.pipeline import AnimePipelineService
 from animedownloader_api.pipeline_control import EpisodePipelineControlService
 from animedownloader_api.playback import PlaybackService
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
+from animedownloader_api.release_ingestion import EpisodeIngestionService
 from animedownloader_api.task_queue import DownloadTaskDispatcher
 
 
@@ -166,6 +167,12 @@ def get_anime_pipeline_service(
 ) -> AnimePipelineService:
     return AnimePipelineService(session, storage)
 
+
+
+def get_release_ingestion_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> EpisodeIngestionService:
+    return EpisodeIngestionService(session)
 
 
 def get_release_profile_service(

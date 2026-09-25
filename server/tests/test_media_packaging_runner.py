@@ -104,13 +104,20 @@ async def test_runner_packages_current_playable_variant(tmp_path: Path) -> None:
     source.parent.mkdir(parents=True)
     source.write_bytes(b"playable")
 
+    events: list[tuple[str, float | None]] = []
+
+    async def on_progress(event: object) -> None:
+        events.append((getattr(event, "status"), getattr(event, "progress_percent")))
+
     await MediaPackagingRunner(
         state=state,
         processor=FakeProcessor(),
         storage=storage,
+        on_progress=on_progress,
     ).run(state.context.job_id)
 
     assert state.processing_calls == 1
+    assert events == [("processing", 0), ("completed", 100)]
     assert state.completed is not None
     representation, package_artifact = state.completed
     assert representation.quality == "1080p"

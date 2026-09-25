@@ -750,6 +750,14 @@ Out of scope:
 
 Goal: make release-profile maintenance a first-class operational workflow after real-world releases have accumulated.
 
+UI follow-up refinements in the current PR:
+
+- Anime-detail title discovery now uses one ComboBox for saved language variants and transient custom values instead of a separate title-source Select.
+- Parser Rule editing uses responsive two-level layout, explicit labels, field-aware regex placeholders, inline regex guidance, and human-readable transform names.
+- Representative sample cards use a stable content/action grid and wrap long release titles without introducing horizontal overflow.
+- Browser visual smoke coverage captures desktop and mobile Release Profiles layouts and asserts the page remains free of horizontal overflow.
+
+
 Scope:
 
 - Add parser profile administration UI

@@ -16,7 +16,6 @@ import type {
 import {
   useCreateEpisodeDownloadJob,
   useDeleteDownloadJob,
-  useEpisodeDownload,
 } from "../../../features/episode-download/model/useEpisodeDownload";
 import EpisodeDownloadControl from "../../../features/episode-download/ui/EpisodeDownloadControl";
 import { useDeleteEpisode } from "../../../features/episode-management/model/useEpisodeManagement";
@@ -108,7 +107,7 @@ export default function EpisodePipelineCard({
 
         <EpisodeActionMenu
           episode={episode}
-          realtimeConnected={realtimeConnected}
+          download={pipeline.download}
           onDeleteEpisode={() => setConfirmAction("delete-episode")}
         />
       </div>
@@ -252,21 +251,20 @@ export default function EpisodePipelineCard({
 
 interface EpisodeActionMenuProps {
   episode: Episode;
-  realtimeConnected: boolean;
+  download: EpisodePipelineSummary["download"];
   onDeleteEpisode: () => void;
 }
 
 function EpisodeActionMenu({
   episode,
-  realtimeConnected,
+  download,
   onDeleteEpisode,
 }: EpisodeActionMenuProps) {
-  const query = useEpisodeDownload(episode.id, realtimeConnected);
   const createMutation = useCreateEpisodeDownloadJob(episode.id);
   const deleteMutation = useDeleteDownloadJob(episode.id);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const job = query.data;
+  const job = getDownloadJobSnapshot(download);
   const isDeleteDisabled =
     createMutation.isPending || deleteMutation.isPending;
 
@@ -285,8 +283,7 @@ function EpisodeActionMenu({
           offset={6}
         >
           <Menu className={styles.menu} aria-label="Episode actions">
-            {!query.isPending && !query.isError ? (
-              <>
+            <>
                 {job?.status === "pending" ||
                 job?.status === "downloading" ||
                 job?.status === "paused" ? null : (
@@ -323,7 +320,6 @@ function EpisodeActionMenu({
                   </MenuItem>
                 ) : null}
               </>
-            ) : null}
             <MenuItem
               className={styles.menuItem + " " + styles.menuItemDanger}
               onAction={onDeleteEpisode}
@@ -382,6 +378,46 @@ function EpisodeActionMenu({
       ) : null}
     </div>
   );
+}
+
+type DownloadJobSnapshot = {
+  id: string;
+  status:
+    | "pending"
+    | "downloading"
+    | "paused"
+    | "completed"
+    | "failed"
+    | "cancelled";
+  downloaded_bytes: number;
+  total_bytes: number | null;
+  error_message: string | null;
+};
+
+function getDownloadJobSnapshot(
+  download: EpisodePipelineSummary["download"],
+): DownloadJobSnapshot | null {
+  if (!download.job_id) {
+    return null;
+  }
+
+  switch (download.status) {
+    case "pending":
+    case "downloading":
+    case "paused":
+    case "completed":
+    case "failed":
+    case "cancelled":
+      return {
+        id: download.job_id,
+        status: download.status,
+        downloaded_bytes: download.downloaded_bytes,
+        total_bytes: download.total_bytes,
+        error_message: download.error_message,
+      };
+    default:
+      return null;
+  }
 }
 
 function StageStatusIcon({

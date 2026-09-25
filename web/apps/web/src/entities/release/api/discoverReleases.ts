@@ -41,8 +41,7 @@ const parsedReleaseSchema = z.object({
 });
 
 const responseSchema = z.object({
-  queries: z.array(z.string()),
-  failed_queries: z.array(z.string()),
+  query: z.string(),
   warnings: z.array(z.string()),
   search_profile_version: z.number().int().positive().nullable(),
   items: z.array(
@@ -73,6 +72,7 @@ export async function discoverReleases(
   signal?: AbortSignal,
 ): Promise<ReleaseDiscoveryResponse> {
   const params = new URLSearchParams({ title: input.title });
+  for (const field of input.fields) params.append("fields", field);
   if (input.group) params.set("group", input.group);
   if (input.episode !== undefined) params.set("episode", String(input.episode));
   if (input.resolution) params.set("resolution", input.resolution);

@@ -41,6 +41,7 @@ const episodeSchema = z.object({
 const animeSchema = z.object({
   id: z.uuid(),
   title: z.string(),
+  titles: z.record(z.string(), z.string()).default({}),
   year: z.number().int(),
   season: z.enum(["winter", "spring", "summer", "fall"]),
   weekday: z.enum([

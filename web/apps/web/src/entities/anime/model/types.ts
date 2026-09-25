@@ -1,4 +1,8 @@
 export const seasons = ["winter", "spring", "summer", "fall"] as const;
+
+export const animeTitleKinds = ["romaji", "jp", "ko", "en"] as const;
+export type AnimeTitleKind = (typeof animeTitleKinds)[number];
+export type AnimeTitles = Partial<Record<AnimeTitleKind, string>>;
 export type Season = (typeof seasons)[number];
 
 export const weekdays = [
@@ -52,6 +56,7 @@ export interface Episode {
 export interface Anime {
   id: string;
   title: string;
+  titles: AnimeTitles;
   year: number;
   season: Season;
   weekday: Weekday;
@@ -81,6 +86,7 @@ export interface EpisodeInput {
 
 export interface CreateAnimeInput {
   title: string;
+  titles: AnimeTitles;
   year: number;
   season: Season;
   weekday: Weekday;

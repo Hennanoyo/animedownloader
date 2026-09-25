@@ -47,15 +47,24 @@ export interface ReleaseDiscoveryItem {
 }
 
 export interface ReleaseDiscoveryResponse {
-  queries: string[];
-  failed_queries: string[];
+  query: string;
   warnings: string[];
   search_profile_version: number | null;
   items: ReleaseDiscoveryItem[];
 }
 
+export const searchFields = [
+  "group",
+  "title",
+  "episode",
+  "resolution",
+  "codec",
+] as const;
+export type SearchField = (typeof searchFields)[number];
+
 export interface ReleaseDiscoveryInput {
   title: string;
+  fields: SearchField[];
   group?: string;
   episode?: number;
   resolution?: string;

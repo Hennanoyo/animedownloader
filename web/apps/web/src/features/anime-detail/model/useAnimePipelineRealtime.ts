@@ -128,7 +128,7 @@ export function applyAnimePipelineEvent(
           event.downloaded_bytes ?? job.downloaded_bytes,
         total_bytes: event.total_bytes ?? job.total_bytes,
         error_message: event.error_message,
-        updated_at: event.emitted_at.toISOString(),
+        updated_at: event.emitted_at,
       };
     });
   }

@@ -126,26 +126,39 @@ def build_search_queries(
 def merge_releases(results: Iterable[Iterable[Release]]) -> tuple[Release, ...]:
     merged: list[Release] = []
     seen_source_ids: set[tuple[str, str]] = set()
+    seen_source_titles: set[tuple[str, str]] = set()
     seen_hashes: set[str] = set()
 
     for releases in results:
         for release in releases:
-            source_id = (
-                release.source.casefold(),
-                release.id,
-            ) if release.source and release.id else None
-            info_hash = release.info_hash.casefold() if release.info_hash else None
+            source = release.source.strip().casefold()
+            source_id = (source, release.id.strip()) if source and release.id.strip() else None
+            info_hash = release.info_hash.strip().casefold() if release.info_hash else None
+            title_key = _normalize_release_title(release.title)
+
             if source_id is not None and source_id in seen_source_ids:
                 continue
             if info_hash is not None and info_hash in seen_hashes:
                 continue
+            if info_hash is None and source and title_key:
+                source_title = (source, title_key)
+                if source_title in seen_source_titles:
+                    continue
+
             if source_id is not None:
                 seen_source_ids.add(source_id)
             if info_hash is not None:
                 seen_hashes.add(info_hash)
+            if info_hash is None and source and title_key:
+                seen_source_titles.add((source, title_key))
             merged.append(release)
 
     return tuple(merged)
+
+
+def _normalize_release_title(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).strip().casefold()
+    return re.sub(r"\s+", " ", normalized)
 
 
 def _render_template(

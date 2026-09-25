@@ -163,20 +163,9 @@ function Hint({
   label: string;
   children: ReactNode;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-
   return (
-    <TooltipTrigger
-      delay={0}
-      isOpen={isOpen}
-      onOpenChange={setIsOpen}
-    >
-      <Button
-        className={styles.hintButton}
-        aria-label={label + " help"}
-        onPointerLeave={() => setIsOpen(false)}
-        onBlur={() => setIsOpen(false)}
-      >
+    <TooltipTrigger delay={0} closeDelay={0}>
+      <Button className={styles.hintButton} aria-label={label + " help"}>
         ?
       </Button>
       <Tooltip className={styles.hintTooltip}>{children}</Tooltip>

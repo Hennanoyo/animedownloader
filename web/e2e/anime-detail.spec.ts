@@ -112,6 +112,10 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
     page.getByRole("button", { name: "Episode actions" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Episode actions" }).click();
+  console.log(
+    "ANIME DETAIL MENU DEBUG",
+    await page.locator("body").innerText(),
+  );
   await expect(
     page.getByRole("menuitem", { name: "Download again" }),
   ).toBeVisible();
@@ -230,6 +234,13 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   if (await showDetails.isVisible()) {
     await showDetails.click();
   }
+  console.log(
+    "ANIME DETAIL LIVE DEBUG",
+    JSON.stringify({
+      pipelineRequests,
+      body: await page.locator("body").innerText(),
+    }),
+  );
   await expect(page.locator('[aria-label="Download progress"]')).toBeVisible();
 
   await page.waitForTimeout(1000);

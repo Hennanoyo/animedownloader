@@ -101,20 +101,11 @@ function jsonHeaders(headers?: HeadersInit): Headers {
 function formatFastApiLocation(value: unknown): string {
   if (!Array.isArray(value)) return "";
 
-  const segments = value
-    .filter(
-      (segment): segment is string | number =>
-        typeof segment === "string" || typeof segment === "number",
-    )
-    .map((segment) =>
-      typeof segment === "number" ? "[" + (segment + 1) + "]" : segment,
-    );
-
   let path = "";
-  for (const segment of segments) {
+  for (const segment of value) {
     if (typeof segment === "number") {
-      path += "[" + segment + "]";
-    } else {
+      path += "[" + (segment + 1) + "]";
+    } else if (typeof segment === "string") {
       path = path ? path + "." + segment : segment;
     }
   }

@@ -8,9 +8,11 @@ export function useIngestRelease(animeId: string) {
   return useMutation({
     mutationFn: (input: Omit<EpisodeIngestionInput, "anime_id">) =>
       ingestRelease({ ...input, anime_id: animeId }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["anime", animeId] });
-      void queryClient.invalidateQueries({
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["animes", animeId],
+      });
+      await queryClient.invalidateQueries({
         queryKey: ["anime-pipelines", animeId],
       });
     },

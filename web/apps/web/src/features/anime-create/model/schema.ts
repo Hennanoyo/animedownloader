@@ -72,6 +72,11 @@ export const animeCreateFormSchema = z
           path: ["episodes", index, "release"],
           message: "Select a Nyaa release.",
         });
+        ctx.addIssue({
+          code: "custom",
+          path: [],
+          message: `Episode ${index + 1}: Select a Nyaa release.`,
+        });
       }
     });
   });

@@ -63,7 +63,8 @@ export default function EpisodeDownloadControl({
     );
   }
 
-  const job: DownloadJobSnapshot | undefined = jobSnapshot ?? query.data;
+  const job: DownloadJobSnapshot | null | undefined =
+    jobSnapshot ?? query.data;
 
   if (job?.status === "pending" || job?.status === "downloading") {
     const pending = pauseMutation.isPending || cancelMutation.isPending;

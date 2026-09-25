@@ -6,6 +6,7 @@ from animedownloader_releases import (
     ParserField,
     ParserRuleSpec,
     ParserTransform,
+    ReleaseGroupAlreadyExistsError,
     ReleaseGroupNotFoundError,
     ReleaseParserObservationNotFoundError,
     ReleaseParserProfile,
@@ -23,6 +24,7 @@ from animedownloader_api.release_profile_schemas import (
     ParserHealthResponse,
     ParserSampleResultResponse,
     ParserValidationResponse,
+    ReleaseGroupCreate,
     ReleaseGroupSummaryResponse,
     ReleaseParserObservationResponse,
     ReleaseParserProfileResponse,
@@ -38,6 +40,37 @@ ServiceDependency = Annotated[
     ReleaseProfileService,
     Depends(get_release_profile_service),
 ]
+
+
+
+
+@router.post(
+    "/api/release-groups",
+    response_model=ReleaseGroupSummaryResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_release_group(
+    payload: ReleaseGroupCreate,
+    service: ServiceDependency,
+) -> ReleaseGroupSummaryResponse:
+    try:
+        group = await service.create_group(
+            name=payload.name,
+            slug=payload.slug,
+        )
+    except ReleaseGroupAlreadyExistsError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return ReleaseGroupSummaryResponse(
+        id=group.id,
+        name=group.name,
+        slug=group.slug,
+        enabled=group.enabled,
+        active_parser_profile_version=None,
+        draft_parser_profile_version=None,
+    )
 
 
 @router.get("/api/release-groups", response_model=list[ReleaseGroupSummaryResponse])

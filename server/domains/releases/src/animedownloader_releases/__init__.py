@@ -9,6 +9,7 @@ from .entities import (
 )
 from .exceptions import (
     InvalidReleaseParserProfileError,
+    ReleaseGroupAlreadyExistsError,
     ReleaseGroupNotFoundError,
     ReleaseParserObservationNotFoundError,
     ReleaseParserProfileActivationError,
@@ -69,6 +70,7 @@ __all__ = [
     "SearchProfileStatus",
     "SearchQueryContext",
     "InvalidReleaseParserProfileError",
+    "ReleaseGroupAlreadyExistsError",
     "ReleaseGroupNotFoundError",
     "ReleaseParserObservationNotFoundError",
     "ReleaseParserProfileActivationError",

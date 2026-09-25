@@ -398,6 +398,7 @@ export default function ReleaseDiscoveryPanel({
                   </button>
 
                   <Checkbox
+                    className={styles.fieldToggle}
                     data-search-field-toggle={field}
                     isSelected={enabledFields[field]}
                     onChange={(selected) =>

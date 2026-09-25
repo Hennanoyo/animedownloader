@@ -19,7 +19,10 @@ import {
   type ReleaseGroupSummary,
   type ParserRuleInput,
 } from "../../../entities/release/api/releaseProfiles";
-import { useReleaseGroups } from "../../../entities/release/model/useReleaseGroups";
+import {
+  useCreateReleaseGroup,
+  useReleaseGroups,
+} from "../../../entities/release/model/useReleaseGroups";
 import {
   useActivateParserProfile,
   useCreateDraftFromObservation,
@@ -80,7 +83,9 @@ function toEditableRules(profile: ParserProfile): ParserRuleInput[] {
 export default function ReleaseProfilesPage() {
   const groups = useReleaseGroups();
   const [groupInput, setGroupInput] = useState("");
+  const [newGroupName, setNewGroupName] = useState("");
   const [groupId, setGroupId] = useState("");
+  const createGroup = useCreateReleaseGroup();
   const profiles = useParserProfiles(groupId);
   const samples = useParserSamples(groupId);
   const [selectedProfileId, setSelectedProfileId] = useState("");
@@ -165,6 +170,45 @@ export default function ReleaseProfilesPage() {
             </ListBox>
           </Popover>
         </ComboBox>
+
+        <div className={styles.groupComposer}>
+          <TextField
+            className={styles.newGroupField}
+            aria-label="New release group name"
+          >
+            <Label className={styles.srOnly}>New release group name</Label>
+            <Input
+              value={newGroupName}
+              onChange={(event) => setNewGroupName(event.target.value)}
+              placeholder="Add release group"
+            />
+          </TextField>
+          <Button
+            className={styles.secondaryButton}
+            onPress={() => {
+              void (async () => {
+                const group = await createGroup.mutateAsync({
+                  name: newGroupName.trim(),
+                });
+                setNewGroupName("");
+                setGroupId(group.id);
+                setGroupInput(group.name);
+                setSelectedProfileId("");
+              })();
+            }}
+            isDisabled={
+              createGroup.isPending || newGroupName.trim().length === 0
+            }
+          >
+            {createGroup.isPending ? "Adding..." : "Add group"}
+          </Button>
+        </div>
+
+        {createGroup.isError ? (
+          <p className={styles.error} role="alert">
+            Failed to add release group: {createGroup.error.message}
+          </p>
+        ) : null}
 
         {groups.isError ? (
           <p className={styles.error} role="alert">

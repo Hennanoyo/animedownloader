@@ -19,6 +19,7 @@ from .entities import (
 )
 from .exceptions import (
     InvalidReleaseParserProfileError,
+    ReleaseGroupAlreadyExistsError,
     ReleaseGroupNotFoundError,
     ReleaseParserObservationNotFoundError,
     ReleaseParserProfileActivationError,
@@ -35,6 +36,7 @@ from .models import (
     Release,
 )
 from .parser import parse_release, validate_parser_profile
+from .search import normalize_release_group_slug
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +102,44 @@ class ReleaseProfileService:
             .order_by(func.lower(ReleaseGroup.name), ReleaseGroup.slug),
         )
         return list(result.all())
+
+    async def create_group(
+        self,
+        *,
+        name: str,
+        slug: str | None = None,
+    ) -> ReleaseGroup:
+        normalized_name = name.strip()
+        normalized_slug = normalize_release_group_slug(slug or normalized_name)
+
+        if not normalized_name:
+            raise ValueError("release group name must not be empty")
+        if len(normalized_name) > 128:
+            raise ValueError("release group name is too long")
+        if not normalized_slug:
+            raise ValueError(
+                "release group slug must contain at least one letter or number",
+            )
+        if len(normalized_slug) > 128:
+            raise ValueError("release group slug is too long")
+
+        await self.session.rollback()
+        async with self.session.begin():
+            existing = await self.session.scalar(
+                select(ReleaseGroup).where(ReleaseGroup.slug == normalized_slug),
+            )
+            if existing is not None:
+                raise ReleaseGroupAlreadyExistsError(normalized_slug)
+
+            group = ReleaseGroup(
+                name=normalized_name,
+                slug=normalized_slug,
+                enabled=True,
+            )
+            self.session.add(group)
+            await self.session.flush()
+
+        return group
 
     async def get_group(self, group_id: UUID) -> ReleaseGroup:
         group = await self.session.scalar(

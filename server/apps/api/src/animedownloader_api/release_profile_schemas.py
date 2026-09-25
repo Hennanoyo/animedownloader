@@ -7,6 +7,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from animedownloader_api.schemas import ParsedReleaseResponse
 
 
+class ReleaseGroupCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=128)
+    slug: str | None = Field(default=None, min_length=1, max_length=128)
+
+
 class ReleaseGroupSummaryResponse(BaseModel):
     id: UUID
     name: str

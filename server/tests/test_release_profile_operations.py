@@ -158,3 +158,31 @@ def test_health_result_marks_drift_after_threshold() -> None:
     assert service.DRIFT_MIN_TOTAL == 8
     assert service.DRIFT_FAILURE_RATE == 0.25
     assert service.DRIFT_RECENT_FAILURES == 3
+
+
+@pytest.mark.anyio
+async def test_create_release_group_endpoint() -> None:
+    group_id = uuid7()
+    group = SimpleNamespace(
+        id=group_id,
+        name="ExampleSubs",
+        slug="examplesubs",
+        enabled=True,
+    )
+    service = MagicMock(spec=ReleaseProfileService)
+    service.create_group = AsyncMock(return_value=group)
+
+    app = create_app()
+    app.dependency_overrides[get_release_profile_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.post(
+            "/api/release-groups",
+            json={"name": "ExampleSubs"},
+        )
+
+    assert response.status_code == 201
+    assert response.json()["name"] == "ExampleSubs"
+    assert response.json()["slug"] == "examplesubs"
+    service.create_group.assert_awaited_once_with(name="ExampleSubs", slug=None)

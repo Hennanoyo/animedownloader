@@ -164,6 +164,16 @@ export class ReleaseProfileResponseError extends Error {
   }
 }
 
+export async function createReleaseGroup(
+  input: { name: string; slug?: string },
+  signal?: AbortSignal,
+): Promise<ReleaseGroupSummary> {
+  return parseSchema(
+    await postJson("/api/release-groups", input, { signal }),
+    releaseGroupSchema,
+  );
+}
+
 export async function getReleaseGroups(
   signal?: AbortSignal,
 ): Promise<ReleaseGroupSummary[]> {

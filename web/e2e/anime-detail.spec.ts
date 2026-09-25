@@ -482,18 +482,25 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
 
   await titleInput.fill("Browser Smoke Custom");
 
+  const rows = discovery.locator("[data-search-field]");
   const groupCheckbox = discovery.getByRole("checkbox", {
     name: "Enable Group",
   });
   const groupCheckboxToggle = discovery.locator(
     '[data-search-field-toggle="group"]',
   );
+  const rowBeforeToggle = await rows.nth(0).boundingBox();
   await groupCheckboxToggle.click();
   await expect(groupCheckbox).not.toBeChecked();
+  const rowAfterDisable = await rows.nth(0).boundingBox();
   await groupCheckboxToggle.click();
   await expect(groupCheckbox).toBeChecked();
+  const rowAfterEnable = await rows.nth(0).boundingBox();
 
-  const rows = discovery.locator("[data-search-field]");
+  expect(rowBeforeToggle?.y).toBe(rowAfterDisable?.y);
+  expect(rowBeforeToggle?.height).toBe(rowAfterDisable?.height);
+  expect(rowBeforeToggle?.y).toBe(rowAfterEnable?.y);
+  expect(rowBeforeToggle?.height).toBe(rowAfterEnable?.height);
   await expect(rows.nth(0)).toHaveAttribute("data-search-field", "group");
   await expect(rows.nth(1)).toHaveAttribute("data-search-field", "title");
 

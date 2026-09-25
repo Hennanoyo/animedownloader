@@ -105,6 +105,30 @@
   cursor: pointer;
 }
 
+.groupComposer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: min(34rem, 100%);
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.newGroupField input {
+  width: 100%;
+  min-height: 2.4rem;
+  box-sizing: border-box;
+  padding: 0 0.7rem;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  background: #0b1222;
+  color: #f8fafc;
+}
+
+.newGroupField input:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 1px;
+}
+
 .profileList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
@@ -606,7 +630,8 @@
     justify-content: flex-start;
   }
 
-  .sampleComposer {
+  .sampleComposer,
+  .groupComposer {
     grid-template-columns: 1fr;
   }
 }

@@ -132,14 +132,17 @@
   outline-offset: 2px;
 }
 
-.fieldOrderItem > [data-selected="true"] {
-  color: #dbeafe;
-}
-
-.fieldOrderItem > [data-selected="true"] {
+.fieldToggle {
+  display: grid;
+  width: 1.5rem;
   min-width: 1.5rem;
-  min-height: 2rem;
-  justify-content: center;
+  height: 2.2rem;
+  min-height: 2.2rem;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  align-self: center;
+  line-height: 1;
 }
 
 .checkboxMark {

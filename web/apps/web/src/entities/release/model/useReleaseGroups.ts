@@ -1,5 +1,8 @@
-import { queryOptions, useQuery } from "@tanstack/react-query";
-import { getReleaseGroups } from "../api/releaseProfiles";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  createReleaseGroup,
+  getReleaseGroups,
+} from "../api/releaseProfiles";
 
 export function releaseGroupsQueryOptions() {
   return queryOptions({
@@ -11,4 +14,15 @@ export function releaseGroupsQueryOptions() {
 
 export function useReleaseGroups() {
   return useQuery(releaseGroupsQueryOptions());
+}
+
+export function useCreateReleaseGroup() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; slug?: string }) =>
+      createReleaseGroup(input),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ["release-groups"] });
+    },
+  });
 }

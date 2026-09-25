@@ -6,6 +6,11 @@ class ReleaseGroupNotFoundError(LookupError):
         super().__init__(f"release group not found: {group_id}")
 
 
+class ReleaseGroupAlreadyExistsError(ValueError):
+    def __init__(self, slug: str) -> None:
+        super().__init__(f"release group already exists: {slug}")
+
+
 class ReleaseParserProfileNotFoundError(LookupError):
     def __init__(self, profile_id: UUID) -> None:
         super().__init__(f"release parser profile not found: {profile_id}")

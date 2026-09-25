@@ -20,7 +20,7 @@ from animedownloader_media_processing import (
     MediaVariantKind,
     MediaVariantStatus,
 )
-from animedownloader_releases import ParsedRelease
+from animedownloader_releases import AnimeMatchResult, ParsedRelease
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, StringConstraints
 
 
@@ -89,9 +89,22 @@ class ParsedReleaseResponse(BaseModel):
         )
 
 
+class AnimeMatchCandidateResponse(BaseModel):
+    anime_id: UUID
+    title: str
+    matched_titles: list[str]
+
+
+class AnimeMatchResponse(BaseModel):
+    status: str
+    normalized_series_title: str | None
+    candidates: list[AnimeMatchCandidateResponse]
+
+
 class ReleaseDiscoveryItemResponse(BaseModel):
     release: ReleaseResponse
     parsed: ParsedReleaseResponse
+    match: AnimeMatchResponse
 
 
 class ReleaseDiscoveryResponse(BaseModel):
@@ -582,3 +595,21 @@ class MediaPackagingJobResponse(BaseModel):
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class EpisodeIngestionStatus(StrEnum):
+    CREATED = "created"
+    IDEMPOTENT = "idempotent"
+    REPLACEMENT_CANDIDATE = "replacement_candidate"
+
+
+class EpisodeIngestionRequest(BaseModel):
+    anime_id: UUID
+    release: ReleaseResponse
+    parsed: ParsedReleaseResponse
+
+
+class EpisodeIngestionResponse(BaseModel):
+    status: EpisodeIngestionStatus
+    episode: EpisodeResponse | None
+    existing_episode: EpisodeResponse | None

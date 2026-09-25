@@ -214,6 +214,8 @@ function ReleaseProfileWorkspace({
   selectedProfileId,
   onSelectProfile,
 }: WorkspaceProps) {
+  const selectedProfile =
+    profiles.find((profile) => profile.id === selectedProfileId) ?? null;
   const createDraft = useCreateParserDraft();
   const createDraftFromObservation = useCreateDraftFromObservation();
 
@@ -418,7 +420,7 @@ function ProfileEditor({
         {activate.isError ? <p className={styles.error} role="alert">{activate.error.message}</p> : null}
         {validationPassed ? (
           <p className={styles.success} role="status">
-            Validation passed across {validate.data.sample_count} samples. Activation is available.
+            Validation passed across {validate.data?.sample_count ?? 0} samples. Activation is available.
           </p>
         ) : null}
         {validate.data && !validate.data.valid ? (

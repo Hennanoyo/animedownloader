@@ -505,7 +505,7 @@ export default function ReleaseDiscoveryPanel({
                           </div>
                           <Popover className={styles.selectPopover}>
                             <ListBox className={styles.selectListBox}>
-                              {(option) => (
+                              {(option: string) => (
                                 <ListBoxItem
                                   id={option}
                                   textValue={option}

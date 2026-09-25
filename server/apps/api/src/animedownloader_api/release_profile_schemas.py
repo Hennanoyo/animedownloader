@@ -1,4 +1,5 @@
 from datetime import datetime
+from datetime import datetime
 from uuid import UUID
 
 from animedownloader_releases import ParserField, ParserTransform
@@ -42,10 +43,14 @@ class ReleaseParserProfileResponse(BaseModel):
     rules: list[ReleaseParserRuleResponse]
 
 
+def _empty_parser_rules() -> list[ReleaseParserRuleInput]:
+    return []
+
+
 class ReleaseParserProfileUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    rules: list[ReleaseParserRuleInput] = Field(default_factory=list)
+    rules: list[ReleaseParserRuleInput] = Field(default_factory=_empty_parser_rules)
 
 
 class ReleaseParserSampleCreate(BaseModel):

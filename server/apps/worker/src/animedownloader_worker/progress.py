@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Protocol
+from typing import Protocol, cast
 
 from animedownloader_config import JOB_PROGRESS_CHANNEL, JobProgressEvent
 from redis.asyncio import Redis
@@ -22,11 +22,14 @@ class RedisJobProgressPublisher:
         *,
         client: RedisPublisher | None = None,
     ) -> None:
-        self._redis = client or Redis.from_url(
-            redis_url,
-            decode_responses=True,
-            socket_connect_timeout=2.0,
-            socket_timeout=0.5,
+        self._redis: RedisPublisher = client or cast(
+            RedisPublisher,
+            Redis.from_url(
+                redis_url,
+                decode_responses=True,
+                socket_connect_timeout=2.0,
+                socket_timeout=0.5,
+            ),
         )
 
     async def publish(self, event: JobProgressEvent) -> None:

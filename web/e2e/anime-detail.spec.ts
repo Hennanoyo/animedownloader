@@ -280,11 +280,11 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   ).toHaveAttribute("aria-valuenow", "68");
 
   await expect(
-    pipelineStatus.locator('.statusIndicator[data-current="true"]'),
+    pipelineStatus.locator('span[data-current="true"]'),
   ).toHaveCount(1);
   await expect(
     pipelineStatus.locator(
-      '.statusIndicator[data-current="false"][data-status="processing"]',
+      'span[data-current="false"][data-status="processing"]',
     ),
   ).toHaveCount(2);
 

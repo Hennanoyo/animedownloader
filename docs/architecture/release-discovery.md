@@ -215,7 +215,7 @@ A multi-sample test is preferred over a single successful sample so that a rule 
 
 ## Search strategy
 
-Discovery should support multiple query templates instead of one hard-coded search string.
+Discovery builds one explicit query per user action.
 
 Conceptual query fields include:
 
@@ -226,23 +226,9 @@ Conceptual query fields include:
 - codec
 - other profile-defined tokens
 
-A release-group search profile can define ordered query templates such as:
+A Search Profile provides an ordered default field recipe. The discovery UI may enable/disable fields, edit their values, and override the field order for the current search.
 
-1. group + title + episode
-2. title + episode
-3. group + title
-4. title
-5. additional technical constraints when useful
-
-The service may execute multiple queries and combine their results in memory.
-
-Search specificity is progressive rather than absolute: a more specific query is attempted first, but missing optional naming tokens must not cause a valid release to disappear permanently.
-
-Results from multiple queries must be deduplicated before parsing/matching, preferring stable source identity such as:
-
-1. source + source ID
-2. info hash
-3. provider-specific fallback identity when neither is available
+The service executes exactly one provider query for each discovery action. A zero-result or provider failure is returned to the caller without automatic progressive broadening or retry.
 
 Search profile ordering and parsing profile ordering are separate concerns. Search field order is request intent and can be overridden by the discovery UI, while parsing rules remain independent.
 

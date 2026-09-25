@@ -7,7 +7,7 @@ let pipelineResponse: AnimePipeline;
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
 
-const anime = {"id":"019a0000-0000-7000-8000-000000000010","title":"Browser Smoke Anime","titles":{"romaji":"Browser Smoke Anime","jp":"ブラウザスモークアニメ"},"year":2026,"season":"fall","weekday":"friday","air_time":"23:00:00","timezone":"Asia/Tokyo","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z","episodes":[{"id":"019a0000-0000-7000-8000-000000000011","anime_id":"019a0000-0000-7000-8000-000000000010","episode_number":1,"title":"Episode One","source":"nyaa","source_id":"e2e-1","source_title":"Episode One","source_url":"https://e2e.invalid/release/1","torrent_url":"https://e2e.invalid/download/1.torrent","size":"1 GiB","seeders":8,"leechers":1,"downloads":10,"info_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","download_status":"completed","conversion_status":"completed","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z"}]};
+const anime = {"id":"019a0000-0000-7000-8000-000000000010","title":"Browser Smoke Anime","titles":{"romaji":"Browser Smoke Romaji","jp":"ブラウザスモークアニメ","en":"Browser Smoke English"},"year":2026,"season":"fall","weekday":"friday","air_time":"23:00:00","timezone":"Asia/Tokyo","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z","episodes":[{"id":"019a0000-0000-7000-8000-000000000011","anime_id":"019a0000-0000-7000-8000-000000000010","episode_number":1,"title":"Episode One","source":"nyaa","source_id":"e2e-1","source_title":"Episode One","source_url":"https://e2e.invalid/release/1","torrent_url":"https://e2e.invalid/download/1.torrent","size":"1 GiB","seeders":8,"leechers":1,"downloads":10,"info_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","download_status":"completed","conversion_status":"completed","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z"}]};
 const pipeline: AnimePipeline = {"anime_id":"019a0000-0000-7000-8000-000000000010","episodes":[{"episode_id":"019a0000-0000-7000-8000-000000000011","episode_number":1,"title":"Episode One","download":{"job_id":"019a0000-0000-7000-8000-000000000099","status":"completed","downloaded_bytes":1048576,"total_bytes":1048576,"error_message":null,"updated_at":"2026-09-25T00:05:00Z"},"processing":{"job_id":"019a0000-0000-7000-8000-000000000100","preparation_job_id":"019a0000-0000-7000-8000-000000000101","status":"completed","progress_percent":100,"playable_ready":true,"error_message":null},"subtitles":"completed","attachments":"completed","streaming":{"job_id":"019a0000-0000-7000-8000-000000000102","status":"completed","progress_percent":100,"hls_ready":true,"dash_ready":true,"error_message":null},"thumbnail":{"status":"completed","progress_percent":100,"url":"https://e2e.invalid/anime/episode-one-sprite.jpg","vtt_url":"https://e2e.invalid/anime/episode-one-sprite.vtt","error_message":null},"current_stage":null,"playback_ready":true,"active":false}]};
 
 const transparentPng = Buffer.from(
@@ -463,13 +463,56 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
     discovery.getByRole("heading", { name: "Find releases" }),
   ).toBeVisible();
 
-  await expect(discovery.getByRole("textbox", { name: "Anime title", exact: true })).toHaveValue("Browser Smoke Anime");
-  await discovery.getByRole("textbox", { name: "Release group", exact: true }).fill("ExampleSubs");
+  const titleInput = discovery.getByRole("textbox", {
+    name: "Title",
+    exact: true,
+  });
+  await expect(titleInput).toHaveValue("Browser Smoke Romaji");
+
+  const titleSourceButton = discovery.getByRole("button", {
+    name: "Title source",
+  });
+  await titleSourceButton.click();
+  await expect(
+    page.getByRole("option", { name: "English", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("option", { name: "English", exact: true }).click();
+  await expect(titleInput).toHaveValue("Browser Smoke English");
+
+  await titleInput.fill("Browser Smoke Custom");
+
+  const groupCheckbox = discovery.getByRole("checkbox", {
+    name: "Enable Group",
+  });
+  const groupCheckboxLabel = groupCheckbox.locator("xpath=ancestor::label[1]");
+  await groupCheckboxLabel.click();
+  await expect(groupCheckbox).not.toBeChecked();
+  await groupCheckboxLabel.click();
+  await expect(groupCheckbox).toBeChecked();
+
+  const rows = discovery.locator("[data-search-field]");
+  await expect(rows.nth(0)).toHaveAttribute("data-search-field", "group");
+  await expect(rows.nth(1)).toHaveAttribute("data-search-field", "title");
+
+  const titleHandle = discovery.getByRole("button", {
+    name: "Reorder Title",
+  });
+  await expect(titleHandle).toHaveAttribute("draggable", "true");
+  await titleHandle.press("Space");
+  await titleHandle.press("ArrowDown");
+  await titleHandle.press("Space");
+  await expect(rows.nth(1)).toHaveAttribute("data-search-field", "episode");
+  await expect(rows.nth(2)).toHaveAttribute("data-search-field", "title");
+
   await discovery
     .getByRole("spinbutton", { name: "Episode", exact: true })
     .fill("1");
-  await discovery.getByRole("textbox", { name: "Resolution", exact: true }).fill("1080p");
-  await discovery.getByRole("textbox", { name: "Video codec", exact: true }).fill("HEVC");
+  await discovery
+    .getByRole("textbox", { name: "Resolution", exact: true })
+    .fill("1080p");
+  await discovery
+    .getByRole("textbox", { name: "Codec", exact: true })
+    .fill("HEVC");
   await discovery
     .getByRole("button", { name: "Discover releases" })
     .click();

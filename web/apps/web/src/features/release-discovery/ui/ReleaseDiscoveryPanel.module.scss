@@ -37,6 +37,7 @@
 }
 
 .queryConfig {
+  position: relative;
   padding: 0.9rem;
   border: 1px solid #26324a;
   border-radius: 0.7rem;
@@ -64,57 +65,229 @@
 }
 
 .fieldOrderItem {
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto minmax(7.5rem, auto) minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  min-height: 2.35rem;
-  padding: 0.25rem 0.4rem;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
   border: 1px solid #26324a;
   border-radius: 0.55rem;
+  background: #0f172a;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    opacity 120ms ease;
 }
 
-.fieldOrderItem label {
-  display: flex;
+.fieldOrderItem[data-drop-position="before"]::before,
+.fieldOrderItem[data-drop-position="after"]::after {
+  position: absolute;
+  right: 0.25rem;
+  left: 0.25rem;
+  height: 2px;
+  content: "";
+  border-radius: 999px;
+  background: #60a5fa;
+  pointer-events: none;
+}
+
+.fieldOrderItem[data-drop-position="before"]::before {
+  top: -0.28rem;
+}
+
+.fieldOrderItem[data-drop-position="after"]::after {
+  bottom: -0.28rem;
+}
+
+.dragHandle {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
   align-items: center;
-  gap: 0.55rem;
-  min-width: 0;
-  color: #cbd5e1;
-  font-size: 0.8rem;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: #64748b;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dragHandle:hover,
+.dragHandle:focus-visible,
+.dragHandle[aria-pressed="true"] {
+  background: #172036;
+  color: #e2e8f0;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.dragHandle:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.fieldOrderItem > [data-selected="true"] {
+  color: #dbeafe;
 }
 
 .checkboxMark {
+  position: relative;
+  display: inline-flex;
   width: 1rem;
   height: 1rem;
   box-sizing: border-box;
-  border: 1px solid #475569;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #64748b;
   border-radius: 0.25rem;
   background: #0f172a;
 }
 
+.checkboxMark::after {
+  color: #eff6ff;
+  content: "✓";
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0;
+  transform: scale(0.75);
+  transition:
+    opacity 100ms ease,
+    transform 100ms ease;
+}
+
 .fieldOrderItem [data-selected="true"] .checkboxMark {
-  border-color: #2563eb;
-  background: #1d4ed8;
+  border-color: #60a5fa;
+  background: #2563eb;
 }
 
-.orderButtons {
+.fieldOrderItem [data-selected="true"] .checkboxMark::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.fieldMeta {
   display: flex;
-  gap: 0.35rem;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.orderButton {
-  width: 2rem;
-  height: 1.9rem;
+.fieldLabel {
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.titleSource {
+  min-width: 7.5rem;
+}
+
+.selectButton {
+  display: inline-flex;
+  min-height: 1.85rem;
+  min-width: 7.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.55rem;
   border: 1px solid #334155;
   border-radius: 0.45rem;
   background: #111827;
   color: #cbd5e1;
+  font-size: 0.72rem;
   cursor: pointer;
 }
 
-.orderButton:disabled {
-  opacity: 0.35;
-  cursor: default;
+.selectButton:hover,
+.selectButton[data-focused="true"] {
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+.selectButton[data-focus-visible] {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.selectPopover {
+  min-width: 10rem;
+  padding: 0.25rem;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  background: #0f172a;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 35%);
+}
+
+.selectListBox {
+  display: grid;
+  gap: 0.15rem;
+  outline: 0;
+}
+
+.selectItem {
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.4rem;
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  cursor: pointer;
+  outline: 0;
+}
+
+.selectItem[data-focused="true"],
+.selectItem[data-hovered="true"] {
+  background: #172036;
+  color: #f8fafc;
+}
+
+.selectItem[data-selected="true"] {
+  background: #1d4ed8;
+  color: #eff6ff;
+}
+
+.inlineField {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.inlineLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.inlineField input {
+  width: 100%;
+  min-height: 2.2rem;
+  box-sizing: border-box;
+  padding: 0 0.65rem;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  background: #0b1222;
+  color: #f8fafc;
+}
+
+.inlineField input:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.inlineField [slot="errorMessage"] {
+  color: #fca5a5;
+  font-size: 0.7rem;
 }
 
 .preview {
@@ -137,44 +310,16 @@
   line-height: 1.45;
 }
 
-.fields {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.9rem;
-}
-
-.field {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-}
-
-.field label {
-  color: #cbd5e1;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.field input {
-  width: 100%;
-  min-height: 2.4rem;
-  box-sizing: border-box;
-  padding: 0 0.65rem;
-  border: 1px solid #334155;
-  border-radius: 0.55rem;
-  background: #0b1222;
-  color: #f8fafc;
-}
-
-.field input:focus-visible {
-  outline: 2px solid #60a5fa;
-  outline-offset: 2px;
-}
-
-.field [slot="errorMessage"] {
-  color: #fca5a5;
-  font-size: 0.75rem;
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .actions {

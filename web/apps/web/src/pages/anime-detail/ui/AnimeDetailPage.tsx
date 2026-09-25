@@ -10,7 +10,9 @@ import {
 } from "../../../features/anime-detail/model/useAnimePipeline";
 import { useAnimePipelineRealtime } from "../../../features/anime-detail/model/useAnimePipelineRealtime";
 import { useDeleteAnime } from "../../../features/anime-edit/model/useEditAnime";
-import ReleaseDiscoveryPanel from "../../../features/release-discovery/ui/ReleaseDiscoveryPanel";
+import ReleaseDiscoveryPanel, {
+  type ReleaseDiscoveryTitleOption,
+} from "../../../features/release-discovery/ui/ReleaseDiscoveryPanel";
 import AnimeEditForm from "../../../features/anime-edit/ui/AnimeEditForm";
 import EpisodeManagement from "../../../features/episode-management/ui/EpisodeManagement";
 import EpisodePipelineCard from "../../../widgets/episode-pipeline/ui/EpisodePipelineCard";
@@ -71,6 +73,46 @@ export default function AnimeDetailPage() {
   }
 
   const anime = query.data;
+  const releaseTitleOptions = [
+    {
+      key: "romaji",
+      label: "Romaji",
+      value: anime.titles.romaji ?? "",
+    },
+    {
+      key: "jp",
+      label: "Japanese",
+      value: anime.titles.jp ?? "",
+    },
+    {
+      key: "ko",
+      label: "Korean",
+      value: anime.titles.ko ?? "",
+    },
+    {
+      key: "en",
+      label: "English",
+      value: anime.titles.en ?? "",
+    },
+    {
+      key: "main",
+      label: "Main title",
+      value: anime.title,
+    },
+    {
+      key: "custom",
+      label: "Custom",
+      value: "",
+    },
+  ] satisfies ReleaseDiscoveryTitleOption[];
+
+  const availableReleaseTitleOptions = releaseTitleOptions.filter(
+    (option) => option.key === "custom" || option.value.trim().length > 0,
+  );
+
+  const defaultReleaseTitleSource = anime.titles.romaji?.trim()
+    ? "romaji"
+    : "main";
 
   return (
     <main className={styles.page}>
@@ -122,7 +164,10 @@ export default function AnimeDetailPage() {
 
       {!isEditing ? (
         <>
-          <ReleaseDiscoveryPanel animeTitle={anime.title} />
+          <ReleaseDiscoveryPanel
+            titleOptions={availableReleaseTitleOptions}
+            defaultTitleSource={defaultReleaseTitleSource}
+          />
           <section
             className={styles.pipelineSummary}
           aria-labelledby="episodes-heading"

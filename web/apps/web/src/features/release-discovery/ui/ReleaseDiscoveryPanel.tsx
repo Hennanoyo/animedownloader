@@ -6,6 +6,11 @@ import {
   Form,
   Input,
   Label,
+  ListBox,
+  ListBoxItem,
+  Popover,
+  Select,
+  SelectValue,
   Text,
   TextField,
 } from "react-aria-components";
@@ -46,12 +51,26 @@ const DEFAULT_FIELD_ORDER: SearchField[] = [
 ];
 
 const FIELD_LABELS: Record<SearchField, string> = {
-  group: "Release group",
-  title: "Anime title",
+  group: "Group",
+  title: "Title",
   episode: "Episode",
   resolution: "Resolution",
-  codec: "Video codec",
+  codec: "Codec",
 };
+
+export type ReleaseDiscoveryTitleSource =
+  | "romaji"
+  | "jp"
+  | "ko"
+  | "en"
+  | "main"
+  | "custom";
+
+export interface ReleaseDiscoveryTitleOption {
+  key: ReleaseDiscoveryTitleSource;
+  label: string;
+  value: string;
+}
 
 type Values = z.infer<typeof schema>;
 
@@ -91,12 +110,43 @@ function moveField(
   return next;
 }
 
+function moveFieldToTarget(
+  order: SearchField[],
+  field: SearchField,
+  targetField: SearchField,
+  placeAfter: boolean,
+): SearchField[] {
+  if (field === targetField) return order;
+
+  const next = order.filter((item) => item !== field);
+  const targetIndex = next.indexOf(targetField);
+  const insertIndex = targetIndex + (placeAfter ? 1 : 0);
+  next.splice(insertIndex, 0, field);
+  return next;
+}
+
+function getTitleOption(
+  options: ReleaseDiscoveryTitleOption[],
+  key: ReleaseDiscoveryTitleSource,
+): ReleaseDiscoveryTitleOption {
+  return (
+    options.find((option) => option.key === key) ??
+    options.find((option) => option.key === "main") ??
+    options[0]
+  );
+}
+
 export default function ReleaseDiscoveryPanel({
-  animeTitle,
+  titleOptions,
+  defaultTitleSource,
 }: {
-  animeTitle: string;
+  titleOptions: ReleaseDiscoveryTitleOption[];
+  defaultTitleSource: ReleaseDiscoveryTitleSource;
 }) {
+  const initialTitleOption = getTitleOption(titleOptions, defaultTitleSource);
   const [request, setRequest] = useState<ReleaseDiscoveryInput | null>(null);
+  const [selectedTitleSource, setSelectedTitleSource] =
+    useState<ReleaseDiscoveryTitleSource>(initialTitleOption.key);
   const [fieldOrder, setFieldOrder] =
     useState<SearchField[]>(DEFAULT_FIELD_ORDER);
   const [enabledFields, setEnabledFields] =
@@ -107,10 +157,18 @@ export default function ReleaseDiscoveryPanel({
       resolution: true,
       codec: true,
     });
+  const [draggedField, setDraggedField] = useState<SearchField | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    field: SearchField;
+    placeAfter: boolean;
+  } | null>(null);
+  const [keyboardGrabbedField, setKeyboardGrabbedField] =
+    useState<SearchField | null>(null);
+  const [dragAnnouncement, setDragAnnouncement] = useState("");
 
   const form = useForm({
     defaultValues: {
-      title: animeTitle,
+      title: initialTitleOption.value,
       group: "",
       episode: "",
       resolution: "",
@@ -142,6 +200,112 @@ export default function ReleaseDiscoveryPanel({
     [enabledFields, fieldOrder],
   );
 
+  function handleTitleSourceChange(key: string | number | null) {
+    if (key === null) return;
+    const source = String(key) as ReleaseDiscoveryTitleSource;
+    const option = getTitleOption(titleOptions, source);
+    setSelectedTitleSource(option.key);
+    if (option.key !== "custom") {
+      form.setFieldValue("title", option.value);
+    }
+  }
+
+  function handleDragStart(
+    event: React.DragEvent<HTMLButtonElement>,
+    field: SearchField,
+  ) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", field);
+    setDraggedField(field);
+    setDropTarget(null);
+    setDragAnnouncement(
+      `Dragging ${FIELD_LABELS[field]}. Drop it before or after another field.`,
+    );
+  }
+
+  function handleDragOver(
+    event: React.DragEvent<HTMLLIElement>,
+    field: SearchField,
+  ) {
+    if (!draggedField || draggedField === field) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const placeAfter = event.clientY > rect.top + rect.height / 2;
+    setDropTarget({ field, placeAfter });
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLLIElement>, field: SearchField) {
+    event.preventDefault();
+
+    const source =
+      (event.dataTransfer.getData("text/plain") as SearchField) ||
+      draggedField;
+    if (!source || source === field) {
+      setDraggedField(null);
+      setDropTarget(null);
+      return;
+    }
+
+    const placeAfter =
+      dropTarget?.field === field ? dropTarget.placeAfter : false;
+    const nextOrder = moveFieldToTarget(
+      fieldOrder,
+      source,
+      field,
+      placeAfter,
+    );
+    setFieldOrder(nextOrder);
+    setDraggedField(null);
+    setDropTarget(null);
+    setDragAnnouncement(
+      `${FIELD_LABELS[source]} moved ${placeAfter ? "after" : "before"} ${FIELD_LABELS[field]}.`,
+    );
+  }
+
+  function handleReorderKeyDown(
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    field: SearchField,
+  ) {
+    if (event.key === " ") {
+      event.preventDefault();
+      const grabbing = keyboardGrabbedField === field;
+      setKeyboardGrabbedField(grabbing ? null : field);
+      setDragAnnouncement(
+        grabbing
+          ? `${FIELD_LABELS[field]} released.`
+          : `${FIELD_LABELS[field]} grabbed. Use Arrow Up or Arrow Down to move it, then Space to release.`,
+      );
+      return;
+    }
+
+    if (event.key === "Escape" && keyboardGrabbedField === field) {
+      event.preventDefault();
+      setKeyboardGrabbedField(null);
+      setDragAnnouncement(`${FIELD_LABELS[field]} released.`);
+      return;
+    }
+
+    if (
+      keyboardGrabbedField !== field ||
+      (event.key !== "ArrowUp" && event.key !== "ArrowDown")
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    const direction = event.key === "ArrowUp" ? -1 : 1;
+    const nextOrder = moveField(fieldOrder, field, direction);
+    if (nextOrder === fieldOrder) return;
+
+    setFieldOrder(nextOrder);
+    const position = nextOrder.indexOf(field) + 1;
+    setDragAnnouncement(
+      `${FIELD_LABELS[field]} moved to position ${position} of ${nextOrder.length}.`,
+    );
+  }
+
   return (
     <section
       className={styles.panel}
@@ -152,8 +316,8 @@ export default function ReleaseDiscoveryPanel({
         <p className={styles.kicker}>Release discovery</p>
         <h2 id="release-discovery-heading">Find releases</h2>
         <p className={styles.description}>
-          Runs exactly one Nyaa search per click. Enable, disable, or reorder
-          fields, then edit their values before searching again.
+          Runs exactly one Nyaa search per click. Reorder fields by dragging
+          them, or use the keyboard handle to move them before searching.
         </p>
       </div>
 
@@ -170,14 +334,61 @@ export default function ReleaseDiscoveryPanel({
         >
           <div>
             <h3 id="search-fields-heading">Search fields</h3>
-            <p>Enabled fields are sent in the order shown here.</p>
+            <p>
+              Check the fields to include, edit values inline, and drag rows to
+              change query order.
+            </p>
           </div>
 
+          <p id="search-fields-reorder-help" className={styles.srOnly}>
+            Drag handles support mouse dragging. For keyboard access, focus a
+            handle, press Space, use Arrow Up or Arrow Down to move the field,
+            then press Space again.
+          </p>
+
           <ol className={styles.fieldOrder}>
-            {fieldOrder.map((field, index) => {
+            {fieldOrder.map((field) => {
               const label = FIELD_LABELS[field];
+              const isDropTarget = dropTarget?.field === field;
+
               return (
-                <li className={styles.fieldOrderItem} key={field}>
+                <li
+                  className={styles.fieldOrderItem}
+                  data-search-field={field}
+                  data-drop-position={
+                    isDropTarget
+                      ? dropTarget.placeAfter
+                        ? "after"
+                        : "before"
+                      : undefined
+                  }
+                  key={field}
+                  onDragOver={(event) => handleDragOver(event, field)}
+                  onDragLeave={() => {
+                    if (dropTarget?.field === field) {
+                      setDropTarget(null);
+                    }
+                  }}
+                  onDrop={(event) => handleDrop(event, field)}
+                >
+                  <button
+                    type="button"
+                    className={styles.dragHandle}
+                    draggable
+                    aria-describedby="search-fields-reorder-help"
+                    aria-label={`Reorder ${label}`}
+                    aria-pressed={keyboardGrabbedField === field}
+                    data-drag-handle={field}
+                    onDragStart={(event) => handleDragStart(event, field)}
+                    onDragEnd={() => {
+                      setDraggedField(null);
+                      setDropTarget(null);
+                    }}
+                    onKeyDown={(event) => handleReorderKeyDown(event, field)}
+                  >
+                    <span aria-hidden="true">☰</span>
+                  </button>
+
                   <Checkbox
                     isSelected={enabledFields[field]}
                     onChange={(selected) =>
@@ -186,39 +397,79 @@ export default function ReleaseDiscoveryPanel({
                         [field]: selected,
                       }))
                     }
+                    aria-label={`Enable ${label}`}
                   >
                     <span className={styles.checkboxMark} aria-hidden="true" />
-                    <span>{label}</span>
                   </Checkbox>
 
-                  <div className={styles.orderButtons}>
-                    <Button
-                      type="button"
-                      className={styles.orderButton}
-                      onPress={() =>
-                        setFieldOrder((current) =>
-                          moveField(current, field, -1),
-                        )
-                      }
-                      isDisabled={index === 0}
-                      aria-label={"Move " + label + " up"}
-                    >
-                      ↑
-                    </Button>
-                    <Button
-                      type="button"
-                      className={styles.orderButton}
-                      onPress={() =>
-                        setFieldOrder((current) =>
-                          moveField(current, field, 1),
-                        )
-                      }
-                      isDisabled={index === fieldOrder.length - 1}
-                      aria-label={"Move " + label + " down"}
-                    >
-                      ↓
-                    </Button>
+                  <div className={styles.fieldMeta}>
+                    <span className={styles.fieldLabel}>{label}</span>
+
+                    {field === "title" ? (
+                      <Select
+                        aria-label="Title source"
+                        className={styles.titleSource}
+                        selectedKey={selectedTitleSource}
+                        onSelectionChange={handleTitleSourceChange}
+                      >
+                        <Button className={styles.selectButton}>
+                          <SelectValue />
+                          <span aria-hidden="true">▾</span>
+                        </Button>
+                        <Popover className={styles.selectPopover}>
+                          <ListBox className={styles.selectListBox}>
+                            {titleOptions.map((option) => (
+                              <ListBoxItem
+                                id={option.key}
+                                key={option.key}
+                                className={styles.selectItem}
+                              >
+                                {option.label}
+                              </ListBoxItem>
+                            ))}
+                          </ListBox>
+                        </Popover>
+                      </Select>
+                    ) : null}
                   </div>
+
+                  <form.Field name={field}>
+                    {(fieldState) => (
+                      <TextField
+                        className={styles.inlineField}
+                        isInvalid={fieldState.state.meta.errors.length > 0}
+                        isRequired={field === "title"}
+                        validationBehavior="aria"
+                      >
+                        <Label className={styles.inlineLabel}>{label}</Label>
+                        <Input
+                          type={field === "episode" ? "number" : "text"}
+                          inputMode={field === "episode" ? "numeric" : undefined}
+                          value={fieldState.state.value}
+                          placeholder={
+                            field === "title"
+                              ? "Sousou no Frieren"
+                              : field === "group"
+                                ? "ExampleSubs"
+                                : field === "episode"
+                                  ? "08"
+                                  : field === "resolution"
+                                    ? "1080p"
+                                    : "HEVC"
+                          }
+                          onBlur={fieldState.handleBlur}
+                          onChange={(event) =>
+                            fieldState.handleChange(event.target.value)
+                          }
+                        />
+                        {fieldState.state.meta.errors.length > 0 ? (
+                          <Text slot="errorMessage">
+                            {String(fieldState.state.meta.errors[0])}
+                          </Text>
+                        ) : null}
+                      </TextField>
+                    )}
+                  </form.Field>
                 </li>
               );
             })}
@@ -236,99 +487,6 @@ export default function ReleaseDiscoveryPanel({
             )}
           </form.Subscribe>
         </section>
-
-        <div className={styles.fields}>
-          <form.Field name="title">
-            {(field) => (
-              <TextField
-                className={styles.field}
-                isRequired
-                isInvalid={field.state.meta.errors.length > 0}
-                validationBehavior="aria"
-              >
-                <Label>Anime title</Label>
-                <Input
-                  value={field.state.value}
-                  placeholder="Sousou no Frieren"
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                />
-                {field.state.meta.errors.length > 0 ? (
-                  <Text slot="errorMessage">
-                    {String(field.state.meta.errors[0])}
-                  </Text>
-                ) : null}
-              </TextField>
-            )}
-          </form.Field>
-
-          <form.Field name="group">
-            {(field) => (
-              <TextField className={styles.field} validationBehavior="aria">
-                <Label>Release group</Label>
-                <Input
-                  value={field.state.value}
-                  placeholder="ExampleSubs"
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                />
-              </TextField>
-            )}
-          </form.Field>
-
-          <form.Field name="episode">
-            {(field) => (
-              <TextField
-                className={styles.field}
-                isInvalid={field.state.meta.errors.length > 0}
-                validationBehavior="aria"
-              >
-                <Label>Episode</Label>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={field.state.value}
-                  placeholder="08"
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                />
-                {field.state.meta.errors.length > 0 ? (
-                  <Text slot="errorMessage">
-                    {String(field.state.meta.errors[0])}
-                  </Text>
-                ) : null}
-              </TextField>
-            )}
-          </form.Field>
-
-          <form.Field name="resolution">
-            {(field) => (
-              <TextField className={styles.field} validationBehavior="aria">
-                <Label>Resolution</Label>
-                <Input
-                  value={field.state.value}
-                  placeholder="1080p"
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                />
-              </TextField>
-            )}
-          </form.Field>
-
-          <form.Field name="codec">
-            {(field) => (
-              <TextField className={styles.field} validationBehavior="aria">
-                <Label>Video codec</Label>
-                <Input
-                  value={field.state.value}
-                  placeholder="HEVC"
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                />
-              </TextField>
-            )}
-          </form.Field>
-        </div>
 
         <div className={styles.actions}>
           <Button
@@ -364,6 +522,10 @@ export default function ReleaseDiscoveryPanel({
           profileVersion={query.data.search_profile_version}
         />
       ) : null}
+
+      <div className={styles.srOnly} aria-live="polite" aria-atomic="true">
+        {dragAnnouncement}
+      </div>
     </section>
   );
 }

@@ -514,14 +514,14 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await expect(rows.nth(1)).toHaveAttribute("data-search-field", "episode");
   await expect(rows.nth(2)).toHaveAttribute("data-search-field", "title");
 
-  const episodeRow = discovery.locator('[data-search-field="episode"]');
-  const episodeInput = episodeRow.getByRole("combobox", {
+  const episodeInput = discovery.getByRole("combobox", {
     name: "Episode",
     exact: true,
   });
   await episodeInput.fill("1");
-  await episodeRow.getByRole("button").last().click();
-  const episodeList = page.getByRole("listbox").last();
+  const episodeList = page.getByRole("listbox", {
+    name: "Suggestions Episode",
+  });
   const episodePopover = episodeList.locator("..");
   await expect(episodeList.getByRole("option", { name: "24" })).toBeVisible();
   const popoverMetrics = await episodePopover.evaluate((element) => ({

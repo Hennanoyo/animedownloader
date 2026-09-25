@@ -226,6 +226,23 @@ test("receives live pipeline updates without polling", async ({ page }) => {
 
   await expect(page.getByText("1.0 MiB / 1.0 MiB", { exact: true })).toBeVisible();
 
+  await emitPipelineEvent({
+    version: 1,
+    type: "job.progress",
+    job_type: "media-preparation",
+    job_id: "019a0000-0000-7000-8000-000000000101",
+    status: "processing",
+    progress_percent: 0,
+    downloaded_bytes: null,
+    total_bytes: null,
+    error_message: null,
+    stage: "processing",
+    emitted_at: "2026-09-25T00:06:00.500Z",
+  });
+  await expect(
+    page.getByRole("progressbar", { name: "Preparing" }),
+  ).toBeVisible();
+
   const emitPipelineEvent = (payload: unknown) =>
     page.evaluate((eventPayload) => {
       const windowWithEmitter = window as unknown as {
@@ -324,6 +341,7 @@ test("offers pipeline continuation without restarting a completed download", asy
 
   await page.goto(`/animes/${ANIME_ID}`);
   const continueButton = page.getByRole("button", { name: "Continue" });
+  await expect(continueButton).not.toBeVisible();
   await expect(continueButton).toBeVisible();
   await continueButton.click();
   await expect.poll(() => retryRequests).toBe(1);

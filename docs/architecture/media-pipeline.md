@@ -94,7 +94,7 @@ Thumbnail generation is part of the media preparation pass when a playable artif
 
 Long-running media preparation and packaging jobs expose incremental progress through the shared Redis Pub/Sub → FastAPI WebSocket transport. Progress percentages are transient observations, not durable job state.
 
-For combined preparation, a single FFmpeg process may report the shared input timeline to both the Processing and Preview UI stages. The UI should treat this as progress through the common source-processing timeline rather than as two independent workloads.
+For combined preparation, a single FFmpeg process may report the shared input timeline to both the Processing and Preview UI stages. The UI should treat this as progress through the common source-processing timeline rather than as two independent workloads. The initial zero-progress interval is presented as a preparation state rather than a misleading 0% value, because FFmpeg may not advance the output-time counter while it initializes decoders, filters, and encoders. Recovery actions for pending stages are delayed briefly so normal stage transitions do not flash a Continue button; Continue remains available when a pending stage stays unresolved.
 
 ## Outputs
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Button,
@@ -30,6 +30,8 @@ interface Props {
   realtimeConnected?: boolean;
 }
 
+const CONTINUE_ACTION_DELAY_MS = 1000;
+
 const stages: { id: PipelineCurrentStage; label: string }[] = [
   { id: "download", label: "Download" },
   { id: "processing", label: "Processing" },
@@ -50,6 +52,11 @@ export default function EpisodePipelineCard({
   const [confirmAction, setConfirmAction] = useState<
     "delete-episode" | null
   >(null);
+  const actionableStage = getActionableStage(pipeline);
+  const continueActionStage = useDelayedContinueStage(
+    actionableStage,
+    pipeline,
+  );
   const pipelineId = "episode-pipeline-" + episode.id;
 
   async function handleDeleteEpisode() {
@@ -152,7 +159,11 @@ export default function EpisodePipelineCard({
               const stageStatus = getStageStatus(stage.id, pipeline);
               const completed = stageStatus === "completed";
               const current = pipeline.current_stage === stage.id;
-              const action = getStageAction(stage.id, pipeline);
+              const action = getStageAction(
+                stage.id,
+                pipeline,
+                continueActionStage,
+              );
 
               return (
                 <div key={stage.id} className={styles.stageWrap}>
@@ -502,8 +513,13 @@ function renderStageBody(
     ) {
       return (
         <StageProgress
-          label="Preparation"
+          label={
+            pipeline.processing.progress_percent > 0
+              ? "Preparation"
+              : "Preparing"
+          }
           value={pipeline.processing.progress_percent}
+          indeterminate={pipeline.processing.progress_percent <= 0}
         />
       );
     }
@@ -548,8 +564,11 @@ function renderStageBody(
     ) {
       return (
         <StageProgress
-          label="Sprite"
+          label={
+            pipeline.thumbnail.progress_percent > 0 ? "Sprite" : "Preparing"
+          }
           value={pipeline.thumbnail.progress_percent}
+          indeterminate={pipeline.thumbnail.progress_percent <= 0}
         />
       );
     }
@@ -586,8 +605,11 @@ function renderStageBody(
   ) {
     return (
       <StageProgress
-        label="Packaging"
+        label={
+          pipeline.streaming.progress_percent > 0 ? "Packaging" : "Preparing"
+        }
         value={pipeline.streaming.progress_percent}
+        indeterminate={pipeline.streaming.progress_percent <= 0}
       />
     );
   }
@@ -660,24 +682,33 @@ function OutputStatusList({ items }: { items: OutputStatus[] }) {
 interface StageProgressProps {
   label: string;
   value: number;
+  indeterminate?: boolean;
 }
 
-function StageProgress({ label, value }: StageProgressProps) {
+function StageProgress({
+  label,
+  value,
+  indeterminate = false,
+}: StageProgressProps) {
   return (
     <div className={styles.progressBlock}>
       <div className={styles.progressMeta}>
         <span>{label}</span>
-        <span>{value}%</span>
+        <span>{indeterminate ? "…" : value + "%"}</span>
       </div>
       <div
         className={styles.progressTrack}
+        data-indeterminate={indeterminate}
         role="progressbar"
         aria-label={label}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={value}
+        {...(indeterminate ? {} : { "aria-valuenow": value })}
       >
-        <div className={styles.progressFill} style={{ width: value + "%" }} />
+        <div
+          className={styles.progressFill}
+          style={{ width: indeterminate ? "35%" : value + "%" }}
+        />
       </div>
     </div>
   );
@@ -702,12 +733,25 @@ function getStageStatus(
 function getStageAction(
   stage: PipelineCurrentStage,
   pipeline: EpisodePipelineSummary,
+  continueActionStage: PipelineCurrentStage | null,
 ): "Continue" | "Retry" | null {
   const actionableStage = getActionableStage(pipeline);
   if (actionableStage === null || actionableStage !== stage) {
     return null;
   }
 
+  const action = getBaseStageAction(stage, pipeline);
+  if (action !== "Continue") {
+    return action;
+  }
+
+  return continueActionStage === stage ? "Continue" : null;
+}
+
+function getBaseStageAction(
+  stage: PipelineCurrentStage,
+  pipeline: EpisodePipelineSummary,
+): "Continue" | "Retry" | null {
   if (
     stage === "processing" &&
     (pipeline.processing.status === "pending" ||
@@ -733,6 +777,69 @@ function getStageAction(
   }
 
   return null;
+}
+
+function useDelayedContinueStage(
+  actionableStage: PipelineCurrentStage | null,
+  pipeline: EpisodePipelineSummary,
+): PipelineCurrentStage | null {
+  const pendingKey =
+    actionableStage !== null &&
+    getBaseStageAction(actionableStage, pipeline) === "Continue"
+      ? getPendingActionKey(actionableStage, pipeline)
+      : null;
+  const [readyKey, setReadyKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (pendingKey === null || actionableStage === null) {
+      setReadyKey(null);
+      return;
+    }
+
+    setReadyKey(null);
+    const timeoutId = window.setTimeout(() => {
+      setReadyKey(pendingKey);
+    }, CONTINUE_ACTION_DELAY_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [actionableStage, pendingKey]);
+
+  return readyKey === pendingKey && pendingKey !== null
+    ? actionableStage
+    : null;
+}
+
+function getPendingActionKey(
+  stage: PipelineCurrentStage,
+  pipeline: EpisodePipelineSummary,
+): string {
+  switch (stage) {
+    case "processing":
+      return [
+        stage,
+        pipeline.processing.status,
+        pipeline.processing.job_id ?? "",
+        pipeline.processing.preparation_job_id ?? "",
+      ].join(":");
+    case "preview":
+      return [
+        stage,
+        pipeline.thumbnail.status,
+        pipeline.processing.preparation_job_id ?? "",
+      ].join(":");
+    case "streaming":
+      return [
+        stage,
+        pipeline.streaming.status,
+        pipeline.streaming.job_id ?? "",
+      ].join(":");
+    case "download":
+      return [
+        stage,
+        pipeline.download.status,
+        pipeline.download.job_id ?? "",
+      ].join(":");
+  }
 }
 
 function getActionableStage(

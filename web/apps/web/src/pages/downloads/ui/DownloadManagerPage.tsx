@@ -23,13 +23,13 @@ const tabs = [
 export default function DownloadManagerPage() {
   const { status } = useSearch({ from: "/downloads" });
 
+  const realtime = useDownloadJobRealtime({
+    enabled: status === "all" || status === "active",
+  });
   const activeQuery = useDownloadJobs({
     statuses: [...activeDownloadStatuses],
     enabled: status === "all" || status === "active",
     realtimeConnected: realtime.connected,
-  });
-  const realtime = useDownloadJobRealtime({
-    enabled: (status === "all" || status === "active") && activeQuery.isSuccess,
   });
   const terminalQuery = useDownloadJobs({
     statuses: [...terminalDownloadStatuses],

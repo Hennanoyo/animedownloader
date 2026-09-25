@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is Realtime Job Progress. PR #23 through PR #31 are merged; PR #32 is the current development step.
+The current phase is Realtime Anime Detail Pipeline. PR #23 through PR #32 are merged; PR #33 is the next development step.
 
 ## Completed
 
@@ -464,7 +464,7 @@ Completed implementation:
 
 ### PR #32 — Realtime Job Progress
 
-**In progress on `feature/realtime-job-progress`.**
+**Merged into `main` as commit `134f7623ed15e3eb5b6a29651419e57f773ce08d`.**
 
 Goal: replace active Download Manager polling with a shared realtime progress transport that can later serve long-running download and media-processing jobs without making PostgreSQL the event bus.
 
@@ -523,11 +523,48 @@ Acceptance criteria:
 - Redis/WebSocket delivery failures do not change the durable DownloadJob outcome
 - Existing Backend, Frontend, Browser, and Integration CI remains green
 
-Future follow-up after PR #32:
+### PR #33 — Realtime Anime Detail Pipeline
 
-- Extend the same event contract to MediaProcessingJob and the Anime detail media pipeline
-- Add coarse durable heartbeats/checkpoints only where restart/recovery semantics benefit from them
-- Consider queue prioritization and concurrency controls after realtime job state is stable
+Goal: extend the existing realtime job transport from DownloadJob to the Anime detail Episode pipeline, so download, processing, preview, and streaming-stage changes update without page polling.
+
+Planned scope:
+
+- Extend the existing `JobProgressEvent` contract usage to MediaProcessingJob, MediaPreparationJob, and MediaPackagingJob
+- Publish lifecycle/stage progress from the worker for those jobs without turning PostgreSQL into an event stream
+- Keep progress honest and stage-based; do not introduce fine-grained FFmpeg percentage reporting unless an existing processor already exposes reliable checkpoints
+- Connect the Anime detail pipeline to the same WebSocket transport and use the existing HTTP pipeline response as the initial snapshot/reconnect recovery source
+- Stop the current 2-second Anime detail pipeline polling while realtime connectivity is healthy, and resume it when the WebSocket is unavailable
+- Update Episode pipeline cards from realtime events while preserving the existing Download → Processing → Preview → Streaming presentation
+- Keep Download Manager realtime behavior unchanged and reuse the same WebSocket hub, schemas, and reconnect strategy
+- Add backend event-emission coverage, frontend cache/state coverage, and Playwright coverage for realtime Anime detail progress
+
+Design constraints:
+
+- PostgreSQL remains the durable source of truth
+- Redis Pub/Sub remains ephemeral delivery only; reconnects recover through the pipeline HTTP snapshot
+- Do not duplicate WebSocket hubs or create a second realtime protocol for media jobs
+- Do not redesign the Episode pipeline UI in this PR
+- Do not add queue scheduling or concurrency controls
+
+Out of scope:
+
+- Fine-grained FFmpeg progress bars
+- Media pipeline architecture changes
+- New media artifacts or storage changes
+- Queue prioritization/concurrency
+- Download Manager redesign
+
+Acceptance criteria:
+
+- Anime detail loads its current pipeline snapshot before applying realtime events
+- Download, processing, preparation/preview, and packaging/streaming state changes appear without periodic polling while WebSocket connectivity is healthy
+- Realtime disconnect causes automatic polling fallback and reconnect recovers from the HTTP snapshot
+- A terminal or stage transition does not leave an Episode card stale until the next polling interval
+- Redis/WebSocket failures do not change durable job outcomes
+- Existing Download Manager realtime behavior remains green
+- Backend, Frontend, Browser, and Integration CI remains green
+
+## Handoff Notes
 
 ## Handoff Notes
 

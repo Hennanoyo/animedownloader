@@ -6,6 +6,7 @@ from uuid import UUID, uuid7
 import pytest
 from animedownloader_config import JobProgressEvent
 from animedownloader_media import (
+    FFmpegProgressCallback,
     MediaFormat,
     MediaPreparationProcessingResult,
     MediaProbe,
@@ -122,7 +123,7 @@ class FakePreparationProcessor:
         vtt_path: Path,
         duration_seconds: float | None,
         operation: PlayableMediaOperation,
-        on_progress=None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> MediaPreparationProcessingResult:
         self.calls.append(
             (
@@ -164,7 +165,7 @@ class FakePlayableProcessor:
         output_path: Path,
         operation: PlayableMediaOperation,
         duration_seconds: float | None = None,
-        on_progress=None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> PlayableMediaProcessingResult:
         self.operations.append(operation)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -185,7 +186,7 @@ class FakeThumbnailProcessor:
         media_path: Path,
         output_dir: Path,
         duration_seconds: float | None,
-        on_progress=None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> ThumbnailSpriteResult:
         self.calls += 1
         output_dir.mkdir(parents=True, exist_ok=True)

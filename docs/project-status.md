@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is Unified Media Preparation & Realtime Stage Progress. PR #23 through PR #33 are merged; PR #34 is in development.
+The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #34 are merged; the next phase is Release Discovery & Episode Ingestion.
 
 ## Completed
 
@@ -542,7 +542,7 @@ The media pipeline currently reaches the correct user-visible stages, but the sh
 
 ### PR #34 — Unified Media Preparation & Realtime Stage Progress
 
-**In development.**
+**Completed.**
 
 Goal: make the Processing → Preview pipeline perform at most one source-video decode when both outputs are required, while exposing honest realtime progress for Processing, Preview, and Streaming.
 
@@ -615,6 +615,48 @@ Acceptance criteria:
 - Partial artifact completion and retry remain independent
 - Existing Download Manager realtime behavior remains green
 - Backend, Frontend, Browser, and Integration CI remains green
+
+### Next Phase — Release Discovery & Episode Ingestion
+
+The next feature phase should reduce manual Episode creation by turning external release discovery into a controlled ingestion workflow while keeping raw Nyaa RSS/search results ephemeral.
+
+### PR #35 — Release Discovery & Automatic Episode Ingestion
+
+Goal: discover candidate releases, match them to existing Anime records, and create or update Episodes through an explicit, idempotent ingestion flow without coupling discovery to automatic downloading.
+
+Scope:
+
+- Define an ephemeral release-discovery DTO/model; do not persist raw Nyaa RSS search results as general-purpose database records
+- Isolate Nyaa/RSS access behind a release-discovery service and provider adapter boundary
+- Normalize release titles and extract episode/release metadata needed for deterministic matching
+- Match discovered releases to an existing Anime using explicit, testable rules
+- Detect duplicates using stable source identity such as source ID and info hash
+- Add an Episode ingestion workflow that creates or updates an Episode from an accepted release
+- Keep title cleanup/editing available before persistence when automatic parsing is uncertain
+- Add API and Anime-detail UI support for discovering candidates and accepting an ingestion result
+- Add deterministic tests for parsing, matching, duplicate detection, and ingestion transactions
+- Reuse the existing DownloadJob flow but do not silently start downloads during discovery or ingestion
+- Keep manual Episode CRUD available as the fallback for ambiguous cases
+
+Design constraints:
+
+- Discovery results are ephemeral and are not stored as a release cache
+- Provider-specific behavior remains behind explicit adapters/services
+- The same source identity must produce an idempotent ingestion result
+- Ambiguous parsing must fail safely rather than creating an incorrect Episode
+- Do not introduce queue prioritization or automatic download scheduling in this PR
+
+Out of scope:
+
+- Automatic periodic release-discovery scheduling
+- Automatic downloading of newly ingested Episodes
+- Additional release providers
+- Subtitle/media-processing changes
+- Player changes
+
+Follow-up candidate:
+
+Media Source Lifecycle & Recovery can then reconcile completed DownloadJob records with the physical source input, recover missing media when appropriate, and define explicit orphan/cleanup policies.
 
 ## Handoff Notes
 

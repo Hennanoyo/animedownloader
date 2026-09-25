@@ -5,6 +5,7 @@ const ANIME_ID = "019a0000-0000-7000-8000-000000000010";
 let pipelineRequests = 0;
 let pipelineResponse: AnimePipeline;
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
+const INGESTED_EPISODE_ID = "019a0000-0000-7000-8000-000000000012";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
 
 const anime = {"id":"019a0000-0000-7000-8000-000000000010","title":"Browser Smoke Anime","titles":{"romaji":"Browser Smoke Romaji","jp":"ブラウザスモークアニメ","en":"Browser Smoke English"},"year":2026,"season":"fall","weekday":"friday","air_time":"23:00:00","timezone":"Asia/Tokyo","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z","episodes":[{"id":"019a0000-0000-7000-8000-000000000011","anime_id":"019a0000-0000-7000-8000-000000000010","episode_number":1,"title":"Episode One","source":"nyaa","source_id":"e2e-1","source_title":"Episode One","source_url":"https://e2e.invalid/release/1","torrent_url":"https://e2e.invalid/download/1.torrent","size":"1 GiB","seeders":8,"leechers":1,"downloads":10,"info_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","download_status":"completed","conversion_status":"completed","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z"}]};
@@ -110,7 +111,7 @@ test.beforeEach(async ({ page }) => {
 
     const episode = {
       ...anime.episodes[0],
-      id: EPISODE_ID + "-ingested",
+      id: INGESTED_EPISODE_ID,
       episode_number: 2,
       title: "Browser Smoke Anime - Episode 2",
       source_id: "e2e-release-1",
@@ -203,20 +204,6 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
     page.getByRole("heading", { name: "Episodes" }),
   ).toBeVisible();
   await expect(page.getByText("Episode One")).toBeVisible();
-
-  const discovery = page.getByLabel("Find releases");
-  await discovery.getByRole("button", { name: "Discover releases" }).click();
-  const resultCard = page.getByRole("article").filter({
-    hasText: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
-  });
-  await expect(
-    resultCard.getByRole("button", { name: "Add to this Anime" }),
-  ).toBeVisible();
-  await resultCard
-    .getByRole("button", { name: "Add to this Anime" })
-    .click();
-  await expect(page.getByText("Episode 2", { exact: false })).toBeVisible();
-  await expect(page.getByText("Episode 2 added to this Anime.")).toBeVisible();
 
   const thumbnail = page.getByRole("link", {
     name: "Episode One thumbnail",
@@ -569,6 +556,22 @@ test("keeps live download controls inside the download stage", async ({ page }) 
 
 
 test("discovers parsed releases from the anime detail page", async ({ page }) => {
+  const discovery = page.getByLabel("Find releases");
+  await discovery.getByRole("button", { name: "Discover releases" }).click();
+  const resultCard = page.getByRole("article").filter({
+    hasText: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
+  });
+  await expect(
+    resultCard.getByRole("button", { name: "Add to this Anime" }),
+  ).toBeVisible();
+  await resultCard
+    .getByRole("button", { name: "Add to this Anime" })
+    .click();
+  await expect(page.getByText("Episode 2", { exact: false })).toBeVisible();
+  await expect(
+    page.getByText("Episode 2 added to this Anime."),
+  ).toBeVisible();
+
   await page.goto("/animes/" + ANIME_ID);
 
   const discovery = page.getByRole("region", { name: "Find releases" });
@@ -683,5 +686,7 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await resultCard
     .getByRole("button", { name: "Add to this Anime" })
     .click();
-  await expect(resultCard).toContainText("Episode 1 added to this Anime.");
+  await expect(
+    resultCard,
+  ).toContainText("Episode 2 added to this Anime.");
 });

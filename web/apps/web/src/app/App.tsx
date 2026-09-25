@@ -25,6 +25,14 @@ export default function App() {
           >
             Anime
           </Link>
+          <Link
+            className={styles.navLink}
+            activeProps={{ className: styles.navLinkActive }}
+            search={{ status: "all" }}
+            to="/downloads"
+          >
+            Downloads
+          </Link>
         </nav>
       </header>
       <Outlet />

@@ -35,7 +35,7 @@ class AnimeMatcher:
         for anime in animes:
             variants = (("title", anime.title), *anime.titles.items())
             seen: set[str] = set()
-            for key, title in variants:
+            for _key, title in variants:
                 canonical = canonicalize_title(title)
                 if not canonical or canonical in seen:
                     continue

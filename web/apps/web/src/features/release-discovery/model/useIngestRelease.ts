@@ -6,7 +6,7 @@ export function useIngestRelease(animeId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: EpisodeIngestionInput) =>
+    mutationFn: (input: Omit<EpisodeIngestionInput, "anime_id">) =>
       ingestRelease({ ...input, anime_id: animeId }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["anime", animeId] });

@@ -32,9 +32,11 @@ export type JobProgressReadyEvent = z.infer<
 >;
 export type JobRealtimeMessage = z.infer<typeof jobRealtimeMessageSchema>;
 
-export function createJobProgressWebSocketUrl(jobType: string): string {
+export function createJobProgressWebSocketUrl(jobType?: string): string {
   const url = new URL("/api/job-events/ws", apiBaseUrl);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  url.searchParams.set("job_type", jobType);
+  if (jobType !== undefined) {
+    url.searchParams.set("job_type", jobType);
+  }
   return url.toString();
 }

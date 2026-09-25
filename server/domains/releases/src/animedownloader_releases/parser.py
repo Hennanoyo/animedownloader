@@ -312,7 +312,7 @@ def _build_result(
     parser_profile_version: int | None = None,
 ) -> ParsedRelease:
     return ParsedRelease(
-        source=release.source,
+        provider_source=release.source,
         source_id=release.id,
         original_title=release.title,
         normalized_title=normalized,

@@ -748,51 +748,68 @@ Out of scope:
 
 ### PR #39 — Release Profile Operations & Drift Detection
 
+**Merged into `main` as commit `5a5d495ec72429abbbc916068a5ab1649151cff0`.**
+
 Goal: make release-profile maintenance a first-class operational workflow after real-world releases have accumulated.
 
-UI follow-up refinements in the current PR:
-
-- Anime-detail title discovery now uses one ComboBox for saved language variants and transient custom values instead of a separate title-source Select.
-- Anime-detail search ComboBox popovers are height-constrained and vertically scrollable so long Episode lists stay inside the overlay.
-- Parser Rule editing uses collapsed one-line summaries so large rule sets remain scannable, with a chevron to reveal the full editor.
-- Expanded rules use three consistent detail rows: regex pattern + priority, regex flags + transform, and a full-width remove action.
-- Rule explanations are exposed as on-demand RAC tooltips instead of persistent microcopy, with immediate pointer-leave dismissal and visible spacing from the trigger.
-- Required-rule checkbox animation matches the Search fields interaction, and Transform choices no longer inflate the popover horizontally.
-- Parser suggestion listboxes use constrained scrolling with a dark-theme scrollbar that matches the surrounding popovers.
-- Release Group and Representative sample inputs use the same full-width control treatment as the rest of the page.
-- Representative sample cards use a stable content/action grid and wrap long release titles without introducing horizontal overflow.
-- Browser visual smoke coverage captures desktop and mobile Release Profiles layouts and asserts the page remains free of horizontal overflow.
-
-
-Scope:
+Completed scope:
 
 - Add parser profile administration UI
 - Show profile version history and activation state
 - Store/review representative parser samples
 - Compare active and draft parser results
-- Add parser-health aggregates such as parse-success/failure rates where justified
-- Surface likely naming-convention drift for manual review
+- Add parser-health aggregates and manual drift signals
 - Allow creation of a new profile version from observed failures
 - Add deterministic profile validation and regression coverage
 - Use consistent ComboBox-based discovery values, with persisted release-group suggestions
+- Refine discovery and parser-profile UI with compact controls, constrained popovers, dark-theme scrollbars, responsive layouts, and expandable rule cards
+- Validate the final browser UI with Playwright coverage at desktop and narrow responsive viewports
 
 Design constraints:
 
 - Drift detection is an observation/maintenance aid, not automatic profile activation
 - A detected drift must be reviewed and validated before becoming active
 - Do not persist raw RSS feeds merely to calculate profile health
+- Active parser profiles remain immutable
+
+### PR #40 — Anime Matching & Episode Ingestion
+
+**Next development phase.**
+
+Goal: turn parsed, ephemeral release candidates into explicit, reviewable Anime/Episode associations and transactional Episode state changes without starting downloads automatically.
+
+Implementation order:
+
+1. Define deterministic Anime matching around the existing `Anime.title` + structured `Anime.titles` metadata.
+2. Return explicit match states: matched, ambiguous, or unmatched, with candidate Anime records and match evidence suitable for user review.
+3. Introduce a provider-neutral ingestion contract that carries parsed release fields plus provenance already required by the Episode model.
+4. Implement transactional Episode ingestion for:
+   - new Anime + episode association when an existing Anime is explicitly selected;
+   - idempotent re-ingestion of the same external release using stable source identity;
+   - explicit replacement-candidate results when the episode number already exists with a different release.
+5. Preserve user-maintained Episode fields and never reset DownloadJob/media-processing state during re-ingestion.
+6. Keep discovery, matching, and ingestion separate from DownloadJob creation; accepting a release must not automatically start a torrent.
+7. Add backend API coverage for match ambiguity, idempotency, replacement candidates, and transactional rollback/conflict cases.
+8. Add frontend review/acceptance UI only after the matching/ingestion API contract is stable.
+
+Design constraints:
+
+- Raw provider search results remain ephemeral.
+- Matching is conservative and deterministic; do not auto-create an Anime from an unmatched release.
+- Year/season can be supporting evidence but release publication time is not authoritative Anime air metadata.
+- A different release for an already populated episode must never silently replace existing media-bearing state.
+- Re-ingestion may update mutable release provenance but must not overwrite user-edited Episode fields without explicit user acceptance.
+- Episode ingestion does not create or start a DownloadJob.
 
 Out of scope:
 
-- Automatic parser self-modification
-- Automatic profile activation
+- Automatic release ranking
+- Periodic discovery
 - Automatic downloads
+- Additional providers
+- Media/player changes
 
-### Deferred — Anime Matching & Episode Ingestion
-
-Keep the previously planned explicit Anime/Episode association and transactional ingestion work queued after the release-discovery UX and profile-operations phases. Its matching, ambiguity, replacement, idempotency, and user-review requirements remain unchanged.
-
-Follow-up candidate:
+Follow-up after PR #40:
 
 Media Source Lifecycle & Recovery can reconcile completed DownloadJob records with the physical source input, recover missing media when appropriate, and define explicit orphan/cleanup policies.
 

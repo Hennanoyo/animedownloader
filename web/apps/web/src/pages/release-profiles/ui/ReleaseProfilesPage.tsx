@@ -775,7 +775,10 @@ function RuleRow({
         <div className={styles.ruleControlCompact}>
           <div className={styles.labelRow}>
             <span className={styles.controlLabel}>Priority</span>
-            <span className={styles.helpText}>lower numbers run first</span>
+            <Hint label={"Rule " + (index + 1) + " priority"}>
+              Lower numbers run first. Use the priority to control the order
+              in which parser rules are evaluated.
+            </Hint>
           </div>
           <Input
             type="number"

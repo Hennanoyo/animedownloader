@@ -469,15 +469,16 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   });
   await expect(titleInput).toHaveValue("Browser Smoke Romaji");
 
-  const titleSourceButton = discovery.getByRole("button", {
-    name: "Romaji",
+  const titleOptionsButton = discovery.getByRole("button", {
+    name: "Show Title options",
     exact: true,
   });
-  await titleSourceButton.click();
-  await expect(
-    page.getByRole("option", { name: "English", exact: true }),
-  ).toBeVisible();
-  await page.getByRole("option", { name: "English", exact: true }).click();
+  await titleOptionsButton.click();
+  const englishOption = page.getByRole("option", {
+    name: /English Browser Smoke English/,
+  });
+  await expect(englishOption).toBeVisible();
+  await englishOption.click();
   await expect(titleInput).toHaveValue("Browser Smoke English");
 
   await titleInput.fill("Browser Smoke Custom");

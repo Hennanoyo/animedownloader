@@ -242,16 +242,8 @@ def _parse_generic(release: Release, normalized: str) -> ParsedRelease:
         if len(numeric_candidates) == 1:
             candidate = numeric_candidates[0]
             episode_number = int(candidate.group("episode"))
-            episode_start = _restore_stripped_index(
-                working,
-                _strip_technical_regions(working),
-                candidate.start(),
-            )
-            episode_end = _restore_stripped_index(
-                working,
-                _strip_technical_regions(working),
-                candidate.end(),
-            )
+            episode_start = candidate.start()
+            episode_end = candidate.end()
         elif len(numeric_candidates) > 1:
             warnings.append("multiple plausible episode numbers were found")
 
@@ -376,12 +368,6 @@ def _clean_series_title(
 def _strip_technical_regions(value: str) -> str:
     return _TECHNICAL_BRACKET_RE.sub(lambda match: " " * (match.end() - match.start()), value)
 
-
-def _restore_stripped_index(original: str, stripped: str, index: int) -> int:
-    # The stripped representation preserves character positions by replacing
-    # technical regions with spaces, so the index is already aligned.
-    del original
-    return index
 
 
 def _is_plausible_episode(value: str) -> bool:

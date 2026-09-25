@@ -20,6 +20,7 @@ from animedownloader_api.schemas import (
     AnimeMatchCandidateResponse,
     AnimeMatchResponse,
     EpisodeIngestionRequest,
+    EpisodeIngestionStatus as EpisodeIngestionStatusResponse,
     EpisodeIngestionResponse,
     EpisodeResponse,
     ParsedReleaseResponse,
@@ -161,7 +162,7 @@ def _ingestion_response(
     result: EpisodeIngestionResult,
 ) -> EpisodeIngestionResponse:
     return EpisodeIngestionResponse(
-        status=result.status.value,
+        status=EpisodeIngestionStatusResponse(result.status.value),
         episode=(
             EpisodeResponse.model_validate(result.episode)
             if result.episode is not None

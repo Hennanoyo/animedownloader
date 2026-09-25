@@ -522,13 +522,12 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   const episodeList = page.getByRole("listbox", {
     name: "Suggestions Episode",
   });
-  const episodePopover = episodeList.locator("..");
   await expect(episodeList.getByRole("option", { name: "24" })).toBeVisible();
-  const popoverMetrics = await episodePopover.evaluate((element) => ({
+  const listMetrics = await episodeList.evaluate((element) => ({
     clientHeight: element.clientHeight,
     scrollHeight: element.scrollHeight,
   }));
-  expect(popoverMetrics.scrollHeight).toBeGreaterThan(popoverMetrics.clientHeight);
+  expect(listMetrics.scrollHeight).toBeGreaterThan(listMetrics.clientHeight);
   await episodeInput.press("Escape");
 
   await discovery

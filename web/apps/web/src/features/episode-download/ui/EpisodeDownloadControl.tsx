@@ -45,11 +45,22 @@ export default function EpisodeDownloadControl({
   const deleteMutation = useDeleteDownloadJob(episodeId);
   const [confirm, setConfirm] = useState<"cancel" | "delete" | null>(null);
 
-  if (jobSnapshot === undefined && query.isPending) {
+  const job: DownloadJobSnapshot | null | undefined =
+    jobSnapshot ?? query.data;
+
+  if (
+    jobSnapshot === undefined &&
+    (job === undefined || job === null) &&
+    query.isPending
+  ) {
     return <span className={styles.message}>Checking...</span>;
   }
 
-  if (jobSnapshot === undefined && query.isError) {
+  if (
+    jobSnapshot === undefined &&
+    (job === undefined || job === null) &&
+    query.isError
+  ) {
     return (
       <div className={styles.control}>
         <span className={styles.error}>Failed to load download status.</span>
@@ -62,9 +73,6 @@ export default function EpisodeDownloadControl({
       </div>
     );
   }
-
-  const job: DownloadJobSnapshot | null | undefined =
-    jobSnapshot ?? query.data;
 
   if (job?.status === "pending" || job?.status === "downloading") {
     const pending = pauseMutation.isPending || cancelMutation.isPending;

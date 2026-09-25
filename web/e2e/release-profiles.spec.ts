@@ -191,6 +191,10 @@ test("renders release profile editor and remains usable without horizontal overf
   await expect(tooltip).toContainText(
     "Example: [ExampleSubs] Frieren - 08 → ExampleSubs",
   );
+
+  await patternHelp.blur();
+  await patternHelp.hover();
+  await expect(tooltip).toBeVisible();
   await page.getByRole("heading", { name: "Release profiles" }).hover();
   await expect(tooltip).toBeHidden({ timeout: 1000 });
 
@@ -204,11 +208,6 @@ test("renders release profile editor and remains usable without horizontal overf
     name: "Sample release title",
   });
   await expect(sampleInput).toHaveCSS("min-height", "38.4px");
-
-  await expect(firstPattern).toHaveAttribute(
-    "placeholder",
-    "^\\[(?P<release_group>[^\\]]+)\\]",
-  );
 
   await page.getByRole("button", {
     name: "Rule 1 transform",

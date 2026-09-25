@@ -73,13 +73,15 @@ The existing `Release` object is a transient transport representation. Search re
 
 Persistent data should describe:
 
-- Anime
+- Anime and its structured alternate titles
 - Episode
 - release-group definitions
 - versioned parser/search profiles
 - optional operational parser-health aggregates introduced later
 
 A persisted Episode retains the external provenance needed by the existing download flow, such as source, source ID, source title, source URL, torrent URL, and info hash.
+
+Anime keeps `title` as the representative display title and stores alternate forms in PostgreSQL JSONB `titles`, for example `{ "romaji": "Sousou no Frieren", "jp": "葬送のフリーレン", "ko": "장송의 프리렌", "en": "Frieren: Beyond Journey's End" }`. The release-discovery UI uses `titles.romaji` as its initial Nyaa search title and falls back to `title` when romaji is unavailable.
 
 ## Parsing strategy
 
@@ -242,7 +244,7 @@ Results from multiple queries must be deduplicated before parsing/matching, pref
 2. info hash
 3. provider-specific fallback identity when neither is available
 
-Search profile ordering and parsing profile ordering are separate concerns. A group may use one order for search queries while using another order for parsing title segments.
+Search profile ordering and parsing profile ordering are separate concerns. Search field order is request intent and can be overridden by the discovery UI, while parsing rules remain independent.
 
 ## Anime matching
 

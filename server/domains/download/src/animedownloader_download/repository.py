@@ -72,7 +72,7 @@ class DownloadJobRepository:
             .limit(limit)
         )
 
-        return list(result.all()), total
+        return list(result.tuples().all()), total
 
     async def add(self, job: DownloadJob) -> DownloadJob:
         self.session.add(job)

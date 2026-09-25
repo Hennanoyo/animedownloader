@@ -500,7 +500,8 @@ class FFmpegSubtitleProcessor:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         encoder = "copy" if codec in {"ass", "ssa"} else "ass"
 
-        result = await self._runner.run(
+        result = await run_ffmpeg(
+            self._runner,
             (
                 self._executable,
                 "-v",
@@ -657,6 +658,8 @@ class FFmpegPlayableMediaProcessor:
         media_path: Path,
         output_path: Path,
         operation: PlayableMediaOperation,
+        duration_seconds: float | None = None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> PlayableMediaProcessingResult:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -693,6 +696,8 @@ class FFmpegPlayableMediaProcessor:
                 "+faststart",
                 str(output_path),
             ),
+            duration_seconds=duration_seconds,
+            on_progress=on_progress,
         )
 
         if result.returncode != 0:

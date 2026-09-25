@@ -1,8 +1,10 @@
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from pathlib import Path
 from uuid import UUID, uuid7
 
 import pytest
+from animedownloader_config import JobProgressEvent
 from animedownloader_media import (
     MediaFormat,
     MediaPreparationProcessingResult,
@@ -286,7 +288,7 @@ def make_runner(
     preparation: FakePreparationProcessor,
     playable: FakePlayableProcessor,
     thumbnail: FakeThumbnailProcessor,
-    on_progress=None,
+    on_progress: Callable[[JobProgressEvent], Awaitable[None]] | None = None,
 ) -> MediaPreparationRunner:
     return MediaPreparationRunner(
         state=state,
@@ -312,8 +314,8 @@ async def test_runner_combines_playable_and_thumbnail_generation(tmp_path: Path)
 
     events: list[tuple[str, float | None]] = []
 
-    async def on_progress(event: object) -> None:
-        events.append((getattr(event, "status"), getattr(event, "progress_percent")))
+    async def on_progress(event: JobProgressEvent) -> None:
+        events.append((event.status, event.progress_percent))
 
     runner = make_runner(
         tmp_path,

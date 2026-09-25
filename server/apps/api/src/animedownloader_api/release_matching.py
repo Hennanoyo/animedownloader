@@ -5,13 +5,13 @@ from collections import defaultdict
 from collections.abc import Iterable
 from uuid import UUID
 
+from animedownloader_anime import Anime
 from animedownloader_releases import (
     AnimeMatchCandidate,
     AnimeMatchResult,
     AnimeMatchStatus,
     ParsedRelease,
 )
-from animedownloader_anime import Anime
 
 
 def canonicalize_title(value: str) -> str:

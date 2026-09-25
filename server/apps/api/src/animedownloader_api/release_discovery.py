@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from uuid import UUID
 from typing import Protocol
 
 from animedownloader_nyaa import NyaaError
+from animedownloader_releases import ReleaseProfileService
 from animedownloader_releases import (
     ParsedRelease,
     ParserField,
@@ -92,29 +94,46 @@ class ReleaseDiscoveryService:
             )
 
         parser_profiles = await self._load_parser_profiles()
-        parser_map: dict[str, ParserProfileSpec] = {}
+        parser_map: dict[str, tuple[ReleaseParserProfile, ParserProfileSpec]] = {}
         for profile in parser_profiles:
             spec = self._to_parser_profile_spec(profile)
-            parser_map[normalize_release_group_slug(spec.release_group)] = spec
-            parser_map[spec.release_group.casefold()] = spec
+            parser_map[normalize_release_group_slug(spec.release_group)] = (profile, spec)
+            parser_map[spec.release_group.casefold()] = (profile, spec)
 
         warnings: list[str] = []
+        observed_results: dict[
+            UUID, tuple[UUID, list[tuple[Release, ParsedRelease]]]
+        ] = {}
 
         items: list[ReleaseDiscoveryItem] = []
         for release in releases:
             try:
                 parsed = parse_release(release)
                 if parsed.release_group:
-                    profile = parser_map.get(
+                    profile_data = parser_map.get(
                         normalize_release_group_slug(parsed.release_group),
                     ) or parser_map.get(parsed.release_group.casefold())
-                    if profile is not None:
-                        parsed = apply_parser_profile(parsed, profile)
+                    if profile_data is not None:
+                        profile, profile_spec = profile_data
+                        parsed = apply_parser_profile(parsed, profile_spec)
+                        group_observations = observed_results.setdefault(
+                            profile.id,
+                            (profile.release_group_id, []),
+                        )
+                        group_observations[1].append((release, parsed))
                 items.append(ReleaseDiscoveryItem(release=release, parsed=parsed))
             except ValueError as exc:
                 warnings.append(
                     f"Release could not be parsed and was skipped: {release.title}: {exc}",
                 )
+
+        if observed_results:
+            await ReleaseProfileService(self._session).record_parse_results(
+                {
+                    profile_id: (group_id, tuple(observations))
+                    for profile_id, (group_id, observations) in observed_results.items()
+                },
+            )
 
         return ReleaseDiscoveryResult(
             query=query,

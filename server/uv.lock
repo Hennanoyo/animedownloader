@@ -292,6 +292,9 @@ dependencies = [
     { name = "animedownloader-database" },
 ]
 
+[package.metadata]
+requires-dist = [{ name = "animedownloader-database", editable = "libs/database" }]
+
 [[package]]
 name = "animedownloader-server"
 version = "0.1.0"

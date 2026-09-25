@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { deleteJson, getJson, postJson } from "../../../shared/api/client";
-import type { DownloadJob } from "../model/types";
+import type {
+  DownloadJob,
+  DownloadJobListParams,
+  DownloadJobListResponse,
+} from "../model/types";
 
 const downloadJobSchema = z.object({
   id: z.uuid(),

@@ -5,7 +5,11 @@ from uuid import UUID, uuid7
 
 import pytest
 from animedownloader_config import JobProgressEvent
-from animedownloader_media import CMAFMediaSegment, CMAFPackagingResult
+from animedownloader_media import (
+    CMAFMediaSegment,
+    CMAFPackagingResult,
+    FFmpegProgressCallback,
+)
 from animedownloader_media_processing import MediaPackagingJobStatus
 from animedownloader_storage import LocalStorage, StreamingPackageArtifact
 from animedownloader_worker.media_packaging import (
@@ -47,7 +51,7 @@ class FakeProcessor:
         media_path: Path,
         output_dir: Path,
         duration_seconds: float | None = None,
-        on_progress=None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> CMAFPackagingResult:
         del media_path, duration_seconds
         if on_progress is not None:

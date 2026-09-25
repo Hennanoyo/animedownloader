@@ -50,11 +50,11 @@ ReleaseDiscoveryServiceDependency = Annotated[
 @router.get("/discover", response_model=ReleaseDiscoveryResponse)
 async def discover_releases(
     title: Annotated[str, Query(min_length=1, max_length=200)],
+    service: ReleaseDiscoveryServiceDependency,
     group: Annotated[str | None, Query(max_length=128)] = None,
     episode: Annotated[int | None, Query(ge=1, le=9999)] = None,
     resolution: Annotated[str | None, Query(max_length=32)] = None,
     codec: Annotated[str | None, Query(max_length=32)] = None,
-    service: ReleaseDiscoveryServiceDependency,
 ) -> ReleaseDiscoveryResponse:
     normalized_title = title.strip()
     if not normalized_title:

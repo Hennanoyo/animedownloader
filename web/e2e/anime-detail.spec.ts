@@ -463,7 +463,7 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
     discovery.getByRole("heading", { name: "Find releases" }),
   ).toBeVisible();
 
-  await expect(discovery.getByLabel("Anime title")).toHaveValue("Browser Smoke Anime");
+  await expect(discovery.getByRole("textbox", { name: "Anime title", exact: true })).toHaveValue("Browser Smoke Anime");
   await discovery.getByLabel("Release group").fill("ExampleSubs");
   await discovery
     .getByRole("spinbutton", { name: "Episode", exact: true })

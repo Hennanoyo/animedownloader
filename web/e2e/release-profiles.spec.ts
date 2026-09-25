@@ -184,8 +184,9 @@ test("renders release profile editor and remains usable without horizontal overf
   const patternHelp = page.getByRole("button", {
     name: "Rule 1 regex pattern help",
   });
-  await patternHelp.focus();
-  const tooltip = page.getByRole("tooltip");
+const tooltip = page.getByRole("tooltip");
+
+  await patternHelp.hover();
   await expect(tooltip).toBeVisible();
   await expect(tooltip).toContainText("How regex matching works");
   await expect(tooltip).toContainText(
@@ -193,7 +194,10 @@ test("renders release profile editor and remains usable without horizontal overf
   );
 
   await patternHelp.blur();
-  await patternHelp.hover();
+  await page.getByRole("heading", { name: "Release profiles" }).hover();
+  await expect(tooltip).toBeHidden({ timeout: 1000 });
+
+  await patternHelp.focus();
   await expect(tooltip).toBeVisible();
   await page.getByRole("heading", { name: "Release profiles" }).hover();
   await expect(tooltip).toBeHidden({ timeout: 1000 });

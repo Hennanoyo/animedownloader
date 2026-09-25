@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #34 are merged; the next phase is Release Discovery & Episode Ingestion.
+The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged; the next phase is Release Discovery & Episode Ingestion.
 
 ## Completed
 
@@ -654,6 +654,19 @@ Acceptance criteria:
 - Ambiguous episode forms are not silently converted into normal Episodes
 - A new parser profile can be drafted and validated without changing application code
 - Active parser behavior is reproducible through an explicit profile version
+
+### PR #35 — Release Discovery Foundation
+
+**Merged into `main` as commit `16a59a76f21cee1b4b238d41533d0b53ae91eaba`.**
+
+- Added provider-neutral `ParsedRelease` results and deterministic generic release-title parsing
+- Added versioned release-group Parser Profile entities with draft/active/retired lifecycle
+- Added declarative parser rules, validation, and representative multi-sample validation
+- Added release parser persistence migration and Alembic registration
+- Kept raw provider search results ephemeral and outside persistent release storage
+- Added deterministic parser/profile test coverage
+
+Out of scope and deferred to the following discovery PRs: Search Profile execution, Anime matching, Episode ingestion, discovery UI, and automatic downloads.
 
 ### PR #36 — Release Search Profiles & Discovery
 

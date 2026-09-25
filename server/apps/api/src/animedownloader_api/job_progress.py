@@ -3,10 +3,11 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import AsyncIterator
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Protocol
 
-from animedownloader_config import JobProgressEvent, JOB_PROGRESS_CHANNEL
+from animedownloader_config import JOB_PROGRESS_CHANNEL, JobProgressEvent
 from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
@@ -69,10 +70,8 @@ class JobProgressHub:
         self._disconnect_subscribers()
         if self._task is not None:
             self._task.cancel()
-            try:
+            with suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
             self._task = None
         await self._redis.aclose()
 
@@ -137,10 +136,8 @@ class JobProgressHub:
                     "Job progress Redis subscription failed; retrying",
                     exc_info=True,
                 )
-                try:
+                with suppress(TimeoutError):
                     await asyncio.wait_for(self._stop.wait(), timeout=_RETRY_DELAY)
-                except TimeoutError:
-                    pass
             finally:
                 await pubsub.aclose()
                 self._redis_ready.clear()
@@ -168,7 +165,5 @@ class JobProgressHub:
                     subscription.queue.get_nowait()
                 except asyncio.QueueEmpty:
                     break
-            try:
+            with suppress(asyncio.QueueFull):
                 subscription.queue.put_nowait(None)
-            except asyncio.QueueFull:
-                pass

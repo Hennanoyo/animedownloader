@@ -206,7 +206,6 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   activePipeline.episodes[0].current_stage = "download";
   activePipeline.episodes[0].active = true;
 
-  await page.unroute(`**/api/animes/${ANIME_ID}/pipeline`);
   await page.route(`**/api/animes/${ANIME_ID}/pipeline`, async (route) => {
     pipelineRequests += 1;
     await route.fulfill({
@@ -215,7 +214,6 @@ test("receives live pipeline updates without polling", async ({ page }) => {
       body: JSON.stringify(activePipeline),
     });
   });
-  await page.unroute(`**/api/episodes/${EPISODE_ID}/download-jobs/latest`);
   await page.route(
     `**/api/episodes/${EPISODE_ID}/download-jobs/latest`,
     async (route) => {
@@ -304,7 +302,6 @@ test("offers pipeline continuation without restarting a completed download", asy
   pendingPipeline.episodes[0].current_stage = "streaming";
   pendingPipeline.episodes[0].active = true;
 
-  await page.unroute(`**/api/animes/${ANIME_ID}/pipeline`);
   await page.route(`**/api/animes/${ANIME_ID}/pipeline`, async (route) => {
     await route.fulfill({
       status: 200,
@@ -348,7 +345,6 @@ test("keeps live download controls inside the download stage", async ({ page }) 
   activePipeline.episodes[0].current_stage = "download";
   activePipeline.episodes[0].active = true;
 
-  await page.unroute(`**/api/animes/${ANIME_ID}/pipeline`);
   await page.route(`**/api/animes/${ANIME_ID}/pipeline`, async (route) => {
     await route.fulfill({
       status: 200,
@@ -356,9 +352,6 @@ test("keeps live download controls inside the download stage", async ({ page }) 
       body: JSON.stringify(activePipeline),
     });
   });
-  await page.unroute(
-    `**/api/episodes/${EPISODE_ID}/download-jobs/latest`,
-  );
   await page.route(
     `**/api/episodes/${EPISODE_ID}/download-jobs/latest`,
     async (route) => {

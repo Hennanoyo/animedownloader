@@ -219,32 +219,164 @@ test("receives live pipeline updates without polling", async ({ page }) => {
       downloaded_bytes: 1048576,
       total_bytes: 1048576,
       error_message: null,
+      stage: null,
       emitted_at: "2026-09-25T00:06:00Z",
     },
   );
 
   await expect(page.getByText("1.0 MiB / 1.0 MiB", { exact: true })).toBeVisible();
 
-  await page.evaluate(
-    (payload) => {
+  const emitPipelineEvent = (payload: unknown) =>
+    page.evaluate((eventPayload) => {
       const windowWithEmitter = window as unknown as {
         __emitPipelineEvent: (payload: unknown) => void;
       };
-      windowWithEmitter.__emitPipelineEvent(payload);
-    },
-    {
-      version: 1,
-      type: "job.progress",
-      job_type: "media-preparation",
-      job_id: "019a0000-0000-7000-8000-000000000101",
-      status: "processing",
-      progress_percent: 42,
-      downloaded_bytes: null,
-      total_bytes: null,
-      error_message: null,
-      stage: "processing",
-      emitted_at: "2026-09-25T00:06:01Z",
+      windowWithEmitter.__emitPipelineEvent(eventPayload);
+    }, payload);
+
+  await emitPipelineEvent({
+    version: 1,
+    type: "job.progress",
+    job_type: "media-preparation",
+    job_id: "019a0000-0000-7000-8000-000000000101",
+    status: "processing",
+    progress_percent: 42,
+    downloaded_bytes: null,
+    total_bytes: null,
+    error_message: null,
+    stage: "processing",
+    emitted_at: "2026-09-25T00:06:01Z",
+  });
+  await expect(
+    page.getByRole("progressbar", { name: "Preparation" }),
+  ).toHaveAttribute("aria-valuenow", "42");
+
+  await emitPipelineEvent({
+    version: 1,
+    type: "job.progress",
+    job_type: "media-preparation",
+    job_id: "019a0000-0000-7000-8000-000000000101",
+    status: "processing",
+    progress_percent: 68,
+    downloaded_bytes: null,
+    total_bytes: null,
+    error_message: null,
+    stage: "preview",
+    emitted_at: "2026-09-25T00:06:02Z",
+  });
+  await expect(
+    page.getByRole("progressbar", { name: "Sprite" }),
+  ).toHaveAttribute("aria-valuenow", "68");
+
+  await emitPipelineEvent({
+    version: 1,
+    type: "job.progress",
+    job_type: "media-packaging",
+    job_id: "019a0000-0000-7000-8000-000000000102",
+    status: "processing",
+    progress_percent: 73,
+    downloaded_bytes: null,
+    total_bytes: null,
+    error_message: null,
+    stage: "streaming",
+    emitted_at: "2026-09-25T00:06:03Z",
+  });
+  await expect(
+    page.getByRole("progressbar", { name: "Packaging" }),
+  ).toHaveAttribute("aria-valuenow", "73");
+
+  await page.waitForTimeout(2500);
+  expect(pipelineRequests).toBe(requestsAfterRealtimeConnect);
+});
+
+
+test("offers pipeline continuation without restarting a completed download", async ({ page }) => {
+  let retryRequests = 0;
+  await page.route(
+    `**/api/episodes/${EPISODE_ID}/pipeline/retry`,
+    async (route) => {
+      retryRequests += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          stage: "streaming",
+          job_id: "019a0000-0000-7000-8000-000000000099",
+          status: "pending",
+        }),
+      });
     },
   );
-  await expect(page.getByRole("progressbar", { name: "Preparation" })).toHaveAttribute(
-    "aria-valuenow",
+
+  const pendingPipeline = structuredClone(pipeline);
+  pendingPipeline.episodes[0].streaming = {
+    job_id: "019a0000-0000-7000-8000-000000000102",
+    status: "pending",
+    progress_percent: 0,
+    hls_ready: false,
+    dash_ready: false,
+    error_message: null,
+  };
+  pendingPipeline.episodes[0].current_stage = "streaming";
+  pendingPipeline.episodes[0].active = true;
+
+  pipelineResponse = pendingPipeline;
+
+  await page.goto(`/animes/${ANIME_ID}`);
+  const continueButton = page.getByRole("button", { name: "Continue" });
+  await expect(continueButton).toBeVisible();
+  await continueButton.click();
+  await expect.poll(() => retryRequests).toBe(1);
+  await expect(
+    page.getByRole("button", { name: "Episode actions" }),
+  ).toBeVisible();
+
+});
+
+test("keeps live download controls inside the download stage", async ({ page }) => {
+  const activePipeline = structuredClone(pipeline);
+  activePipeline.episodes[0].download = {
+    ...activePipeline.episodes[0].download,
+    job_id: "019a0000-0000-7000-8000-000000000099",
+    status: "downloading",
+    downloaded_bytes: 524288,
+    total_bytes: 1048576,
+    error_message: null,
+    updated_at: "2026-09-25T00:05:00Z",
+  };
+  activePipeline.episodes[0].processing.status = "pending";
+  activePipeline.episodes[0].processing.progress_percent = 0;
+  activePipeline.episodes[0].playback_ready = false;
+  activePipeline.episodes[0].thumbnail.status = "pending";
+  activePipeline.episodes[0].thumbnail.progress_percent = 0;
+  activePipeline.episodes[0].thumbnail.url = null;
+  activePipeline.episodes[0].thumbnail.vtt_url = null;
+  activePipeline.episodes[0].streaming.status = "pending";
+  activePipeline.episodes[0].streaming.hls_ready = false;
+  activePipeline.episodes[0].streaming.dash_ready = false;
+  activePipeline.episodes[0].current_stage = "download";
+  activePipeline.episodes[0].active = true;
+
+  pipelineResponse = activePipeline;
+
+  await page.goto(`/animes/${ANIME_ID}`);
+  const showDetails = page.getByRole("button", { name: "Show details" });
+  const pipelineDetailsToggle = page.getByRole("button", {
+    name: /^(Show|Hide) details$/,
+  });
+  await expect(pipelineDetailsToggle).toBeVisible();
+  if (await showDetails.isVisible()) {
+    await showDetails.click();
+  }
+  await expect(page.locator('[aria-label="Download progress"]')).toBeVisible();
+  await expect(
+    page.locator('[aria-label="Download progress"]').getByText("Downloading", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Pause download" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Cancel download" }),
+  ).toBeVisible();
+
+});

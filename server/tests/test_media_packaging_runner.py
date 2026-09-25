@@ -4,6 +4,7 @@ from typing import Any
 from uuid import UUID, uuid7
 
 import pytest
+from animedownloader_config import JobProgressEvent
 from animedownloader_media import CMAFMediaSegment, CMAFPackagingResult
 from animedownloader_media_processing import MediaPackagingJobStatus
 from animedownloader_storage import LocalStorage, StreamingPackageArtifact
@@ -106,8 +107,8 @@ async def test_runner_packages_current_playable_variant(tmp_path: Path) -> None:
 
     events: list[tuple[str, float | None]] = []
 
-    async def on_progress(event: object) -> None:
-        events.append((getattr(event, "status"), getattr(event, "progress_percent")))
+    async def on_progress(event: JobProgressEvent) -> None:
+        events.append((event.status, event.progress_percent))
 
     await MediaPackagingRunner(
         state=state,

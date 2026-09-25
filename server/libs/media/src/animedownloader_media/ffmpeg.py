@@ -275,7 +275,7 @@ class SubprocessFFmpegRunner:
             raise
 
 
-async def _consume_ffmpeg_progress(
+async def consume_ffmpeg_progress(
     stdout: asyncio.StreamReader,
     *,
     duration_seconds: float,

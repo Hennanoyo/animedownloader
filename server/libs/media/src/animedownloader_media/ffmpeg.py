@@ -6,7 +6,7 @@ import shlex
 import signal
 import sys
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, runtime_checkable
@@ -50,7 +50,6 @@ def build_video_encoder_options(video_encoder: str) -> tuple[str, ...]:
         "Unsupported video encoder: "
         f"{video_encoder!r}; expected 'libx265' or 'hevc_nvenc'",
     )
-
 
 
 @dataclass(frozen=True, slots=True)
@@ -168,7 +167,6 @@ class SubprocessFFmpegRunner:
                 file=sys.stderr,
             )
             raise
-
 
 
     async def run_with_progress(

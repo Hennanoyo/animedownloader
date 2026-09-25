@@ -164,7 +164,7 @@ class AnimeService:
             if not normalized_value:
                 continue
             if len(normalized_value) > AnimeService.MAX_TITLE_LENGTH:
-                raise ValueError(f"anime title exceeds {MAX_TITLE_LENGTH} characters: {normalized_key}")
+                raise ValueError(f"anime title exceeds {AnimeService.MAX_TITLE_LENGTH} characters: {normalized_key}")
             cleaned[normalized_key] = normalized_value
         return cleaned
 

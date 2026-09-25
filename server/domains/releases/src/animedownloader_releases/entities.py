@@ -39,6 +39,12 @@ class ReleaseGroup(Base):
         lazy="selectin",
         order_by="ReleaseParserProfile.version",
     )
+    search_profiles: Mapped[list[ReleaseSearchProfile]] = relationship(
+        back_populates="release_group",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="ReleaseSearchProfile.version",
+    )
 
 
 class ReleaseParserProfile(Base):
@@ -101,3 +107,71 @@ class ReleaseParserRule(Base):
     transform: Mapped[str] = mapped_column(String(32), default="identity")
 
     profile: Mapped[ReleaseParserProfile] = relationship(back_populates="rules")
+
+
+class SearchProfileStatus(StrEnum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    RETIRED = "retired"
+
+
+class ReleaseSearchProfile(Base):
+    __tablename__ = "release_search_profiles"
+    __table_args__ = (
+        UniqueConstraint(
+            "release_group_id",
+            "version",
+            name="uq_release_search_profiles_group_version",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    release_group_id: Mapped[UUID] = mapped_column(
+        ForeignKey("release_groups.id", ondelete="CASCADE"),
+        index=True,
+    )
+    version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(
+        String(16),
+        default=SearchProfileStatus.DRAFT.value,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    activated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+    )
+
+    release_group: Mapped[ReleaseGroup] = relationship(
+        back_populates="search_profiles",
+    )
+    templates: Mapped[list[ReleaseSearchTemplate]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="ReleaseSearchTemplate.priority",
+    )
+
+
+class ReleaseSearchTemplate(Base):
+    __tablename__ = "release_search_templates"
+    __table_args__ = (
+        UniqueConstraint(
+            "profile_id",
+            "priority",
+            name="uq_release_search_templates_profile_priority",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    profile_id: Mapped[UUID] = mapped_column(
+        ForeignKey("release_search_profiles.id", ondelete="CASCADE"),
+        index=True,
+    )
+    priority: Mapped[int] = mapped_column(Integer)
+    template: Mapped[str] = mapped_column(String(300))
+
+    profile: Mapped[ReleaseSearchProfile] = relationship(
+        back_populates="templates",
+    )

@@ -33,6 +33,59 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify(pipelineResponse),
     });
   });
+  await page.route(
+    "**/api/releases/discover?**",
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          queries: ["ExampleSubs Browser Smoke Anime 1", "Browser Smoke Anime 1"],
+          failed_queries: [],
+          warnings: [],
+          search_profile_version: null,
+          items: [
+            {
+              release: {
+                source: "nyaa",
+                id: "e2e-release-1",
+                title: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
+                page_url: "https://e2e.invalid/release/1",
+                torrent_url: "https://e2e.invalid/download/1.torrent",
+                published_at: "2026-09-25T00:00:00Z",
+                size: "1 GiB",
+                seeders: 15,
+                leechers: 1,
+                downloads: 20,
+                info_hash: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              },
+              parsed: {
+                provider_source: "nyaa",
+                source_id: "e2e-release-1",
+                original_title: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
+                normalized_title: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
+                release_group: "ExampleSubs",
+                series_title: "Browser Smoke Anime",
+                episode_number: 1,
+                episode_title: null,
+                season_number: null,
+                resolution: "1080p",
+                source: "WEB",
+                video_codec: "HEVC",
+                audio_codec: null,
+                bit_depth: 10,
+                status: "parsed",
+                warnings: [],
+                failed_required_fields: [],
+                parser_profile_version: null,
+              },
+            },
+          ],
+        }),
+      });
+    },
+  );
+
   await page.route(THUMBNAIL_URL, async (route) => {
     await route.fulfill({
       status: 200,
@@ -400,4 +453,40 @@ test("keeps live download controls inside the download stage", async ({ page }) 
     page.getByRole("button", { name: "Cancel download" }),
   ).toBeVisible();
 
+});
+
+
+test("discovers parsed releases from the anime detail page", async ({ page }) => {
+  await page.goto("/animes/" + ANIME_ID);
+
+  const discovery = page.getByRole("region", { name: "Find releases" });
+  await expect(
+    discovery.getByRole("heading", { name: "Find releases" }),
+  ).toBeVisible();
+
+  await discovery.getByLabel("Release group").fill("ExampleSubs");
+  await discovery
+    .getByRole("spinbutton", { name: "Episode", exact: true })
+    .fill("1");
+  await discovery.getByLabel("Resolution").fill("1080p");
+  await discovery.getByLabel("Video codec").fill("HEVC");
+  await discovery
+    .getByRole("button", { name: "Discover releases" })
+    .click();
+
+  await expect(
+    discovery.locator("strong").filter({ hasText: "1 candidates" }),
+  ).toBeVisible();
+  const resultCard = discovery.locator("article").filter({
+    hasText: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
+  });
+  await expect(
+    resultCard.getByRole("heading", {
+      name: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
+    }),
+  ).toBeVisible();
+  await expect(resultCard).toContainText("parsed");
+  await expect(resultCard).toContainText("Browser Smoke Anime");
+  await expect(resultCard).toContainText("1080p");
+  await expect(resultCard).toContainText("HEVC");
 });

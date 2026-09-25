@@ -670,6 +670,8 @@ Out of scope and deferred to the following discovery PRs: Search Profile executi
 
 ### PR #36 — Release Search Profiles & Discovery
 
+**In progress on `feature/release-search-profiles`.**
+
 Goal: turn parser-ready release knowledge into a robust discovery workflow with profile-driven, progressively specific Nyaa queries.
 
 Scope:

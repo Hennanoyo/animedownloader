@@ -23,6 +23,7 @@ from animedownloader_api.media_processing_queue import MediaProcessingTaskDispat
 from animedownloader_api.pipeline import AnimePipelineService
 from animedownloader_api.pipeline_control import EpisodePipelineControlService
 from animedownloader_api.playback import PlaybackService
+from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_api.task_queue import DownloadTaskDispatcher
 
 
@@ -73,6 +74,13 @@ def get_media_processing_task_dispatcher(
 async def get_nyaa_client() -> AsyncIterator[NyaaClient]:
     async with NyaaClient() as client:
         yield client
+
+
+def get_release_discovery_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    client: Annotated[NyaaClient, Depends(get_nyaa_client)],
+) -> ReleaseDiscoveryService:
+    return ReleaseDiscoveryService(session, client)
 
 
 async def get_qbittorrent_client(

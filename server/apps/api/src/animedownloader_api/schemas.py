@@ -19,6 +19,7 @@ from animedownloader_media_processing import (
     MediaVariantKind,
     MediaVariantStatus,
 )
+from animedownloader_releases import ParsedRelease
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 
@@ -41,6 +42,63 @@ class ReleaseResponse(BaseModel):
 class ReleaseSearchResponse(BaseModel):
     query: str
     items: list[ReleaseResponse]
+
+
+class ParsedReleaseResponse(BaseModel):
+    provider_source: str
+    source_id: str
+    original_title: str
+    normalized_title: str
+    release_group: str | None
+    series_title: str | None
+    episode_number: int | None
+    episode_title: str | None
+    season_number: int | None
+    resolution: str | None
+    source: str | None
+    video_codec: str | None
+    audio_codec: str | None
+    bit_depth: int | None
+    status: str
+    warnings: list[str]
+    failed_required_fields: list[str]
+    parser_profile_version: int | None
+
+    @classmethod
+    def from_parsed(cls, parsed: ParsedRelease) -> ParsedReleaseResponse:
+        return cls(
+            provider_source=parsed.provider_source,
+            source_id=parsed.source_id,
+            original_title=parsed.original_title,
+            normalized_title=parsed.normalized_title,
+            release_group=parsed.release_group,
+            series_title=parsed.series_title,
+            episode_number=parsed.episode_number,
+            episode_title=parsed.episode_title,
+            season_number=parsed.season_number,
+            resolution=parsed.resolution,
+            source=parsed.source,
+            video_codec=parsed.video_codec,
+            audio_codec=parsed.audio_codec,
+            bit_depth=parsed.bit_depth,
+            status=parsed.status.value,
+            warnings=list(parsed.warnings),
+            failed_required_fields=[field.value for field in parsed.failed_required_fields],
+            parser_profile_version=parsed.parser_profile_version,
+        )
+
+
+class ReleaseDiscoveryItemResponse(BaseModel):
+    release: ReleaseResponse
+    parsed: ParsedReleaseResponse
+
+
+class ReleaseDiscoveryResponse(BaseModel):
+    queries: list[str]
+    failed_queries: list[str]
+    warnings: list[str]
+    search_profile_version: int | None
+    items: list[ReleaseDiscoveryItemResponse]
 
 
 class EpisodeCreate(BaseModel):

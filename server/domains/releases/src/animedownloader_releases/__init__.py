@@ -1,4 +1,12 @@
-from .entities import ParserProfileStatus, ReleaseGroup, ReleaseParserProfile, ReleaseParserRule
+from .entities import (
+    ParserProfileStatus,
+    ReleaseGroup,
+    ReleaseParserProfile,
+    ReleaseParserRule,
+    ReleaseSearchProfile,
+    ReleaseSearchTemplate,
+    SearchProfileStatus,
+)
 from .models import (
     ParsedRelease,
     ParserField,
@@ -7,6 +15,10 @@ from .models import (
     ParserTransform,
     ParseStatus,
     Release,
+    SearchField,
+    SearchProfileSpec,
+    SearchQueryContext,
+    SearchTemplateSpec,
 )
 from .parser import (
     MAX_INPUT_LENGTH,
@@ -17,6 +29,16 @@ from .parser import (
     parse_release,
     validate_parser_profile,
     validate_parser_samples,
+)
+from .search import (
+    DEFAULT_SEARCH_TEMPLATES,
+    MAX_SEARCH_TEMPLATE_LENGTH,
+    MAX_SEARCH_TEMPLATES,
+    build_search_queries,
+    merge_releases,
+    normalize_release_group_slug,
+    validate_search_profile,
+    validate_search_template,
 )
 
 __all__ = [
@@ -34,9 +56,24 @@ __all__ = [
     "ReleaseGroup",
     "ReleaseParserProfile",
     "ReleaseParserRule",
+    "ReleaseSearchProfile",
+    "ReleaseSearchTemplate",
+    "SearchField",
+    "SearchProfileSpec",
+    "SearchProfileStatus",
+    "SearchQueryContext",
+    "SearchTemplateSpec",
     "apply_parser_profile",
     "normalize_release_title",
     "parse_release",
     "validate_parser_profile",
     "validate_parser_samples",
+    "DEFAULT_SEARCH_TEMPLATES",
+    "MAX_SEARCH_TEMPLATE_LENGTH",
+    "MAX_SEARCH_TEMPLATES",
+    "build_search_queries",
+    "merge_releases",
+    "normalize_release_group_slug",
+    "validate_search_profile",
+    "validate_search_template",
 ]

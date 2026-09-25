@@ -10,6 +10,7 @@ import {
 } from "../../../features/anime-detail/model/useAnimePipeline";
 import { useAnimePipelineRealtime } from "../../../features/anime-detail/model/useAnimePipelineRealtime";
 import { useDeleteAnime } from "../../../features/anime-edit/model/useEditAnime";
+import ReleaseDiscoveryPanel from "../../../features/release-discovery/ui/ReleaseDiscoveryPanel";
 import AnimeEditForm from "../../../features/anime-edit/ui/AnimeEditForm";
 import EpisodeManagement from "../../../features/episode-management/ui/EpisodeManagement";
 import EpisodePipelineCard from "../../../widgets/episode-pipeline/ui/EpisodePipelineCard";
@@ -120,8 +121,10 @@ export default function AnimeDetailPage() {
       ) : null}
 
       {!isEditing ? (
-        <section
-          className={styles.pipelineSummary}
+        <>
+          <ReleaseDiscoveryPanel animeTitle={anime.title} />
+          <section
+            className={styles.pipelineSummary}
           aria-labelledby="episodes-heading"
         >
           <div className={styles.panelHeader}>
@@ -169,7 +172,8 @@ export default function AnimeDetailPage() {
               })}
             </div>
           )}
-        </section>
+          </section>
+        </>
       ) : null}
     </main>
   );

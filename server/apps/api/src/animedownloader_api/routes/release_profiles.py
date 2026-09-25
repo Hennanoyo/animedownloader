@@ -3,7 +3,9 @@ from uuid import UUID
 
 from animedownloader_releases import (
     InvalidReleaseParserProfileError,
+    ParserField,
     ParserRuleSpec,
+    ParserTransform,
     ReleaseGroupNotFoundError,
     ReleaseParserObservationNotFoundError,
     ReleaseParserProfile,
@@ -337,12 +339,12 @@ def _profile_response(
         rules=[
             ReleaseParserRuleResponse(
                 id=rule.id,
-                field=rule.field,
+                field=ParserField(rule.field),
                 pattern=rule.pattern,
                 priority=rule.priority,
                 required=rule.required,
                 flags=rule.flags,
-                transform=rule.transform,
+                transform=ParserTransform(rule.transform),
             )
             for rule in profile.rules
         ],

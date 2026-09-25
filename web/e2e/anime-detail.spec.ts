@@ -190,6 +190,10 @@ test("receives live pipeline updates without polling", async ({ page }) => {
 
   await page.goto(`/animes/${ANIME_ID}`);
   const showDetails = page.getByRole("button", { name: "Show details" });
+  const pipelineDetailsToggle = page.getByRole("button", {
+    name: /^(Show|Hide) details$/,
+  });
+  await expect(pipelineDetailsToggle).toBeVisible();
   if (await showDetails.isVisible()) {
     await showDetails.click();
   }
@@ -294,6 +298,10 @@ test("keeps live download controls inside the download stage", async ({ page }) 
 
   await page.goto(`/animes/${ANIME_ID}`);
   const showDetails = page.getByRole("button", { name: "Show details" });
+  const pipelineDetailsToggle = page.getByRole("button", {
+    name: /^(Show|Hide) details$/,
+  });
+  await expect(pipelineDetailsToggle).toBeVisible();
   if (await showDetails.isVisible()) {
     await showDetails.click();
   }

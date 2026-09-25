@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from animedownloader_nyaa import NyaaClient, NyaaError
-from animedownloader_releases import Release, SearchField
+from animedownloader_releases import AnimeMatchResult, Release, SearchField
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from animedownloader_api.dependencies import (
@@ -17,6 +17,7 @@ from animedownloader_api.release_ingestion import (
     ReleaseNotActionableError,
 )
 from animedownloader_api.schemas import (
+    AnimeMatchResponse,
     EpisodeIngestionRequest,
     EpisodeIngestionResponse,
     EpisodeResponse,
@@ -124,11 +125,11 @@ async def ingest_release(
     return _ingestion_response(result)
 
 
-def _match_response(match):
-    return {
-        "status": match.status.value,
-        "normalized_series_title": match.normalized_series_title,
-        "candidates": [
+def _match_response(match: AnimeMatchResult) -> AnimeMatchResponse:
+    return AnimeMatchResponse(
+        status=match.status.value,
+        normalized_series_title=match.normalized_series_title,
+        candidates=[
             {
                 "anime_id": candidate.anime_id,
                 "title": candidate.title,
@@ -136,7 +137,7 @@ def _match_response(match):
             }
             for candidate in match.candidates
         ],
-    }
+    )
 
 
 def _release_from_response(payload: ReleaseResponse) -> Release:

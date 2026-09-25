@@ -105,14 +105,53 @@ function extractErrorDetail(responseBody: string): string | null {
     if (
       typeof payload === "object" &&
       payload !== null &&
-      "detail" in payload &&
-      typeof payload.detail === "string"
+      "detail" in payload
     ) {
-      return payload.detail;
+      const detail = payload.detail;
+
+      if (typeof detail === "string") {
+        return detail;
+      }
+
+      if (Array.isArray(detail)) {
+        const messages = detail.flatMap((issue) => {
+          if (typeof issue !== "object" || issue === null) return [];
+
+          const message =
+            "msg" in issue && typeof issue.msg === "string"
+              ? issue.msg
+              : null;
+          if (!message) return [];
+
+          const location =
+            "loc" in issue && Array.isArray(issue.loc)
+              ? issue.loc
+                  .filter(
+                    (segment): segment is string | number =>
+                      typeof segment === "string" || typeof segment === "number",
+                  )
+                  .map((segment) =>
+                    typeof segment === "number"
+                      ? "[" + (segment + 1) + "]"
+                      : segment,
+                  )
+                  .reduce((path, segment) => {
+                    if (typeof segment === "string") {
+                      return path ? path + "." + segment : segment;
+                    }
+                    return path + segment;
+                  }, "")
+              : "";
+
+          return [location ? location + ": " + message : message];
+        });
+
+        return messages.length > 0 ? Array.from(new Set(messages)).join("; ") : null;
+      }
     }
   } catch {
     return responseBody.trim() || null;
   }
 
-  return null;
+  return responseBody.trim() || null;
 }

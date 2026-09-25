@@ -683,36 +683,34 @@ Out of scope and deferred to the following discovery PRs: Search Profile executi
 
 Out of scope and deferred to the next discovery PRs: Episode persistence, explicit Anime matching/acceptance workflow, automatic downloads, periodic scheduling, and automatic release ranking.
 
-### PR #37 — Anime Matching & Episode Ingestion
+### PR #37 — Anime Titles & Single-Query Discovery Refinement
 
-Goal: connect parsed discovery candidates to existing Anime records and explicitly create/update Episodes through a safe, idempotent transaction.
+Goal: make Anime title metadata useful for release discovery and make every discovery action explicit and user-controlled.
 
 Scope:
 
-- Add deterministic Anime title canonicalization and matching
-- Return `matched` / `ambiguous` / `unmatched` match results
-- Use year/season only as supporting evidence, not authoritative release-date inference
-- Add explicit user review before persistence
-- Add Episode ingestion transaction
-- Make same-source ingestion idempotent
-- Preserve existing Episode when the same episode number has a different release identity
-- Preserve user-edited Episode title and execution state during routine re-ingestion
-- Add duplicate/race-condition protections at the database boundary where appropriate
-- Reuse the existing Episode → DownloadJob flow without automatically creating or starting DownloadJob
-- Add backend, transaction, and integration coverage
-- Add Anime-detail candidate acceptance/review UI
+- Keep `Anime.title` as the representative display title
+- Add PostgreSQL JSONB `Anime.titles` for typed alternate forms such as `romaji`, `jp`, `ko`, and `en`
+- Use `titles.romaji` as the Anime-detail Nyaa search default, falling back to `title` when unavailable
+- Keep the search title editable and transient; search edits never update Anime metadata
+- Execute exactly one Nyaa query per discovery action
+- Replace progressive query-template fallback with an ordered search-field recipe
+- Let users enable/disable and reorder search fields before searching
+- Show the exact rendered query before and after searching
+- Simplify the discovery API to a single `query` result and warnings
+- Cover title metadata, field ordering, single-query behavior, and the romaji search default
 
 Design constraints:
 
-- Do not silently replace an existing Episode with a different release
-- Do not auto-create Anime records for unmatched candidates
-- Do not start torrents during ingestion
-- Ambiguous parsing or matching must fail safely
+- The active Search Profile provides a default field order for callers that do not provide their own request order
+- No automatic retry or progressive broadening after a zero-result search
+- Alternate title edits in the discovery panel are never persisted to Anime
+- Raw Nyaa search results remain ephemeral
 
 Out of scope:
 
+- Anime matching and Episode ingestion
 - Automatic periodic discovery
-- Automatic download scheduling
 - Additional providers
 - Media-processing/player changes
 

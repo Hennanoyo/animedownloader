@@ -171,7 +171,7 @@ test("manages active download and terminal filters", async ({ page }) => {
   await expect(
     page.getByRole("link", { name: "Browser Download Anime", exact: true }),
   ).toHaveCount(2);
-  await expect(page.getByText("Downloading")).toBeVisible();
+  await expect(page.locator('article[data-status="downloading"]')).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Pause download for Episode One" }),
   ).toBeVisible();

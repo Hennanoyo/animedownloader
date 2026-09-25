@@ -98,6 +98,28 @@ class ParsedRelease:
         )
 
 
+
+
+class AnimeMatchStatus(StrEnum):
+    MATCHED = "matched"
+    AMBIGUOUS = "ambiguous"
+    UNMATCHED = "unmatched"
+
+
+@dataclass(frozen=True, slots=True)
+class AnimeMatchCandidate:
+    anime_id: str
+    title: str
+    matched_titles: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class AnimeMatchResult:
+    status: AnimeMatchStatus
+    normalized_series_title: str | None
+    candidates: tuple[AnimeMatchCandidate, ...] = ()
+
+
 class SearchField(StrEnum):
     GROUP = "group"
     TITLE = "title"

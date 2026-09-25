@@ -717,7 +717,7 @@ function RuleRow({
             }}
             aria-label={"Rule " + (index + 1) + " target field"}
           >
-            <Button className={styles.selectButton}>
+            <Button>
               <span>{FIELD_LABELS[rule.field]}</span>
               <span aria-hidden="true">▾</span>
             </Button>

@@ -74,6 +74,16 @@ def test_generic_parser_extracts_common_episode_forms(
     assert parsed.episode_number == expected_episode
 
 
+def test_generic_parser_preserves_episode_position_around_technical_metadata() -> None:
+    parsed = parse_release(
+        _release("[ExampleSubs] Frieren [1080p] - 03 [HEVC].mkv")
+    )
+
+    assert parsed.status == ParseStatus.PARSED
+    assert parsed.series_title == "Frieren"
+    assert parsed.episode_number == 3
+
+
 def test_generic_parser_extracts_technical_metadata() -> None:
     parsed = parse_release(
         _release("[ExampleSubs] Frieren - 03 [1080p][HEVC][10bit][WEB-DL].mkv")

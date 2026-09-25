@@ -78,6 +78,17 @@ test.beforeEach(async ({ page }) => {
                 failed_required_fields: [],
                 parser_profile_version: null,
               },
+              match: {
+                status: "matched",
+                normalized_series_title: "browser smoke anime",
+                candidates: [
+                  {
+                    anime_id: ANIME_ID,
+                    title: "Browser Smoke Anime",
+                    matched_titles: ["Browser Smoke Anime"],
+                  },
+                ],
+              },
             },
           ],
         }),

@@ -46,6 +46,9 @@ export function useCreateEpisodeDownloadJob(episodeId: string) {
         queryKey: ["download-jobs", "latest", episodeId],
       });
       await queryClient.invalidateQueries({
+        queryKey: ["download-jobs", "list"],
+      });
+      await queryClient.invalidateQueries({
         queryKey: ["anime-pipelines"],
       });
     },
@@ -53,6 +56,9 @@ export function useCreateEpisodeDownloadJob(episodeId: string) {
       if (error instanceof ApiRequestError && error.status === 409) {
         void queryClient.invalidateQueries({
           queryKey: ["download-jobs", "latest", episodeId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["download-jobs", "list"],
         });
       }
     },
@@ -79,6 +85,9 @@ function useDownloadJobAction(
       );
       await queryClient.invalidateQueries({
         queryKey: ["download-jobs", "latest", episodeId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["download-jobs", "list"],
       });
       await queryClient.invalidateQueries({
         queryKey: ["anime-pipelines"],
@@ -111,6 +120,9 @@ export function useDeleteDownloadJob(episodeId: string) {
       );
       await queryClient.invalidateQueries({
         queryKey: ["download-jobs", "latest", episodeId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["download-jobs", "list"],
       });
       await queryClient.invalidateQueries({
         queryKey: ["anime-pipelines"],

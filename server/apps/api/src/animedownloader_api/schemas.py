@@ -158,6 +158,21 @@ class DownloadJobResponse(BaseModel):
     updated_at: datetime
 
 
+class DownloadJobListItemResponse(DownloadJobResponse):
+    anime_id: UUID
+    anime_title: str
+    episode_number: int
+    episode_title: str
+
+
+class DownloadJobListResponse(BaseModel):
+    items: list[DownloadJobListItemResponse]
+    page: int
+    page_size: int
+    total: int
+    has_more: bool
+
+
 class SubtitleTrackResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

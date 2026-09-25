@@ -135,7 +135,7 @@ test("creates an Anime after all required fields and a release are selected", as
   await page.getByRole("button", { name: "Create anime" }).click();
 
   await expect(
-    page.getByRole("heading", { name: "Anime" }),
+    page.getByRole("heading", { name: "Anime", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Browser Create Anime", exact: true }),
@@ -155,6 +155,6 @@ test("shows actionable validation feedback when an episode release is missing", 
   await page.getByRole("button", { name: "Create anime" }).click();
 
   await expect(page.getByRole("alert")).toContainText(
-    "episodes[1].release: Select a Nyaa release.",
+    "Episode 1: Select a Nyaa release.",
   );
 });

@@ -4,6 +4,7 @@ import type { AnimePipeline } from "../apps/web/src/entities/anime/model/pipelin
 const ANIME_ID = "019a0000-0000-7000-8000-000000000010";
 let pipelineRequests = 0;
 let pipelineResponse: AnimePipeline;
+let animeResponse = structuredClone(anime);
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
 
@@ -17,11 +18,12 @@ const transparentPng = Buffer.from(
 
 test.beforeEach(async ({ page }) => {
   pipelineResponse = structuredClone(pipeline);
+  animeResponse = structuredClone(anime);
   await page.route(`**/api/animes/${ANIME_ID}`, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(anime),
+      body: JSON.stringify(animeResponse),
     });
   });
   pipelineRequests = 0;
@@ -106,12 +108,77 @@ test.beforeEach(async ({ page }) => {
     expect(body.release?.id).toBe("e2e-release-1");
     expect(body.parsed?.episode_number).toBe(1);
 
+    const episode = {
+      ...anime.episodes[0],
+      id: EPISODE_ID + "-ingested",
+      episode_number: 2,
+      title: "Browser Smoke Anime - Episode 2",
+      source_id: "e2e-release-1",
+      source_title: "Browser Smoke Anime - Episode 2",
+      source_url: "https://e2e.invalid/release/1",
+      torrent_url: "https://e2e.invalid/download/1.torrent",
+      download_status: "not_started" as const,
+      conversion_status: "not_started" as const,
+    };
+
+    animeResponse = {
+      ...animeResponse,
+      episodes: [...animeResponse.episodes, episode],
+    };
+    pipelineResponse = {
+      ...pipelineResponse,
+      episodes: [
+        ...pipelineResponse.episodes,
+        {
+          episode_id: episode.id,
+          episode_number: episode.episode_number,
+          title: episode.title,
+          download: {
+            job_id: null,
+            status: "not_started" as const,
+            downloaded_bytes: 0,
+            total_bytes: null,
+            error_message: null,
+            updated_at: "2026-09-25T00:00:00Z",
+          },
+          processing: {
+            job_id: null,
+            preparation_job_id: null,
+            status: "not_started" as const,
+            progress_percent: 0,
+            playable_ready: false,
+            error_message: null,
+          },
+          subtitles: "not_started" as const,
+          attachments: "not_started" as const,
+          streaming: {
+            job_id: null,
+            status: "not_started" as const,
+            progress_percent: 0,
+            hls_ready: false,
+            dash_ready: false,
+            error_message: null,
+          },
+          thumbnail: {
+            status: "not_started" as const,
+            progress_percent: 0,
+            url: null,
+            vtt_url: null,
+            error_message: null,
+          },
+          current_stage: null,
+          playback_ready: false,
+          active: false,
+        },
+      ],
+    };
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
         status: "created",
-        episode: anime.episodes[0],
+        episode,
         existing_episode: null,
       }),
     });
@@ -136,6 +203,20 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
     page.getByRole("heading", { name: "Episodes" }),
   ).toBeVisible();
   await expect(page.getByText("Episode One")).toBeVisible();
+
+  const discovery = page.getByLabel("Find releases");
+  await discovery.getByRole("button", { name: "Discover releases" }).click();
+  const resultCard = page.getByRole("article").filter({
+    hasText: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
+  });
+  await expect(
+    resultCard.getByRole("button", { name: "Add to this Anime" }),
+  ).toBeVisible();
+  await resultCard
+    .getByRole("button", { name: "Add to this Anime" })
+    .click();
+  await expect(page.getByText("Episode 2", { exact: false })).toBeVisible();
+  await expect(page.getByText("Episode 2 added to this Anime.")).toBeVisible();
 
   const thumbnail = page.getByRole("link", {
     name: "Episode One thumbnail",

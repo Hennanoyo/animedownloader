@@ -511,11 +511,7 @@ export default function ReleaseDiscoveryPanel({
       {query.isError ? (
         <p className={styles.error} role="alert">
           {getErrorMessage(query.error)}
-     </section>
-  );
-}
-
-       </p>
+        </p>
       ) : null}
 
       {query.isSuccess ? (
@@ -530,6 +526,9 @@ export default function ReleaseDiscoveryPanel({
       <div className={styles.srOnly} aria-live="polite" aria-atomic="true">
         {dragAnnouncement}
       </div>
+    </section>
+  );
+}
 
 interface DiscoveryResultsProps {
   items: ReleaseDiscoveryItem[];

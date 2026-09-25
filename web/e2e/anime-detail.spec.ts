@@ -215,6 +215,29 @@ test("receives live pipeline updates without polling", async ({ page }) => {
       body: JSON.stringify(activePipeline),
     });
   });
+  await page.unroute(`**/api/episodes/${EPISODE_ID}/download-jobs/latest`);
+  await page.route(
+    `**/api/episodes/${EPISODE_ID}/download-jobs/latest`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "019a0000-0000-0000-0000-000000000099",
+          episode_id: EPISODE_ID,
+          status: "downloading",
+          downloaded_bytes: 524288,
+          total_bytes: 1048576,
+          attempt_count: 1,
+          error_message: null,
+          started_at: "2026-09-25T00:00:00Z",
+          completed_at: null,
+          created_at: "2026-09-25T00:00:00Z",
+          updated_at: "2026-09-25T00:05:00Z",
+        }),
+      });
+    },
+  );
 
   await page.goto(`/animes/${ANIME_ID}`);
   await expect(page.getByLabel("Download progress")).toBeVisible();

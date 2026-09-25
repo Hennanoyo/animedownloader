@@ -3,6 +3,7 @@ from dataclasses import replace
 import pytest
 from animedownloader_releases import (
     DEFAULT_SEARCH_TEMPLATES,
+    Release,
     SearchProfileSpec,
     SearchQueryContext,
     SearchTemplateSpec,
@@ -12,9 +13,6 @@ from animedownloader_releases import (
     validate_search_profile,
     validate_search_template,
 )
-
-from animedownloader_releases import Release
-
 
 def _release(title: str) -> Release:
     return Release(
@@ -107,7 +105,7 @@ def test_validate_search_profile_rejects_duplicate_priorities() -> None:
 
 
 def test_merge_releases_deduplicates_source_and_info_hash() -> None:
-    first = make_release("[ExampleSubs] Frieren - 01")
+    first = _release("[ExampleSubs] Frieren - 01")
     duplicate_source = replace(first)
     duplicate_hash = replace(first, id=first.id + "?duplicate")
     unique = replace(first, id=first.id + "?unique", info_hash="fedcba")

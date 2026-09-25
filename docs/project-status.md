@@ -670,35 +670,18 @@ Out of scope and deferred to the following discovery PRs: Search Profile executi
 
 ### PR #36 — Release Search Profiles & Discovery
 
-**In progress on `feature/release-search-profiles`.**
+**Merged into `main` as commit `d38941b6f4bd431d492c9f9b13ab41d6fa966183`.**
 
-Goal: turn parser-ready release knowledge into a robust discovery workflow with profile-driven, progressively specific Nyaa queries.
+- Added versioned Search Profiles for release groups
+- Added constrained progressive Nyaa query-template execution
+- Merged and deduplicated raw results in memory while keeping provider results ephemeral
+- Applied the existing generic/parser-profile pipeline to discovered releases
+- Added `GET /api/releases/discover` for parsed discovery candidates
+- Added Anime-detail release discovery UI with title/group/episode/resolution/codec constraints
+- Added backend/frontend/browser coverage for discovery behavior
+- Confirmed Backend, Frontend, Browser, and Integration GitHub Actions CI after fixing release deduplication and Browser smoke selector issues
 
-Scope:
-
-- Add versioned Search Profiles for release groups
-- Support query templates built from group/title/episode/resolution/codec fields
-- Support configurable token ordering independent from parser ordering
-- Execute multiple progressively specific queries when useful
-- Merge and deduplicate results in memory
-- Expose parsed discovery candidates through the API
-- Add Anime-detail discovery UI that lets users constrain group/title/episode/quality/codec search
-- Preserve raw search results as ephemeral data
-- Add deterministic search-template, merge, deduplication, and API/UI tests
-
-Design constraints:
-
-- Search Profile and Parser Profile remain independent
-- A failed highly-specific query must not prevent broader discovery
-- Search execution never creates or downloads an Episode
-- Stable source identity is preferred for deduplication
-
-Out of scope:
-
-- Episode persistence
-- Automatic downloads
-- Periodic scheduling
-- Automatic release ranking
+Out of scope and deferred to the next discovery PRs: Episode persistence, explicit Anime matching/acceptance workflow, automatic downloads, periodic scheduling, and automatic release ranking.
 
 ### PR #37 — Anime Matching & Episode Ingestion
 

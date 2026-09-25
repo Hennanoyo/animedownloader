@@ -9,9 +9,9 @@ from animedownloader_api.app import create_app
 from animedownloader_api.dependencies import get_release_profile_service
 from animedownloader_releases import (
     ParsedRelease,
-    ParseStatus,
     ParserField,
     ParserTransform,
+    ParseStatus,
     Release,
     ReleaseProfileService,
 )

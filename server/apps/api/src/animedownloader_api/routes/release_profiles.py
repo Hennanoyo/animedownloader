@@ -24,10 +24,10 @@ from animedownloader_api.release_profile_schemas import (
     ReleaseGroupSummaryResponse,
     ReleaseParserObservationResponse,
     ReleaseParserProfileResponse,
+    ReleaseParserProfileUpdate,
     ReleaseParserRuleResponse,
     ReleaseParserSampleCreate,
     ReleaseParserSampleResponse,
-    ReleaseParserProfileUpdate,
 )
 from animedownloader_api.schemas import ParsedReleaseResponse
 

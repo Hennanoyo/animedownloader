@@ -1,3 +1,4 @@
+import re
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +12,10 @@ from .commands import (
 from .exceptions import AnimeNotFoundError, DuplicateEpisodeError, EpisodeNotFoundError
 from .models import Anime, Episode
 from .repository import AnimeRepository, EpisodeRepository
+
+
+TITLE_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
+MAX_TITLE_LENGTH = 200
 
 
 class AnimeService:
@@ -37,6 +42,7 @@ class AnimeService:
         async with self.session.begin():
             anime = Anime(
                 title=data.title.strip(),
+                titles=self._clean_titles(data.titles),
                 year=data.year,
                 season=data.season.value,
                 weekday=data.weekday.value,
@@ -56,6 +62,8 @@ class AnimeService:
             anime = await self.get_anime(anime_id)
             if data.title is not None:
                 anime.title = data.title.strip()
+            if data.titles is not None:
+                anime.titles = self._clean_titles(data.titles)
             if data.year is not None:
                 anime.year = data.year
             if data.season is not None:
@@ -150,6 +158,21 @@ class AnimeService:
         async with self.session.begin():
             episode = await self.get_episode(episode_id)
             await self.episodes.delete(episode)
+
+    @staticmethod
+    def _clean_titles(titles: dict[str, str]) -> dict[str, str]:
+        cleaned: dict[str, str] = {}
+        for key, value in titles.items():
+            normalized_key = key.strip().lower()
+            normalized_value = value.strip()
+            if not normalized_value:
+                continue
+            if not TITLE_KEY_PATTERN.fullmatch(normalized_key):
+                raise ValueError(f"invalid anime title key: {key}")
+            if len(normalized_value) > MAX_TITLE_LENGTH:
+                raise ValueError(f"anime title exceeds {MAX_TITLE_LENGTH} characters: {normalized_key}")
+            cleaned[normalized_key] = normalized_value
+        return cleaned
 
     @staticmethod
     def _build_episode(anime: Anime, data: EpisodeCreateData) -> Episode:

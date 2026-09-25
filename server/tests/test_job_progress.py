@@ -8,7 +8,10 @@ import pytest
 from animedownloader_api.dependencies import get_job_progress_hub
 from animedownloader_api.routes.job_events import router
 from animedownloader_config import JobProgressEvent, JobProgressReadyEvent
-from animedownloader_worker.progress import RedisJobProgressPublisher
+from animedownloader_worker.progress import (
+    RedisJobProgressPublisher,
+    emit_job_progress,
+)
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -103,6 +106,30 @@ def test_progress_publisher_serializes_event() -> None:
     assert JobProgressEvent.model_validate_json(payload) == event
     assert client.closed
 
+
+
+@pytest.mark.anyio
+async def test_emit_job_progress_builds_event() -> None:
+    client = FakeRedisPublisher()
+    publisher = RedisJobProgressPublisher("redis://unused", client=client)
+
+    async def callback(event: JobProgressEvent) -> None:
+        await publisher.publish(event)
+
+    job_id = uuid7()
+    await emit_job_progress(
+        callback,
+        job_type="media-processing",
+        job_id=job_id,
+        status="processing",
+        progress_percent=0,
+    )
+
+    event = JobProgressEvent.model_validate_json(client.published[0][1])
+    assert event.job_type == "media-processing"
+    assert event.job_id == job_id
+    assert event.status == "processing"
+    assert event.progress_percent == 0
 
 def test_progress_publisher_does_not_raise_when_redis_fails() -> None:
     client = FakeRedisFailure()

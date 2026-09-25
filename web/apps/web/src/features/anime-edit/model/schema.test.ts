@@ -3,6 +3,12 @@ import { animeEditFormSchema } from "./schema";
 
 const validValues = {
   title: "Frieren: Beyond Journey's End",
+  titles: {
+    romaji: "Sousou no Frieren",
+    jp: "葬送のフリーレン",
+    ko: "장송의 프리렌",
+    en: "Frieren: Beyond Journey's End",
+  },
   year: 2026,
   season: "fall",
   weekday: "friday",

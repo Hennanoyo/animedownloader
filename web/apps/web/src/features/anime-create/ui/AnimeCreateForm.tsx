@@ -19,6 +19,7 @@ import type {
   Season,
   Weekday,
 } from "../../../entities/anime/model/types";
+import { formatZodIssues } from "../../../shared/lib/validation";
 import { useCreateAnime } from "../model/useCreateAnime";
 import {
   animeCreateFormSchema,
@@ -158,6 +159,9 @@ export default function AnimeCreateForm() {
   const [episodes, setEpisodes] = useState<AnimeEpisodeDraft[]>([
     emptyEpisode(1),
   ]);
+  const [submitValidationErrors, setSubmitValidationErrors] = useState<string[]>(
+    [],
+  );
 
   const defaultValues: AnimeCreateFormValues = {
     title: "",
@@ -176,8 +180,30 @@ export default function AnimeCreateForm() {
       onSubmit: animeCreateFormSchema,
     },
     onSubmit: async ({ value }) => {
+      setSubmitValidationErrors([]);
       await mutation.mutateAsync(toCreateInput(value));
       await navigate({ to: "/animes" });
+    },
+    onSubmitInvalid: ({ value }) => {
+      const result = animeCreateFormSchema.safeParse(value);
+      if (result.success) {
+        setSubmitValidationErrors([]);
+        return;
+      }
+
+      const rootMessages = result.error.issues
+        .filter((issue) => issue.path.length === 0)
+        .map((issue) => issue.message);
+
+      setSubmitValidationErrors(
+        Array.from(
+          new Set(
+            rootMessages.length > 0
+              ? rootMessages
+              : [formatZodIssues(result.error.issues)],
+          ),
+        ),
+      );
     },
   });
 
@@ -212,7 +238,10 @@ export default function AnimeCreateForm() {
   }
 
   const duplicates = duplicateNumbers(episodes);
-  const submitErrors = getSubmitErrors(form.state.errorMap.onSubmit);
+  const submitErrors = [
+    ...submitValidationErrors,
+    ...getSubmitErrors(form.state.errorMap.onSubmit),
+  ].filter((error, index, errors) => errors.indexOf(error) === index);
 
   return (
     <Form
@@ -545,8 +574,8 @@ export default function AnimeCreateForm() {
 
       {mutation.isError ? (
         <p className={styles.formError} role="alert" aria-live="polite">
-        Failed to create anime: {mutation.error.message}
-      </p>
+          Failed to create anime: {mutation.error.message}
+        </p>
       ) : null}
 
       <div className={styles.actions}>

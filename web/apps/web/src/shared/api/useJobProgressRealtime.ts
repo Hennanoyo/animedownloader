@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  createJobProgressWebSocketUrl,
   jobRealtimeMessageSchema,
   type JobProgressEvent,
 } from "./jobProgress";
@@ -109,11 +110,3 @@ export function useJobProgressRealtime({
   return { connected };
 }
 
-function createJobProgressWebSocketUrl(jobType?: string): string {
-  const url = new URL("/api/job-events/ws", window.location.origin);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  if (jobType !== undefined) {
-    url.searchParams.set("job_type", jobType);
-  }
-  return url.toString();
-}

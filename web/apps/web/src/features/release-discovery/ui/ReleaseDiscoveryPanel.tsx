@@ -415,28 +415,30 @@ export default function ReleaseDiscoveryPanel({
 
                     {field === "title" ? (
                       <Select
-                      aria-label="Title source"
-                      className={styles.titleSource}
-                      selectedKey={selectedTitleSource}
-                      onSelectionChange={handleTitleSourceChange}
-                    >
-                      <Button className={styles.selectButton}>
-                        <SelectValue />
-                        <span aria-hidden="true">▾</span>
-                      </Button>
-                      <Popover className={styles.selectPopover}>
-                        <ListBox className={styles.selectListBox}>
-                          {titleOptions.map((option) => (
-                            <ListBoxItem
-                              id={option.key}
-                              key={option.key}
-                              className={styles.selectItem}
-                            >
-                              {option.label}
-                            </ListBoxItem>
-                          ))}
-                        </ListBox>
-                      </Popover>
+                        className={styles.titleSource}
+                        selectedKey={selectedTitleSource}
+                        onSelectionChange={handleTitleSourceChange}
+                      >
+                        <Button
+                          className={styles.selectButton}
+                          aria-label="Title source"
+                        >
+                          <SelectValue />
+                          <span aria-hidden="true">▾</span>
+                        </Button>
+                        <Popover className={styles.selectPopover}>
+                          <ListBox className={styles.selectListBox}>
+                            {titleOptions.map((option) => (
+                              <ListBoxItem
+                                id={option.key}
+                                key={option.key}
+                                className={styles.selectItem}
+                              >
+                                {option.label}
+                              </ListBoxItem>
+                            ))}
+                          </ListBox>
+                        </Popover>
                       </Select>
                     ) : null}
                   </div>
@@ -467,7 +469,6 @@ export default function ReleaseDiscoveryPanel({
                           inputValue={String(fieldState.state.value)}
                           allowsCustomValue
                           isInvalid={fieldState.state.meta.errors.length > 0}
-                          aria-label={label}
                           onInputChange={(value) => {
                             fieldState.handleChange(value);
 

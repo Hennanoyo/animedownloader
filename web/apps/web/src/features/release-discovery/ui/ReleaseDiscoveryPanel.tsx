@@ -3,6 +3,7 @@ import { useForm } from "@tanstack/react-form";
 import {
   Button,
   Checkbox,
+  ComboBox,
   Form,
   Input,
   Label,
@@ -22,6 +23,7 @@ import type {
   ReleaseDiscoveryItem,
   SearchField,
 } from "../../../entities/release/model/types";
+import { useReleaseGroups } from "../../../entities/release/model/useReleaseGroups";
 import { useReleaseDiscovery } from "../model/useReleaseDiscovery";
 import styles from "./ReleaseDiscoveryPanel.module.scss";
 
@@ -57,6 +59,12 @@ const FIELD_LABELS: Record<SearchField, string> = {
   resolution: "Resolution",
   codec: "Codec",
 };
+
+const EPISODE_OPTIONS = Array.from({ length: 24 }, (_, index) =>
+  String(index + 1).padStart(2, "0"),
+);
+const RESOLUTION_OPTIONS = ["2160p", "1080p", "720p", "480p"];
+const CODEC_OPTIONS = ["HEVC", "AVC", "AV1", "VP9"];
 
 export type ReleaseDiscoveryTitleSource =
   | "romaji"
@@ -144,6 +152,7 @@ export default function ReleaseDiscoveryPanel({
   defaultTitleSource: ReleaseDiscoveryTitleSource;
 }) {
   const initialTitleOption = getTitleOption(titleOptions, defaultTitleSource);
+  const releaseGroups = useReleaseGroups();
   const [request, setRequest] = useState<ReleaseDiscoveryInput | null>(null);
   const [selectedTitleSource, setSelectedTitleSource] =
     useState<ReleaseDiscoveryTitleSource>(initialTitleOption.key);
@@ -402,73 +411,120 @@ export default function ReleaseDiscoveryPanel({
                     <span className={styles.checkboxMark} aria-hidden="true" />
                   </Checkbox>
 
-                  <div className={styles.fieldMeta}>
-                    <span className={styles.fieldLabel}>{label}</span>
+                  <span className={styles.fieldLabel}>{label}</span>
 
-                    {field === "title" ? (
-                      <Select
-                        aria-label="Title source"
-                        className={styles.titleSource}
-                        selectedKey={selectedTitleSource}
-                        onSelectionChange={handleTitleSourceChange}
-                      >
-                        <Button className={styles.selectButton}>
-                          <SelectValue />
-                          <span aria-hidden="true">▾</span>
-                        </Button>
-                        <Popover className={styles.selectPopover}>
-                          <ListBox className={styles.selectListBox}>
-                            {titleOptions.map((option) => (
-                              <ListBoxItem
-                                id={option.key}
-                                key={option.key}
-                                className={styles.selectItem}
-                              >
-                                {option.label}
-                              </ListBoxItem>
-                            ))}
-                          </ListBox>
-                        </Popover>
-                      </Select>
-                    ) : null}
-                  </div>
+                  {field === "title" ? (
+                    <Select
+                      aria-label="Title source"
+                      className={styles.titleSource}
+                      selectedKey={selectedTitleSource}
+                      onSelectionChange={handleTitleSourceChange}
+                    >
+                      <Button className={styles.selectButton}>
+                        <SelectValue />
+                        <span aria-hidden="true">▾</span>
+                      </Button>
+                      <Popover className={styles.selectPopover}>
+                        <ListBox className={styles.selectListBox}>
+                          {titleOptions.map((option) => (
+                            <ListBoxItem
+                              id={option.key}
+                              key={option.key}
+                              className={styles.selectItem}
+                            >
+                              {option.label}
+                            </ListBoxItem>
+                          ))}
+                        </ListBox>
+                      </Popover>
+                    </Select>
+                  ) : (
+                    <span className={styles.fieldSourcePlaceholder} aria-hidden="true" />
+                  )}
 
                   <form.Field name={field}>
-                    {(fieldState) => (
-                      <TextField
-                        className={styles.inlineField}
-                        isInvalid={fieldState.state.meta.errors.length > 0}
-                        isRequired={field === "title"}
-                        validationBehavior="aria"
-                      >
-                        <Label className={styles.inlineLabel}>{label}</Label>
-                        <Input
-                          type={field === "episode" ? "number" : "text"}
-                          inputMode={field === "episode" ? "numeric" : undefined}
-                          value={fieldState.state.value}
-                          placeholder={
-                            field === "title"
-                              ? "Sousou no Frieren"
-                              : field === "group"
-                                ? "ExampleSubs"
-                                : field === "episode"
-                                  ? "08"
-                                  : field === "resolution"
-                                    ? "1080p"
-                                    : "HEVC"
-                          }
-                          onBlur={fieldState.handleBlur}
-                          onChange={(event) =>
-                            fieldState.handleChange(event.target.value)
-                          }
-                        />
-                        {fieldState.state.meta.errors.length > 0 ? (
-                          <Text slot="errorMessage">
-                            {String(fieldState.state.meta.errors[0])}
-                          </Text>
-                        ) : null}
-                      </TextField>
-                    )}
+                    {(fieldState) => {
+                      const options =
+                        field === "title"
+                          ? titleOptions
+                              .filter(
+                                (option) =>
+                                  option.key !== "custom" &&
+                                  option.value.trim().length > 0,
+                              )
+                              .map((option) => option.value)
+                          : field === "group"
+                            ? (releaseGroups.data?.map((group) => group.name) ?? [])
+                            : field === "episode"
+                              ? EPISODE_OPTIONS
+                              : field === "resolution"
+                                ? RESOLUTION_OPTIONS
+                                : CODEC_OPTIONS;
+
+                      return (
+                        <ComboBox
+                          className={styles.inlineComboBox}
+                          items={options}
+                          inputValue={String(fieldState.state.value)}
+                          allowsCustomValue
+                          isInvalid={fieldState.state.meta.errors.length > 0}
+                          aria-label={label}
+                          onInputChange={(value) => {
+                            fieldState.handleChange(value);
+
+                            if (field === "title") {
+                              const matchingOption = titleOptions.find(
+                                (option) =>
+                                  option.key !== "custom" &&
+                                  option.value === value,
+                              );
+                              setSelectedTitleSource(
+                                matchingOption?.key ?? "custom",
+                              );
+                            }
+                          }}
+                        >
+                          <Label className={styles.inlineLabel}>{label}</Label>
+                          <div className={styles.comboControl}>
+                            <Input
+                              placeholder={
+                                field === "title"
+                                  ? "Sousou no Frieren"
+                                  : field === "group"
+                                    ? "ExampleSubs"
+                                    : field === "episode"
+                                      ? "08"
+                                      : field === "resolution"
+                                        ? "1080p"
+                                        : "HEVC"
+                              }
+                              onBlur={fieldState.handleBlur}
+                            />
+                            <Button aria-label={"Show " + label + " options"}>
+                              ▾
+                            </Button>
+                          </div>
+                          <Popover className={styles.selectPopover}>
+                            <ListBox className={styles.selectListBox}>
+                              {(option) => (
+                                <ListBoxItem
+                                  id={option}
+                                  textValue={option}
+                                  className={styles.selectItem}
+                                >
+                                  {option}
+                                </ListBoxItem>
+                              )}
+                            </ListBox>
+                          </Popover>
+                          {fieldState.state.meta.errors.length > 0 ? (
+                            <Text slot="errorMessage">
+                              {String(fieldState.state.meta.errors[0])}
+                            </Text>
+                          ) : null}
+                        </ComboBox>
+                      );
+                    }}
                   </form.Field>
                 </li>
               );

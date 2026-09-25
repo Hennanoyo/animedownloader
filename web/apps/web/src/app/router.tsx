@@ -6,6 +6,7 @@ import AnimeListPage from "../pages/animes/ui/AnimeListPage";
 import DownloadManagerPage from "../pages/downloads/ui/DownloadManagerPage";
 import EpisodePlayerPage from "../pages/episode-player/ui/EpisodePlayerPage";
 import ReleaseSearchPage from "../pages/release-search/ui/ReleaseSearchPage";
+import ReleaseProfilesPage from "../pages/release-profiles/ui/ReleaseProfilesPage";
 import App from "./App";
 
 const rootRoute = createRootRoute({ component: App });
@@ -37,6 +38,12 @@ const animeDetailRoute = createRoute({
   component: AnimeDetailPage,
 });
 
+const releaseProfilesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/release-profiles",
+  component: ReleaseProfilesPage,
+});
+
 const downloadsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/downloads",
@@ -57,6 +64,7 @@ const routeTree = rootRoute.addChildren([
   animesRoute,
   animeCreateRoute,
   animeDetailRoute,
+  releaseProfilesRoute,
   downloadsRoute,
   episodePlayerRoute,
 ]);

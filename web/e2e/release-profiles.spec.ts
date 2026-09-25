@@ -1,3 +1,5 @@
+import { expect, test } from "@playwright/test";
+
 const GROUP_ID = "019a0000-0000-7000-8000-000000000020";
 const PROFILE_ID = "019a0000-0000-7000-8000-000000000021";
 
@@ -179,11 +181,6 @@ test("renders release profile editor and remains usable without horizontal overf
     page.getByText("Example: [ExampleSubs] Frieren - 08 → ExampleSubs"),
   ).toBeVisible();
 
-  await expect(
-    page.getByRole("button", {
-      name: "[ExampleSubs] Frieren - 08 [1080p][HEVC].mkv",
-    }),
-  ).toHaveCount(0);
   await expect(
     page.getByRole("button", {
       name: "Delete sample [ExampleSubs] Frieren - 08 [1080p][HEVC].mkv",

@@ -464,6 +464,8 @@ Completed implementation:
 
 ### PR #32 — Realtime Job Progress
 
+**In progress on `feature/realtime-job-progress`.**
+
 Goal: replace active Download Manager polling with a shared realtime progress transport that can later serve long-running download and media-processing jobs without making PostgreSQL the event bus.
 
 Planned architecture:

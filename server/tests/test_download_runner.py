@@ -4,6 +4,7 @@ from pathlib import Path
 from uuid import UUID, uuid7
 
 import pytest
+from animedownloader_config import JobProgressEvent
 from animedownloader_download import DownloadJobStatus
 from animedownloader_torrent import TorrentInfo, TorrentStatus
 from animedownloader_worker.runner import (
@@ -161,6 +162,7 @@ async def test_download_runner_starts_download_and_persists_completion(tmp_path:
         torrent_client=client,
         download_root=tmp_path,
         poll_interval=0,
+        progress_checkpoint_interval=0,
         sleep=no_sleep,
     )
     await runner.run(job_id)
@@ -325,3 +327,75 @@ async def test_download_runner_waits_while_job_is_paused(tmp_path: Path) -> None
 
     assert calls == 1
     assert client.added == []
+
+
+@pytest.mark.anyio
+async def test_download_runner_publishes_realtime_progress(tmp_path: Path) -> None:
+    job_id = uuid7()
+    state = FakeState(
+        DownloadContext(
+            status=DownloadJobStatus.DOWNLOADING,
+            torrent_url="https://example.com/episode.torrent",
+        )
+    )
+    client = FakeTorrentClient(
+        torrents=[],
+        info_sequence=[
+            make_torrent(TorrentStatus.DOWNLOADING, 0.25, 250),
+            make_torrent(TorrentStatus.SEEDING, 1.0, 1000),
+        ],
+    )
+    events: list[JobProgressEvent] = []
+
+    async def on_progress(event: JobProgressEvent) -> None:
+        events.append(event)
+
+    runner = DownloadRunner(
+        state=state,
+        torrent_client=client,
+        download_root=tmp_path,
+        on_progress=on_progress,
+        poll_interval=0,
+        progress_checkpoint_interval=999,
+    )
+    await runner.run(job_id)
+
+    assert [event.status for event in events] == [
+        DownloadJobStatus.DOWNLOADING,
+        DownloadJobStatus.DOWNLOADING,
+        DownloadJobStatus.COMPLETED,
+    ]
+    assert events[0].downloaded_bytes == 250
+    assert events[1].downloaded_bytes == 1000
+    assert events[-1].progress_percent == 100.0
+
+
+@pytest.mark.anyio
+async def test_download_runner_checkpoints_progress_infrequently(tmp_path: Path) -> None:
+    job_id = uuid7()
+    state = FakeState(
+        DownloadContext(
+            status=DownloadJobStatus.DOWNLOADING,
+            torrent_url="https://example.com/episode.torrent",
+        )
+    )
+    client = FakeTorrentClient(
+        torrents=[],
+        info_sequence=[
+            make_torrent(TorrentStatus.DOWNLOADING, 0.1, 100),
+            make_torrent(TorrentStatus.DOWNLOADING, 0.5, 500),
+            make_torrent(TorrentStatus.SEEDING, 1.0, 1000),
+        ],
+    )
+
+    runner = DownloadRunner(
+        state=state,
+        torrent_client=client,
+        download_root=tmp_path,
+        poll_interval=0,
+        progress_checkpoint_interval=999,
+    )
+    await runner.run(job_id)
+
+    assert state.progress == [(100, 1000)]
+    assert state.completed == (1000, 1000)

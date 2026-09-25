@@ -5,11 +5,13 @@ import logging
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 from uuid import UUID
 
 from animedownloader_anime import Episode
+from animedownloader_config import JobProgressEvent
 from animedownloader_database import Database
 from animedownloader_download import DownloadJobService, DownloadJobStatus
 from animedownloader_torrent import TorrentClient, TorrentInfo, TorrentStatus
@@ -118,7 +120,9 @@ class DownloadRunner:
         torrent_client: TorrentClient,
         download_root: Path,
         on_completed: Callable[[UUID], Awaitable[None]] | None = None,
+        on_progress: Callable[[JobProgressEvent], Awaitable[None]] | None = None,
         poll_interval: float = 3.0,
+        progress_checkpoint_interval: float = 15.0,
         discovery_timeout: float = 60.0,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
@@ -126,14 +130,28 @@ class DownloadRunner:
         self._torrent_client = torrent_client
         self._download_root = download_root
         self._on_completed = on_completed
+        self._on_progress = on_progress
         self._poll_interval = poll_interval
+        self._progress_checkpoint_interval = progress_checkpoint_interval
         self._discovery_timeout = discovery_timeout
         self._sleep = sleep
 
     async def run(self, job_id: UUID) -> None:
+        last_checkpoint_at: float | None = None
+        last_checkpoint_total_bytes: int | None = None
+        last_downloaded_bytes = 0
+        last_total_bytes = 0
+        last_progress_percent = 0.0
         try:
             context = await self._state.load(job_id)
             while context.status is DownloadJobStatus.PAUSED:
+                await self._publish_progress(
+                    job_id,
+                    status=DownloadJobStatus.PAUSED,
+                    downloaded_bytes=None,
+                    total_bytes=None,
+                    progress_percent=None,
+                )
                 await self._sleep(self._poll_interval)
                 context = await self._state.load(job_id)
 
@@ -142,6 +160,13 @@ class DownloadRunner:
                 DownloadJobStatus.FAILED,
                 DownloadJobStatus.CANCELLED,
             }:
+                await self._publish_progress(
+                    job_id,
+                    status=context.status,
+                    downloaded_bytes=None,
+                    total_bytes=None,
+                    progress_percent=None,
+                )
                 return
 
             if context.status is DownloadJobStatus.PENDING:
@@ -168,6 +193,13 @@ class DownloadRunner:
                     DownloadJobStatus.FAILED,
                     DownloadJobStatus.CANCELLED,
                 }:
+                    await self._publish_progress(
+                        job_id,
+                        status=context.status,
+                        downloaded_bytes=last_downloaded_bytes,
+                        total_bytes=last_total_bytes,
+                        progress_percent=last_progress_percent,
+                    )
                     return
 
                 info = await self._torrent_client.get(torrent.id)
@@ -175,6 +207,10 @@ class DownloadRunner:
                     raise DownloadExecutionError(
                         f"Torrent disappeared from qBittorrent: {torrent.id}"
                     )
+
+                last_downloaded_bytes = info.downloaded_bytes
+                last_total_bytes = info.total_bytes
+                last_progress_percent = max(0.0, min(info.progress * 100.0, 100.0))
 
                 if context.status is DownloadJobStatus.PAUSED:
                     if info.status is not TorrentStatus.PAUSED:
@@ -185,6 +221,13 @@ class DownloadRunner:
                                 "Failed to pause qBittorrent torrent %s",
                                 info.id,
                             )
+                    await self._publish_progress(
+                        job_id,
+                        status=DownloadJobStatus.PAUSED,
+                        downloaded_bytes=info.downloaded_bytes,
+                        total_bytes=info.total_bytes,
+                        progress_percent=last_progress_percent,
+                    )
                     await self._sleep(self._poll_interval)
                     continue
 
@@ -199,10 +242,26 @@ class DownloadRunner:
                         await self._sleep(self._poll_interval)
                         continue
 
-                await self._state.update_progress(
+                now = asyncio.get_running_loop().time()
+                if (
+                    last_checkpoint_at is None
+                    or now - last_checkpoint_at >= self._progress_checkpoint_interval
+                    or last_checkpoint_total_bytes != info.total_bytes
+                ):
+                    await self._state.update_progress(
+                        job_id,
+                        downloaded_bytes=info.downloaded_bytes,
+                        total_bytes=info.total_bytes,
+                    )
+                    last_checkpoint_at = now
+                    last_checkpoint_total_bytes = info.total_bytes
+
+                await self._publish_progress(
                     job_id,
+                    status=DownloadJobStatus.DOWNLOADING,
                     downloaded_bytes=info.downloaded_bytes,
                     total_bytes=info.total_bytes,
+                    progress_percent=last_progress_percent,
                 )
 
                 if info.status is TorrentStatus.ERROR:
@@ -215,6 +274,13 @@ class DownloadRunner:
                         job_id,
                         downloaded_bytes=info.downloaded_bytes,
                         total_bytes=info.total_bytes,
+                    )
+                    await self._publish_progress(
+                        job_id,
+                        status=DownloadJobStatus.COMPLETED,
+                        downloaded_bytes=info.downloaded_bytes,
+                        total_bytes=info.total_bytes,
+                        progress_percent=100.0,
                     )
                     try:
                         await self._torrent_client.remove(
@@ -239,12 +305,51 @@ class DownloadRunner:
 
                 await self._sleep(self._poll_interval)
         except Exception as exc:
+            error_message = _format_error(exc)
             with suppress(Exception):
                 await self._state.mark_failed(
                     job_id,
-                    error_message=_format_error(exc),
+                    error_message=error_message,
                 )
+            await self._publish_progress(
+                job_id,
+                status=DownloadJobStatus.FAILED,
+                downloaded_bytes=last_downloaded_bytes,
+                total_bytes=last_total_bytes,
+                progress_percent=last_progress_percent,
+                error_message=error_message,
+            )
             raise
+
+    async def _publish_progress(
+        self,
+        job_id: UUID,
+        *,
+        status: DownloadJobStatus,
+        downloaded_bytes: int | None,
+        total_bytes: int | None,
+        progress_percent: float | None,
+        error_message: str | None = None,
+    ) -> None:
+        if self._on_progress is None:
+            return
+        event = JobProgressEvent(
+            job_type="download",
+            job_id=job_id,
+            status=status,
+            progress_percent=progress_percent,
+            downloaded_bytes=downloaded_bytes,
+            total_bytes=total_bytes,
+            error_message=error_message,
+            emitted_at=datetime.now(UTC),
+        )
+        try:
+            await self._on_progress(event)
+        except Exception:
+            logger.exception(
+                "Failed to publish progress event for download %s",
+                job_id,
+            )
 
     async def _wait_for_torrent(
         self,

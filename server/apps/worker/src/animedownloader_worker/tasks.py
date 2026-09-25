@@ -40,6 +40,7 @@ from .media_attachment_processing import (
 from .media_packaging import MediaPackagingRunner, create_media_packaging_state
 from .media_preparation import MediaPreparationRunner, create_media_preparation_state
 from .media_processing import MediaProcessingRunner, create_media_processing_state
+from .progress import RedisJobProgressPublisher
 from .runner import DownloadRunner, create_download_state
 from .storage import create_media_storage
 from .subtitle_processing import (
@@ -55,6 +56,7 @@ async def download_episode(job_id: str) -> None:
     print(f"[worker] download started: job_id={job_id}", flush=True)
     settings = Settings()
     database = create_database(settings.database_url)
+    progress_publisher = RedisJobProgressPublisher(settings.redis_url)
     try:
         api_key = (
             settings.qbittorrent_api_key.get_secret_value()
@@ -73,10 +75,12 @@ async def download_episode(job_id: str) -> None:
                     database,
                     completed_job_id,
                 ),
+                on_progress=progress_publisher.publish,
             )
             await runner.run(UUID(job_id))
             print(f"[worker] download completed: job_id={job_id}", flush=True)
     finally:
+        await progress_publisher.close()
         await database.dispose()
 
 

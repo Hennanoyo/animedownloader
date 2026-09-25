@@ -36,12 +36,18 @@ type QueryOptions = {
   statuses: readonly DownloadJobStatus[];
   enabled?: boolean;
   page?: number;
+  realtimeConnected?: boolean;
 };
 
 export function getDownloadJobsRefetchInterval(
   data: DownloadJobListResponse | undefined,
   statuses: readonly DownloadJobStatus[],
+  realtimeConnected = false,
 ): number | false {
+  if (realtimeConnected) {
+    return false;
+  }
+
   const canPoll = statuses.some((status) =>
     pollableDownloadStatuses.includes(status as (typeof pollableDownloadStatuses)[number]),
   );
@@ -62,6 +68,7 @@ export function downloadJobsQueryOptions({
   statuses,
   enabled = true,
   page = 1,
+  realtimeConnected = false,
 }: QueryOptions) {
   const normalizedStatuses = [...statuses];
   const params: DownloadJobListParams = {
@@ -80,7 +87,11 @@ export function downloadJobsQueryOptions({
     enabled,
     refetchOnWindowFocus: false,
     refetchInterval: (query) =>
-      getDownloadJobsRefetchInterval(query.state.data, normalizedStatuses),
+      getDownloadJobsRefetchInterval(
+        query.state.data,
+        normalizedStatuses,
+        realtimeConnected,
+      ),
   });
 }
 

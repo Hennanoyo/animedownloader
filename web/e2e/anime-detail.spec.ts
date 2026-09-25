@@ -17,6 +17,19 @@ const transparentPng = Buffer.from(
 );
 
 test.beforeEach(async ({ page }) => {
+  page.on("response", async (response) => {
+    if (
+      response.url().includes("/pipeline") ||
+      response.url().includes("/download-jobs/latest")
+    ) {
+      console.log(
+        "E2E API RESPONSE",
+        response.status(),
+        response.url(),
+        await response.text(),
+      );
+    }
+  });
   pipelineResponse = structuredClone(pipeline);
   latestDownloadJobResponse = {
     id: "019a0000-0000-0000-0000-000000000099",

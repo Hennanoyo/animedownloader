@@ -7,13 +7,15 @@ from .exceptions import (
     InvalidDownloadJobTransitionError,
 )
 from .models import DownloadJob
-from .service import DownloadJobService
+from .service import DownloadJobListItem, DownloadJobListResult, DownloadJobService
 
 __all__ = [
     "ActiveDownloadJobError",
     "DownloadJobActiveError",
     "DOWNLOAD_TASK_NAME",
     "DownloadJob",
+    "DownloadJobListItem",
+    "DownloadJobListResult",
     "DownloadJobNotFoundError",
     "DownloadJobService",
     "DownloadJobStatus",

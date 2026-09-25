@@ -75,6 +75,7 @@ def make_event() -> JobProgressEvent:
         job_id=uuid7(),
         status="downloading",
         progress_percent=50,
+        stage="processing",
         downloaded_bytes=500,
         total_bytes=1000,
         emitted_at=datetime.now(UTC),
@@ -123,6 +124,7 @@ async def test_emit_job_progress_builds_event() -> None:
         job_id=job_id,
         status="processing",
         progress_percent=0,
+        stage="processing",
     )
 
     event = JobProgressEvent.model_validate_json(client.published[0][1])
@@ -130,6 +132,7 @@ async def test_emit_job_progress_builds_event() -> None:
     assert event.job_id == job_id
     assert event.status == "processing"
     assert event.progress_percent == 0
+    assert event.stage == "processing"
 
 def test_progress_publisher_does_not_raise_when_redis_fails() -> None:
     client = FakeRedisFailure()

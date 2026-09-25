@@ -10,20 +10,13 @@ import {
   usePauseDownloadJob,
   useResumeDownloadJob,
 } from "../model/useEpisodeDownload";
-import type { DownloadJob } from "../../../entities/download/model/types";
 import styles from "./EpisodeDownloadControl.module.scss";
-
-type DownloadJobSnapshot = Pick<
-  DownloadJob,
-  "id" | "status" | "downloaded_bytes" | "total_bytes" | "error_message"
->;
 
 interface Props {
   episodeId: string;
   compact?: boolean;
   inline?: boolean;
   realtimeConnected?: boolean;
-  job?: DownloadJobSnapshot;
 }
 
 export default function EpisodeDownloadControl({
@@ -31,13 +24,8 @@ export default function EpisodeDownloadControl({
   compact = false,
   inline = false,
   realtimeConnected = false,
-  job: jobSnapshot,
 }: Props) {
-  const query = useEpisodeDownload(
-    episodeId,
-    realtimeConnected,
-    jobSnapshot === undefined,
-  );
+  const query = useEpisodeDownload(episodeId, realtimeConnected);
   const createMutation = useCreateEpisodeDownloadJob(episodeId);
   const pauseMutation = usePauseDownloadJob(episodeId);
   const resumeMutation = useResumeDownloadJob(episodeId);
@@ -45,22 +33,11 @@ export default function EpisodeDownloadControl({
   const deleteMutation = useDeleteDownloadJob(episodeId);
   const [confirm, setConfirm] = useState<"cancel" | "delete" | null>(null);
 
-  const job: DownloadJobSnapshot | null | undefined =
-    jobSnapshot ?? query.data;
-
-  if (
-    jobSnapshot === undefined &&
-    (job === undefined || job === null) &&
-    query.isPending
-  ) {
+  if (query.isPending) {
     return <span className={styles.message}>Checking...</span>;
   }
 
-  if (
-    jobSnapshot === undefined &&
-    (job === undefined || job === null) &&
-    query.isError
-  ) {
+  if (query.isError) {
     return (
       <div className={styles.control}>
         <span className={styles.error}>Failed to load download status.</span>
@@ -73,6 +50,8 @@ export default function EpisodeDownloadControl({
       </div>
     );
   }
+
+  const job = query.data;
 
   if (job?.status === "pending" || job?.status === "downloading") {
     const pending = pauseMutation.isPending || cancelMutation.isPending;
@@ -334,7 +313,7 @@ export default function EpisodeDownloadControl({
 }
 
 interface InlineDownloadStateProps {
-  job: DownloadJobSnapshot;
+  job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
   statusLabel: string;
   pending: boolean;
   isPausing: boolean;
@@ -439,7 +418,7 @@ function InlineDownloadState({
 
 interface TerminalDownloadControlProps {
   compact?: boolean;
-  job: DownloadJobSnapshot;
+  job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
   onDownload: () => void;
   onDelete: () => void;
   deleteMutation: ReturnType<typeof useDeleteDownloadJob>;

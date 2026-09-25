@@ -556,22 +556,6 @@ test("keeps live download controls inside the download stage", async ({ page }) 
 
 
 test("discovers parsed releases from the anime detail page", async ({ page }) => {
-  const discovery = page.getByLabel("Find releases");
-  await discovery.getByRole("button", { name: "Discover releases" }).click();
-  const resultCard = page.getByRole("article").filter({
-    hasText: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
-  });
-  await expect(
-    resultCard.getByRole("button", { name: "Add to this Anime" }),
-  ).toBeVisible();
-  await resultCard
-    .getByRole("button", { name: "Add to this Anime" })
-    .click();
-  await expect(page.getByText("Episode 2", { exact: false })).toBeVisible();
-  await expect(
-    page.getByText("Episode 2 added to this Anime."),
-  ).toBeVisible();
-
   await page.goto("/animes/" + ANIME_ID);
 
   const discovery = page.getByRole("region", { name: "Find releases" });

@@ -754,9 +754,11 @@ UI follow-up refinements in the current PR:
 
 - Anime-detail title discovery now uses one ComboBox for saved language variants and transient custom values instead of a separate title-source Select.
 - Anime-detail search ComboBox popovers are height-constrained and vertically scrollable so long Episode lists stay inside the overlay.
-- Parser Rule editing uses a compact two-level layout with consistently styled controls, field-aware regex placeholders, and human-readable transform names.
-- Rule explanations are exposed as on-demand RAC tooltips instead of persistent microcopy, keeping the editor visually quiet while retaining guidance.
+- Parser Rule editing uses collapsed one-line summaries so large rule sets remain scannable, with a chevron to reveal the full editor.
+- Expanded rules use three consistent detail rows: regex pattern + priority, regex flags + transform, and a full-width remove action.
+- Rule explanations are exposed as on-demand RAC tooltips instead of persistent microcopy, with immediate pointer-leave dismissal and visible spacing from the trigger.
 - Required-rule checkbox animation matches the Search fields interaction, and Transform choices no longer inflate the popover horizontally.
+- Parser suggestion listboxes use constrained scrolling with a dark-theme scrollbar that matches the surrounding popovers.
 - Release Group and Representative sample inputs use the same full-width control treatment as the rest of the page.
 - Representative sample cards use a stable content/action grid and wrap long release titles without introducing horizontal overflow.
 - Browser visual smoke coverage captures desktop and mobile Release Profiles layouts and asserts the page remains free of horizontal overflow.

@@ -60,16 +60,19 @@ const animeSchema = z.object({
   episodes: z.array(episodeSchema),
 });
 
+function formatZodIssues(issues: z.core.$ZodIssue[]): string {
+  return issues
+    .map((issue) => {
+      const path = issue.path.map(String).join(".");
+      return path ? path + ": " + issue.message : issue.message;
+    })
+    .join("; ");
+}
+
 export class AnimeResponseError extends Error {
   constructor(readonly issues: z.core.$ZodIssue[]) {
     super(
-      "Invalid anime API response: " +
-        issues
-          .map(
-            (issue) =>
-              (issue.path.join(".") || "<root>") + ": " + issue.message,
-          )
-          .join("; "),
+      "Invalid anime API response: " + formatZodIssues(issues),
     );
     this.name = "AnimeResponseError";
   }

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
 from uuid import UUID
 
-from animedownloader_anime import Episode, EpisodeNotFoundError
+from animedownloader_anime import Anime, Episode, EpisodeNotFoundError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +15,19 @@ from .exceptions import (
 )
 from .models import DownloadJob
 from .repository import DownloadJobRepository
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadJobListItem:
+    job: DownloadJob
+    episode: Episode
+    anime: Anime
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadJobListResult:
+    items: list[DownloadJobListItem]
+    total: int
 
 
 class DownloadJobService:
@@ -30,6 +46,31 @@ class DownloadJobService:
 
     async def get_latest_job(self, episode_id: UUID) -> DownloadJob | None:
         return await self.jobs.get_latest_for_episode(episode_id)
+
+    async def list_jobs(
+        self,
+        *,
+        statuses: tuple[DownloadJobStatus, ...] | None = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> DownloadJobListResult:
+        if page < 1:
+            raise ValueError("page must be at least 1")
+        if page_size < 1:
+            raise ValueError("page_size must be at least 1")
+
+        rows, total = await self.jobs.list_with_context(
+            statuses=statuses,
+            offset=(page - 1) * page_size,
+            limit=page_size,
+        )
+        return DownloadJobListResult(
+            items=[
+                DownloadJobListItem(job=job, episode=episode, anime=anime)
+                for job, episode, anime in rows
+            ],
+            total=total,
+        )
 
     async def create_job(self, episode_id: UUID) -> DownloadJob:
         await self.session.rollback()

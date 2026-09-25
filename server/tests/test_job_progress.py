@@ -13,9 +13,13 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 
+def _published_list() -> list[tuple[str, str]]:
+    return []
+
+
 @dataclass
 class FakeRedisPublisher:
-    published: list[tuple[str, str]] = field(default_factory=list)
+    published: list[tuple[str, str]] = field(default_factory=_published_list)
     closed: bool = False
 
     async def publish(self, channel: str, message: str) -> int:

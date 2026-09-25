@@ -1,6 +1,5 @@
 from datetime import UTC, datetime
 from pathlib import Path
-from collections.abc import Awaitable
 from typing import Any
 from uuid import UUID, uuid7
 

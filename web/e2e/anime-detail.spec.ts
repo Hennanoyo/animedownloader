@@ -186,6 +186,7 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   const activePipeline = structuredClone(pipeline);
   activePipeline.episodes[0].download = {
     ...activePipeline.episodes[0].download,
+    job_id: "019a0000-0000-0000-0000-000000000099",
     status: "downloading",
     downloaded_bytes: 524288,
     total_bytes: 1048576,

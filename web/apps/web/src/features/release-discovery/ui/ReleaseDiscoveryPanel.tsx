@@ -218,7 +218,7 @@ export default function ReleaseDiscoveryPanel({
     setDraggedField(field);
     setDropTarget(null);
     setDragAnnouncement(
-      \`Dragging \${FIELD_LABELS[field]}. Drop it before or after another field.\`,
+      `Dragging ${FIELD_LABELS[field]}. Drop it before or after another field.`,
     );
   }
 
@@ -259,7 +259,7 @@ export default function ReleaseDiscoveryPanel({
     setDraggedField(null);
     setDropTarget(null);
     setDragAnnouncement(
-      \`\${FIELD_LABELS[source]} moved \${placeAfter ? "after" : "before"} \${FIELD_LABELS[field]}.\`,
+      `${FIELD_LABELS[source]} moved ${placeAfter ? "after" : "before"} ${FIELD_LABELS[field]}.`,
     );
   }
 
@@ -273,8 +273,8 @@ export default function ReleaseDiscoveryPanel({
       setKeyboardGrabbedField(grabbing ? null : field);
       setDragAnnouncement(
         grabbing
-          ? \`\${FIELD_LABELS[field]} released.\`
-          : \`\${FIELD_LABELS[field]} grabbed. Use Arrow Up or Arrow Down to move it, then Space to release.\`,
+          ? `${FIELD_LABELS[field]} released.`
+          : `${FIELD_LABELS[field]} grabbed. Use Arrow Up or Arrow Down to move it, then Space to release.`,
       );
       return;
     }
@@ -282,7 +282,7 @@ export default function ReleaseDiscoveryPanel({
     if (event.key === "Escape" && keyboardGrabbedField === field) {
       event.preventDefault();
       setKeyboardGrabbedField(null);
-      setDragAnnouncement(\`\${FIELD_LABELS[field]} released.\`);
+      setDragAnnouncement(`${FIELD_LABELS[field]} released.`);
       return;
     }
 
@@ -301,7 +301,7 @@ export default function ReleaseDiscoveryPanel({
     setFieldOrder(nextOrder);
     const position = nextOrder.indexOf(field) + 1;
     setDragAnnouncement(
-      \`\${FIELD_LABELS[field]} moved to position \${position} of \${nextOrder.length}.\`,
+      `${FIELD_LABELS[field]} moved to position ${position} of ${nextOrder.length}.`,
     );
   }
 
@@ -375,7 +375,7 @@ export default function ReleaseDiscoveryPanel({
                     className={styles.dragHandle}
                     draggable
                     aria-describedby="search-fields-reorder-help"
-                    aria-label={\`Reorder \${label}\`}
+                    aria-label={`Reorder ${label}`}
                     aria-pressed={keyboardGrabbedField === field}
                     data-drag-handle={field}
                     onDragStart={(event) => handleDragStart(event, field)}
@@ -396,7 +396,7 @@ export default function ReleaseDiscoveryPanel({
                         [field]: selected,
                       }))
                     }
-                    aria-label={\`Enable \${label}\`}
+                    aria-label={`Enable ${label}`}
                   >
                     <span className={styles.checkboxMark} aria-hidden="true" />
                   </Checkbox>

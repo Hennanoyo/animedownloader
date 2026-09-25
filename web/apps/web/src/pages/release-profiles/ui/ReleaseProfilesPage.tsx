@@ -9,7 +9,6 @@ import {
   ListBoxItem,
   Popover,
   Select,
-  SelectValue,
   TextField,
 } from "react-aria-components";
 import {
@@ -59,6 +58,81 @@ const TRANSFORMS = [
   "lower",
   "upper",
 ] as const;
+
+const TRANSFORM_LABELS: Record<(typeof TRANSFORMS)[number], string> = {
+  identity: "Keep as matched",
+  strip: "Trim whitespace",
+  normalize_spaces: "Normalize spaces",
+  to_int: "Convert to integer",
+  lower: "Lowercase",
+  upper: "Uppercase",
+};
+
+const TRANSFORM_DESCRIPTIONS: Record<(typeof TRANSFORMS)[number], string> = {
+  identity: "Store the matched text unchanged.",
+  strip: "Trim whitespace around the matched text.",
+  normalize_spaces: "Collapse repeated whitespace and trim the result.",
+  to_int: "Convert the matched value to an integer. Use this for episode, season, or bit depth.",
+  lower: "Convert the matched text to lowercase.",
+  upper: "Convert the matched text to uppercase.",
+};
+
+const RULE_GUIDANCE: Record<ParserRuleInput["field"], {
+  placeholder: string;
+  description: string;
+  example: string;
+}> = {
+  release_group: {
+    placeholder: "^\\[(?P<release_group>[^\\]]+)\\]",
+    description: "Capture the release group, for example the name inside [ExampleSubs].",
+    example: "[ExampleSubs] Frieren - 08 → ExampleSubs",
+  },
+  series_title: {
+    placeholder: "(?P<series_title>.+?)(?=\\s+-?\\s+\\d{1,4})",
+    description: "Capture the series title before the episode token.",
+    example: "Frieren - 08 → Frieren",
+  },
+  episode_number: {
+    placeholder: "(?P<episode_number>\\d{1,4})",
+    description: "Capture the episode number. A numeric transform such as to_int is recommended.",
+    example: "Episode 08 → 8",
+  },
+  episode_title: {
+    placeholder: "(?P<episode_title>[^\\[]+)",
+    description: "Capture the human-readable episode title while leaving technical brackets out.",
+    example: "08 - Departure [1080p] → Departure",
+  },
+  season_number: {
+    placeholder: "[Ss](?P<season_number>\\d{1,2})",
+    description: "Capture the season number from S01-style notation.",
+    example: "S02E03 → 2",
+  },
+  resolution: {
+    placeholder: "(?P<resolution>2160p|1440p|1080p|720p|480p)",
+    description: "Capture one supported resolution token.",
+    example: "[1080p] → 1080p",
+  },
+  source: {
+    placeholder: "(?P<source>WEB-DL|WEB|BluRay)",
+    description: "Capture the release source token.",
+    example: "[WEB-DL] → WEB-DL",
+  },
+  video_codec: {
+    placeholder: "(?P<video_codec>HEVC|H\\.?265|x265)",
+    description: "Capture the video codec token.",
+    example: "[H.265] → H.265",
+  },
+  audio_codec: {
+    placeholder: "(?P<audio_codec>AAC|FLAC|Opus)",
+    description: "Capture the audio codec token.",
+    example: "[AAC] → AAC",
+  },
+  bit_depth: {
+    placeholder: "(?P<bit_depth>8|10|12)(?:-?bit)?",
+    description: "Capture a bit depth such as 8, 10, or 12. Use to_int.",
+    example: "[10bit] → 10",
+  },
+};
 
 const EMPTY_RULE: ParserRuleInput = {
   field: "episode_number",
@@ -601,93 +675,172 @@ function RuleRow({
   onChange: (patch: Partial<ParserRuleInput>) => void;
   onRemove: () => void;
 }) {
+  const [showPatternHelp, setShowPatternHelp] = useState(false);
+  const guidance = RULE_GUIDANCE[rule.field];
+
   return (
     <div className={styles.ruleRow}>
-      <div className={styles.ruleNumber}>{index + 1}</div>
-      <Select
-        selectedKey={rule.field}
-        onSelectionChange={(key) => {
-          if (key !== null) onChange({ field: String(key) as ParserRuleInput["field"] });
-        }}
-        aria-label={"Rule " + (index + 1) + " field"}
-      >
-        <Button className={styles.selectButton}><SelectValue /></Button>
-        <Popover className={styles.popover}>
-          <ListBox className={styles.listBox}>
-            {parserFields.map((field) => (
-              <ListBoxItem key={field} id={field} className={styles.listItem}>
-                {FIELD_LABELS[field]}
-              </ListBoxItem>
-            ))}
-          </ListBox>
-        </Popover>
-      </Select>
-      <TextField
-        className={styles.ruleInput}
-        aria-label={"Rule " + (index + 1) + " pattern"}
-      >
-        <Label className={styles.srOnly}>Pattern</Label>
-        <Input
-          value={rule.pattern}
-          onChange={(event) => onChange({ pattern: event.target.value })}
-          placeholder="(?P<episode_number>\d+)"
-        />
-      </TextField>
-      <TextField
-        className={styles.priorityInput}
-        aria-label={"Rule " + (index + 1) + " priority"}
-      >
-        <Label className={styles.srOnly}>Priority</Label>
-        <Input
-          type="number"
-          value={String(rule.priority)}
-          onChange={(event) => onChange({ priority: Number(event.target.value) || 0 })}
-        />
-      </TextField>
-      <Checkbox
-        isSelected={rule.required}
-        onChange={(selected) => onChange({ required: selected })}
-        aria-label={"Rule " + (index + 1) + " required"}
-      >
-        <span className={styles.checkboxMark} aria-hidden="true" />
-        <span>Required</span>
-      </Checkbox>
-      <TextField
-        className={styles.flagsInput}
-        aria-label={"Rule " + (index + 1) + " flags"}
-      >
-        <Label className={styles.srOnly}>Flags</Label>
-        <Input
-          value={rule.flags}
-          onChange={(event) => onChange({ flags: event.target.value })}
-          placeholder="i"
-        />
-      </TextField>
-      <Select
-        selectedKey={rule.transform}
-        onSelectionChange={(key) => {
-          if (key !== null) {
-            onChange({
-              transform: String(key) as ParserRuleInput["transform"],
-            });
-          }
-        }}
-        aria-label={"Rule " + (index + 1) + " transform"}
-      >
-        <Button className={styles.selectButton}><SelectValue /></Button>
-        <Popover className={styles.popover}>
-          <ListBox className={styles.listBox}>
-            {TRANSFORMS.map((transform) => (
-              <ListBoxItem key={transform} id={transform} className={styles.listItem}>
-                {transform}
-              </ListBoxItem>
-            ))}
-          </ListBox>
-        </Popover>
-      </Select>
-      <Button className={styles.dangerButton} onPress={onRemove}>
-        Remove
-      </Button>
+      <div className={styles.ruleMain}>
+        <div className={styles.ruleNumber}>#{index + 1}</div>
+
+        <div className={styles.ruleControl}>
+          <span className={styles.controlLabel}>Target field</span>
+          <Select
+            selectedKey={rule.field}
+            onSelectionChange={(key) => {
+              if (key !== null) {
+                onChange({ field: String(key) as ParserRuleInput["field"] });
+              }
+            }}
+            aria-label={"Rule " + (index + 1) + " target field"}
+          >
+            <Button className={styles.selectButton}>
+              <span>{FIELD_LABELS[rule.field]}</span>
+              <span aria-hidden="true">▾</span>
+            </Button>
+            <Popover className={styles.popover}>
+              <ListBox className={styles.listBox}>
+                {parserFields.map((field) => (
+                  <ListBoxItem key={field} id={field} className={styles.listItem}>
+                    {FIELD_LABELS[field]}
+                  </ListBoxItem>
+                ))}
+              </ListBox>
+            </Popover>
+          </Select>
+        </div>
+
+        <div className={styles.rulePattern}>
+          <div className={styles.labelRow}>
+            <span className={styles.controlLabel}>Regex pattern</span>
+            <Button
+              className={styles.helpButton}
+              aria-label="Regex pattern help"
+              aria-expanded={showPatternHelp}
+              onPress={() => setShowPatternHelp((value) => !value)}
+            >
+              ?
+            </Button>
+          </div>
+          <Input
+            aria-label={"Rule " + (index + 1) + " pattern"}
+            value={rule.pattern}
+            onChange={(event) => onChange({ pattern: event.target.value })}
+            placeholder={guidance.placeholder}
+          />
+          <span className={styles.fieldHint}>{guidance.description}</span>
+
+          {showPatternHelp ? (
+            <div className={styles.helpPanel}>
+              <strong>How regex matching works</strong>
+              <p>
+                The rule searches the normalized release title. Prefer a named
+                capture matching the target field, such as{" "}
+                <code>(?P&lt;episode_number&gt;\d{"{1,4}"})</code>. If no named
+                capture exists, one capture group is used; otherwise the full
+                match becomes the value.
+              </p>
+              <p>
+                Example: <code>{guidance.example}</code>
+              </p>
+              <p>
+                The pattern is checked before activation, and the validation
+                action runs it against every representative sample.
+              </p>
+            </div>
+          ) : null}
+        </div>
+
+        <Button
+          className={styles.dangerButton}
+          onPress={onRemove}
+          aria-label={"Remove rule " + (index + 1)}
+        >
+          Remove
+        </Button>
+      </div>
+
+      <div className={styles.ruleOptions}>
+        <div className={styles.ruleControlCompact}>
+          <div className={styles.labelRow}>
+            <span className={styles.controlLabel}>Priority</span>
+            <span className={styles.helpText}>lower numbers run first</span>
+          </div>
+          <Input
+            type="number"
+            min={0}
+            aria-label={"Rule " + (index + 1) + " priority"}
+            value={String(rule.priority)}
+            onChange={(event) =>
+              onChange({ priority: Number(event.target.value) || 0 })
+            }
+          />
+        </div>
+
+        <Checkbox
+          className={styles.requiredCheckbox}
+          isSelected={rule.required}
+          onChange={(selected) => onChange({ required: selected })}
+          aria-label={"Rule " + (index + 1) + " required"}
+        >
+          <span className={styles.checkboxMark} aria-hidden="true" />
+          <span>
+            <strong>Required</strong>
+            <small>If it misses, the sample is not actionable.</small>
+          </span>
+        </Checkbox>
+
+        <div className={styles.ruleControlCompact}>
+          <span className={styles.controlLabel}>Regex flags</span>
+          <Input
+            aria-label={"Rule " + (index + 1) + " regex flags"}
+            value={rule.flags}
+            onChange={(event) => onChange({ flags: event.target.value })}
+            placeholder="i"
+          />
+          <span className={styles.fieldHint}>
+            i = ignore case · m = multiline · s = dot matches newline · x = verbose · a = ASCII
+          </span>
+        </div>
+
+        <div className={styles.ruleControlCompact}>
+          <span className={styles.controlLabel}>Transform</span>
+          <Select
+            selectedKey={rule.transform}
+            onSelectionChange={(key) => {
+              if (key !== null) {
+                onChange({
+                  transform: String(key) as ParserRuleInput["transform"],
+                });
+              }
+            }}
+            aria-label={"Rule " + (index + 1) + " transform"}
+          >
+            <Button className={styles.selectButton}>
+              <span>{TRANSFORM_LABELS[rule.transform]}</span>
+              <span aria-hidden="true">▾</span>
+            </Button>
+            <Popover className={styles.popover}>
+              <ListBox className={styles.listBox}>
+                {TRANSFORMS.map((transform) => (
+                  <ListBoxItem
+                    key={transform}
+                    id={transform}
+                    className={styles.listItem}
+                    textValue={TRANSFORM_LABELS[transform]}
+                  >
+                    <span>{TRANSFORM_LABELS[transform]}</span>
+                    <span className={styles.itemMeta}>
+                      {TRANSFORM_DESCRIPTIONS[transform]}
+                    </span>
+                  </ListBoxItem>
+                ))}
+              </ListBox>
+            </Popover>
+          </Select>
+          <span className={styles.fieldHint}>{TRANSFORM_DESCRIPTIONS[rule.transform]}</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -695,11 +848,11 @@ function RuleRow({
 function ReadOnlyRule({ rule }: { rule: ParserRule }) {
   return (
     <div className={styles.readOnlyRule}>
-      <span>#{rule.priority}</span>
+      <span className={styles.ruleNumber}>#{rule.priority}</span>
       <strong>{FIELD_LABELS[rule.field]}</strong>
       <code>{rule.pattern}</code>
-      <span>{rule.required ? "required" : "optional"}</span>
-      <span>{rule.transform}</span>
+      <span>{rule.required ? "Required" : "Optional"}</span>
+      <span>{TRANSFORM_LABELS[rule.transform]}</span>
     </div>
   );
 }
@@ -757,7 +910,7 @@ function SampleManager({
       <div className={styles.samples}>
         {samples.map((sample) => (
           <div className={styles.sampleItem} key={sample.id}>
-            <div>
+            <div className={styles.sampleContent}>
               <strong>{sample.title}</strong>
               <span>{sample.source} · added {sample.created_at.toLocaleDateString()}</span>
             </div>

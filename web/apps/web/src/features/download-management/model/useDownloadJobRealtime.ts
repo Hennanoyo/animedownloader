@@ -63,11 +63,16 @@ export function useDownloadJobRealtime({ enabled }: { enabled: boolean }) {
         }
 
         if (result.data.type === "job.ready") {
-          setConnected(true);
-          void queryClient.refetchQueries({
-            queryKey: activeDownloadQueryKey,
-            type: "active",
-          });
+          void queryClient
+            .refetchQueries({
+              queryKey: activeDownloadQueryKey,
+              type: "active",
+            })
+            .then(() => {
+              if (!stopped) {
+                setConnected(true);
+              }
+            });
           return;
         }
 
@@ -138,6 +143,9 @@ export function applyDownloadJobEvent(
 
       const items = [...data.items];
       const current = items[index];
+      if (event.emitted_at.getTime() <= current.updated_at.getTime()) {
+        return data;
+      }
       items[index] = {
         ...current,
         status: event.status,

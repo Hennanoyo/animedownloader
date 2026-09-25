@@ -521,16 +521,21 @@ def _streaming_status(
         package.source_path != variant.path
         or package.source_variant_updated_at != variant.updated_at
     ):
-        return EpisodePipelineStageStatus.PENDING, False, False, None
+        return EpisodePipelineStageStatus.PENDING, 0, False, False, None
 
     status = MediaStreamingPackageStatus(package.status)
     hls_ready = package.hls_master_key is not None
     dash_ready = package.dash_manifest_key is not None
+    progress = (
+        100
+        if status is MediaStreamingPackageStatus.COMPLETED and hls_ready and dash_ready
+        else 0
+    )
 
     if status is MediaStreamingPackageStatus.FAILED:
         return (
             EpisodePipelineStageStatus.FAILED,
-            0,
+            progress,
             hls_ready,
             dash_ready,
             package.error_message,
@@ -538,7 +543,7 @@ def _streaming_status(
     if status is MediaStreamingPackageStatus.PROCESSING:
         return (
             EpisodePipelineStageStatus.PROCESSING,
-            0,
+            progress,
             hls_ready,
             dash_ready,
             package.error_message,
@@ -546,7 +551,7 @@ def _streaming_status(
     if status is MediaStreamingPackageStatus.PENDING:
         return (
             EpisodePipelineStageStatus.PENDING,
-            0,
+            progress,
             hls_ready,
             dash_ready,
             package.error_message,
@@ -604,7 +609,6 @@ def _latest_processing_jobs(
         if row.episode_id not in result:
             result[row.episode_id] = row
     return result
-
 
 
 def _latest_packaging_jobs(

@@ -15,7 +15,7 @@ from animedownloader_releases import (
 )
 
 
-def _release(title: str) -> Release:
+def make_release(title: str) -> Release:
     return Release(
         source="nyaa",
         id=f"https://nyaa.si/view/{abs(hash(title))}",
@@ -31,6 +31,7 @@ def _release(title: str) -> Release:
     )
 
 
+_release = make_release
 @pytest.mark.parametrize(
     ("title", "expected_group", "expected_series", "expected_episode"),
     [

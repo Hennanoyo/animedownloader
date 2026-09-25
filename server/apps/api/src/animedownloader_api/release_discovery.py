@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+from typing import Protocol
 
-from animedownloader_nyaa import NyaaClient, NyaaError
+from animedownloader_nyaa import NyaaError
 from animedownloader_releases import (
     ParsedRelease,
     ParserField,
@@ -29,6 +30,11 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+
+
+class ReleaseSearchClient(Protocol):
+    async def search(self, query: str) -> list[Release]:
+        ...
 
 
 @dataclass(frozen=True, slots=True)

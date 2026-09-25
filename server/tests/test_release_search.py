@@ -13,7 +13,7 @@ from animedownloader_releases import (
     validate_search_template,
 )
 
-from .test_release_parser import _release
+from .test_release_parser import make_release
 
 
 def test_normalize_release_group_slug() -> None:
@@ -89,7 +89,7 @@ def test_validate_search_profile_rejects_duplicate_priorities() -> None:
 
 
 def test_merge_releases_deduplicates_source_and_info_hash() -> None:
-    first = _release("[ExampleSubs] Frieren - 01")
+    first = make_release("[ExampleSubs] Frieren - 01")
     duplicate_source = replace(first)
     duplicate_hash = replace(first, id=first.id + "?duplicate")
     unique = replace(first, id=first.id + "?unique", info_hash="fedcba")

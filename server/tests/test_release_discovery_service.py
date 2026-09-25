@@ -6,7 +6,7 @@ from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_nyaa import NyaaError
 from animedownloader_releases import Release, SearchQueryContext, build_search_queries
 
-from .test_release_parser import _release
+from .test_release_parser import make_release
 
 
 class FakeNyaaClient:
@@ -16,9 +16,9 @@ class FakeNyaaClient:
     async def search(self, query: str) -> list[Release]:
         self.queries.append(query)
         if query == "ExampleSubs Frieren":
-            return [replace(_release("[ExampleSubs] Frieren - 01 [1080p]"), id="duplicate")]
+            return [replace(make_release("[ExampleSubs] Frieren - 01 [1080p]"), id="duplicate")]
         if query == "Frieren":
-            return [_release("[ExampleSubs] Frieren - 01 [1080p]")]
+            return [make_release("[ExampleSubs] Frieren - 01 [1080p]")]
         if query == "ExampleSubs Frieren 8 1080p HEVC":
             raise NyaaError("specific query failed")
         return []

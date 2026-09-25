@@ -33,13 +33,6 @@ async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:
         yield session
 
 
-def get_release_discovery_service(
-    session: Annotated[AsyncSession, Depends(get_db_session)],
-    client: Annotated[NyaaClient, Depends(get_nyaa_client)],
-) -> ReleaseDiscoveryService:
-    return ReleaseDiscoveryService(session, client)
-
-
 def get_anime_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> AnimeService:
@@ -81,6 +74,13 @@ def get_media_processing_task_dispatcher(
 async def get_nyaa_client() -> AsyncIterator[NyaaClient]:
     async with NyaaClient() as client:
         yield client
+
+
+def get_release_discovery_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    client: Annotated[NyaaClient, Depends(get_nyaa_client)],
+) -> ReleaseDiscoveryService:
+    return ReleaseDiscoveryService(session, client)
 
 
 async def get_qbittorrent_client(

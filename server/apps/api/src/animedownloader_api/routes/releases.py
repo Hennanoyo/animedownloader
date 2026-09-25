@@ -10,6 +10,7 @@ from animedownloader_api.dependencies import (
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_api.schemas import (
     ParsedReleaseResponse,
+    ReleaseDiscoveryItemResponse,
     ReleaseDiscoveryResponse,
     ReleaseResponse,
     ReleaseSearchResponse,
@@ -74,8 +75,10 @@ async def discover_releases(
         search_profile_version=result.search_profile_version,
         items=[
             {
-                "release": ReleaseResponse.model_validate(item.release),
-                "parsed": ParsedReleaseResponse.from_parsed(item.parsed),
+                ReleaseDiscoveryItemResponse(
+                    release=ReleaseResponse.model_validate(item.release),
+                    parsed=ParsedReleaseResponse.from_parsed(item.parsed),
+                ),
             }
             for item in result.items
         ],

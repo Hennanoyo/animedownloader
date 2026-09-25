@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from typing import Protocol
 from uuid import UUID
 
+from animedownloader_config import JobProgressStage
 from animedownloader_media import (
     FFmpegProgressCallback,
     MediaPreparationProcessingResult,
@@ -643,7 +644,7 @@ class MediaPreparationRunner:
         self,
         job_id: UUID,
         *,
-        stage: str,
+        stage: JobProgressStage,
         status: str,
         progress_percent: float,
         error_message: str | None = None,

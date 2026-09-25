@@ -33,7 +33,6 @@ from animedownloader_media_processing import (
 from animedownloader_qbittorrent import QBittorrentClient
 
 from .broker import broker
-from .progress import RedisJobProgressPublisher
 from .media_attachment_processing import (
     MediaAttachmentProcessingRunner,
     create_media_attachment_processing_state,
@@ -41,6 +40,7 @@ from .media_attachment_processing import (
 from .media_packaging import MediaPackagingRunner, create_media_packaging_state
 from .media_preparation import MediaPreparationRunner, create_media_preparation_state
 from .media_processing import MediaProcessingRunner, create_media_processing_state
+from .progress import RedisJobProgressPublisher
 from .runner import DownloadRunner, create_download_state
 from .storage import create_media_storage
 from .subtitle_processing import (

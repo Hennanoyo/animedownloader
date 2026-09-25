@@ -63,7 +63,7 @@ export default function EpisodeDownloadControl({
     );
   }
 
-  const job = jobSnapshot ?? query.data;
+  const job: DownloadJobSnapshot | undefined = jobSnapshot ?? query.data;
 
   if (job?.status === "pending" || job?.status === "downloading") {
     const pending = pauseMutation.isPending || cancelMutation.isPending;
@@ -325,7 +325,7 @@ export default function EpisodeDownloadControl({
 }
 
 interface InlineDownloadStateProps {
-  job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
+  job: DownloadJobSnapshot;
   statusLabel: string;
   pending: boolean;
   isPausing: boolean;
@@ -430,7 +430,7 @@ function InlineDownloadState({
 
 interface TerminalDownloadControlProps {
   compact?: boolean;
-  job: NonNullable<ReturnType<typeof useEpisodeDownload>["data"]>;
+  job: DownloadJobSnapshot;
   onDownload: () => void;
   onDelete: () => void;
   deleteMutation: ReturnType<typeof useDeleteDownloadJob>;

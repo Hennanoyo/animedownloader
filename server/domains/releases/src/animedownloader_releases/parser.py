@@ -63,7 +63,7 @@ def parse_release(
 ) -> ParsedRelease:
     normalized = normalize_release_title(release.title)
     if len(normalized) > MAX_INPUT_LENGTH:
-        raise ValueError(f"release title exceeds {MAX_INPUT_LENGTH} characters")
+        raise ValueError(f"parser input exceeds {MAX_INPUT_LENGTH} characters")
     if not normalized:
         return ParsedRelease(
             provider_source=release.source,

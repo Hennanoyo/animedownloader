@@ -128,7 +128,7 @@ def test_parser_profile_overrides_generic_fields() -> None:
         rules=(
             ParserRuleSpec(
                 field=ParserField.SERIES_TITLE,
-                pattern=r"\[(?P<series_title>ExampleSubs)\]\s+(?P<title>[^-]+)\s+-\s+\d+",
+                pattern=r"\[ExampleSubs\]\s+(?P<series_title>.+?)\s+Episode-\d{2}",
                 priority=10,
                 transform=ParserTransform.STRIP,
             ),

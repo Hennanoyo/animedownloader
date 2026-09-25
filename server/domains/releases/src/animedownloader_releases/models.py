@@ -70,7 +70,7 @@ class ParserProfileSpec:
 
 @dataclass(frozen=True, slots=True)
 class ParsedRelease:
-    source: str
+    provider_source: str
     source_id: str
     original_title: str
     normalized_title: str

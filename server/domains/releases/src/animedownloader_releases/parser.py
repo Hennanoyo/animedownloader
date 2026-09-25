@@ -66,7 +66,7 @@ def parse_release(
         raise ValueError(f"release title exceeds {MAX_INPUT_LENGTH} characters")
     if not normalized:
         return ParsedRelease(
-            source=release.source,
+            provider_source=release.source,
             source_id=release.id,
             original_title=release.title,
             normalized_title=normalized,
@@ -147,7 +147,7 @@ def apply_parser_profile(
     bit_depth = _as_int(values[ParserField.BIT_DEPTH])
 
     return ParsedRelease(
-        source=parsed.source,
+        provider_source=parsed.provider_source,
         source_id=parsed.source_id,
         original_title=parsed.original_title,
         normalized_title=parsed.normalized_title,

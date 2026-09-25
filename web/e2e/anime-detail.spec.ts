@@ -199,6 +199,8 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   }
   await expect(page.locator('[aria-label="Download progress"]')).toBeVisible();
 
+  const pipelineStatus = page.getByLabel("Media pipeline status");
+
   await page.waitForTimeout(1000);
   const requestsAfterRealtimeConnect = pipelineRequests;
 

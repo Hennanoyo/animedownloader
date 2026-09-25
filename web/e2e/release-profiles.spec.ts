@@ -173,13 +173,29 @@ test("renders release profile editor and remains usable without horizontal overf
   );
 
   const patternHelp = page.getByRole("button", {
-    name: "Regex pattern help",
-  }).first();
-  await patternHelp.click();
-  await expect(page.getByText("How regex matching works")).toBeVisible();
-  await expect(
-    page.getByText("Example: [ExampleSubs] Frieren - 08 → ExampleSubs"),
-  ).toBeVisible();
+    name: "Rule 1 regex pattern help",
+  });
+  await patternHelp.focus();
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText("How regex matching works");
+  await expect(tooltip).toContainText(
+    "Example: [ExampleSubs] Frieren - 08 → ExampleSubs",
+  );
+
+  const targetField = page.getByRole("button", {
+    name: "Rule 1 target field",
+  });
+  await expect(targetField).toHaveCSS("min-height", "38.4px");
+
+  const sampleInput = page.getByRole("textbox", {
+    name: "Sample release title",
+  });
+  await expect(sampleInput).toHaveCSS("min-height", "38.4px");
+
+  await page.getByRole("button", { name: "Rule 2 transform" }).click();
+  await expect(page.getByRole("option", { name: "Convert to integer" })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Normalize spaces" })).toBeVisible();
 
   await expect(
     page.getByRole("button", {

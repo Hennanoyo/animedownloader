@@ -165,7 +165,7 @@ async def test_list_download_jobs_includes_anime_and_episode_context() -> None:
     service.list_jobs = AsyncMock(
         return_value=DownloadJobListResult(
             items=[DownloadJobListItem(job=job, episode=episode, anime=anime)],
-            total=1,
+            total=25,
         )
     )
 
@@ -183,7 +183,7 @@ async def test_list_download_jobs_includes_anime_and_episode_context() -> None:
     assert payload["items"][0]["episode_title"] == "再び同じ場所へ"
     assert payload["page"] == 2
     assert payload["page_size"] == 10
-    assert payload["total"] == 1
+    assert payload["total"] == 25
     assert payload["has_more"] is True
     service.list_jobs.assert_awaited_once_with(
         statuses=(DownloadJobStatus.PENDING, DownloadJobStatus.DOWNLOADING),

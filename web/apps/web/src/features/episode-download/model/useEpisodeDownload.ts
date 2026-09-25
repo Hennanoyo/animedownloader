@@ -18,10 +18,12 @@ import type { DownloadJob } from "../../../entities/download/model/types";
 export function episodeDownloadQueryOptions(
   episodeId: string,
   realtimeConnected = false,
+  enabled = true,
 ) {
   return queryOptions({
     queryKey: ["download-jobs", "latest", episodeId] as const,
     queryFn: ({ signal }) => getLatestEpisodeDownloadJob(episodeId, signal),
+    enabled,
     refetchInterval: (query) => {
       if (realtimeConnected) {
         return false;
@@ -37,8 +39,11 @@ export function episodeDownloadQueryOptions(
 export function useEpisodeDownload(
   episodeId: string,
   realtimeConnected = false,
+  enabled = true,
 ) {
-  return useQuery(episodeDownloadQueryOptions(episodeId, realtimeConnected));
+  return useQuery(
+    episodeDownloadQueryOptions(episodeId, realtimeConnected, enabled),
+  );
 }
 
 export function useCreateEpisodeDownloadJob(episodeId: string) {

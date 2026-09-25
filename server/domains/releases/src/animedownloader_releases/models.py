@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Final
+from uuid import UUID
 
 
 class ParseStatus(StrEnum):
@@ -108,7 +109,7 @@ class AnimeMatchStatus(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class AnimeMatchCandidate:
-    anime_id: str
+    anime_id: UUID
     title: str
     matched_titles: tuple[str, ...] = ()
 

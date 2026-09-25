@@ -131,9 +131,9 @@ export default function AnimeDetailPage() {
             </div>
           </div>
 
-          {pipelineQuery.isPending ? (
+          {pipelineQuery.isPending && pipelineQuery.data === undefined ? (
             <p className={styles.pipelineState}>Loading media status...</p>
-          ) : pipelineQuery.isError ? (
+          ) : pipelineQuery.isError && pipelineQuery.data === undefined ? (
             <div className={styles.pipelineState} role="alert">
               <p>
                 Failed to load media pipeline status.

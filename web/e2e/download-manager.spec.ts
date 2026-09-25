@@ -283,11 +283,14 @@ test("receives live progress without polling while realtime is healthy", async (
   await page.waitForTimeout(1000);
   const requestsAfterRealtimeConnect = downloadListRequests;
 
-  await page.evaluate(() => {
-    const windowWithEmitter = window as Window & {
-      __emitDownloadEvent: (payload: unknown) => void;
-    };
-    windowWithEmitter.__emitDownloadEvent({
+  await page.evaluate(
+    (payload) => {
+      const windowWithEmitter = window as unknown as {
+        __emitDownloadEvent: (payload: unknown) => void;
+      };
+      windowWithEmitter.__emitDownloadEvent(payload);
+    },
+    {
       version: 1,
       type: "job.progress",
       job_type: "download",
@@ -298,8 +301,8 @@ test("receives live progress without polling while realtime is healthy", async (
       total_bytes: 1000,
       error_message: null,
       emitted_at: "2026-09-25T00:01:00Z",
-    });
-  });
+    },
+  );
 
   await expect(page.getByText("650 B / 1000 B", { exact: true })).toBeVisible();
   await page.waitForTimeout(2500);

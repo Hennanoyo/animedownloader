@@ -277,6 +277,15 @@ test("receives live pipeline updates without polling", async ({ page }) => {
     page.getByRole("progressbar", { name: "Sprite" }),
   ).toHaveAttribute("aria-valuenow", "68");
 
+  await expect(
+    pipelineStatus.locator('[data-current="true"]'),
+  ).toHaveCount(1);
+  await expect(
+    pipelineStatus.locator(
+      '[data-current="false"][data-status="processing"]',
+    ),
+  ).toHaveCount(2);
+
   await emitPipelineEvent({
     version: 1,
     type: "job.progress",

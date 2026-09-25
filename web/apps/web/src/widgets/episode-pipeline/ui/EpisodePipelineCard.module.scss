@@ -232,15 +232,22 @@
   background: #475569;
 }
 
-.statusIndicator[data-status="pending"],
-.statusIndicator[data-status="processing"],
-.statusIndicator[data-status="downloading"] {
+.statusIndicator[data-current="true"][data-status="pending"],
+.statusIndicator[data-current="true"][data-status="processing"],
+.statusIndicator[data-current="true"][data-status="downloading"] {
   background: #60a5fa;
 }
 
-.statusIndicator[data-status="processing"],
-.statusIndicator[data-status="downloading"] {
+.statusIndicator[data-current="true"][data-status="processing"],
+.statusIndicator[data-current="true"][data-status="downloading"] {
   animation: pulse 1.4s ease-in-out infinite;
+}
+
+.statusIndicator[data-current="false"][data-status="pending"],
+.statusIndicator[data-current="false"][data-status="processing"],
+.statusIndicator[data-current="false"][data-status="downloading"] {
+  background: #64748b;
+  animation: none;
 }
 
 .statusIndicator[data-status="paused"] {
@@ -568,8 +575,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .statusIndicator[data-status="processing"],
-  .statusIndicator[data-status="downloading"] {
+  .statusIndicator[data-current="true"][data-status="processing"],
+  .statusIndicator[data-current="true"][data-status="downloading"] {
     animation: none;
   }
 

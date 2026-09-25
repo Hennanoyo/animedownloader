@@ -437,10 +437,16 @@ function StageStatusIcon({
     );
   }
 
-  if (current || status === "processing" || status === "downloading" || status === "pending") {
+  if (
+    current ||
+    status === "processing" ||
+    status === "downloading" ||
+    status === "pending"
+  ) {
     return (
       <span
         className={styles.statusIndicator}
+        data-current={current}
         data-status={status}
         aria-label={status === "pending" ? "Waiting" : "In progress"}
       />
@@ -450,6 +456,7 @@ function StageStatusIcon({
   return (
     <span
       className={styles.statusIndicator}
+      data-current={current}
       data-status={status}
       aria-label="Not started"
     />

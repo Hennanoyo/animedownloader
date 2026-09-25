@@ -116,13 +116,7 @@ class SearchQueryContext:
 
 
 @dataclass(frozen=True, slots=True)
-class SearchTemplateSpec:
-    template: str
-    priority: int = 100
-
-
-@dataclass(frozen=True, slots=True)
 class SearchProfileSpec:
     release_group: str
     version: int
-    templates: tuple[SearchTemplateSpec, ...]
+    fields: tuple[SearchField, ...]

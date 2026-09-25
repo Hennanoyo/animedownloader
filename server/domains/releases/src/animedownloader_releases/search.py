@@ -13,20 +13,13 @@ from .models import (
     SearchTemplateSpec,
 )
 
-MAX_SEARCH_TEMPLATE_LENGTH: Final = 300
-MAX_SEARCH_TEMPLATES: Final = 16
-
-_SEARCH_TOKEN_RE = re.compile(r"\{([a-z_]+)\}")
-_ALLOWED_SEARCH_FIELDS: Final[frozenset[str]] = frozenset(
-    field.value for field in SearchField
-)
-DEFAULT_SEARCH_TEMPLATES: Final[tuple[str, ...]] = (
-    "{group} {title} {episode} {resolution} {codec}",
-    "{title} {episode} {resolution} {codec}",
-    "{group} {title} {episode}",
-    "{title} {episode}",
-    "{group} {title}",
-    "{title}",
+MAX_SEARCH_FIELDS: Final = len(SearchField)
+DEFAULT_SEARCH_FIELDS: Final[tuple[SearchField, ...]] = (
+    SearchField.GROUP,
+    SearchField.TITLE,
+    SearchField.EPISODE,
+    SearchField.RESOLUTION,
+    SearchField.CODEC,
 )
 
 
@@ -36,91 +29,52 @@ def normalize_release_group_slug(value: str) -> str:
     return normalized.strip("-")
 
 
-def validate_search_template(template: str) -> tuple[str, ...]:
-    if not template.strip():
-        return ("template must not be empty",)
-    if len(template) > MAX_SEARCH_TEMPLATE_LENGTH:
-        return (
-            f"template exceeds {MAX_SEARCH_TEMPLATE_LENGTH} characters",
-        )
-
-    errors: list[str] = []
-    tokens = _SEARCH_TOKEN_RE.findall(template)
-    for token in tokens:
-        if token not in _ALLOWED_SEARCH_FIELDS:
-            errors.append(f"unsupported search field: {token}")
-
-    remainder = _SEARCH_TOKEN_RE.sub("", template)
-    if "{" in remainder or "}" in remainder:
-        errors.append("template contains an invalid placeholder")
-
-    return tuple(errors)
-
-
 def validate_search_profile(profile: SearchProfileSpec) -> tuple[str, ...]:
     if profile.version < 1:
         raise ValueError("search profile version must be >= 1")
     if not profile.release_group.strip():
         raise ValueError("release group must not be empty")
-    if not profile.templates:
-        raise ValueError("at least one search template is required")
-    if len(profile.templates) > MAX_SEARCH_TEMPLATES:
+    if not profile.fields:
+        raise ValueError("at least one search field is required")
+    if len(profile.fields) > MAX_SEARCH_FIELDS:
         raise ValueError(
-            f"search profile exceeds {MAX_SEARCH_TEMPLATES} templates",
+            f"search profile exceeds {MAX_SEARCH_FIELDS} fields",
         )
-
-    priorities: set[int] = set()
-    errors: list[str] = []
-    for item in profile.templates:
-        if item.priority < 0:
-            errors.append(f"priority {item.priority}: priority must be >= 0")
-        for error in validate_search_template(item.template):
-            errors.append(f"priority {item.priority}: {error}")
-        if item.priority in priorities:
-            errors.append(f"duplicate template priority: {item.priority}")
-        priorities.add(item.priority)
-
-    return tuple(errors)
+    if len(set(profile.fields)) != len(profile.fields):
+        return ("duplicate search field",)
+    return ()
 
 
-def build_search_queries(
+def build_search_query(
     context: SearchQueryContext,
     profile: SearchProfileSpec | None = None,
-) -> tuple[str, ...]:
-    if profile is None:
-        templates = tuple(
-            SearchTemplateSpec(template=template, priority=index)
-            for index, template in enumerate(DEFAULT_SEARCH_TEMPLATES)
-        )
-    else:
-        errors = validate_search_profile(profile)
-        if errors:
-            raise ValueError("; ".join(errors))
-        templates = profile.templates
+    fields: tuple[SearchField, ...] | None = None,
+) -> str | None:
+    selected_fields = (
+        fields
+        if fields is not None
+        else profile.fields if profile is not None else DEFAULT_SEARCH_FIELDS
+    )
+    if not selected_fields:
+        return None
+    if len(selected_fields) > MAX_SEARCH_FIELDS:
+        raise ValueError(f"search query exceeds {MAX_SEARCH_FIELDS} fields")
+    if len(set(selected_fields)) != len(selected_fields):
+        raise ValueError("duplicate search field")
 
     values = {
-        SearchField.GROUP.value: _clean_value(context.group),
-        SearchField.TITLE.value: _clean_value(context.title),
-        SearchField.EPISODE.value: (
+        SearchField.GROUP: _clean_value(context.group),
+        SearchField.TITLE: _clean_value(context.title),
+        SearchField.EPISODE: (
             str(context.episode) if context.episode is not None else None
         ),
-        SearchField.RESOLUTION.value: _clean_value(context.resolution),
-        SearchField.CODEC.value: _clean_value(context.codec),
+        SearchField.RESOLUTION: _clean_value(context.resolution),
+        SearchField.CODEC: _clean_value(context.codec),
     }
-
-    queries: list[str] = []
-    seen: set[str] = set()
-    for item in sorted(templates, key=lambda value: value.priority):
-        query = _render_template(item.template, values)
-        if query is None:
-            continue
-        key = query.casefold()
-        if key in seen:
-            continue
-        seen.add(key)
-        queries.append(query)
-
-    return tuple(queries)
+    rendered = " ".join(
+        value for field in selected_fields if (value := values.get(field))
+    )
+    return _clean_value(rendered)
 
 
 def merge_releases(results: Iterable[Iterable[Release]]) -> tuple[Release, ...]:

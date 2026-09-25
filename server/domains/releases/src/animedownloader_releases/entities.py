@@ -146,16 +146,16 @@ class ReleaseSearchProfile(Base):
     release_group: Mapped[ReleaseGroup] = relationship(
         back_populates="search_profiles",
     )
-    templates: Mapped[list[ReleaseSearchTemplate]] = relationship(
+    fields: Mapped[list[ReleaseSearchField]] = relationship(
         back_populates="profile",
         cascade="all, delete-orphan",
         lazy="selectin",
-        order_by="ReleaseSearchTemplate.priority",
+        order_by="ReleaseSearchField.priority",
     )
 
 
-class ReleaseSearchTemplate(Base):
-    __tablename__ = "release_search_templates"
+class ReleaseSearchField(Base):
+    __tablename__ = "release_search_fields"
     __table_args__ = (
         UniqueConstraint(
             "profile_id",
@@ -170,8 +170,8 @@ class ReleaseSearchTemplate(Base):
         index=True,
     )
     priority: Mapped[int] = mapped_column(Integer)
-    template: Mapped[str] = mapped_column(String(300))
+    field: Mapped[str] = mapped_column(String(32))
 
     profile: Mapped[ReleaseSearchProfile] = relationship(
-        back_populates="templates",
+        back_populates="fields",
     )

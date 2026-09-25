@@ -45,11 +45,11 @@ export default function EpisodeDownloadControl({
   const deleteMutation = useDeleteDownloadJob(episodeId);
   const [confirm, setConfirm] = useState<"cancel" | "delete" | null>(null);
 
-  if (query.isPending) {
+  if (jobSnapshot === undefined && query.isPending) {
     return <span className={styles.message}>Checking...</span>;
   }
 
-  if (query.isError) {
+  if (jobSnapshot === undefined && query.isError) {
     return (
       <div className={styles.control}>
         <span className={styles.error}>Failed to load download status.</span>

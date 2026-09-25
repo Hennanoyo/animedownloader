@@ -158,10 +158,10 @@ test("renders release profile editor and remains usable without horizontal overf
   ).toBeVisible();
 
   await expect(
-    page.getByRole("button", { name: "Rule 1 target field" }),
+    page.getByRole("button", { name: "Rule 1 target field", exact: true }),
   ).toContainText("Release group");
   await expect(
-    page.getByRole("button", { name: "Rule 2 transform" }),
+    page.getByRole("button", { name: "Rule 2 transform", exact: true }),
   ).toContainText("Convert to integer");
 
   const firstPattern = page.getByRole("textbox", {

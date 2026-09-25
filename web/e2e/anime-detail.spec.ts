@@ -3,6 +3,7 @@ import type { AnimePipeline } from "../apps/web/src/entities/anime/model/pipelin
 
 const ANIME_ID = "019a0000-0000-7000-8000-000000000010";
 let pipelineRequests = 0;
+let pipelineResponse: AnimePipeline;
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
 
@@ -236,10 +237,6 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   if (await showDetails.isVisible()) {
     await showDetails.click();
   }
-  console.log(
-    "LIVE PIPELINE BODY:",
-    await page.locator("body").innerText(),
-  );
   await expect(page.getByLabel("Download progress")).toBeVisible();
 
   await page.waitForTimeout(1000);

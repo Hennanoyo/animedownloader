@@ -5,7 +5,13 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from .ffmpeg import FFmpegCommandResult, FFmpegRunner, SubprocessFFmpegRunner
+from .ffmpeg import (
+    FFmpegCommandResult,
+    FFmpegProgressCallback,
+    FFmpegRunner,
+    SubprocessFFmpegRunner,
+    run_ffmpeg,
+)
 
 
 class FFmpegThumbnailProcessingError(RuntimeError):
@@ -57,6 +63,7 @@ class FFmpegThumbnailSpriteProcessor:
         media_path: Path,
         output_dir: Path,
         duration_seconds: float | None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> ThumbnailSpriteResult:
         if not media_path.is_file():
             raise FFmpegThumbnailProcessingError(
@@ -90,7 +97,8 @@ class FFmpegThumbnailSpriteProcessor:
                 f"pad={self._width}:{self._height}:(ow-iw)/2:(oh-ih)/2,"
                 "setsar=1"
             )
-            extraction_result = await self._runner.run(
+            extraction_result = await run_ffmpeg(
+                self._runner,
                 (
                     self._executable,
                     "-v",
@@ -104,6 +112,8 @@ class FFmpegThumbnailSpriteProcessor:
                     "5",
                     str(frame_pattern),
                 ),
+                duration_seconds=duration,
+                on_progress=on_progress,
             )
             _validate_ffmpeg_result(
                 extraction_result,
@@ -151,7 +161,7 @@ class FFmpegThumbnailSpriteProcessor:
                 f"FFmpeg completed without creating thumbnail sprite: {sprite_path}",
             )
 
-        _write_webvtt(
+        write_thumbnail_webvtt(
             path=vtt_path,
             frame_count=len(frame_paths),
             interval_seconds=interval,
@@ -197,7 +207,7 @@ def _validate_ffmpeg_result(
     )
 
 
-def _write_webvtt(
+def write_thumbnail_webvtt(
     *,
     path: Path,
     frame_count: int,

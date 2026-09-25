@@ -71,10 +71,11 @@ class FakeHub:
 
 def make_event() -> JobProgressEvent:
     return JobProgressEvent(
-        job_type="download",
+        job_type="media-processing",
         job_id=uuid7(),
         status="downloading",
         progress_percent=50,
+        stage="processing",
         downloaded_bytes=500,
         total_bytes=1000,
         emitted_at=datetime.now(UTC),
@@ -123,6 +124,7 @@ async def test_emit_job_progress_builds_event() -> None:
         job_id=job_id,
         status="processing",
         progress_percent=0,
+        stage="processing",
     )
 
     event = JobProgressEvent.model_validate_json(client.published[0][1])
@@ -130,6 +132,7 @@ async def test_emit_job_progress_builds_event() -> None:
     assert event.job_id == job_id
     assert event.status == "processing"
     assert event.progress_percent == 0
+    assert event.stage == "processing"
 
 def test_progress_publisher_does_not_raise_when_redis_fails() -> None:
     client = FakeRedisFailure()
@@ -146,14 +149,14 @@ def test_progress_websocket_sends_ready_and_event() -> None:
     app.include_router(router)
 
     with TestClient(app) as client, client.websocket_connect(
-        "/api/job-events/ws?job_type=download",
+        "/api/job-events/ws?job_type=media-processing",
     ) as websocket:
-            ready = JobProgressReadyEvent.model_validate_json(
-                websocket.receive_text(),
-            )
-            received = JobProgressEvent.model_validate_json(
-                websocket.receive_text(),
-            )
+        ready = JobProgressReadyEvent.model_validate_json(
+            websocket.receive_text(),
+        )
+        received = JobProgressEvent.model_validate_json(
+            websocket.receive_text(),
+        )
 
-    assert ready.job_type == "download"
+    assert ready.job_type == "media-processing"
     assert received == event

@@ -59,7 +59,7 @@ export function applyAnimePipelineEvent(
   const queryKey = animePipelineQueryKey(animeId);
 
   if (realtimeMediaJobTypes.has(event.job_type)) {
-    void queryClient.invalidateQueries({ queryKey });
+    applyMediaPipelineEvent(queryClient, animeId, event);
     return;
   }
 
@@ -139,6 +139,123 @@ export function applyAnimePipelineEvent(
     event.status === "cancelled"
   ) {
     void queryClient.invalidateQueries({ queryKey });
+  }
+}
+
+
+function applyMediaPipelineEvent(
+  queryClient: QueryClient,
+  animeId: string,
+  event: JobProgressEvent,
+): void {
+  const queryKey = animePipelineQueryKey(animeId);
+  const current = queryClient.getQueryData<AnimePipeline>(queryKey);
+  if (!current) {
+    void queryClient.invalidateQueries({ queryKey });
+    return;
+  }
+
+  const episodeIndex = current.episodes.findIndex((episode) =>
+    matchesMediaJob(event, episode),
+  );
+  if (episodeIndex < 0) {
+    void queryClient.invalidateQueries({ queryKey });
+    return;
+  }
+
+  const episode = current.episodes[episodeIndex];
+  const progress = event.progress_percent ?? 0;
+  let nextEpisode: EpisodePipelineSummary;
+
+  if (event.job_type === "media-processing") {
+    nextEpisode = {
+      ...episode,
+      processing: {
+        ...episode.processing,
+        status: isPipelineStageStatus(event.status)
+          ? event.status
+          : episode.processing.status,
+        progress_percent: progress,
+      },
+    };
+  } else if (event.job_type === "media-preparation") {
+    if (event.stage === "processing") {
+      nextEpisode = {
+        ...episode,
+        processing: {
+          ...episode.processing,
+          status: isPipelineStageStatus(event.status)
+            ? event.status
+            : episode.processing.status,
+          progress_percent: progress,
+        },
+      };
+    } else if (event.stage === "preview") {
+      nextEpisode = {
+        ...episode,
+        thumbnail: {
+          ...episode.thumbnail,
+          status: isPipelineStageStatus(event.status)
+            ? event.status
+            : episode.thumbnail.status,
+          progress_percent: progress,
+        },
+      };
+    } else {
+      void queryClient.invalidateQueries({ queryKey });
+      return;
+    }
+  } else if (event.job_type === "media-packaging") {
+    if (event.stage !== "streaming") {
+      void queryClient.invalidateQueries({ queryKey });
+      return;
+    }
+    nextEpisode = {
+      ...episode,
+      streaming: {
+        ...episode.streaming,
+        status: isPipelineStageStatus(event.status)
+          ? event.status
+          : episode.streaming.status,
+        progress_percent: progress,
+      },
+    };
+  } else {
+    return;
+  }
+
+  nextEpisode.current_stage = getCurrentStage(nextEpisode);
+  nextEpisode.active = isPipelineActive(nextEpisode);
+
+  const episodes = [...current.episodes];
+  episodes[episodeIndex] = nextEpisode;
+  queryClient.setQueryData<AnimePipeline>(queryKey, {
+    ...current,
+    episodes,
+  });
+
+  if (
+    event.status === "completed" ||
+    event.status === "failed" ||
+    event.status === "cancelled"
+  ) {
+    void queryClient.invalidateQueries({ queryKey });
+  }
+}
+
+function matchesMediaJob(
+  event: JobProgressEvent,
+  episode: EpisodePipelineSummary,
+): boolean {
+  switch (event.job_type) {
+    case "media-processing":
+      return episode.processing.job_id === event.job_id;
+    case "media-preparation":
+      return episode.processing.preparation_job_id === event.job_id;
+    case "media-packaging":
+      return episode.streaming.job_id === event.job_id;
+    default:
+      return false;
   }
 }
 

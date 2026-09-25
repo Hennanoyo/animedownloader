@@ -6,6 +6,7 @@ from uuid import UUID, uuid7
 import pytest
 from animedownloader_config import JobProgressEvent
 from animedownloader_media import (
+    FFmpegProgressCallback,
     MediaFormat,
     MediaPreparationProcessingResult,
     MediaProbe,
@@ -122,6 +123,7 @@ class FakePreparationProcessor:
         vtt_path: Path,
         duration_seconds: float | None,
         operation: PlayableMediaOperation,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> MediaPreparationProcessingResult:
         self.calls.append(
             (
@@ -133,6 +135,9 @@ class FakePreparationProcessor:
                 operation,
             )
         )
+        if on_progress is not None:
+            await on_progress(25.0)
+            await on_progress(75.0)
         playable_path.parent.mkdir(parents=True, exist_ok=True)
         playable_path.write_bytes(b"playable")
         sprite_path.parent.mkdir(parents=True, exist_ok=True)
@@ -162,6 +167,8 @@ class FakePlayableProcessor:
         media_path: Path,
         output_path: Path,
         operation: PlayableMediaOperation,
+        duration_seconds: float | None = None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> PlayableMediaProcessingResult:
         self.operations.append(operation)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -182,6 +189,7 @@ class FakeThumbnailProcessor:
         media_path: Path,
         output_dir: Path,
         duration_seconds: float | None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> ThumbnailSpriteResult:
         self.calls += 1
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -312,10 +320,10 @@ async def test_runner_combines_playable_and_thumbnail_generation(tmp_path: Path)
     playable = FakePlayableProcessor()
     thumbnail = FakeThumbnailProcessor()
 
-    events: list[tuple[str, float | None]] = []
+    events: list[tuple[str, float | None, str | None]] = []
 
     async def on_progress(event: JobProgressEvent) -> None:
-        events.append((event.status, event.progress_percent))
+        events.append((event.status, event.progress_percent, event.stage))
 
     runner = make_runner(
         tmp_path,
@@ -332,7 +340,16 @@ async def test_runner_combines_playable_and_thumbnail_generation(tmp_path: Path)
     assert state.process_calls == [
         (MediaTranscodingOperation.TRANSCODE, True, True),
     ]
-    assert events == [("processing", 0), ("completed", 100)]
+    assert events == [
+        ("processing", 0.0, "processing"),
+        ("processing", 0.0, "preview"),
+        ("processing", 25.0, "processing"),
+        ("processing", 25.0, "preview"),
+        ("processing", 75.0, "processing"),
+        ("processing", 75.0, "preview"),
+        ("completed", 100.0, "processing"),
+        ("completed", 100.0, "preview"),
+    ]
     assert len(preparation.calls) == 1
     assert preparation.calls[0][-1] is PlayableMediaOperation.TRANSCODE
     assert playable.operations == []

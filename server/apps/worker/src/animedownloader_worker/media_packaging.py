@@ -12,6 +12,7 @@ from uuid import UUID
 from animedownloader_media import (
     CMAFPackagingResult,
     CMAFRepresentationMetadata,
+    FFmpegProgressCallback,
     build_dash_manifest,
     build_hls_master_playlist,
     make_representation_metadata,
@@ -164,6 +165,8 @@ class CMAFPackagingProcessor(Protocol):
         *,
         media_path: Path,
         output_dir: Path,
+        duration_seconds: float | None = None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> CMAFPackagingResult: ...
 
 
@@ -192,6 +195,7 @@ class MediaPackagingRunner:
                     job_id=job_id,
                     status=MediaPackagingJobStatus.COMPLETED.value,
                     progress_percent=100,
+                    stage="streaming",
                 )
                 return
             if not context.source_is_current:
@@ -217,6 +221,7 @@ class MediaPackagingRunner:
                 job_id=job_id,
                 status=MediaPackagingJobStatus.PROCESSING.value,
                 progress_percent=0,
+                stage="streaming",
             )
 
             quality = f"{context.height}p"
@@ -232,9 +237,21 @@ class MediaPackagingRunner:
                     context.source_path,
                     source_path,
                 )
+                async def on_packaging_progress(percent: float) -> None:
+                    await emit_job_progress(
+                        self._on_progress,
+                        job_type="media-packaging",
+                        job_id=job_id,
+                        status=MediaPackagingJobStatus.PROCESSING.value,
+                        progress_percent=min(percent, 99.0),
+                        stage="streaming",
+                    )
+
                 packaged = await self._processor.process(
                     media_path=source_path,
                     output_dir=representation_dir,
+                    duration_seconds=context.duration_seconds,
+                    on_progress=on_packaging_progress,
                 )
                 representation = make_representation_metadata(
                     quality=quality,
@@ -277,6 +294,7 @@ class MediaPackagingRunner:
                 job_id=job_id,
                 status=MediaPackagingJobStatus.COMPLETED.value,
                 progress_percent=100,
+                stage="streaming",
             )
         except Exception as exc:
             if context is not None:
@@ -296,6 +314,7 @@ class MediaPackagingRunner:
                 job_id=job_id,
                 status=MediaPackagingJobStatus.FAILED.value,
                 progress_percent=0,
+                stage="streaming",
                 error_message=_format_error(exc),
             )
             raise

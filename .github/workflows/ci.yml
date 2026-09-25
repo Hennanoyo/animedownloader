@@ -223,6 +223,7 @@ jobs:
           from pathlib import Path
 
           from animedownloader_media import (
+              FFmpegMediaPreparationProcessor,
               FFmpegPlayableMediaProcessor,
               FFmpegThumbnailSpriteProcessor,
               FFprobeInspector,
@@ -244,6 +245,20 @@ jobs:
               assert thumbnail_result.vtt_path.is_file()
               assert thumbnail_result.frame_count == 3
               assert "WEBVTT" in thumbnail_result.vtt_path.read_text(encoding="utf-8")
+
+              combined_dir = Path("/tmp/animedownloader-combined")
+              combined = await FFmpegMediaPreparationProcessor().process(
+                  media_path=fixture,
+                  playable_path=combined_dir / "playable.mp4",
+                  sprite_path=combined_dir / "sprite.jpg",
+                  vtt_path=combined_dir / "sprite.vtt",
+                  duration_seconds=12.0,
+                  operation=PlayableMediaOperation.TRANSCODE,
+              )
+              assert combined.playable.output_path.is_file()
+              assert combined.thumbnail.sprite_path.is_file()
+              assert combined.thumbnail.vtt_path.is_file()
+              assert combined.thumbnail.frame_count == 3
 
               inspector = FFprobeInspector()
               planner = PlayableMediaPlanner()
@@ -370,7 +385,7 @@ jobs:
 
           asyncio.run(main())
           PY
-          docker compose exec -T worker rm -rf             /tmp/animedownloader-fixture.mkv             /tmp/animedownloader-thumbnails             /tmp/animedownloader-playable             /tmp/animedownloader-cmaf
+          docker compose exec -T worker rm -rf             /tmp/animedownloader-fixture.mkv             /tmp/animedownloader-thumbnails             /tmp/animedownloader-combined             /tmp/animedownloader-playable             /tmp/animedownloader-cmaf
 
       - name: Verify Anime CRUD against PostgreSQL
         run: |

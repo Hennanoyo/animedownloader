@@ -8,7 +8,7 @@ const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
 
 const anime = {"id":"019a0000-0000-7000-8000-000000000010","title":"Browser Smoke Anime","year":2026,"season":"fall","weekday":"friday","air_time":"23:00:00","timezone":"Asia/Tokyo","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z","episodes":[{"id":"019a0000-0000-7000-8000-000000000011","anime_id":"019a0000-0000-7000-8000-000000000010","episode_number":1,"title":"Episode One","source":"nyaa","source_id":"e2e-1","source_title":"Episode One","source_url":"https://e2e.invalid/release/1","torrent_url":"https://e2e.invalid/download/1.torrent","size":"1 GiB","seeders":8,"leechers":1,"downloads":10,"info_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","download_status":"completed","conversion_status":"completed","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z"}]};
-const pipeline: AnimePipeline = {"anime_id":"019a0000-0000-7000-8000-000000000010","episodes":[{"episode_id":"019a0000-0000-7000-8000-000000000011","episode_number":1,"title":"Episode One","download":{"job_id":"019a0000-0000-7000-8000-000000000099","status":"completed","downloaded_bytes":1048576,"total_bytes":1048576,"error_message":null,"updated_at":"2026-09-25T00:05:00Z"},"processing":{"status":"completed","progress_percent":100,"playable_ready":true,"error_message":null},"subtitles":"completed","attachments":"completed","streaming":{"status":"completed","hls_ready":true,"dash_ready":true,"error_message":null},"thumbnail":{"status":"completed","progress_percent":100,"url":"https://e2e.invalid/anime/episode-one-sprite.jpg","vtt_url":"https://e2e.invalid/anime/episode-one-sprite.vtt","error_message":null},"current_stage":null,"playback_ready":true,"active":false}]};
+const pipeline: AnimePipeline = {"anime_id":"019a0000-0000-7000-8000-000000000010","episodes":[{"episode_id":"019a0000-0000-7000-8000-000000000011","episode_number":1,"title":"Episode One","download":{"job_id":"019a0000-0000-7000-8000-000000000099","status":"completed","downloaded_bytes":1048576,"total_bytes":1048576,"error_message":null,"updated_at":"2026-09-25T00:05:00Z"},"processing":{"job_id":"019a0000-0000-7000-8000-000000000100","preparation_job_id":"019a0000-0000-7000-8000-000000000101","status":"completed","progress_percent":100,"playable_ready":true,"error_message":null},"subtitles":"completed","attachments":"completed","streaming":{"job_id":"019a0000-0000-7000-8000-000000000102","status":"completed","progress_percent":100,"hls_ready":true,"dash_ready":true,"error_message":null},"thumbnail":{"status":"completed","progress_percent":100,"url":"https://e2e.invalid/anime/episode-one-sprite.jpg","vtt_url":"https://e2e.invalid/anime/episode-one-sprite.vtt","error_message":null},"current_stage":null,"playback_ready":true,"active":false}]};
 
 const transparentPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
@@ -199,31 +199,112 @@ test("receives live pipeline updates without polling", async ({ page }) => {
   }
   await expect(page.locator('[aria-label="Download progress"]')).toBeVisible();
 
+  const pipelineStatus = page.getByLabel("Media pipeline status");
+
   await page.waitForTimeout(1000);
   const requestsAfterRealtimeConnect = pipelineRequests;
 
-  await page.evaluate(
-    (payload) => {
+  const emitPipelineEvent = (payload: unknown) =>
+    page.evaluate((eventPayload) => {
       const windowWithEmitter = window as unknown as {
         __emitPipelineEvent: (payload: unknown) => void;
       };
-      windowWithEmitter.__emitPipelineEvent(payload);
-    },
-    {
-      version: 1,
-      type: "job.progress",
-      job_type: "download",
-      job_id: "019a0000-0000-7000-8000-000000000099",
-      status: "downloading",
-      progress_percent: 100,
-      downloaded_bytes: 1048576,
-      total_bytes: 1048576,
-      error_message: null,
-      emitted_at: "2026-09-25T00:06:00Z",
-    },
-  );
+      windowWithEmitter.__emitPipelineEvent(eventPayload);
+    }, payload);
+
+  await emitPipelineEvent({
+    version: 1,
+    type: "job.progress",
+    job_type: "download",
+    job_id: "019a0000-0000-7000-8000-000000000099",
+    status: "downloading",
+    progress_percent: 100,
+    downloaded_bytes: 1048576,
+    total_bytes: 1048576,
+    error_message: null,
+    stage: null,
+    emitted_at: "2026-09-25T00:06:00Z",
+  });
 
   await expect(page.getByText("1.0 MiB / 1.0 MiB", { exact: true })).toBeVisible();
+
+  await emitPipelineEvent({
+    version: 1,
+    type: "job.progress",
+    job_type: "media-preparation",
+    job_id: "019a0000-0000-7000-8000-000000000101",
+    status: "processing",
+    progress_percent: 0,
+    downloaded_bytes: null,
+    total_bytes: null,
+    error_message: null,
+    stage: "processing",
+    emitted_at: "2026-09-25T00:06:00.500Z",
+  });
+  await expect(
+    page.getByRole("progressbar", { name: "Preparing" }),
+  ).toBeVisible();
+
+  await emitPipelineEvent({
+    version: 1,
+    type: "job.progress",
+    job_type: "media-preparation",
+    job_id: "019a0000-0000-7000-8000-000000000101",
+    status: "processing",
+    progress_percent: 42,
+    downloaded_bytes: null,
+    total_bytes: null,
+    error_message: null,
+    stage: "processing",
+    emitted_at: "2026-09-25T00:06:01Z",
+  });
+  await expect(
+    page.getByRole("progressbar", { name: "Preparation" }),
+  ).toHaveAttribute("aria-valuenow", "42");
+
+  await emitPipelineEvent({
+    version: 1,
+    type: "job.progress",
+    job_type: "media-preparation",
+    job_id: "019a0000-0000-7000-8000-000000000101",
+    status: "processing",
+    progress_percent: 68,
+    downloaded_bytes: null,
+    total_bytes: null,
+    error_message: null,
+    stage: "preview",
+    emitted_at: "2026-09-25T00:06:02Z",
+  });
+  await expect(
+    page.getByRole("progressbar", { name: "Sprite" }),
+  ).toHaveAttribute("aria-valuenow", "68");
+
+  await expect(
+    pipelineStatus.locator('span[data-current="true"]'),
+  ).toHaveCount(1);
+  await expect(
+    pipelineStatus.locator(
+      'span[data-current="false"][data-status="processing"]',
+    ),
+  ).toHaveCount(2);
+
+  await emitPipelineEvent({
+    version: 1,
+    type: "job.progress",
+    job_type: "media-packaging",
+    job_id: "019a0000-0000-7000-8000-000000000102",
+    status: "processing",
+    progress_percent: 73,
+    downloaded_bytes: null,
+    total_bytes: null,
+    error_message: null,
+    stage: "streaming",
+    emitted_at: "2026-09-25T00:06:03Z",
+  });
+  await expect(
+    page.getByRole("progressbar", { name: "Packaging" }),
+  ).toHaveAttribute("aria-valuenow", "73");
+
   await page.waitForTimeout(2500);
   expect(pipelineRequests).toBe(requestsAfterRealtimeConnect);
 });
@@ -249,7 +330,9 @@ test("offers pipeline continuation without restarting a completed download", asy
 
   const pendingPipeline = structuredClone(pipeline);
   pendingPipeline.episodes[0].streaming = {
+    job_id: "019a0000-0000-7000-8000-000000000102",
     status: "pending",
+    progress_percent: 0,
     hls_ready: false,
     dash_ready: false,
     error_message: null,
@@ -261,6 +344,7 @@ test("offers pipeline continuation without restarting a completed download", asy
 
   await page.goto(`/animes/${ANIME_ID}`);
   const continueButton = page.getByRole("button", { name: "Continue" });
+  await expect(continueButton).not.toBeVisible();
   await expect(continueButton).toBeVisible();
   await continueButton.click();
   await expect.poll(() => retryRequests).toBe(1);

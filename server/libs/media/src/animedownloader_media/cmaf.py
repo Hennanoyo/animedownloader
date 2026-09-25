@@ -5,7 +5,13 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from .ffmpeg import FFmpegCommandResult, FFmpegRunner, SubprocessFFmpegRunner
+from .ffmpeg import (
+    FFmpegCommandResult,
+    FFmpegProgressCallback,
+    FFmpegRunner,
+    SubprocessFFmpegRunner,
+    run_ffmpeg,
+)
 
 
 class CMAFPackagingError(RuntimeError):
@@ -68,13 +74,16 @@ class FFmpegCMAFProcessor:
         *,
         media_path: Path,
         output_dir: Path,
+        duration_seconds: float | None = None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> CMAFPackagingResult:
         output_dir.mkdir(parents=True, exist_ok=True)
         (output_dir / "s").mkdir(parents=True, exist_ok=True)
 
         playlist_path = output_dir / "index.m3u8"
 
-        result = await self._runner.run(
+        result = await run_ffmpeg(
+            self._runner,
             (
                 self._executable,
                 "-v",
@@ -106,6 +115,8 @@ class FFmpegCMAFProcessor:
                 "0",
                 str(playlist_path),
             ),
+            duration_seconds=duration_seconds,
+            on_progress=on_progress,
         )
         _validate_ffmpeg_result(result, playlist_path)
 

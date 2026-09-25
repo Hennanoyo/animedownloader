@@ -8,7 +8,9 @@ from tempfile import TemporaryDirectory
 from typing import Protocol
 from uuid import UUID
 
+from animedownloader_config import JobProgressStage
 from animedownloader_media import (
+    FFmpegProgressCallback,
     MediaPreparationProcessingResult,
     MediaProbe,
     PlayableMediaOperation,
@@ -224,6 +226,7 @@ class MediaPreparationProcessor(Protocol):
         vtt_path: Path,
         duration_seconds: float | None,
         operation: PlayableMediaOperation,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> MediaPreparationProcessingResult: ...
 
 
@@ -234,6 +237,8 @@ class PlayableMediaProcessor(Protocol):
         media_path: Path,
         output_path: Path,
         operation: PlayableMediaOperation,
+        duration_seconds: float | None = None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> PlayableMediaProcessingResult: ...
 
 
@@ -244,6 +249,7 @@ class ThumbnailProcessor(Protocol):
         media_path: Path,
         output_dir: Path,
         duration_seconds: float | None,
+        on_progress: FFmpegProgressCallback | None = None,
     ) -> ThumbnailSpriteResult: ...
 
 
@@ -283,22 +289,36 @@ class MediaPreparationRunner:
                 flush=True,
             )
             if context.status is MediaPreparationJobStatus.COMPLETED:
-                await emit_job_progress(
-                    self._on_progress,
-                    job_type="media-preparation",
-                    job_id=job_id,
-                    status=MediaPreparationJobStatus.COMPLETED.value,
-                    progress_percent=100,
-                )
+                if context.playable_ready:
+                    await self._emit_stage_progress(
+                        job_id,
+                        stage="processing",
+                        status=MediaPreparationJobStatus.COMPLETED.value,
+                        progress_percent=100,
+                    )
+                if context.thumbnail_ready:
+                    await self._emit_stage_progress(
+                        job_id,
+                        stage="preview",
+                        status=MediaPreparationJobStatus.COMPLETED.value,
+                        progress_percent=100,
+                    )
                 return
             if context.status is MediaPreparationJobStatus.FAILED:
-                await emit_job_progress(
-                    self._on_progress,
-                    job_type="media-preparation",
-                    job_id=job_id,
-                    status=MediaPreparationJobStatus.FAILED.value,
-                    progress_percent=0,
-                )
+                if not context.playable_ready:
+                    await self._emit_stage_progress(
+                        job_id,
+                        stage="processing",
+                        status=MediaPreparationJobStatus.FAILED.value,
+                        progress_percent=0,
+                    )
+                if not context.thumbnail_ready:
+                    await self._emit_stage_progress(
+                        job_id,
+                        stage="preview",
+                        status=MediaPreparationJobStatus.FAILED.value,
+                        progress_percent=0,
+                    )
                 print(
                     f"[worker] media preparation task ignored for failed job: job_id={job_id}",
                     flush=True,
@@ -359,18 +379,18 @@ class MediaPreparationRunner:
                     playable_required=playable_required,
                     thumbnail_required=thumbnail_required,
                 )
-                await emit_job_progress(
-                    self._on_progress,
-                    job_type="media-preparation",
-                    job_id=job_id,
+                await self._emit_required_stage_progress(
+                    job_id,
+                    playable_required=playable_required,
+                    thumbnail_required=thumbnail_required,
                     status=MediaPreparationJobStatus.PROCESSING.value,
                     progress_percent=0,
                 )
             elif context.status is MediaPreparationJobStatus.PROCESSING:
-                await emit_job_progress(
-                    self._on_progress,
-                    job_type="media-preparation",
-                    job_id=job_id,
+                await self._emit_required_stage_progress(
+                    job_id,
+                    playable_required=playable_required,
+                    thumbnail_required=thumbnail_required,
                     status=MediaPreparationJobStatus.PROCESSING.value,
                     progress_percent=0,
                 )
@@ -419,6 +439,21 @@ class MediaPreparationRunner:
                         f"job_id={job_id} mode=staged operation={operation.value}",
                         flush=True,
                     )
+                    async def on_combined_progress(percent: float) -> None:
+                        progress = min(percent, 99.0)
+                        await self._emit_stage_progress(
+                            job_id,
+                            stage="processing",
+                            status=MediaPreparationJobStatus.PROCESSING.value,
+                            progress_percent=progress,
+                        )
+                        await self._emit_stage_progress(
+                            job_id,
+                            stage="preview",
+                            status=MediaPreparationJobStatus.PROCESSING.value,
+                            progress_percent=progress,
+                        )
+
                     combined = await self._preparation_processor.process(
                         media_path=Path(context.source_path),
                         playable_path=playable_path,
@@ -426,6 +461,7 @@ class MediaPreparationRunner:
                         vtt_path=vtt_path,
                         duration_seconds=source_probe.format.duration_seconds,
                         operation=operation,
+                        on_progress=on_combined_progress,
                     )
                     playable_output_path = combined.playable.output_path
                     playable_probe = await self._inspector.inspect(playable_output_path)
@@ -441,10 +477,20 @@ class MediaPreparationRunner:
                         f"job_id={job_id} mode=playable operation={operation.value}",
                         flush=True,
                     )
+                    async def on_playable_progress(percent: float) -> None:
+                        await self._emit_stage_progress(
+                            job_id,
+                            stage="processing",
+                            status=MediaPreparationJobStatus.PROCESSING.value,
+                            progress_percent=min(percent, 99.0),
+                        )
+
                     result = await self._playable_processor.process(
                         media_path=Path(context.source_path),
                         output_path=playable_path,
                         operation=operation,
+                        duration_seconds=context.duration_seconds,
+                        on_progress=on_playable_progress,
                     )
                     playable_output_path = result.output_path
                     playable_probe = await self._inspector.inspect(playable_output_path)
@@ -455,10 +501,19 @@ class MediaPreparationRunner:
                         f"job_id={job_id} mode=thumbnail",
                         flush=True,
                     )
+                    async def on_thumbnail_progress(percent: float) -> None:
+                        await self._emit_stage_progress(
+                            job_id,
+                            stage="preview",
+                            status=MediaPreparationJobStatus.PROCESSING.value,
+                            progress_percent=min(percent, 99.0),
+                        )
+
                     thumbnail = await self._thumbnail_processor.generate(
                         media_path=Path(context.source_path),
                         output_dir=thumbnail_dir,
                         duration_seconds=context.duration_seconds,
+                        on_progress=on_thumbnail_progress,
                     )
 
                 if playable_output_path is not None:
@@ -511,13 +566,20 @@ class MediaPreparationRunner:
                 thumbnail_sprite_key=thumbnail_sprite_key,
                 thumbnail_vtt_key=thumbnail_vtt_key,
             )
-            await emit_job_progress(
-                self._on_progress,
-                job_type="media-preparation",
-                job_id=job_id,
-                status=MediaPreparationJobStatus.COMPLETED.value,
-                progress_percent=100,
-            )
+            if playable_required:
+                await self._emit_stage_progress(
+                    job_id,
+                    stage="processing",
+                    status=MediaPreparationJobStatus.COMPLETED.value,
+                    progress_percent=100,
+                )
+            if thumbnail_required:
+                await self._emit_stage_progress(
+                    job_id,
+                    stage="preview",
+                    status=MediaPreparationJobStatus.COMPLETED.value,
+                    progress_percent=100,
+                )
         except Exception as exc:
             if context is not None:
                 try:
@@ -530,15 +592,72 @@ class MediaPreparationRunner:
                         "Failed to persist media preparation failure for job %s",
                         job_id,
                     )
-            await emit_job_progress(
-                self._on_progress,
-                job_type="media-preparation",
-                job_id=job_id,
-                status=MediaPreparationJobStatus.FAILED.value,
-                progress_percent=0,
-                error_message=_format_error(exc),
-            )
+            if context is not None:
+                if not context.playable_ready:
+                    await self._emit_stage_progress(
+                        job_id,
+                        stage="processing",
+                        status=MediaPreparationJobStatus.FAILED.value,
+                        progress_percent=0,
+                        error_message=_format_error(exc),
+                    )
+                if not context.thumbnail_ready:
+                    await self._emit_stage_progress(
+                        job_id,
+                        stage="preview",
+                        status=MediaPreparationJobStatus.FAILED.value,
+                        progress_percent=0,
+                        error_message=_format_error(exc),
+                    )
             raise
+
+
+
+    async def _emit_required_stage_progress(
+        self,
+        job_id: UUID,
+        *,
+        playable_required: bool,
+        thumbnail_required: bool,
+        status: str,
+        progress_percent: float,
+        error_message: str | None = None,
+    ) -> None:
+        if playable_required:
+            await self._emit_stage_progress(
+                job_id,
+                stage="processing",
+                status=status,
+                progress_percent=progress_percent,
+                error_message=error_message,
+            )
+        if thumbnail_required:
+            await self._emit_stage_progress(
+                job_id,
+                stage="preview",
+                status=status,
+                progress_percent=progress_percent,
+                error_message=error_message,
+            )
+
+    async def _emit_stage_progress(
+        self,
+        job_id: UUID,
+        *,
+        stage: JobProgressStage,
+        status: str,
+        progress_percent: float,
+        error_message: str | None = None,
+    ) -> None:
+        await emit_job_progress(
+            self._on_progress,
+            job_type="media-preparation",
+            job_id=job_id,
+            status=status,
+            progress_percent=progress_percent,
+            stage=stage,
+            error_message=error_message,
+        )
 
 
 def _format_error(exc: Exception) -> str:

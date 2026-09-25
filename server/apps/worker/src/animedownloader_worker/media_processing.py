@@ -165,6 +165,7 @@ class MediaProcessingRunner:
                     job_id=job_id,
                     status=MediaProcessingJobStatus.COMPLETED.value,
                     progress_percent=100,
+                    stage="processing",
                 )
                 return
 
@@ -183,6 +184,7 @@ class MediaProcessingRunner:
                 job_id=job_id,
                 status=MediaProcessingJobStatus.PROCESSING.value,
                 progress_percent=0,
+                stage="processing",
             )
 
             media_path = _find_media_file(
@@ -200,6 +202,7 @@ class MediaProcessingRunner:
                 job_id=job_id,
                 status=MediaProcessingJobStatus.COMPLETED.value,
                 progress_percent=100,
+                stage="processing",
             )
         except Exception as exc:
             if job_loaded and persist_failure:
@@ -219,6 +222,7 @@ class MediaProcessingRunner:
                 job_id=job_id,
                 status=MediaProcessingJobStatus.FAILED.value,
                 progress_percent=0,
+                stage="processing",
                 error_message=_format_error(exc),
             )
             raise

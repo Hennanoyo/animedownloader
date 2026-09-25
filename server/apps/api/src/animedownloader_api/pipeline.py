@@ -11,6 +11,7 @@ from animedownloader_media_asset import (
     SubtitleTrackStatus,
 )
 from animedownloader_media_processing import (
+    MediaPackagingJob,
     MediaPreparationJob,
     MediaPreparationJobStatus,
     MediaProcessingJob,
@@ -66,6 +67,7 @@ class AnimePipelineService:
         variants = await self._load_variants(asset_ids)
 
         variant_ids = [variant.id for variant in variants.values()]
+        packaging_jobs = await self._load_packaging_jobs(variant_ids)
         packages = await self._load_packages(variant_ids)
 
         summaries = [
@@ -82,6 +84,11 @@ class AnimePipelineService:
                 variant=(
                     variants.get(assets[episode.id].id)
                     if episode.id in assets
+                    else None
+                ),
+                packaging_job=(
+                    packaging_jobs.get(variants[assets[episode.id].id].id)
+                    if episode.id in assets and assets[episode.id].id in variants
                     else None
                 ),
                 package=(
@@ -162,6 +169,19 @@ class AnimePipelineService:
         )
         return {variant.media_asset_id: variant for variant in result.all()}
 
+    async def _load_packaging_jobs(
+        self,
+        variant_ids: list[UUID],
+    ) -> dict[UUID, MediaPackagingJob]:
+        if not variant_ids:
+            return {}
+        result = await self._session.scalars(
+            select(MediaPackagingJob)
+            .where(MediaPackagingJob.media_variant_id.in_(variant_ids))
+            .order_by(MediaPackagingJob.created_at.desc()),
+        )
+        return _latest_packaging_jobs(result.all())
+
     async def _load_packages(
         self,
         variant_ids: list[UUID],
@@ -186,9 +206,15 @@ def build_episode_pipeline_summary(
     variant: MediaVariant | None,
     package: MediaStreamingPackage | None,
     storage: Storage,
+    packaging_job: MediaPackagingJob | None = None,
 ) -> EpisodePipelineSummary:
     download_status = _download_status(download_job)
-    processing_status, processing_progress = _processing_state(
+    (
+        processing_status,
+        processing_progress,
+        processing_job_id,
+        preparation_job_id,
+    ) = _processing_state(
         processing_job,
         download_status=download_status,
         asset=asset,
@@ -219,9 +245,16 @@ def build_episode_pipeline_summary(
     )
 
     playback_ready = _is_playback_ready(asset, variant)
-    streaming_status, hls_ready, dash_ready, streaming_error = _streaming_status(
+    (
+        streaming_status,
+        streaming_progress,
+        hls_ready,
+        dash_ready,
+        streaming_error,
+    ) = _streaming_status(
         asset,
         variant,
+        packaging_job,
         package,
     )
 
@@ -246,13 +279,17 @@ def build_episode_pipeline_summary(
         variant,
     )
     processing = EpisodePipelineProcessingResponse(
+        job_id=processing_job_id,
+        preparation_job_id=preparation_job_id,
         status=processing_status,
         progress_percent=processing_progress,
         error_message=processing_error,
         playable_ready=playback_ready,
     )
     streaming = EpisodePipelineStreamingResponse(
+        job_id=packaging_job.id if packaging_job is not None else None,
         status=streaming_status,
+        progress_percent=streaming_progress,
         hls_ready=hls_ready,
         dash_ready=dash_ready,
         error_message=streaming_error,
@@ -319,10 +356,23 @@ def _processing_state(
     asset: MediaAsset | None,
     preparation_job: MediaPreparationJob | None,
     variant: MediaVariant | None,
-) -> tuple[EpisodePipelineStageStatus, int]:
+) -> tuple[
+    EpisodePipelineStageStatus,
+    int,
+    UUID | None,
+    UUID | None,
+]:
+    processing_job_id = processing_job.id if processing_job is not None else None
+    preparation_job_id = preparation_job.id if preparation_job is not None else None
+
     if processing_job is None:
         if download_status is EpisodePipelineStageStatus.COMPLETED:
-            return EpisodePipelineStageStatus.PENDING, 0
+            return (
+                EpisodePipelineStageStatus.PENDING,
+                0,
+                processing_job_id,
+                preparation_job_id,
+            )
         return (
             (
                 EpisodePipelineStageStatus.PENDING
@@ -330,18 +380,40 @@ def _processing_state(
                 else EpisodePipelineStageStatus.NOT_STARTED
             ),
             0,
+            processing_job_id,
+            preparation_job_id,
         )
 
     status = MediaProcessingJobStatus(processing_job.status)
     if status is MediaProcessingJobStatus.FAILED:
-        return EpisodePipelineStageStatus.FAILED, 0
+        return (
+            EpisodePipelineStageStatus.FAILED,
+            0,
+            processing_job_id,
+            preparation_job_id,
+        )
     if status is MediaProcessingJobStatus.PENDING:
-        return EpisodePipelineStageStatus.PENDING, 0
+        return (
+            EpisodePipelineStageStatus.PENDING,
+            0,
+            processing_job_id,
+            preparation_job_id,
+        )
     if status is MediaProcessingJobStatus.PROCESSING:
-        return EpisodePipelineStageStatus.PROCESSING, 0
+        return (
+            EpisodePipelineStageStatus.PROCESSING,
+            0,
+            processing_job_id,
+            preparation_job_id,
+        )
 
     if preparation_job is None:
-        return EpisodePipelineStageStatus.PENDING, 0
+        return (
+            EpisodePipelineStageStatus.PENDING,
+            0,
+            processing_job_id,
+            preparation_job_id,
+        )
 
     preparation_status = MediaPreparationJobStatus(preparation_job.status)
     playable_ready = _is_playback_ready(asset, variant)
@@ -349,14 +421,36 @@ def _processing_state(
         return (
             EpisodePipelineStageStatus.FAILED,
             100 if playable_ready else 0,
+            processing_job_id,
+            preparation_job_id,
         )
     if playable_ready:
-        return EpisodePipelineStageStatus.COMPLETED, 100
+        return (
+            EpisodePipelineStageStatus.COMPLETED,
+            100,
+            processing_job_id,
+            preparation_job_id,
+        )
     if preparation_status is MediaPreparationJobStatus.PROCESSING:
-        return EpisodePipelineStageStatus.PROCESSING, 0
+        return (
+            EpisodePipelineStageStatus.PROCESSING,
+            0,
+            processing_job_id,
+            preparation_job_id,
+        )
     if preparation_status is MediaPreparationJobStatus.PENDING:
-        return EpisodePipelineStageStatus.PENDING, 0
-    return EpisodePipelineStageStatus.PENDING, 0
+        return (
+            EpisodePipelineStageStatus.PENDING,
+            0,
+            processing_job_id,
+            preparation_job_id,
+        )
+    return (
+        EpisodePipelineStageStatus.PENDING,
+        0,
+        processing_job_id,
+        preparation_job_id,
+    )
 
 
 def _asset_stage_status(
@@ -412,29 +506,36 @@ def _processing_error(
 def _streaming_status(
     asset: MediaAsset | None,
     variant: MediaVariant | None,
+    packaging_job: MediaPackagingJob | None,
     package: MediaStreamingPackage | None,
-) -> tuple[EpisodePipelineStageStatus, bool, bool, str | None]:
+) -> tuple[EpisodePipelineStageStatus, int, bool, bool, str | None]:
     if not _is_playback_ready(asset, variant):
-        return EpisodePipelineStageStatus.NOT_STARTED, False, False, None
+        return EpisodePipelineStageStatus.NOT_STARTED, 0, False, False, None
     if package is None:
-        return EpisodePipelineStageStatus.PENDING, False, False, None
+        return EpisodePipelineStageStatus.PENDING, 0, False, False, None
 
     if variant is None or variant.path is None:
-        return EpisodePipelineStageStatus.PENDING, False, False, None
+        return EpisodePipelineStageStatus.PENDING, 0, False, False, None
 
     if (
         package.source_path != variant.path
         or package.source_variant_updated_at != variant.updated_at
     ):
-        return EpisodePipelineStageStatus.PENDING, False, False, None
+        return EpisodePipelineStageStatus.PENDING, 0, False, False, None
 
     status = MediaStreamingPackageStatus(package.status)
     hls_ready = package.hls_master_key is not None
     dash_ready = package.dash_manifest_key is not None
+    progress = (
+        100
+        if status is MediaStreamingPackageStatus.COMPLETED and hls_ready and dash_ready
+        else 0
+    )
 
     if status is MediaStreamingPackageStatus.FAILED:
         return (
             EpisodePipelineStageStatus.FAILED,
+            progress,
             hls_ready,
             dash_ready,
             package.error_message,
@@ -442,6 +543,7 @@ def _streaming_status(
     if status is MediaStreamingPackageStatus.PROCESSING:
         return (
             EpisodePipelineStageStatus.PROCESSING,
+            progress,
             hls_ready,
             dash_ready,
             package.error_message,
@@ -449,13 +551,14 @@ def _streaming_status(
     if status is MediaStreamingPackageStatus.PENDING:
         return (
             EpisodePipelineStageStatus.PENDING,
+            progress,
             hls_ready,
             dash_ready,
             package.error_message,
         )
     if hls_ready and dash_ready:
-        return EpisodePipelineStageStatus.COMPLETED, True, True, None
-    return EpisodePipelineStageStatus.PENDING, hls_ready, dash_ready, package.error_message
+        return EpisodePipelineStageStatus.COMPLETED, 100, True, True, None
+    return EpisodePipelineStageStatus.PENDING, 0, hls_ready, dash_ready, package.error_message
 
 
 def _current_stage(
@@ -505,6 +608,16 @@ def _latest_processing_jobs(
     for row in rows:
         if row.episode_id not in result:
             result[row.episode_id] = row
+    return result
+
+
+def _latest_packaging_jobs(
+    rows: Iterable[MediaPackagingJob],
+) -> dict[UUID, MediaPackagingJob]:
+    result: dict[UUID, MediaPackagingJob] = {}
+    for row in rows:
+        if row.media_variant_id not in result:
+            result[row.media_variant_id] = row
     return result
 
 

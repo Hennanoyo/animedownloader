@@ -354,6 +354,8 @@ class EpisodePipelineDownloadResponse(BaseModel):
 
 
 class EpisodePipelineProcessingResponse(BaseModel):
+    job_id: UUID | None
+    preparation_job_id: UUID | None
     status: EpisodePipelineStageStatus
     progress_percent: int = Field(ge=0, le=100)
     playable_ready: bool
@@ -361,7 +363,9 @@ class EpisodePipelineProcessingResponse(BaseModel):
 
 
 class EpisodePipelineStreamingResponse(BaseModel):
+    job_id: UUID | None
     status: EpisodePipelineStageStatus
+    progress_percent: int = Field(ge=0, le=100)
     hls_ready: bool
     dash_ready: bool
     error_message: str | None

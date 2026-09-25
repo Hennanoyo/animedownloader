@@ -165,6 +165,8 @@ def test_build_pipeline_summary_reports_completed_media_and_streaming() -> None:
     assert summary.download.updated_at == download.updated_at
     assert summary.processing.status is EpisodePipelineStageStatus.COMPLETED
     assert summary.processing.progress_percent == 100
+    assert summary.processing.job_id == processing.id
+    assert summary.processing.preparation_job_id == preparation.id
     assert summary.streaming.status is EpisodePipelineStageStatus.COMPLETED
     assert summary.streaming.hls_ready is True
     assert summary.streaming.dash_ready is True
@@ -284,6 +286,7 @@ def test_build_pipeline_summary_keeps_playback_ready_while_streaming_runs() -> N
 
     assert summary.processing.status is EpisodePipelineStageStatus.COMPLETED
     assert summary.streaming.status is EpisodePipelineStageStatus.PROCESSING
+    assert summary.streaming.progress_percent == 0
     assert summary.streaming.hls_ready is False
     assert summary.streaming.dash_ready is False
     assert summary.current_stage is EpisodePipelineCurrentStage.STREAMING

@@ -30,6 +30,8 @@ export interface EpisodePipelineDownload {
 }
 
 export interface EpisodePipelineProcessing {
+  job_id: string | null;
+  preparation_job_id: string | null;
   status: PipelineStageStatus;
   progress_percent: number;
   playable_ready: boolean;
@@ -37,7 +39,9 @@ export interface EpisodePipelineProcessing {
 }
 
 export interface EpisodePipelineStreaming {
+  job_id: string | null;
   status: PipelineStageStatus;
+  progress_percent: number;
   hls_ready: boolean;
   dash_ready: boolean;
   error_message: string | null;

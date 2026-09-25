@@ -300,6 +300,7 @@ test("receives live progress without polling while realtime is healthy", async (
       downloaded_bytes: 650,
       total_bytes: 1000,
       error_message: null,
+      stage: null,
       emitted_at: "2026-09-25T00:06:00Z",
     },
   );

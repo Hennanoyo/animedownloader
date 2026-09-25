@@ -96,6 +96,27 @@ test.beforeEach(async ({ page }) => {
     },
   );
 
+  await page.route("**/api/releases/ingest", async (route) => {
+    const body = JSON.parse(route.request().postData() ?? "{}") as {
+      anime_id?: string;
+      release?: { id?: string };
+      parsed?: { episode_number?: number | null };
+    };
+    expect(body.anime_id).toBe(ANIME_ID);
+    expect(body.release?.id).toBe("e2e-release-1");
+    expect(body.parsed?.episode_number).toBe(1);
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "created",
+        episode: anime.episodes[0],
+        existing_episode: null,
+      }),
+    });
+  });
+
   await page.route(THUMBNAIL_URL, async (route) => {
     await route.fulfill({
       status: 200,
@@ -575,4 +596,11 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await expect(resultCard).toContainText("Browser Smoke Anime");
   await expect(resultCard).toContainText("1080p");
   await expect(resultCard).toContainText("HEVC");
+  await expect(
+    resultCard.getByRole("button", { name: "Add to this Anime" }),
+  ).toBeVisible();
+  await resultCard
+    .getByRole("button", { name: "Add to this Anime" })
+    .click();
+  await expect(resultCard).toContainText("Episode 1 added to this Anime.");
 });

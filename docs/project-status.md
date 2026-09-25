@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The current phase is Download Management UX. PR #23 through PR #30 are merged; PR #31 is the next development step.
+The current phase is Download Management UX. PR #23 through PR #30 are merged; PR #31 is the current development step.
 
 ## Completed
 
@@ -446,7 +446,29 @@ Planned follow-up:
 
 ### PR #31 — Download Management UX
 
+**In progress on `feature/download-management`.**
+
 Goal: provide a coherent place to monitor and control downloads across Episodes instead of requiring users to manage each download only from the Anime detail Episode card.
+
+
+
+Current implementation:
+
+- Added `GET /api/download-jobs` with repeated `status` filters and bounded page/page_size pagination
+- Joined DownloadJob with Episode and Anime so the management response contains stable display context without N+1 frontend requests
+- Added a dedicated `/downloads` route and primary navigation entry
+- Added All / Active / Failed / History filters through TanStack Router search state
+- Added responsive download job cards with Pause / Resume / Cancel / Retry / Download again / Delete record actions
+- Reused the existing Episode download mutations and invalidates both detail and management query caches after actions
+- Poll only `pending` / `downloading` management entries; paused and terminal entries do not poll
+- Added backend, frontend API/query, and Playwright coverage, including a narrow viewport horizontal-overflow regression check
+
+Out of scope:
+
+- FFmpeg realtime progress events
+- Redis Pub/Sub or WebSocket transport for media-processing progress
+- Changes to the media preparation, thumbnail, CMAF, or playback pipeline
+- Automatic scheduling/prioritization or a multi-download queue
 
 Scope:
 

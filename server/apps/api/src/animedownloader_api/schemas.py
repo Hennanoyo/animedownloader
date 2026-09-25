@@ -87,6 +87,32 @@ class ParsedReleaseResponse(BaseModel):
             failed_required_fields=[field.value for field in parsed.failed_required_fields],
             parser_profile_version=parsed.parser_profile_version,
         )
+    def to_parsed(self) -> ParsedRelease:
+        from animedownloader_releases import ParseStatus, ParserField
+
+        return ParsedRelease(
+            provider_source=self.provider_source,
+            source_id=self.source_id,
+            original_title=self.original_title,
+            normalized_title=self.normalized_title,
+            release_group=self.release_group,
+            series_title=self.series_title,
+            episode_number=self.episode_number,
+            episode_title=self.episode_title,
+            season_number=self.season_number,
+            resolution=self.resolution,
+            source=self.source,
+            video_codec=self.video_codec,
+            audio_codec=self.audio_codec,
+            bit_depth=self.bit_depth,
+            status=ParseStatus(self.status),
+            warnings=tuple(self.warnings),
+            failed_required_fields=tuple(
+                ParserField(field) for field in self.failed_required_fields
+            ),
+            parser_profile_version=self.parser_profile_version,
+        )
+
 
 
 class AnimeMatchCandidateResponse(BaseModel):

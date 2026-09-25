@@ -7,6 +7,15 @@ from .entities import (
     ReleaseSearchProfile,
     SearchProfileStatus,
 )
+from .exceptions import (
+    InvalidReleaseParserProfileError,
+    ReleaseGroupAlreadyExistsError,
+    ReleaseGroupNotFoundError,
+    ReleaseParserObservationNotFoundError,
+    ReleaseParserProfileActivationError,
+    ReleaseParserProfileNotFoundError,
+    ReleaseParserSampleNotFoundError,
+)
 from .models import (
     ParsedRelease,
     ParserField,
@@ -37,6 +46,7 @@ from .search import (
     normalize_release_group_slug,
     validate_search_profile,
 )
+from .service import ReleaseProfileService
 
 __all__ = [
     "MAX_INPUT_LENGTH",
@@ -59,6 +69,14 @@ __all__ = [
     "SearchProfileSpec",
     "SearchProfileStatus",
     "SearchQueryContext",
+    "InvalidReleaseParserProfileError",
+    "ReleaseGroupAlreadyExistsError",
+    "ReleaseGroupNotFoundError",
+    "ReleaseParserObservationNotFoundError",
+    "ReleaseParserProfileActivationError",
+    "ReleaseParserProfileNotFoundError",
+    "ReleaseParserSampleNotFoundError",
+    "ReleaseProfileService",
     "apply_parser_profile",
     "normalize_release_title",
     "parse_release",

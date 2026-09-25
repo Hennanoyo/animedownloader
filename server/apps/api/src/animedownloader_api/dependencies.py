@@ -14,6 +14,7 @@ from animedownloader_media_processing import (
 )
 from animedownloader_nyaa import NyaaClient
 from animedownloader_qbittorrent import QBittorrentClient
+from animedownloader_releases import ReleaseProfileService
 from animedownloader_storage import Storage
 from fastapi import Depends, Request, WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -164,3 +165,10 @@ def get_anime_pipeline_service(
     storage: Annotated[Storage, Depends(get_media_storage)],
 ) -> AnimePipelineService:
     return AnimePipelineService(session, storage)
+
+
+
+def get_release_profile_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> ReleaseProfileService:
+    return ReleaseProfileService(session)

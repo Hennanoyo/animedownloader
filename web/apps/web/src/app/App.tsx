@@ -28,6 +28,13 @@ export default function App() {
           <Link
             className={styles.navLink}
             activeProps={{ className: styles.navLinkActive }}
+            to="/release-profiles"
+          >
+            Release profiles
+          </Link>
+          <Link
+            className={styles.navLink}
+            activeProps={{ className: styles.navLinkActive }}
             search={{ status: "all" }}
             to="/downloads"
           >

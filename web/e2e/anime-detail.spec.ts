@@ -463,34 +463,44 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
     discovery.getByRole("heading", { name: "Find releases" }),
   ).toBeVisible();
 
-  const titleInput = discovery.getByRole("textbox", {
+  const titleInput = discovery.getByRole("combobox", {
     name: "Title",
     exact: true,
   });
   await expect(titleInput).toHaveValue("Browser Smoke Romaji");
 
-  const titleSourceButton = discovery.getByRole("button", {
-    name: "Title source",
+  const titleOptionsButton = discovery.getByRole("button", {
+    name: /Show Title options/,
   });
-  await titleSourceButton.click();
-  await expect(
-    page.getByRole("option", { name: "English", exact: true }),
-  ).toBeVisible();
-  await page.getByRole("option", { name: "English", exact: true }).click();
+  await titleOptionsButton.click();
+  const englishOption = page.getByRole("option", {
+    name: /English Browser Smoke English/,
+  });
+  await expect(englishOption).toBeVisible();
+  await englishOption.click();
   await expect(titleInput).toHaveValue("Browser Smoke English");
 
   await titleInput.fill("Browser Smoke Custom");
 
+  const rows = discovery.locator("[data-search-field]");
   const groupCheckbox = discovery.getByRole("checkbox", {
     name: "Enable Group",
   });
-  const groupCheckboxLabel = groupCheckbox.locator("xpath=ancestor::label[1]");
-  await groupCheckboxLabel.click();
+  const groupCheckboxToggle = discovery.locator(
+    '[data-search-field-toggle="group"]',
+  );
+  const rowBeforeToggle = await rows.nth(0).boundingBox();
+  await groupCheckboxToggle.click();
   await expect(groupCheckbox).not.toBeChecked();
-  await groupCheckboxLabel.click();
+  const rowAfterDisable = await rows.nth(0).boundingBox();
+  await groupCheckboxToggle.click();
   await expect(groupCheckbox).toBeChecked();
+  const rowAfterEnable = await rows.nth(0).boundingBox();
 
-  const rows = discovery.locator("[data-search-field]");
+  expect(rowBeforeToggle?.y).toBe(rowAfterDisable?.y);
+  expect(rowBeforeToggle?.height).toBe(rowAfterDisable?.height);
+  expect(rowBeforeToggle?.y).toBe(rowAfterEnable?.y);
+  expect(rowBeforeToggle?.height).toBe(rowAfterEnable?.height);
   await expect(rows.nth(0)).toHaveAttribute("data-search-field", "group");
   await expect(rows.nth(1)).toHaveAttribute("data-search-field", "title");
 
@@ -504,15 +514,37 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await expect(rows.nth(1)).toHaveAttribute("data-search-field", "episode");
   await expect(rows.nth(2)).toHaveAttribute("data-search-field", "title");
 
+  const episodeInput = discovery.getByRole("combobox", {
+    name: "Episode",
+    exact: true,
+  });
+  await episodeInput.fill("1");
+  const episodeList = page.getByRole("listbox", {
+    name: "Suggestions Episode",
+  });
+  await expect(episodeList.getByRole("option", { name: "24" })).toBeVisible();
+  const listMetrics = await episodeList.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+  }));
+  expect(listMetrics.scrollHeight).toBeGreaterThan(listMetrics.clientHeight);
+  await episodeInput.press("Escape");
+
   await discovery
-    .getByRole("spinbutton", { name: "Episode", exact: true })
-    .fill("1");
-  await discovery
-    .getByRole("textbox", { name: "Resolution", exact: true })
+    .getByRole("combobox", { name: "Resolution", exact: true })
     .fill("1080p");
-  await discovery
-    .getByRole("textbox", { name: "Codec", exact: true })
-    .fill("HEVC");
+  const resolutionInput = discovery.getByRole("combobox", {
+    name: "Resolution",
+    exact: true,
+  });
+  await resolutionInput.press("Escape");
+
+  const codecInput = discovery.getByRole("combobox", {
+    name: "Codec",
+    exact: true,
+  });
+  await codecInput.fill("HEVC");
+  await codecInput.press("Escape");
   await discovery
     .getByRole("button", { name: "Discover releases" })
     .click();

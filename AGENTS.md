@@ -68,6 +68,16 @@ See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 
 See `docs/architecture/storage.md`.
 
+## Release Profile Operations
+
+- Release parser profiles are versioned per release group and follow the lifecycle draft → active → retired.
+- Active profiles are immutable; edits happen by creating a new draft version.
+- Representative release-title samples are persistent operational data used for validation and manual regression review.
+- Parser health is an aggregate observation signal. Persist only the minimum non-parsed observation data needed for investigation; do not cache raw RSS solely for health.
+- Drift signals are advisory. Never auto-edit parser rules, auto-activate profiles, or auto-start downloads because drift was detected.
+- A profile created from an observed failure must still pass multi-sample validation and explicit activation.
+- Discovery search values may use persisted Release Group suggestions, while the current request remains editable and transient.
+
 ## Testing Rules
 
 - Prefer deterministic fixtures and fakes/mocks for external services in unit tests.

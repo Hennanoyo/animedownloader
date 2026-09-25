@@ -3,16 +3,14 @@ import { useForm } from "@tanstack/react-form";
 import {
   Button,
   Checkbox,
+  ComboBox,
   Form,
   Input,
   Label,
   ListBox,
   ListBoxItem,
   Popover,
-  Select,
-  SelectValue,
   Text,
-  TextField,
 } from "react-aria-components";
 import { z } from "zod";
 import { ApiRequestError } from "../../../shared/api/client";
@@ -22,6 +20,7 @@ import type {
   ReleaseDiscoveryItem,
   SearchField,
 } from "../../../entities/release/model/types";
+import { useReleaseGroups } from "../../../entities/release/model/useReleaseGroups";
 import { useReleaseDiscovery } from "../model/useReleaseDiscovery";
 import styles from "./ReleaseDiscoveryPanel.module.scss";
 
@@ -57,6 +56,12 @@ const FIELD_LABELS: Record<SearchField, string> = {
   resolution: "Resolution",
   codec: "Codec",
 };
+
+const EPISODE_OPTIONS = Array.from({ length: 24 }, (_, index) =>
+  String(index + 1).padStart(2, "0"),
+);
+const RESOLUTION_OPTIONS = ["2160p", "1080p", "720p", "480p"];
+const CODEC_OPTIONS = ["HEVC", "AVC", "AV1", "VP9"];
 
 export type ReleaseDiscoveryTitleSource =
   | "romaji"
@@ -144,9 +149,8 @@ export default function ReleaseDiscoveryPanel({
   defaultTitleSource: ReleaseDiscoveryTitleSource;
 }) {
   const initialTitleOption = getTitleOption(titleOptions, defaultTitleSource);
+  const releaseGroups = useReleaseGroups();
   const [request, setRequest] = useState<ReleaseDiscoveryInput | null>(null);
-  const [selectedTitleSource, setSelectedTitleSource] =
-    useState<ReleaseDiscoveryTitleSource>(initialTitleOption.key);
   const [fieldOrder, setFieldOrder] =
     useState<SearchField[]>(DEFAULT_FIELD_ORDER);
   const [enabledFields, setEnabledFields] =
@@ -199,16 +203,6 @@ export default function ReleaseDiscoveryPanel({
     () => fieldOrder.filter((field) => enabledFields[field]),
     [enabledFields, fieldOrder],
   );
-
-  function handleTitleSourceChange(key: string | number | null) {
-    if (key === null) return;
-    const source = String(key) as ReleaseDiscoveryTitleSource;
-    const option = getTitleOption(titleOptions, source);
-    setSelectedTitleSource(option.key);
-    if (option.key !== "custom") {
-      form.setFieldValue("title", option.value);
-    }
-  }
 
   function handleDragStart(
     event: React.DragEvent<HTMLButtonElement>,
@@ -390,6 +384,8 @@ export default function ReleaseDiscoveryPanel({
                   </button>
 
                   <Checkbox
+                    className={styles.fieldToggle}
+                    data-search-field-toggle={field}
                     isSelected={enabledFields[field]}
                     onChange={(selected) =>
                       setEnabledFields((current) => ({
@@ -404,71 +400,104 @@ export default function ReleaseDiscoveryPanel({
 
                   <div className={styles.fieldMeta}>
                     <span className={styles.fieldLabel}>{label}</span>
-
-                    {field === "title" ? (
-                      <Select
-                        aria-label="Title source"
-                        className={styles.titleSource}
-                        selectedKey={selectedTitleSource}
-                        onSelectionChange={handleTitleSourceChange}
-                      >
-                        <Button className={styles.selectButton}>
-                          <SelectValue />
-                          <span aria-hidden="true">▾</span>
-                        </Button>
-                        <Popover className={styles.selectPopover}>
-                          <ListBox className={styles.selectListBox}>
-                            {titleOptions.map((option) => (
-                              <ListBoxItem
-                                id={option.key}
-                                key={option.key}
-                                className={styles.selectItem}
-                              >
-                                {option.label}
-                              </ListBoxItem>
-                            ))}
-                          </ListBox>
-                        </Popover>
-                      </Select>
-                    ) : null}
                   </div>
 
                   <form.Field name={field}>
-                    {(fieldState) => (
-                      <TextField
-                        className={styles.inlineField}
-                        isInvalid={fieldState.state.meta.errors.length > 0}
-                        isRequired={field === "title"}
-                        validationBehavior="aria"
-                      >
-                        <Label className={styles.inlineLabel}>{label}</Label>
-                        <Input
-                          type={field === "episode" ? "number" : "text"}
-                          inputMode={field === "episode" ? "numeric" : undefined}
-                          value={fieldState.state.value}
-                          placeholder={
-                            field === "title"
-                              ? "Sousou no Frieren"
-                              : field === "group"
-                                ? "ExampleSubs"
-                                : field === "episode"
-                                  ? "08"
-                                  : field === "resolution"
-                                    ? "1080p"
-                                    : "HEVC"
-                          }
-                          onBlur={fieldState.handleBlur}
-                          onChange={(event) =>
-                            fieldState.handleChange(event.target.value)
-                          }
-                        />
-                        {fieldState.state.meta.errors.length > 0 ? (
-                          <Text slot="errorMessage">
-                            {String(fieldState.state.meta.errors[0])}
-                          </Text>
-                        ) : null}
-                      </TextField>
-                    )}
+                    {(fieldState) => {
+                      const options =
+                        field === "title"
+                          ? titleOptions
+                              .filter(
+                                (option) =>
+                                  option.key !== "custom" &&
+                                  option.value.trim().length > 0,
+                              )
+                              .map((option) => option.value)
+                          : field === "group"
+                            ? (releaseGroups.data?.map((group) => group.name) ?? [])
+                            : field === "episode"
+                              ? EPISODE_OPTIONS
+                              : field === "resolution"
+                                ? RESOLUTION_OPTIONS
+                                : CODEC_OPTIONS;
+
+                      return (
+                        <ComboBox
+                          className={styles.inlineComboBox}
+                          items={options}
+                          inputValue={String(fieldState.state.value)}
+                          allowsCustomValue
+                          isInvalid={fieldState.state.meta.errors.length > 0}
+                          onInputChange={(value) => {
+                            fieldState.handleChange(value);
+                          }}
+                          onSelectionChange={(key) => {
+                            if (field !== "title" || key === null) return;
+                            const option = titleOptions.find(
+                              (candidate) => candidate.value === String(key),
+                            );
+                            if (option && option.value.trim().length > 0) {
+                              form.setFieldValue("title", option.value);
+                            }
+                          }}
+                        >
+                          <Label className={styles.inlineLabel}>{label}</Label>
+                          <div className={styles.comboControl}>
+                            <Input
+                              aria-label={label}
+                              placeholder={
+                                field === "title"
+                                  ? "Sousou no Frieren"
+                                  : field === "group"
+                                    ? "ExampleSubs"
+                                    : field === "episode"
+                                      ? "08"
+                                      : field === "resolution"
+                                        ? "1080p"
+                                        : "HEVC"
+                              }
+                              onBlur={fieldState.handleBlur}
+                            />
+                            <Button aria-label={"Show " + label + " options"}>
+                              ▾
+                            </Button>
+                          </div>
+                          <Popover className={styles.selectPopover}>
+                            <ListBox className={styles.selectListBox}>
+                              {(option: string) => {
+                                const titleOption = titleOptions.find(
+                                  (candidate) => candidate.value === option,
+                                );
+
+                                return (
+                                  <ListBoxItem
+                                    id={option}
+                                    textValue={option}
+                                    className={styles.selectItem}
+                                  >
+                                    {titleOption ? (
+                                      <>
+                                        <span>{titleOption.label}</span>
+                                        <span className={styles.titleOptionValue}>
+                                          {titleOption.value}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      option
+                                    )}
+                                  </ListBoxItem>
+                                );
+                              }}
+                            </ListBox>
+                          </Popover>
+                          {fieldState.state.meta.errors.length > 0 ? (
+                            <Text slot="errorMessage">
+                              {String(fieldState.state.meta.errors[0])}
+                            </Text>
+                          ) : null}
+                        </ComboBox>
+                      );
+                    }}
                   </form.Field>
                 </li>
               );

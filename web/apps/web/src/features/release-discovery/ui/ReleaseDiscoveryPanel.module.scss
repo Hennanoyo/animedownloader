@@ -67,9 +67,9 @@
 .fieldOrderItem {
   position: relative;
   display: grid;
-  grid-template-columns: auto auto minmax(7.5rem, auto) minmax(0, 1fr);
+  grid-template-columns: 2rem 1.5rem minmax(11rem, 0.85fr) minmax(0, 2fr);
   align-items: center;
-  gap: 0.7rem;
+  column-gap: 0.65rem;
   min-width: 0;
   padding: 0.4rem 0.5rem;
   border: 1px solid #26324a;
@@ -132,8 +132,17 @@
   outline-offset: 2px;
 }
 
-.fieldOrderItem > [data-selected="true"] {
-  color: #dbeafe;
+.fieldToggle {
+  display: grid;
+  width: 1.5rem;
+  min-width: 1.5rem;
+  height: 2.2rem;
+  min-height: 2.2rem;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  align-self: center;
+  line-height: 1;
 }
 
 .checkboxMark {
@@ -175,18 +184,30 @@
 .fieldMeta {
   display: flex;
   min-width: 0;
+  min-height: 2.2rem;
   align-items: center;
-  gap: 0.5rem;
 }
 
 .fieldLabel {
+  min-width: 0;
   color: #e2e8f0;
   font-size: 0.78rem;
   font-weight: 700;
 }
 
-.titleSource {
-  min-width: 7.5rem;
+.fieldHint {
+  min-width: 0;
+  color: #64748b;
+  font-size: 0.62rem;
+  line-height: 1.35;
+}
+
+.titleOptionValue {
+  display: block;
+  margin-top: 0.12rem;
+  color: #64748b;
+  font-size: 0.64rem;
+  overflow-wrap: anywhere;
 }
 
 .selectButton {
@@ -217,7 +238,11 @@
 }
 
 .selectPopover {
-  min-width: 10rem;
+  box-sizing: border-box;
+  width: max(var(--trigger-width, 10rem), 10rem);
+  max-width: calc(100vw - 1rem);
+  max-height: min(18rem, var(--available-height, 18rem));
+  overflow-y: auto;
   padding: 0.25rem;
   border: 1px solid #334155;
   border-radius: 0.55rem;
@@ -227,8 +252,38 @@
 
 .selectListBox {
   display: grid;
+  min-width: 0;
+  max-height: min(18rem, calc(100vh - 2rem));
   gap: 0.15rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   outline: 0;
+}
+
+.selectListBox {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 transparent;
+}
+
+.selectListBox::-webkit-scrollbar {
+  width: 0.45rem;
+}
+
+.selectListBox::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.selectListBox::-webkit-scrollbar-thumb {
+  border: 0.1rem solid transparent;
+  border-radius: 999px;
+  background: #334155;
+  background-clip: padding-box;
+}
+
+.selectListBox::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+  background-clip: padding-box;
 }
 
 .selectItem {
@@ -251,9 +306,10 @@
   color: #eff6ff;
 }
 
-.inlineField {
+.inlineComboBox {
   display: grid;
   min-width: 0;
+  min-height: 2.2rem;
   gap: 0.25rem;
 }
 
@@ -269,23 +325,50 @@
   white-space: nowrap;
 }
 
-.inlineField input {
-  width: 100%;
+.comboControl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  overflow: hidden;
   min-height: 2.2rem;
-  box-sizing: border-box;
-  padding: 0 0.65rem;
   border: 1px solid #334155;
   border-radius: 0.5rem;
   background: #0b1222;
+}
+
+.comboControl:focus-within {
+  border-color: #60a5fa;
+  outline: 2px solid rgb(96 165 250 / 18%);
+  outline-offset: 1px;
+}
+
+.comboControl input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.2rem;
+  padding: 0 0.65rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
   color: #f8fafc;
 }
 
-.inlineField input:focus-visible {
-  outline: 2px solid #60a5fa;
-  outline-offset: 2px;
+.comboControl button {
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 0;
+  border-left: 1px solid #26324a;
+  background: #111827;
+  color: #94a3b8;
+  cursor: pointer;
 }
 
-.inlineField [slot="errorMessage"] {
+.comboControl button:hover,
+.comboControl button[data-focused="true"] {
+  color: #f8fafc;
+}
+
+.inlineComboBox [slot="errorMessage"] {
   color: #fca5a5;
   font-size: 0.7rem;
 }

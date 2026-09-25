@@ -22,6 +22,7 @@ from animedownloader_media_processing import (
 )
 from animedownloader_releases import ParsedRelease
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, StringConstraints
 
 
 AnimeTitleKey = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,31}$")]

@@ -288,6 +288,9 @@ requires-dist = [
 name = "animedownloader-releases"
 version = "0.1.0"
 source = { editable = "domains/releases" }
+dependencies = [
+    { name = "animedownloader-database" },
+]
 
 [[package]]
 name = "animedownloader-server"

@@ -117,7 +117,8 @@ export function applyDownloadJobEvent(
   queryClient: QueryClient,
   event: JobProgressEvent,
 ): void {
-  if (!isDownloadJobStatus(event.status)) {
+  const status = event.status;
+  if (!isDownloadJobStatus(status)) {
     return;
   }
 
@@ -133,7 +134,7 @@ export function applyDownloadJobEvent(
         return data;
       }
 
-      if (isTerminalDownloadStatus(event.status)) {
+      if (isTerminalDownloadStatus(status)) {
         return {
           ...data,
           items: data.items.filter((item) => item.id !== event.job_id),
@@ -148,7 +149,7 @@ export function applyDownloadJobEvent(
       }
       items[index] = {
         ...current,
-        status: event.status,
+        status,
         downloaded_bytes:
           event.downloaded_bytes ?? current.downloaded_bytes,
         total_bytes: event.total_bytes ?? current.total_bytes,

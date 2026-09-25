@@ -153,6 +153,7 @@ export default function AnimeDetailPage() {
                     key={episode.id}
                     episode={episode}
                     pipeline={pipeline}
+                    realtimeConnected={realtime.connected}
                   />
                 ) : null;
               })}

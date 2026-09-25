@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Button,
   Checkbox,
@@ -10,6 +10,8 @@ import {
   Popover,
   Select,
   TextField,
+  Tooltip,
+  TooltipTrigger,
 } from "react-aria-components";
 import {
   parserFields,
@@ -152,6 +154,23 @@ function toEditableRules(profile: ParserProfile): ParserRuleInput[] {
     flags: rule.flags,
     transform: rule.transform,
   }));
+}
+
+function Hint({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <TooltipTrigger delay={0} placement="top">
+      <Button className={styles.hintButton} aria-label={label + " help"}>
+        ?
+      </Button>
+      <Tooltip className={styles.hintTooltip}>{children}</Tooltip>
+    </TooltipTrigger>
+  );
 }
 
 export default function ReleaseProfilesPage() {
@@ -675,7 +694,6 @@ function RuleRow({
   onChange: (patch: Partial<ParserRuleInput>) => void;
   onRemove: () => void;
 }) {
-  const [showPatternHelp, setShowPatternHelp] = useState(false);
   const guidance = RULE_GUIDANCE[rule.field];
 
   return (
@@ -684,7 +702,12 @@ function RuleRow({
         <div className={styles.ruleNumber}>#{index + 1}</div>
 
         <div className={styles.ruleControl}>
-          <span className={styles.controlLabel}>Target field</span>
+          <div className={styles.labelRow}>
+            <span className={styles.controlLabel}>Target field</span>
+            <Hint label={"Rule " + (index + 1) + " target field"}>
+              {guidance.description}
+            </Hint>
+          </div>
           <Select
             selectedKey={rule.field}
             onSelectionChange={(key) => {
@@ -713,25 +736,7 @@ function RuleRow({
         <div className={styles.rulePattern}>
           <div className={styles.labelRow}>
             <span className={styles.controlLabel}>Regex pattern</span>
-            <Button
-              className={styles.helpButton}
-              aria-label="Regex pattern help"
-              aria-expanded={showPatternHelp}
-              onPress={() => setShowPatternHelp((value) => !value)}
-            >
-              ?
-            </Button>
-          </div>
-          <Input
-            aria-label={"Rule " + (index + 1) + " pattern"}
-            value={rule.pattern}
-            onChange={(event) => onChange({ pattern: event.target.value })}
-            placeholder={guidance.placeholder}
-          />
-          <span className={styles.fieldHint}>{guidance.description}</span>
-
-          {showPatternHelp ? (
-            <div className={styles.helpPanel}>
+            <Hint label={"Rule " + (index + 1) + " regex pattern"}>
               <strong>How regex matching works</strong>
               <p>
                 The rule searches the normalized release title. Prefer a named
@@ -744,11 +749,17 @@ function RuleRow({
                 Example: <code>{guidance.example}</code>
               </p>
               <p>
-                The pattern is checked before activation, and the validation
-                action runs it against every representative sample.
+                The pattern is checked before activation and against every
+                representative sample during validation.
               </p>
-            </div>
-          ) : null}
+            </Hint>
+          </div>
+          <Input
+            aria-label={"Rule " + (index + 1) + " pattern"}
+            value={rule.pattern}
+            onChange={(event) => onChange({ pattern: event.target.value })}
+            placeholder={guidance.placeholder}
+          />
         </div>
 
         <Button
@@ -784,9 +795,12 @@ function RuleRow({
           aria-label={"Rule " + (index + 1) + " required"}
         >
           <span className={styles.checkboxMark} aria-hidden="true" />
-          <span>
+          <span className={styles.requiredLabel}>
             <strong>Required</strong>
-            <small>If it misses, the sample is not actionable.</small>
+            <Hint label={"Rule " + (index + 1) + " required"}>
+              If this rule does not match, validation treats the sample as
+              missing a required field and the profile cannot be activated.
+            </Hint>
           </span>
         </Checkbox>
 
@@ -798,13 +812,15 @@ function RuleRow({
             onChange={(event) => onChange({ flags: event.target.value })}
             placeholder="i"
           />
-          <span className={styles.fieldHint}>
-            i = ignore case · m = multiline · s = dot matches newline · x = verbose · a = ASCII
-          </span>
         </div>
 
         <div className={styles.ruleControlCompact}>
-          <span className={styles.controlLabel}>Transform</span>
+          <div className={styles.labelRow}>
+            <span className={styles.controlLabel}>Transform</span>
+            <Hint label={"Rule " + (index + 1) + " transform"}>
+              {TRANSFORM_DESCRIPTIONS[rule.transform]}
+            </Hint>
+          </div>
           <Select
             selectedKey={rule.transform}
             onSelectionChange={(key) => {
@@ -830,15 +846,11 @@ function RuleRow({
                     textValue={TRANSFORM_LABELS[transform]}
                   >
                     <span>{TRANSFORM_LABELS[transform]}</span>
-                    <span className={styles.itemMeta}>
-                      {TRANSFORM_DESCRIPTIONS[transform]}
-                    </span>
                   </ListBoxItem>
                 ))}
               </ListBox>
             </Popover>
           </Select>
-          <span className={styles.fieldHint}>{TRANSFORM_DESCRIPTIONS[rule.transform]}</span>
         </div>
       </div>
     </div>

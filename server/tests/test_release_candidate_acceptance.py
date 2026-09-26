@@ -172,7 +172,7 @@ async def test_accept_returns_replacement_candidate_without_mutation() -> None:
     session = FakeSession([candidate, candidate, existing_episode])
     service = ReleaseDiscoveryCandidateAcceptanceService(
         cast(AsyncSession, session),
-        ingestion_service=ingestion,
+        ingestion_service=cast(EpisodeIngestionService, ingestion),
     )
 
     result = await service.accept(candidate.id)
@@ -205,7 +205,7 @@ async def test_accept_can_explicitly_replace_the_existing_episode() -> None:
     session = FakeSession([candidate, existing_episode, accepted_candidate, replaced_episode])
     service = ReleaseDiscoveryCandidateAcceptanceService(
         cast(AsyncSession, session),
-        ingestion_service=ingestion,
+        ingestion_service=cast(EpisodeIngestionService, ingestion),
     )
 
     result = await service.accept(

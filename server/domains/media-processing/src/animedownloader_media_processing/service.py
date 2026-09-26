@@ -32,6 +32,12 @@ class MediaProcessingJobService:
     async def get_active_jobs(self) -> list[MediaProcessingJob]:
         return await self.jobs.get_active_processing_jobs()
 
+    async def get_job_by_download_job(
+        self,
+        download_job_id: UUID,
+    ) -> MediaProcessingJob | None:
+        return await self.jobs.get_by_download_job(download_job_id)
+
     async def create_for_download_job(
         self,
         download_job_id: UUID,

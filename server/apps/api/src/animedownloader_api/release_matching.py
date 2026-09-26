@@ -29,6 +29,15 @@ def canonicalize_title(value: str) -> str:
     return " ".join(parts)
 
 
+_BRACKETED_TITLE_RE = __import__("re").compile(r"\\[[^\\]]*\\]|\\([^\\)]*\\)")
+
+
+def canonicalize_match_title(value: str) -> str:
+    """Normalize Anime titles using the same bracketed-region semantics as release parsing."""
+    without_bracketed_regions = _BRACKETED_TITLE_RE.sub(" ", value)
+    return canonicalize_title(without_bracketed_regions)
+
+
 class AnimeMatcher:
     def __init__(self, animes: Iterable[Anime]) -> None:
         self._index: dict[str, list[tuple[Anime, str]]] = defaultdict(list)
@@ -36,7 +45,7 @@ class AnimeMatcher:
             variants = (("title", anime.title), *anime.titles.items())
             seen: set[str] = set()
             for _key, title in variants:
-                canonical = canonicalize_title(title)
+                canonical = canonicalize_match_title(title)
                 if not canonical or canonical in seen:
                     continue
                 seen.add(canonical)
@@ -44,7 +53,7 @@ class AnimeMatcher:
 
     def match(self, parsed: ParsedRelease) -> AnimeMatchResult:
         normalized_series_title = (
-            canonicalize_title(parsed.series_title)
+            canonicalize_match_title(parsed.series_title)
             if parsed.series_title
             else None
         )

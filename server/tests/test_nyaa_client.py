@@ -46,7 +46,7 @@ async def test_search_does_not_report_cap_for_smaller_result_set() -> None:
             request=request,
         ),
     )
-    client = httpx.AsyncClient(transport=transport)
+    client = httpx.AsyncClient(base_url="https://nyaa.si", transport=transport)
 
     async with NyaaClient(http_client=client) as nyaa:
         result = await nyaa.search("Frieren")

@@ -198,6 +198,17 @@ class ReleaseDiscoveryCandidateResponse(BaseModel):
     automation_error: str | None
 
 
+class ReleaseDiscoveryQueryResponse(BaseModel):
+    id: UUID
+    position: int
+    query: str
+    status: str
+    result_count: int
+    result_cap_reached: bool
+    error_message: str | None
+    created_at: datetime
+
+
 class ReleaseDiscoveryRunResponse(BaseModel):
     id: UUID
     anime_id: UUID
@@ -211,6 +222,7 @@ class ReleaseDiscoveryRunResponse(BaseModel):
     started_at: datetime | None
     completed_at: datetime | None
     created_at: datetime
+    queries: list[ReleaseDiscoveryQueryResponse] = Field(default_factory=list)
 
 
 class ReleaseDiscoveryScheduleResponse(BaseModel):

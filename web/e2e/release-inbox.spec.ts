@@ -153,7 +153,7 @@ test("reviews a persisted discovery candidate in the inbox", async ({ page }) =>
     card.getByRole("button", { name: "Mark reviewed" }),
   ).toHaveCount(0);
 
-  const filter = page.getByRole("combobox", { name: "Candidate status" });
+  const filter = page.getByRole("button", { name: "All candidates", exact: true });
   await filter.click();
   await page.getByRole("option", { name: "Reviewed" }).click();
   await expect(
@@ -165,8 +165,7 @@ test("reviews a persisted discovery candidate in the inbox", async ({ page }) =>
 test("shows recent discovery run history", async ({ page }) => {
   await page.goto("/release-inbox");
 
-  const runs = page.getByRole("region", { name: "Run history" });
-  await expect(runs).toContainText("Candidate Inbox Anime");
-  await expect(runs).toContainText("completed");
-  await expect(runs).toContainText("1 candidates");
+  await expect(page.getByText("Candidate Inbox Anime", { exact: true })).toHaveCount(2);
+  await expect(page.getByText("completed", { exact: true })).toBeVisible();
+  await expect(page.getByText("1 candidates", { exact: true })).toBeVisible();
 });

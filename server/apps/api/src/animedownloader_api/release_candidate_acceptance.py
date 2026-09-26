@@ -68,6 +68,7 @@ class ReleaseDiscoveryCandidateAcceptanceService:
             )
 
         release, parsed = _candidate_to_ingestion_data(candidate)
+        anime_id = candidate.anime_id
 
         if parsed.status != ParseStatus.PARSED or not parsed.is_actionable:
             raise ReleaseCandidateNotAcceptableError(
@@ -100,7 +101,7 @@ class ReleaseDiscoveryCandidateAcceptanceService:
 
         if replace_episode_id is None:
             ingestion = await self._ingestion_service.ingest(
-                anime_id=candidate.anime_id,
+                anime_id=anime_id,
                 release=release,
                 parsed=parsed,
             )

@@ -48,9 +48,9 @@ from animedownloader_api.schemas import (
     ReleaseDiscoveryCandidateUpdate,
     ReleaseDiscoveryMatchCandidateResponse,
     ReleaseDiscoveryRunResponse,
+    ReleaseDiscoverySavedSearchPlanResponse,
     ReleaseDiscoveryScheduleResponse,
     ReleaseDiscoveryScheduleUpdate,
-    ReleaseDiscoverySavedSearchPlanResponse,
     ReleaseDiscoverySearchPlanQueryResponse,
     ReleaseDiscoverySearchPlanResponse,
 )

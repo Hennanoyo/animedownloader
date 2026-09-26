@@ -72,7 +72,7 @@ class ReleaseDiscoveryQuery(Base):
         index=True,
     )
     position: Mapped[int] = mapped_column(Integer)
-    query: Mapped[str] = mapped_column(String(200))
+    query: Mapped[str] = mapped_column(String(500))
     status: Mapped[str] = mapped_column(String(16))
     result_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     result_cap_reached: Mapped[bool] = mapped_column(

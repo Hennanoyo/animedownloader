@@ -122,7 +122,7 @@ async def accept_candidate(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return ReleaseDiscoveryCandidateAcceptanceResponse(
-        status=result.status,
+        status=result.status.value,
         candidate=_candidate_response(result.candidate),
         episode=(
             EpisodeResponse.model_validate(result.episode)

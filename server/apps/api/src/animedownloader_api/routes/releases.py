@@ -47,7 +47,7 @@ async def search_releases(
         raise HTTPException(status_code=422, detail="Search query must not be empty")
 
     try:
-        releases = await client.search(normalized_query)
+        search_result = await client.search(normalized_query)
     except NyaaError as exc:
         raise HTTPException(
             status_code=502,

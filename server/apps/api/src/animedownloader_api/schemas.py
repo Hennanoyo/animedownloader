@@ -785,6 +785,35 @@ class EpisodeIngestionResponse(BaseModel):
     existing_episode: EpisodeResponse | None
 
 
+class ReleaseAutomationPolicyUpdate(BaseModel):
+    enabled: bool = False
+    min_ranking_score: int = Field(0, ge=0, le=160)
+    require_preference_match: bool = True
+
+
+class ReleaseAutomationPolicyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    anime_id: UUID
+    enabled: bool
+    min_ranking_score: int
+    require_preference_match: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ReleaseAutomationCandidatePreviewResponse(BaseModel):
+    candidate: ReleaseDiscoveryCandidateResponse
+    eligible: bool
+    reasons: list[str]
+    automation_status: str
+
+
+class ReleaseAutomationRunResponse(BaseModel):
+    anime_id: UUID
+    status: str
+
+
 class ReleaseDiscoveryCandidateAcceptanceRequest(BaseModel):
     replace_episode_id: UUID | None = None
 

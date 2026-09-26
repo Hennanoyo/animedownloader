@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from animedownloader_anime import AnimeNotFoundError, EpisodeNotFoundError
 from animedownloader_nyaa import NyaaClient, NyaaError
@@ -134,7 +135,7 @@ async def ingest_release(
     response_model=EpisodeIngestionResponse,
 )
 async def replace_episode_release(
-    episode_id: str,
+    episode_id: UUID,
     payload: EpisodeReleaseReplacementRequest,
     service: EpisodeIngestionServiceDependency,
 ) -> EpisodeIngestionResponse:

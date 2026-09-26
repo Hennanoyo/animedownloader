@@ -292,6 +292,8 @@ Anime titles + release preferences
 
 A Search Plan may use more than one Anime title form when it materially narrows or improves recall, but it must not generate a Cartesian product of every title, group, resolution, codec, and other field combination. The plan has an explicit query budget and deterministic ordering.
 
+Provider result limits are treated as observability signals rather than proof of truncation. For Nyaa RSS, receiving the provider's known 75-item first-page size is recorded as a `result_cap_reached` signal; exactly 75 matching results does not prove that relevant results were omitted. This signal is useful for deciding whether a future search plan should be made more specific, but it does not trigger automatic query broadening or retry by itself.
+
 The plan should prefer the most specific useful queries first. For an Anime with a configured preferred group and technical preferences, a typical plan may be:
 
 1. preferred group + representative title + preferred resolution/codec

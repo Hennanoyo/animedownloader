@@ -5,7 +5,10 @@ from uuid import uuid7
 import pytest
 from animedownloader_anime import Anime, AnimeReleasePreference
 from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
-from animedownloader_api.release_discovery import ReleaseDiscoveryService
+from animedownloader_api.release_discovery import (
+    ReleaseDiscoveryQueryResult,
+    ReleaseDiscoveryService,
+)
 from animedownloader_nyaa import NyaaError
 from animedownloader_releases import (
     AnimeMatchCandidate,
@@ -104,7 +107,10 @@ async def test_build_anime_search_plan_uses_alternate_titles_and_budget() -> Non
     )
 
     assert profile_version is None
-    assert tuple(item.query for item in plan.queries) == ("Sousou no Frieren",)
+    assert tuple(item.query for item in plan.queries) == (
+        "Sousou no Frieren",
+        "Frieren: Beyond Journey's End",
+    )
 
 
 @pytest.mark.anyio
@@ -262,6 +268,41 @@ async def test_discovery_records_query_counts_caps_and_errors() -> None:
     assert result.warnings == (
         "Search query may be truncated at the provider result limit: capped",
         "Search query failed: failed",
+    )
+
+
+@pytest.mark.anyio
+async def test_discovery_records_provider_cap_signal() -> None:
+    session = MagicMock()
+    session.scalars = AsyncMock(return_value=EmptyScalars())
+
+    class CappedClient:
+        async def search(self, query: str) -> ReleaseSearchResult:
+            return ReleaseSearchResult(
+                items=(_release("[ExampleSubs] Frieren - 01"),),
+                result_cap_reached=True,
+            )
+
+    service = ReleaseDiscoveryService(session, CappedClient())
+    plan = SearchPlan(
+        queries=(
+            SearchPlanQuery(query="Frieren", fields=(SearchField.TITLE,)),
+        ),
+    )
+
+    result = await service.discover_plan(plan)
+
+    assert result.query_results == (
+        ReleaseDiscoveryQueryResult(
+            position=1,
+            query="Frieren",
+            status="completed",
+            result_count=1,
+            result_cap_reached=True,
+        ),
+    )
+    assert result.warnings == (
+        "Search query may be truncated at the provider result limit: Frieren",
     )
 
 

@@ -25,7 +25,7 @@ class FakeSession:
     def begin(self) -> FakeSession:
         return self
 
-    async def __aenter__(self) -> "FakeSession":
+    async def __aenter__(self) -> FakeSession:
         return self
 
     async def __aexit__(self, *_: object) -> None:

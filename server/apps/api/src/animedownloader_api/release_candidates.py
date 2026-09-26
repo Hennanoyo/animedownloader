@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from uuid import UUID
 
+from animedownloader_database import Base
 from animedownloader_releases import AnimeMatchResult
 from sqlalchemy import (
     DateTime,
@@ -19,8 +20,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
-
-from animedownloader_database import Base
 
 from .release_discovery import ReleaseDiscoveryResult
 
@@ -216,7 +215,7 @@ class ReleaseDiscoveryCandidateService:
                 return run
 
             run.status = ReleaseDiscoveryRunStatus.RUNNING.value
-            run.started_at = datetime.now(timezone.utc)
+            run.started_at = datetime.now(UTC)
 
         return run
 
@@ -233,7 +232,7 @@ class ReleaseDiscoveryCandidateService:
             )
             if run is None:
                 raise ValueError(f"release discovery run not found: {run_id}")
-            completed_at = datetime.now(timezone.utc)
+            completed_at = datetime.now(UTC)
             run.status = ReleaseDiscoveryRunStatus.COMPLETED.value
             run.candidate_count = result.candidate_count
             run.warning_count = result.warning_count
@@ -256,7 +255,7 @@ class ReleaseDiscoveryCandidateService:
             )
             if run is None:
                 raise ValueError(f"release discovery run not found: {run_id}")
-            completed_at = datetime.now(timezone.utc)
+            completed_at = datetime.now(UTC)
             run.status = ReleaseDiscoveryRunStatus.FAILED.value
             run.error_message = message[:2000]
             run.completed_at = completed_at
@@ -286,7 +285,7 @@ class ReleaseDiscoveryCandidateService:
             run.query = result.query
             run.search_profile_version = result.search_profile_version
 
-            observed_at = datetime.now(timezone.utc)
+            observed_at = datetime.now(UTC)
             for item in result.items:
                 candidate = await self.session.scalar(
                     select(ReleaseDiscoveryCandidate)
@@ -425,7 +424,7 @@ class ReleaseDiscoveryCandidateService:
             schedule.enabled = enabled
             schedule.interval_minutes = interval_minutes
             schedule.next_run_at = (
-                datetime.now(timezone.utc) + timedelta(minutes=interval_minutes)
+                datetime.now(UTC) + timedelta(minutes=interval_minutes)
                 if enabled
                 else None
             )
@@ -455,7 +454,7 @@ class ReleaseDiscoveryCandidateService:
 
             run = ReleaseDiscoveryRun(
                 anime_id=anime_id,
-                scheduled_for=datetime.now(timezone.utc),
+                scheduled_for=datetime.now(UTC),
             )
             self.session.add(run)
             await self.session.flush()
@@ -479,7 +478,7 @@ class ReleaseDiscoveryCandidateService:
             if candidate is None:
                 raise ValueError(f"release discovery candidate not found: {candidate_id}")
             candidate.status = status.value
-            candidate.reviewed_at = datetime.now(timezone.utc)
+            candidate.reviewed_at = datetime.now(UTC)
 
         await self.session.refresh(candidate)
         return candidate

@@ -22,6 +22,7 @@ from animedownloader_api.release_candidate_automation import (
     ReleaseAutomationCandidatePreview,
     ReleaseCandidateAutomationService,
 )
+from animedownloader_api.release_discovery_config import ReleaseDiscoverySchedule
 from animedownloader_api.release_candidates import (
     ReleaseCandidateStatus,
     ReleaseDiscoveryCandidate,
@@ -380,39 +381,35 @@ async def run_discovery_now(
 
 
 def _schedule_response(
-    schedule: object,
+    schedule: ReleaseDiscoverySchedule,
 ) -> ReleaseDiscoveryScheduleResponse:
     search_plan = None
-    title = getattr(schedule, "search_title", None)
-    field_order = getattr(schedule, "search_field_order", None)
-    enabled_fields = getattr(schedule, "search_enabled_fields", None)
+    title = schedule.search_title
+    field_order = schedule.search_field_order
+    enabled_fields = schedule.search_enabled_fields
     if title and field_order and enabled_fields:
         search_plan = ReleaseDiscoverySavedSearchPlanResponse(
-            title_source=getattr(schedule, "search_title_source", None) or "custom",
+            title_source=schedule.search_title_source or "custom",
             title=title,
             field_order=list(field_order),
             enabled_fields=list(enabled_fields),
-            group=getattr(schedule, "search_group", None),
-            episode=getattr(schedule, "search_episode", None),
-            resolution=getattr(schedule, "search_resolution", None),
-            codec=getattr(schedule, "search_codec", None),
-            source=getattr(schedule, "search_source", None),
+            group=schedule.search_group,
+            episode=schedule.search_episode,
+            resolution=schedule.search_resolution,
+            codec=schedule.search_codec,
+            source=schedule.search_source,
         )
     return ReleaseDiscoveryScheduleResponse(
-        anime_id=getattr(schedule, "anime_id"),
-        enabled=getattr(schedule, "enabled"),
-        interval_minutes=getattr(schedule, "interval_minutes"),
-        next_run_at=getattr(schedule, "next_run_at"),
-        last_run_at=getattr(schedule, "last_run_at"),
-        last_run_status=getattr(schedule, "last_run_status"),
+        anime_id=schedule.anime_id,
+        enabled=schedule.enabled,
+        interval_minutes=schedule.interval_minutes,
+        next_run_at=schedule.next_run_at,
+        last_run_at=schedule.last_run_at,
+        last_run_status=schedule.last_run_status,
         search_plan=search_plan,
-        automation_mode=getattr(schedule, "automation_mode", "off"),
-        automation_min_ranking_score=getattr(schedule, "automation_min_ranking_score", 0),
-        automation_require_plan_match=getattr(
-            schedule,
-            "automation_require_plan_match",
-            True,
-        ),
+        automation_mode=schedule.automation_mode,
+        automation_min_ranking_score=schedule.automation_min_ranking_score,
+        automation_require_plan_match=schedule.automation_require_plan_match,
     )
 
 

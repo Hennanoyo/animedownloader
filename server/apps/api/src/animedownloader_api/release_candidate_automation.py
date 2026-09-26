@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from enum import StrEnum
 from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 from uuid import UUID
 
 from animedownloader_anime import Anime, AnimeReleasePreference
@@ -24,6 +24,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    String,
     func,
     or_,
     select,
@@ -62,6 +63,11 @@ class AnimeReleaseAutomationPolicy(Base):
         primary_key=True,
     )
     enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    mode: Mapped[str] = mapped_column(
+        String(16),
+        default="off",
+        server_default="off",
+    )
     min_ranking_score: Mapped[int] = mapped_column(
         Integer,
         default=0,

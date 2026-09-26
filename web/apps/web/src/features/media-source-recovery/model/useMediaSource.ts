@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deleteMediaSourceOrphan,
   getEpisodeMediaSource,
+  listMediaSourceOrphans,
   reprocessEpisodeMediaSource,
   redownloadEpisodeMediaSource,
   selectEpisodeMediaSource,
@@ -74,8 +75,7 @@ export function useDeleteMediaSourceOrphan() {
 export function useMediaSourceOrphans(enabled = false) {
   return useQuery({
     queryKey: ["media-source-orphans"] as const,
-    queryFn: ({ signal }) => import("../../../entities/media-source/api/mediaSource")
-      .then(({ listMediaSourceOrphans }) => listMediaSourceOrphans(signal)),
+    queryFn: ({ signal }) => listMediaSourceOrphans(signal),
     enabled,
     refetchOnWindowFocus: false,
   });

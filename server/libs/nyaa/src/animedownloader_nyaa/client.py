@@ -2,13 +2,14 @@ from types import TracebackType
 from typing import Self
 
 import httpx
-from animedownloader_releases import Release
+from animedownloader_releases import ReleaseSearchResult
 from defusedxml import ElementTree
 
 from .parser import parse_rss_feed
 
 DEFAULT_BASE_URL = "https://nyaa.si"
 USER_AGENT = "AnimeDownloader/0.1"
+RSS_RESULT_LIMIT = 75
 
 
 class NyaaError(RuntimeError):
@@ -58,7 +59,7 @@ class NyaaClient:
             await self._http_client.aclose()
             self._http_client = None
 
-    async def search(self, query: str) -> list[Release]:
+    async def search(self, query: str) -> ReleaseSearchResult:
         if self._http_client is None:
             raise RuntimeError("NyaaClient must be used as an async context manager")
 
@@ -72,6 +73,10 @@ class NyaaClient:
             raise NyaaUpstreamError("Nyaa RSS request failed") from exc
 
         try:
-            return parse_rss_feed(response.text)
+            releases = parse_rss_feed(response.text)
+            return ReleaseSearchResult(
+                items=tuple(releases),
+                result_cap_reached=len(releases) >= RSS_RESULT_LIMIT,
+            )
         except (ElementTree.ParseError, ValueError) as exc:
             raise NyaaParseError("Nyaa RSS response is invalid") from exc

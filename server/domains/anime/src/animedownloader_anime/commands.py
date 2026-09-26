@@ -7,7 +7,6 @@ from .enums import ConversionStatus, DownloadStatus, Season, Weekday
 
 @dataclass(frozen=True, slots=True)
 class EpisodeCreateData:
-    release_group_id: UUID | None = None
     episode_number: int
     title: str
     source: str
@@ -20,6 +19,7 @@ class EpisodeCreateData:
     leechers: int | None
     downloads: int | None
     info_hash: str | None
+    release_group_id: UUID | None = None
     download_status: DownloadStatus = DownloadStatus.NOT_STARTED
     conversion_status: ConversionStatus = ConversionStatus.NOT_STARTED
 

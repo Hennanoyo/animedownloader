@@ -6,11 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from animedownloader_api.dependencies import (
     get_anime_service,
-    get_db_session,
     get_release_discovery_candidate_service,
     get_release_discovery_scheduler,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 from animedownloader_api.release_candidates import (
     ReleaseCandidateStatus,
     ReleaseDiscoveryCandidate,
@@ -28,7 +26,6 @@ from animedownloader_api.release_discovery_scheduler import ReleaseDiscoverySche
 
 router = APIRouter(prefix="/api", tags=["release-discovery"])
 
-SessionDependency = Annotated[AsyncSession, Depends(get_db_session)]
 AnimeServiceDependency = Annotated[AnimeService, Depends(get_anime_service)]
 CandidateServiceDependency = Annotated[
     ReleaseDiscoveryCandidateService,

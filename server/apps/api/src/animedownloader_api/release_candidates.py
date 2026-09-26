@@ -11,6 +11,7 @@ from animedownloader_database import Base
 from animedownloader_releases import AnimeMatchResult
 from sqlalchemy import (
     JSON,
+    Boolean,
     DateTime,
     ForeignKey,
     Integer,

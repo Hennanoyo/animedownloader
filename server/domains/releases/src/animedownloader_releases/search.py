@@ -8,6 +8,8 @@ from typing import Final
 from .models import (
     Release,
     SearchField,
+    SearchPlan,
+    SearchPlanQuery,
     SearchProfileSpec,
     SearchQueryContext,
 )
@@ -74,6 +76,44 @@ def build_search_query(
         value for field in selected_fields if (value := values.get(field))
     )
     return _clean_value(rendered)
+
+
+def build_search_plan(
+    contexts: Iterable[SearchQueryContext],
+    *,
+    fields: tuple[SearchField, ...] | None = None,
+    profile: SearchProfileSpec | None = None,
+    max_queries: int = 3,
+) -> SearchPlan:
+    if max_queries < 1:
+        raise ValueError("search plan query budget must be >= 1")
+
+    queries: list[SearchPlanQuery] = []
+    seen_queries: set[str] = set()
+
+    for context in contexts:
+        query = build_search_query(context, profile=profile, fields=fields)
+        if query is None or query in seen_queries:
+            continue
+
+        seen_queries.add(query)
+        queries.append(
+            SearchPlanQuery(
+                query=query,
+                fields=(
+                    fields
+                    if fields is not None
+                    else profile.fields
+                    if profile is not None
+                    else DEFAULT_SEARCH_FIELDS
+                ),
+            ),
+        )
+
+        if len(queries) >= max_queries:
+            break
+
+    return SearchPlan(queries=tuple(queries))
 
 
 def merge_releases(results: Iterable[Iterable[Release]]) -> tuple[Release, ...]:

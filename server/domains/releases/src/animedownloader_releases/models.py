@@ -150,3 +150,16 @@ class SearchProfileSpec:
     release_group: str
     version: int
     fields: tuple[SearchField, ...]
+
+
+
+@dataclass(frozen=True, slots=True)
+class SearchPlanQuery:
+    query: str
+    fields: tuple[SearchField, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class SearchPlan:
+    queries: tuple[SearchPlanQuery, ...]
+

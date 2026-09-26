@@ -25,11 +25,11 @@ from animedownloader_api.media_source import MediaSourceService
 from animedownloader_api.pipeline import AnimePipelineService
 from animedownloader_api.pipeline_control import EpisodePipelineControlService
 from animedownloader_api.playback import PlaybackService
-from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
+from animedownloader_api.release_discovery import ReleaseDiscoveryService
+from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 from animedownloader_api.release_ingestion import EpisodeIngestionService
 from animedownloader_api.task_queue import DownloadTaskDispatcher
-from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 
 
 async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:

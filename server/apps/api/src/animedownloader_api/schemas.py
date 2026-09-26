@@ -783,3 +783,14 @@ class EpisodeIngestionResponse(BaseModel):
     status: EpisodeIngestionStatus
     episode: EpisodeResponse | None
     existing_episode: EpisodeResponse | None
+
+
+class ReleaseDiscoveryCandidateAcceptanceRequest(BaseModel):
+    replace_episode_id: UUID | None = None
+
+
+class ReleaseDiscoveryCandidateAcceptanceResponse(BaseModel):
+    status: EpisodeIngestionStatus
+    candidate: ReleaseDiscoveryCandidateResponse
+    episode: EpisodeResponse | None
+    existing_episode: EpisodeResponse | None

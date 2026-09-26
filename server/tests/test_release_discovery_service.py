@@ -14,11 +14,11 @@ from animedownloader_releases import (
     ParsedRelease,
     ParseStatus,
     Release,
+    ReleaseDiscoveryQueryResult,
     ReleaseSearchResult,
     SearchField,
     SearchPlan,
     SearchPlanQuery,
-    ReleaseDiscoveryQueryResult,
 )
 from animedownloader_releases.entities import (
     ReleaseGroup,

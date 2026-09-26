@@ -160,6 +160,7 @@ def test_resolve_selected_media_source_accepts_relative_supported_file(tmp_path:
 
     selected = resolve_selected_media_source(root, "episode.mkv")
 
+    assert selected is not None
     assert selected == media.resolve()
     assert relative_media_source(root, selected) == "episode.mkv"
 

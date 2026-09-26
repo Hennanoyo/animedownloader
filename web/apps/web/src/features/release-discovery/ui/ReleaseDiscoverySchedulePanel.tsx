@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, Label, Select, SelectValue, Popover, ListBox, ListBoxItem } from "react-aria-components";
 import {
   useReleaseDiscoverySchedule,
+  useReleaseDiscoverySearchPlan,
   useRunReleaseDiscoveryNow,
   useUpdateReleaseDiscoverySchedule,
 } from "../model/useReleaseDiscoveryCandidates";
@@ -21,6 +22,7 @@ export default function ReleaseDiscoverySchedulePanel({
   animeId: string;
 }) {
   const query = useReleaseDiscoverySchedule(animeId);
+  const searchPlan = useReleaseDiscoverySearchPlan(animeId);
   const update = useUpdateReleaseDiscoverySchedule(animeId);
   const runNow = useRunReleaseDiscoveryNow(animeId);
 
@@ -97,6 +99,38 @@ export default function ReleaseDiscoverySchedulePanel({
           </Popover>
         </Select>
       </div>
+
+      {searchPlan.isPending ? (
+        <p className={styles.meta}>Loading scheduled search plan...</p>
+      ) : searchPlan.isError ? (
+        <p className={styles.error} role="alert">
+          Failed to load search plan: {searchPlan.error.message}
+        </p>
+      ) : searchPlan.data ? (
+        <details className={styles.plan}>
+          <summary>
+            Search plan · {searchPlan.data.queries.length}{" "}
+            {searchPlan.data.queries.length === 1 ? "query" : "queries"}
+            {searchPlan.data.search_profile_version
+              ? " · Search profile v" + searchPlan.data.search_profile_version
+              : " · default profile"}
+          </summary>
+          <div className={styles.planBody}>
+            <p>
+              This is the same bounded plan used by <strong>Discover now</strong>{" "}
+              and periodic discovery. Previewing it does not contact Nyaa.
+            </p>
+            <ol className={styles.planList}>
+              {searchPlan.data.queries.map((item) => (
+                <li key={item.position} className={styles.planItem}>
+                  <code>{item.query}</code>
+                  <span>{item.fields.join(" · ")}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </details>
+      ) : null}
 
       {query.data?.next_run_at ? (
         <p className={styles.meta}>

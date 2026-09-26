@@ -26,11 +26,15 @@ from animedownloader_api.pipeline import AnimePipelineService
 from animedownloader_api.pipeline_control import EpisodePipelineControlService
 from animedownloader_api.playback import PlaybackService
 from animedownloader_api.release_candidate_acceptance import ReleaseDiscoveryCandidateAcceptanceService
+from animedownloader_api.release_candidate_automation import ReleaseCandidateAutomationService
 from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 from animedownloader_api.release_ingestion import EpisodeIngestionService
-from animedownloader_api.task_queue import DownloadTaskDispatcher
+from animedownloader_api.task_queue import (
+    DownloadTaskDispatcher,
+    ReleaseCandidateAutomationTaskDispatcher,
+)
 
 
 async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:
@@ -91,6 +95,18 @@ def get_release_discovery_candidate_acceptance_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ReleaseDiscoveryCandidateAcceptanceService:
     return ReleaseDiscoveryCandidateAcceptanceService(session)
+
+
+def get_release_candidate_automation_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> ReleaseCandidateAutomationService:
+    return ReleaseCandidateAutomationService(session)
+
+
+def get_release_candidate_automation_task_dispatcher(
+    request: Request,
+) -> ReleaseCandidateAutomationTaskDispatcher:
+    return request.app.state.release_candidate_automation_dispatcher
 
 
 def get_release_discovery_scheduler(request: Request) -> ReleaseDiscoveryScheduler:

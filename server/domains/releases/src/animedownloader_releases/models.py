@@ -163,3 +163,9 @@ class SearchPlanQuery:
 class SearchPlan:
     queries: tuple[SearchPlanQuery, ...]
 
+
+@dataclass(frozen=True, slots=True)
+class ReleaseSearchResult:
+    items: tuple[Release, ...]
+    result_cap_reached: bool = False
+

@@ -21,7 +21,7 @@ def upgrade() -> None:
         sa.Column("id", sa.UUID(), nullable=False),
         sa.Column("run_id", sa.UUID(), nullable=False),
         sa.Column("position", sa.Integer(), nullable=False),
-        sa.Column("query", sa.String(length=200), nullable=False),
+        sa.Column("query", sa.String(length=500), nullable=False),
         sa.Column("status", sa.String(length=16), nullable=False),
         sa.Column(
             "result_count",

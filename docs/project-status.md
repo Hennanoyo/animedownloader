@@ -965,69 +965,45 @@ Safety boundary:
 
 - Discovery only collects and persists review candidates. It does not create or replace Episodes and does not create or start DownloadJobs.
 
-## Current Phase — Explicit Candidate Acceptance & Download Policy
+## Current Phase — Policy-Controlled Candidate Selection & Download Scheduling
 
-### PR #46 — Explicit Candidate Acceptance & Download Policy
+### PR #47 — Policy-Controlled Candidate Selection & Download Scheduling
 
-**Current development phase.**
+**Next development phase.**
 
-Goal: turn a reviewed candidate into an Episode only through an explicit user action, then keep download creation as a separate explicit step.
+Goal: build optional automation on top of the normalized Candidate contract without bypassing explicit parsing, matching, provenance, replacement, and download safeguards.
 
-Current implementation:
+Planned scope:
 
-- Added a dedicated candidate-acceptance service that reconstructs the persisted Release/ParsedRelease snapshot and delegates Episode state changes to EpisodeIngestionService
-- Added candidate acceptance API with explicit replacement targeting
-- Added candidate status transition to accepted after successful creation, idempotent re-ingestion, or explicit replacement
-- Added replacement-target validation for Anime and episode-number identity
-- Strengthened Episode replacement to reject a mismatched candidate episode number
-- Added Discovery Inbox Accept and Replace Episode actions
-- Added candidate acceptance API/browser regression coverage
-- Kept DownloadJob creation completely separate from candidate acceptance
+- add per-Anime automation policy/configuration for whether candidates may be auto-selected
+- evaluate only actionable, matched candidates that satisfy the Anime's configured release preferences
+- make selection deterministic and explainable using the existing candidate ranking contract
+- keep an explicit dry-run / preview path so automation decisions can be inspected without creating work
+- add a scheduler/worker boundary that can claim eligible candidates safely across restarts
+- create a DownloadJob only after a candidate passes the configured automation policy
+- preserve the existing EpisodeIngestionService boundary before download creation
+- keep automatic replacement disabled by default and require an explicit replacement path
+- add backend, integration, and browser coverage for policy evaluation, idempotency, restart safety, and failure recovery
+- update AGENTS.md and architecture/project-status documentation with the new automation boundaries
 
-Workflow:
+Safety boundaries:
 
-```
-Candidate
-   ↓
-User: Accept
-   ↓
-Current Anime/match revalidation
-   ↓
-EpisodeIngestionService
-   ├─ new Episode
-   ├─ idempotent update
-   └─ replacement candidate
-          ↓
-      User: Replace
-          ↓
-      EpisodeIngestionService.replace
-   ↓
-Accepted Candidate + Episode
-   ↓
-Separate user-triggered Download
-   ↓
-DownloadJob → Taskiq → qBittorrent
-```
-
-Design constraints:
-
-- Rejected and stale candidates cannot be accepted.
-- Candidate acceptance never directly writes Episode rows.
-- Existing Episode title and execution/media history remain protected.
-- A replacement request must name the target Episode and match the candidate Anime and episode number.
-- Existing DownloadJob, MediaProcessingJob, and MediaAsset replacement guards remain authoritative.
-- Accepting a candidate never creates or starts a DownloadJob.
-- Automatic candidate selection and automatic download scheduling remain separate future phases.
+- discovery remains review-only until a policy explicitly enables automation
+- rejected, stale, ambiguous, unmatched, or non-actionable candidates are never auto-selected
+- candidate acceptance/ingestion remains responsible for Episode state
+- automatic download creation must be idempotent and must not create duplicate active DownloadJobs
+- automatic replacement is not enabled as a side effect of candidate selection
+- provider payloads remain ephemeral; automation consumes persisted normalized candidates
 
 Out of scope:
 
-- automatic candidate acceptance/selection
-- automatic download scheduling
 - new release providers
-- media/player changes
+- automatic media replacement
+- player/media-pipeline changes
+- opaque heuristic selection without persisted reasons
 
 ## Handoff Notes
 
-PR #45 is merged into `main`, and PR #46 is the active branch `feature/explicit-candidate-acceptance-download-policy`. The next work should complete explicit candidate acceptance/replacement and keep DownloadJob creation as a separate user action.
+PR #45 and PR #46 are merged into `main`. The next work is the optional policy-controlled automation phase: automatically selecting eligible candidates and creating DownloadJobs only after the configured policy passes.
 
 For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current repository state, and recent commits. Treat the repository state as authoritative and update this file whenever the development phase changes.

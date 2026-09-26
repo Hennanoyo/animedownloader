@@ -40,6 +40,19 @@ class DownloadJobRepository:
         )
         return result
 
+    async def get_latest_completed_for_episode(
+        self,
+        episode_id: UUID,
+    ) -> DownloadJob | None:
+        return await self.session.scalar(
+            select(DownloadJob)
+            .where(
+                DownloadJob.episode_id == episode_id,
+                DownloadJob.status == DownloadJobStatus.COMPLETED.value,
+            )
+            .order_by(DownloadJob.completed_at.desc(), DownloadJob.id.desc()),
+        )
+
     async def list_with_context(
         self,
         *,

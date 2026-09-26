@@ -1,6 +1,7 @@
 import { Link, useSearch } from "@tanstack/react-router";
 import type { UseQueryResult } from "@tanstack/react-query";
 import DownloadJobCard from "../../../features/download-management/ui/DownloadJobCard";
+import MediaSourceOrphanPanel from "../../../features/media-source-recovery/ui/MediaSourceOrphanPanel";
 import { useDownloadJobRealtime } from "../../../features/download-management/model/useDownloadJobRealtime";
 import { Button } from "react-aria-components";
 import {
@@ -89,6 +90,7 @@ export default function DownloadManagerPage() {
             query={terminalQuery}
             emptyMessage="No completed, failed, or cancelled downloads yet."
           />
+          <MediaSourceOrphanPanel />
         </div>
       ) : query ? (
         <div className={styles.sections}>

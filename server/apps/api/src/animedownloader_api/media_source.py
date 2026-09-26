@@ -1,0 +1,323 @@
+from __future__ import annotations
+
+import shutil
+from contextlib import suppress
+from dataclasses import dataclass
+from pathlib import Path
+from uuid import UUID
+
+from animedownloader_anime import AnimeService
+from animedownloader_download import (
+    ActiveDownloadJobError,
+    DownloadJob,
+    DownloadJobService,
+    DownloadJobStatus,
+    find_download_directories,
+    relative_media_source,
+    resolve_media_source,
+    resolve_selected_media_source,
+)
+from animedownloader_media_asset import MediaAsset
+from animedownloader_media_processing import (
+    MediaProcessingJob,
+    MediaProcessingJobService,
+    MediaProcessingJobStatus,
+)
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from .media_processing_queue import MediaProcessingTaskDispatcher
+from .task_queue import DownloadTaskDispatcher
+
+
+class MediaSourceRecoveryError(RuntimeError):
+    pass
+
+
+class MediaSourceRecoveryConflictError(MediaSourceRecoveryError):
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class MediaSourceCandidate:
+    path: str
+
+
+@dataclass(frozen=True, slots=True)
+class EpisodeMediaSource:
+    episode_id: UUID
+    download_job_id: UUID | None
+    download_status: DownloadJobStatus | None
+    status: str
+    root: str | None
+    selected_path: str | None
+    candidates: tuple[MediaSourceCandidate, ...]
+    processing_job_id: UUID | None
+    processing_status: MediaProcessingJobStatus | None
+
+
+@dataclass(frozen=True, slots=True)
+class MediaSourceOrphan:
+    directory_id: UUID
+    path: str
+
+
+class MediaSourceService:
+    def __init__(
+        self,
+        session: AsyncSession,
+        *,
+        download_root: Path,
+        download_dispatcher: DownloadTaskDispatcher,
+        media_dispatcher: MediaProcessingTaskDispatcher,
+    ) -> None:
+        self._session = session
+        self._download_root = download_root
+        self._anime = AnimeService(session)
+        self._downloads = DownloadJobService(session)
+        self._processing = MediaProcessingJobService(session)
+        self._download_dispatcher = download_dispatcher
+        self._media_dispatcher = media_dispatcher
+
+    async def get_episode_source(self, episode_id: UUID) -> EpisodeMediaSource:
+        await self._anime.get_episode(episode_id)
+        download = await self._downloads.get_latest_completed_job(episode_id)
+        if download is None:
+            return EpisodeMediaSource(
+                episode_id=episode_id,
+                download_job_id=None,
+                download_status=None,
+                status="not_available",
+                root=None,
+                selected_path=None,
+                candidates=(),
+                processing_job_id=None,
+                processing_status=None,
+            )
+
+        root = self._download_root / str(download.id)
+        resolution = resolve_media_source(root)
+        processing = await self._processing.get_job_by_download_job(download.id)
+
+        selected_path = None
+        if processing is not None and processing.media_path is not None:
+            selected = resolve_selected_media_source(
+                root,
+                _relative_source_path(root, processing.media_path),
+            )
+            if selected is not None:
+                selected_path = relative_media_source(root, selected)
+
+        return EpisodeMediaSource(
+            episode_id=episode_id,
+            download_job_id=download.id,
+            download_status=download.job_status,
+            status=resolution.status.value,
+            root=str(root),
+            selected_path=selected_path,
+            candidates=tuple(
+                MediaSourceCandidate(path=relative_media_source(root, path))
+                for path in resolution.candidates
+            ),
+            processing_job_id=processing.id if processing is not None else None,
+            processing_status=processing.job_status if processing is not None else None,
+        )
+
+    async def reprocess(self, episode_id: UUID) -> MediaProcessingJob:
+        download = await self._require_completed_download(episode_id)
+        resolution = resolve_media_source(self._download_root / str(download.id))
+        if not resolution.is_ready:
+            raise MediaSourceRecoveryConflictError(
+                "Media source is not ready for processing.",
+            )
+
+        processing = await self._processing.get_job_by_download_job(download.id)
+        if processing is None:
+            processing, _created = await self._processing.ensure_for_download_job(download.id)
+        if processing.job_status is MediaProcessingJobStatus.PROCESSING:
+            raise MediaSourceRecoveryConflictError(
+                "Media processing is already in progress.",
+            )
+        if processing.job_status is MediaProcessingJobStatus.COMPLETED:
+            raise MediaSourceRecoveryConflictError(
+                "Media processing is already complete for this source.",
+            )
+        if processing.job_status is MediaProcessingJobStatus.FAILED:
+            selected_source = processing.media_path
+            processing = await self._processing.retry_job(processing.id)
+            if selected_source is not None:
+                processing = await self._processing.select_source(
+                    processing.id,
+                    media_path=selected_source,
+                )
+
+        await self._enqueue_processing(processing.id)
+        return processing
+
+    async def redownload(self, episode_id: UUID) -> DownloadJob:
+        await self._anime.get_episode(episode_id)
+        try:
+            job = await self._downloads.create_job(episode_id)
+        except ActiveDownloadJobError as exc:
+            raise MediaSourceRecoveryConflictError(str(exc)) from exc
+        await self._enqueue_download(job.id)
+        return job
+
+    async def select_source(
+        self,
+        episode_id: UUID,
+        relative_path: str,
+    ) -> MediaProcessingJob:
+        download = await self._require_completed_download(episode_id)
+        root = self._download_root / str(download.id)
+        selected_path = resolve_selected_media_source(root, relative_path)
+        if selected_path is None:
+            raise MediaSourceRecoveryConflictError(
+                "Selected media source is missing, unsupported, or outside the download directory.",
+            )
+
+        processing, _created = await self._processing.ensure_for_download_job(download.id)
+        if processing.job_status is MediaProcessingJobStatus.PROCESSING:
+            raise MediaSourceRecoveryConflictError(
+                "Media processing is already in progress.",
+            )
+        if processing.job_status is MediaProcessingJobStatus.COMPLETED:
+            raise MediaSourceRecoveryConflictError(
+                "Completed media processing cannot change its source.",
+            )
+
+        processing = await self._processing.select_source(
+            processing.id,
+            media_path=relative_media_source(root, selected_path),
+        )
+        await self._enqueue_processing(processing.id)
+        return processing
+
+    async def list_orphans(self) -> list[MediaSourceOrphan]:
+        download_ids = await self._session.scalars(select(DownloadJob.id))
+        known_ids = {str(download_id) for download_id in download_ids}
+
+        processing_directories = await self._session.scalars(
+            select(MediaProcessingJob.download_directory),
+        )
+        known_ids.update(
+            value
+            for value in processing_directories
+            if _is_uuid(value)
+        )
+
+        media_paths = list(
+            await self._session.scalars(select(MediaAsset.path)),
+        )
+        for directory in find_download_directories(self._download_root):
+            if any(
+                _path_is_under(media_path, directory)
+                for media_path in media_paths
+            ):
+                known_ids.add(directory.name)
+
+        return [
+            MediaSourceOrphan(
+                directory_id=UUID(directory.name),
+                path=str(directory),
+            )
+            for directory in find_download_directories(self._download_root)
+            if directory.name not in known_ids
+        ]
+
+    async def delete_orphan(self, directory_id: UUID) -> None:
+        exists = await self._session.scalar(
+            select(DownloadJob.id).where(DownloadJob.id == directory_id),
+        )
+        processing_exists = await self._session.scalar(
+            select(MediaProcessingJob.id).where(
+                MediaProcessingJob.download_directory == str(directory_id),
+            ),
+        )
+        asset_paths = list(
+            await self._session.scalars(select(MediaAsset.path)),
+        )
+        directory = self._download_root / str(directory_id)
+        asset_references_source = any(
+            _path_is_under(media_path, directory)
+            for media_path in asset_paths
+        )
+
+        if (
+            exists is not None
+            or processing_exists is not None
+            or asset_references_source
+        ):
+            raise MediaSourceRecoveryConflictError(
+                "Download directory is still referenced by persisted media state.",
+            )
+
+        if not directory.is_dir():
+            raise FileNotFoundError(directory)
+
+        if directory.resolve().parent != self._download_root.resolve():
+            raise MediaSourceRecoveryConflictError(
+                "Refusing to delete a directory outside the configured download root.",
+            )
+
+        shutil.rmtree(directory)
+
+    async def _require_completed_download(self, episode_id: UUID) -> DownloadJob:
+        await self._anime.get_episode(episode_id)
+        download = await self._downloads.get_latest_completed_job(episode_id)
+        if download is None:
+            raise MediaSourceRecoveryConflictError(
+                "No completed download is available for this episode.",
+            )
+        return download
+
+    async def _enqueue_processing(self, job_id: UUID) -> None:
+        try:
+            await self._media_dispatcher.enqueue(job_id)
+        except Exception as exc:
+            with suppress(Exception):
+                await self._processing.mark_failed(
+                    job_id,
+                    error_message="Failed to enqueue media processing task.",
+                )
+            raise MediaSourceRecoveryError(
+                "Media processing task queue is temporarily unavailable",
+            ) from exc
+
+    async def _enqueue_download(self, job_id: UUID) -> None:
+        try:
+            await self._download_dispatcher.enqueue(job_id)
+        except Exception as exc:
+            await self._downloads.mark_failed(
+                job_id,
+                error_message="Failed to enqueue download task.",
+            )
+            raise MediaSourceRecoveryError(
+                "Download task queue is temporarily unavailable",
+            ) from exc
+
+
+def _relative_source_path(root: Path, path: str) -> str:
+    try:
+        return Path(path).resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return path
+
+
+def _is_uuid(value: str) -> bool:
+    try:
+        UUID(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _path_is_under(path: str, directory: Path) -> bool:
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        return False
+    try:
+        candidate.resolve().relative_to(directory.resolve())
+    except ValueError:
+        return False
+    return True

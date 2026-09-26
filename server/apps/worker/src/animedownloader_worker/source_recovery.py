@@ -6,7 +6,12 @@ from pathlib import Path
 from uuid import UUID
 
 from animedownloader_database import Database
-from animedownloader_download import DownloadJob, DownloadJobStatus
+from animedownloader_download import (
+    DownloadJob,
+    DownloadJobStatus,
+    MediaSourceStatus,
+    resolve_media_source,
+)
 from animedownloader_media_processing import (
     MediaProcessingJob,
     MediaProcessingJobService,
@@ -14,8 +19,6 @@ from animedownloader_media_processing import (
 )
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from .media_source import MediaSourceStatus, resolve_media_source
 
 logger = logging.getLogger(__name__)
 

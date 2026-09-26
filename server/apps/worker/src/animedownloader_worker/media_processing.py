@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import Protocol, cast
 from uuid import UUID
 
+from animedownloader_download import (
+    describe_media_source,
+    resolve_media_source,
+    resolve_selected_media_source,
+)
 from animedownloader_media import MediaProbe, MediaStream
 from animedownloader_media_asset import (
     MediaAssetMetadata,
@@ -20,7 +25,6 @@ from animedownloader_media_processing import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .media_source import describe_media_source, resolve_media_source
 from .progress import JobProgressCallback, emit_job_progress
 
 logger = logging.getLogger(__name__)
@@ -56,10 +60,12 @@ class MediaProcessingContext:
         *,
         status: MediaProcessingJobStatus,
         download_directory: str,
+        media_path: str | None = None,
         media_asset_ready: bool = False,
     ) -> None:
         self.status = status
         self.download_directory = download_directory
+        self.media_path = media_path
         self.media_asset_ready = media_asset_ready
 
 
@@ -74,6 +80,7 @@ class MediaProcessingState:
             return MediaProcessingContext(
                 status=job.job_status,
                 download_directory=job.download_directory,
+                media_path=job.media_path,
                 media_asset_ready=(
                     asset is not None
                     and asset.metadata_ready
@@ -169,18 +176,29 @@ class MediaProcessingRunner:
                 stage="processing",
             )
 
-            source = resolve_media_source(
-                self._download_root / context.download_directory,
-            )
-            if not source.is_ready:
-                raise MediaProcessingExecutionError(
-                    describe_media_source(source),
+            if context.media_path is not None:
+                media_path = resolve_selected_media_source(
+                    self._download_root / context.download_directory,
+                    context.media_path,
                 )
-            media_path = source.path
-            if media_path is None:
-                raise MediaProcessingExecutionError(
-                    f"Media source resolution returned no path: {source.root}",
+                if media_path is None:
+                    raise MediaProcessingExecutionError(
+                        "Selected media source is missing or invalid: "
+                        f"{context.media_path}",
+                    )
+            else:
+                source = resolve_media_source(
+                    self._download_root / context.download_directory,
                 )
+                if not source.is_ready:
+                    raise MediaProcessingExecutionError(
+                        describe_media_source(source),
+                    )
+                media_path = source.path
+                if media_path is None:
+                    raise MediaProcessingExecutionError(
+                        f"Media source resolution returned no path: {source.root}",
+                    )
             probe = await self._inspector.inspect(media_path)
             await self._state.mark_completed(
                 job_id,

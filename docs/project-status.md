@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is also complete through PR #40; the next phase is Media Source Lifecycle & Recovery.
+The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is also complete through PR #40. Media Source Lifecycle & Recovery is complete through PR #41; the current phase is User-facing Media Source Recovery & Orphan Cleanup.
 
 ## Completed
 
@@ -811,7 +811,7 @@ Out of scope:
 
 ### PR #41 — Media Source Reconciliation & Recovery
 
-**Current development phase.**
+**Merged into `main` as commit `17ac0260a19ad32fa7ba1f6e47986655ded9bdcf`.**
 
 Goal: make the boundary between completed downloads and physical source media explicit and recoverable without silently re-downloading or deleting user data.
 
@@ -847,6 +847,46 @@ Out of scope for PR #41:
 - release discovery, matching, or player changes
 
 The following PR can add explicit user-facing source recovery actions and a conservative orphan/cleanup policy once source state is observable and reconciled.
+
+### PR #42 — User-facing Media Source Recovery & Orphan Cleanup
+
+**Current development phase.**
+
+Goal: make local downloaded source state inspectable and recoverable from the application while keeping re-download and destructive cleanup explicitly user-controlled.
+
+Implementation order:
+
+1. Expose the latest completed DownloadJob source state through a provider-neutral API:
+   - no completed download;
+   - missing source directory;
+   - no supported media;
+   - exactly one source;
+   - multiple candidate sources.
+2. Allow explicit source selection for ambiguous downloads using a validated path relative to the DownloadJob directory.
+3. Allow explicit media reprocessing without re-downloading when a valid source exists.
+4. Allow explicit re-download when the completed source is missing or unusable; never trigger it automatically from source reconciliation.
+5. Add an orphan-source inventory for UUID-named download directories that are not referenced by DownloadJob or MediaProcessingJob state.
+6. Add explicit orphan deletion with path containment and persistent-reference checks.
+7. Integrate source recovery into Anime detail Episode pipeline and expose orphan maintenance from Downloads.
+8. Add deterministic backend/frontend coverage for source states, safe path validation, recovery actions, and orphan cleanup.
+
+Design constraints:
+
+- DownloadJob remains the authoritative download execution/history record.
+- A recovery action must never silently replace existing completed media state.
+- Source paths are local filesystem representations and are never persisted as storage object keys.
+- User-selected source paths are normalized to relative paths inside the DownloadJob directory.
+- Orphan cleanup is never automatic.
+- A directory referenced by a MediaProcessingJob remains protected even if its original DownloadJob record was deleted.
+- Re-download creates a new DownloadJob and never deletes the old download history.
+- Derived SeaweedFS/local storage artifacts are outside source-directory cleanup.
+
+Out of scope:
+
+- automatic source cleanup
+- automatic release ranking or discovery scheduling
+- source migration to object storage
+- additional media/player features
 
 ## Handoff Notes:
 

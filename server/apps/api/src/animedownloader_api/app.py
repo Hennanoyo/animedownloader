@@ -39,6 +39,7 @@ from animedownloader_api.routes import (
     media_packaging_jobs_router,
     media_preparation_jobs_router,
     media_processing_jobs_router,
+    media_sources_router,
     release_profiles_router,
     releases_router,
 )
@@ -126,6 +127,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(media_packaging_jobs_router)
     app.include_router(media_preparation_jobs_router)
     app.include_router(media_processing_jobs_router)
+    app.include_router(media_sources_router)
     app.include_router(release_profiles_router)
     app.include_router(releases_router)
 

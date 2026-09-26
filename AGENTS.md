@@ -55,6 +55,15 @@ See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 - Keep CUDA hardware-frame decoding out of the shared playable/thumbnail preparation path unless the filter graph has explicit, tested hardware-frame compatibility.
 - GPU-specific Compose configuration may be used internally to expose an available NVIDIA device, but application-level encoder selection must remain portable.
 
+## Media Source Recovery Rules
+
+- Treat a completed DownloadJob as download execution/history; physical source media remains local filesystem data under the configured download root.
+- Reuse the shared media-source resolver so missing, empty, found, and ambiguous source states have one deterministic contract.
+- Never automatically re-download a missing source or automatically delete a source directory.
+- User-selected media source paths must be relative to the DownloadJob directory and validated against path traversal.
+- Orphan source cleanup must check both DownloadJob and MediaProcessingJob references before allowing deletion.
+- Deleting a source directory must never implicitly delete derived media-storage artifacts or persistent processing history.
+
 ## Storage Rules
 
 - Persist storage `object_key` values in PostgreSQL rather than environment-specific public URLs.

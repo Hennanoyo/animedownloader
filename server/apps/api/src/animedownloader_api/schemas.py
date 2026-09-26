@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 from animedownloader_anime import ConversionStatus, DownloadStatus, Season, Weekday
-from animedownloader_download import DownloadJobStatus
+from animedownloader_download import DownloadJobStatus, MediaSourceStatus
 from animedownloader_media_asset import (
     MediaAttachmentStatus,
     MediaThumbnailStatus,
@@ -446,6 +446,38 @@ class EpisodePipelineCurrentStage(StrEnum):
     PROCESSING = "processing"
     PREVIEW = "preview"
     STREAMING = "streaming"
+
+class EpisodeMediaSourceStatus(StrEnum):
+    NOT_AVAILABLE = "not_available"
+    FOUND = MediaSourceStatus.FOUND.value
+    MISSING_DIRECTORY = MediaSourceStatus.MISSING_DIRECTORY.value
+    NO_MEDIA = MediaSourceStatus.NO_MEDIA.value
+    AMBIGUOUS = MediaSourceStatus.AMBIGUOUS.value
+
+
+class MediaSourceCandidateResponse(BaseModel):
+    path: str
+
+
+class EpisodeMediaSourceResponse(BaseModel):
+    episode_id: UUID
+    download_job_id: UUID | None
+    download_status: DownloadJobStatus | None
+    status: EpisodeMediaSourceStatus
+    root: str | None
+    selected_path: str | None
+    candidates: list[MediaSourceCandidateResponse]
+    processing_job_id: UUID | None
+    processing_status: MediaProcessingJobStatus | None
+
+
+class MediaSourceSelectionRequest(BaseModel):
+    path: str = Field(min_length=1, max_length=2000)
+
+
+class MediaSourceOrphanResponse(BaseModel):
+    directory_id: UUID
+    path: str
 
 
 class EpisodePipelineDownloadResponse(BaseModel):

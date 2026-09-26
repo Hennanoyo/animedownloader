@@ -1,102 +1,21 @@
-from __future__ import annotations
-
-from dataclasses import dataclass
-from enum import StrEnum
-from pathlib import Path
-
-MEDIA_EXTENSIONS = frozenset(
-    {
-        ".avi",
-        ".flv",
-        ".m2ts",
-        ".m4v",
-        ".mkv",
-        ".mov",
-        ".mp4",
-        ".mpeg",
-        ".mpg",
-        ".mts",
-        ".ts",
-        ".webm",
-        ".wmv",
-    }
+from animedownloader_download import (
+    MEDIA_EXTENSIONS,
+    MediaSourceResolution,
+    MediaSourceStatus,
+    describe_media_source,
+    find_download_directories,
+    relative_media_source,
+    resolve_media_source,
+    resolve_selected_media_source,
 )
 
-
-class MediaSourceStatus(StrEnum):
-    FOUND = "found"
-    MISSING_DIRECTORY = "missing_directory"
-    NO_MEDIA = "no_media"
-    AMBIGUOUS = "ambiguous"
-
-
-@dataclass(frozen=True, slots=True)
-class MediaSourceResolution:
-    status: MediaSourceStatus
-    root: Path
-    path: Path | None = None
-    candidates: tuple[Path, ...] = ()
-
-    @property
-    def is_ready(self) -> bool:
-        return self.status is MediaSourceStatus.FOUND and self.path is not None
-
-
-def resolve_media_source(root: Path) -> MediaSourceResolution:
-    if not root.is_dir():
-        return MediaSourceResolution(
-            status=MediaSourceStatus.MISSING_DIRECTORY,
-            root=root,
-        )
-
-    candidates: tuple[Path, ...] = tuple(
-        sorted(
-            path
-            for path in root.rglob("*")
-            if path.is_file() and path.suffix.casefold() in MEDIA_EXTENSIONS
-        )
-    )
-
-    if not candidates:
-        return MediaSourceResolution(
-            status=MediaSourceStatus.NO_MEDIA,
-            root=root,
-        )
-
-    if len(candidates) > 1:
-        return MediaSourceResolution(
-            status=MediaSourceStatus.AMBIGUOUS,
-            root=root,
-            candidates=candidates,
-        )
-
-    return MediaSourceResolution(
-        status=MediaSourceStatus.FOUND,
-        root=root,
-        path=next(iter(candidates)),
-        candidates=candidates,
-    )
-
-
-def describe_media_source(resolution: MediaSourceResolution) -> str:
-    if resolution.status is MediaSourceStatus.MISSING_DIRECTORY:
-        return f"Download directory does not exist: {resolution.root}"
-
-    if resolution.status is MediaSourceStatus.NO_MEDIA:
-        return f"No supported media file found in download directory: {resolution.root}"
-
-    if resolution.status is MediaSourceStatus.AMBIGUOUS:
-        names = ", ".join(
-            str(path.relative_to(resolution.root))
-            for path in resolution.candidates[:5]
-        )
-        suffix = " ..." if len(resolution.candidates) > 5 else ""
-        return (
-            f"Expected exactly one media file in {resolution.root}, "
-            f"found {len(resolution.candidates)}: {names}{suffix}"
-        )
-
-    if resolution.path is None:
-        return f"Media source resolution returned no path: {resolution.root}"
-
-    return str(resolution.path)
+__all__ = [
+    "MEDIA_EXTENSIONS",
+    "MediaSourceResolution",
+    "MediaSourceStatus",
+    "describe_media_source",
+    "find_download_directories",
+    "relative_media_source",
+    "resolve_media_source",
+    "resolve_selected_media_source",
+]

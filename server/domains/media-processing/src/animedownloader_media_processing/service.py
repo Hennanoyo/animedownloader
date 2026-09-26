@@ -32,6 +32,12 @@ class MediaProcessingJobService:
     async def get_active_jobs(self) -> list[MediaProcessingJob]:
         return await self.jobs.get_active_processing_jobs()
 
+    async def get_job_by_download_job(
+        self,
+        download_job_id: UUID,
+    ) -> MediaProcessingJob | None:
+        return await self.jobs.get_by_download_job(download_job_id)
+
     async def create_for_download_job(
         self,
         download_job_id: UUID,
@@ -107,6 +113,28 @@ class MediaProcessingJobService:
                 download_directory=str(download_job_id),
             )
             await self.jobs.add(job)
+
+        await self.session.refresh(job)
+        return job
+
+    async def select_source(
+        self,
+        job_id: UUID,
+        *,
+        media_path: str,
+    ) -> MediaProcessingJob:
+        await self.session.rollback()
+        async with self.session.begin():
+            job = await self.get_job(job_id)
+            if job.job_status is MediaProcessingJobStatus.PROCESSING:
+                raise ValueError("Media processing is already in progress.")
+            if job.job_status is MediaProcessingJobStatus.COMPLETED:
+                raise ValueError("Completed media processing cannot change its source.")
+
+            if job.job_status is MediaProcessingJobStatus.FAILED:
+                job.transition_to(MediaProcessingJobStatus.PENDING)
+
+            job.media_path = media_path
 
         await self.session.refresh(job)
         return job

@@ -21,6 +21,7 @@ import {
 import EpisodeDownloadControl from "../../../features/episode-download/ui/EpisodeDownloadControl";
 import { useDeleteEpisode } from "../../../features/episode-management/model/useEpisodeManagement";
 import { useRetryEpisodePipeline } from "../../../features/anime-detail/model/useAnimePipeline";
+import MediaSourceRecovery from "../../../features/media-source-recovery/ui/MediaSourceRecovery";
 import Icon from "../../../shared/ui/Icon";
 import styles from "./EpisodePipelineCard.module.scss";
 
@@ -487,18 +488,21 @@ function renderStageBody(
 
     if (stageStatus === "completed") {
       return (
-        <OutputStatusList
-          items={[
-            {
-              label: "File downloaded",
-              detail: formatDownloadedBytes(
-                pipeline.download.downloaded_bytes,
-                pipeline.download.total_bytes,
-              ),
-              icon: "download",
-            },
-          ]}
-        />
+        <>
+          <OutputStatusList
+            items={[
+              {
+                label: "File downloaded",
+                detail: formatDownloadedBytes(
+                  pipeline.download.downloaded_bytes,
+                  pipeline.download.total_bytes,
+                ),
+                icon: "download",
+              },
+            ]}
+          />
+          <MediaSourceRecovery episodeId={pipeline.episode_id} />
+        </>
       );
     }
 

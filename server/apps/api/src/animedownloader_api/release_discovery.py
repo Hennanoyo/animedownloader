@@ -65,7 +65,10 @@ class ReleaseDiscoveryResult:
 
     @property
     def query(self) -> str:
-        return self.queries[0] if self.queries else ""
+        if not self.queries:
+            return ""
+        rendered = " | ".join(self.queries)
+        return rendered if len(rendered) <= 500 else rendered[:497] + "..."
 
 
 class ReleaseDiscoveryService:

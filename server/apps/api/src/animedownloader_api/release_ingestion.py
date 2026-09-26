@@ -257,7 +257,8 @@ class EpisodeIngestionService:
         *,
         release_group_id: UUID | None,
     ) -> None:
-        episode.release_group_id = release_group_id
+        if release_group_id is not None:
+            episode.release_group_id = release_group_id
         episode.source = release.source
         episode.source_id = release.id
         episode.source_title = release.title

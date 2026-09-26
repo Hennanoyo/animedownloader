@@ -4,12 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .commands import (
     AnimeCreateData,
+    AnimeReleasePreferenceData,
     AnimeUpdateData,
     EpisodeCreateData,
     EpisodeUpdateData,
 )
 from .exceptions import AnimeNotFoundError, DuplicateEpisodeError, EpisodeNotFoundError
-from .models import Anime, Episode
+from .models import Anime, AnimeReleasePreference, Episode
 from .repository import AnimeRepository, EpisodeRepository
 
 
@@ -73,6 +74,49 @@ class AnimeService:
 
         await self.session.refresh(anime)
         return anime
+
+    async def get_release_preference(
+        self,
+        anime_id: UUID,
+    ) -> AnimeReleasePreference | None:
+        anime = await self.get_anime(anime_id)
+        return anime.release_preference
+
+    async def update_release_preference(
+        self,
+        anime_id: UUID,
+        data: AnimeReleasePreferenceData,
+    ) -> AnimeReleasePreference:
+        self._validate_release_preference(data)
+
+        async with self.session.begin():
+            anime = await self.get_anime(anime_id)
+            preference = anime.release_preference
+            if preference is None:
+                preference = AnimeReleasePreference(anime_id=anime.id)
+                anime.release_preference = preference
+                self.session.add(preference)
+
+            preference.release_group_id = data.release_group_id
+            preference.resolution = data.resolution
+            preference.video_codec = data.video_codec
+            preference.source = data.source
+
+        await self.session.refresh(preference)
+        return preference
+
+    @staticmethod
+    def _validate_release_preference(
+        data: AnimeReleasePreferenceData,
+    ) -> None:
+        limits = (
+            ("resolution", data.resolution, 32),
+            ("video codec", data.video_codec, 32),
+            ("source", data.source, 32),
+        )
+        for label, value, limit in limits:
+            if value is not None and len(value.strip()) > limit:
+                raise ValueError(f"{label} is too long")
 
     async def delete_anime(self, anime_id: UUID) -> None:
         async with self.session.begin():

@@ -1,0 +1,176 @@
+.panel {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #26324a;
+  border-radius: 0.7rem;
+  background: #0b1222;
+}
+
+.header {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header > div {
+  min-width: 0;
+}
+
+.kicker {
+  margin: 0 0 0.35rem;
+  color: #60a5fa;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.header h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.header p:not(.kicker) {
+  margin: 0.35rem 0 0;
+  color: #64748b;
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.secondaryButton,
+.dangerButton {
+  display: inline-flex;
+  min-height: 1.9rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.6rem;
+  border-radius: 0.45rem;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.secondaryButton {
+  border: 1px solid #334155;
+  background: #111827;
+  color: #cbd5e1;
+}
+
+.dangerButton {
+  border: 1px solid #7f1d1d;
+  background: #2a1014;
+  color: #fecaca;
+}
+
+.secondaryButton:hover,
+.secondaryButton:focus-visible {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+.dangerButton:hover,
+.dangerButton:focus-visible {
+  background: #451a1a;
+  color: #fee2e2;
+}
+
+.secondaryButton:focus-visible,
+.dangerButton:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.state,
+.error,
+.errorBlock p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.error,
+.errorBlock {
+  color: #fecaca;
+}
+
+.errorBlock {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border: 1px solid #7f1d1d;
+  border-radius: 0.5rem;
+  background: #180d12;
+}
+
+.list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.row,
+.confirm {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.55rem;
+  border: 1px solid #1e293b;
+  border-radius: 0.5rem;
+  background: #0f172a;
+}
+
+.row code,
+.confirm p {
+  min-width: 0;
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.66rem;
+  overflow-wrap: anywhere;
+}
+
+.confirm {
+  align-items: stretch;
+}
+
+.confirm > div:first-child {
+  min-width: 0;
+}
+
+.confirm strong {
+  color: #fee2e2;
+  font-size: 0.7rem;
+}
+
+.confirm p {
+  margin-top: 0.25rem;
+  color: #94a3b8;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+@media (max-width: 620px) {
+  .header,
+  .row,
+  .confirm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header > .secondaryButton,
+  .row .dangerButton,
+  .actions > * {
+    width: 100%;
+  }
+}

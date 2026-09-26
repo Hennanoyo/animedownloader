@@ -13,7 +13,10 @@ from animedownloader_api.release_candidate_acceptance import (
     ReleaseDiscoveryCandidateAcceptanceService,
 )
 from animedownloader_api.release_candidates import ReleaseDiscoveryCandidate
-from animedownloader_api.release_ingestion import EpisodeIngestionResult
+from animedownloader_api.release_ingestion import (
+    EpisodeIngestionResult,
+    EpisodeIngestionService,
+)
 from animedownloader_releases import EpisodeIngestionStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -140,7 +143,7 @@ async def test_accept_creates_episode_and_marks_candidate_accepted() -> None:
     session = FakeSession([candidate, accepted_candidate, episode])
     service = ReleaseDiscoveryCandidateAcceptanceService(
         cast(AsyncSession, session),
-        ingestion_service=ingestion,
+        ingestion_service=cast(EpisodeIngestionService, ingestion),
     )
 
     result = await service.accept(candidate.id)

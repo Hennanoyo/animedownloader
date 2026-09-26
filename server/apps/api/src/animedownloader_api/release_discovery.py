@@ -39,7 +39,7 @@ from .release_matching import AnimeMatcher
 
 
 class ReleaseSearchClient(Protocol):
-    async def search(self, query: str) -> list[Release]:
+    async def search(self, query: str) -> ReleaseSearchResult:
         ...
 
 

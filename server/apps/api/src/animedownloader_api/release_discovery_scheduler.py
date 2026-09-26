@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from contextlib import suppress
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
-
-from animedownloader_database import Database
 
 from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidateService,
@@ -12,6 +11,7 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoveryRunStatus,
     ReleaseDiscoverySchedule,
 )
+from animedownloader_database import Database
 from sqlalchemy import select
 
 from .task_queue import ReleaseDiscoveryTaskDispatcher
@@ -57,20 +57,18 @@ class ReleaseDiscoveryScheduler:
                     flush=True,
                 )
 
-            try:
+            with suppress(TimeoutError):
                 await asyncio.wait_for(
                     self._stop.wait(),
                     timeout=self._poll_seconds,
                 )
-            except TimeoutError:
-                pass
 
     async def enqueue_run(self, run_id: UUID) -> None:
         await self._dispatcher.enqueue(run_id)
 
     async def run_due(self, *, now: datetime | None = None, limit: int = 8) -> int:
         claimed = await self._claim_due_runs(
-            now=now or datetime.now(timezone.utc),
+            now=now or datetime.now(UTC),
             limit=limit,
         )
         for run in claimed:
@@ -90,8 +88,7 @@ class ReleaseDiscoveryScheduler:
         now: datetime,
         limit: int,
     ) -> list[ReleaseDiscoveryRun]:
-        async with self._database.session_factory() as session:
-            async with session.begin():
+        async with self._database.session_factory() as session, session.begin():
                 rows = await session.scalars(
                     select(ReleaseDiscoverySchedule)
                     .where(

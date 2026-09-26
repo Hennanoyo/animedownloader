@@ -20,6 +20,7 @@ const transparentPng = Buffer.from(
 test.beforeEach(async ({ page }) => {
   pipelineResponse = structuredClone(pipeline);
   animeResponse = structuredClone(anime);
+  let mediaSourceProcessingStatus = "pending";
   await page.route(`**/api/animes/${ANIME_ID}`, async (route) => {
     await route.fulfill({
       status: 200,
@@ -114,7 +115,7 @@ test.beforeEach(async ({ page }) => {
           selected_path: "Episode One.mkv",
           candidates: [{ path: "Episode One.mkv" }],
           processing_job_id: pipeline.episodes[0].processing.job_id,
-          processing_status: "pending",
+          processing_status: mediaSourceProcessingStatus,
         }),
       });
     },
@@ -122,6 +123,7 @@ test.beforeEach(async ({ page }) => {
   await page.route(
     `**/api/episodes/${EPISODE_ID}/media-source/reprocess`,
     async (route) => {
+      mediaSourceProcessingStatus = "processing";
       await route.fulfill({
         status: 200,
         contentType: "application/json",

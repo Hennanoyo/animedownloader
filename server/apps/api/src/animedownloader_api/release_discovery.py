@@ -203,7 +203,6 @@ class ReleaseDiscoveryService:
         )
         anime_matcher = AnimeMatcher(anime_result.all())
 
-        warnings: list[str] = []
         observed_results: dict[
             UUID, tuple[UUID, list[tuple[Release, ParsedRelease]]]
         ] = {}

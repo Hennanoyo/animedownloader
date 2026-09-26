@@ -75,14 +75,6 @@ const candidate = () => ({
 
 test.beforeEach(async ({ page }) => {
   candidateStatus = "new";
-  schedule = {
-    anime_id: ANIME_ID,
-    enabled: false,
-    interval_minutes: 360,
-    next_run_at: null,
-    last_run_at: null,
-    last_run_status: null,
-  };
 
   await page.route("**/api/animes", async (route) => {
     await route.fulfill({

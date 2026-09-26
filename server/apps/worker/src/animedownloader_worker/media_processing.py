@@ -20,28 +20,10 @@ from animedownloader_media_processing import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from .media_source import describe_media_source, resolve_media_source
 from .progress import JobProgressCallback, emit_job_progress
 
 logger = logging.getLogger(__name__)
-
-
-MEDIA_EXTENSIONS = frozenset(
-    {
-        ".avi",
-        ".flv",
-        ".m2ts",
-        ".m4v",
-        ".mkv",
-        ".mov",
-        ".mp4",
-        ".mpeg",
-        ".mpg",
-        ".mts",
-        ".ts",
-        ".webm",
-        ".wmv",
-    }
-)
 
 
 class MediaProcessingExecutionError(RuntimeError):
@@ -187,9 +169,18 @@ class MediaProcessingRunner:
                 stage="processing",
             )
 
-            media_path = _find_media_file(
+            source = resolve_media_source(
                 self._download_root / context.download_directory,
             )
+            if not source.is_ready:
+                raise MediaProcessingExecutionError(
+                    describe_media_source(source),
+                )
+            media_path = source.path
+            if media_path is None:
+                raise MediaProcessingExecutionError(
+                    f"Media source resolution returned no path: {source.root}",
+                )
             probe = await self._inspector.inspect(media_path)
             await self._state.mark_completed(
                 job_id,
@@ -227,29 +218,6 @@ class MediaProcessingRunner:
             )
             raise
 
-
-def _find_media_file(root: Path) -> Path:
-    if not root.is_dir():
-        raise MediaProcessingExecutionError(
-            f"Download directory does not exist: {root}",
-        )
-
-    candidates = sorted(
-        path
-        for path in root.rglob("*")
-        if path.is_file() and path.suffix.casefold() in MEDIA_EXTENSIONS
-    )
-    if not candidates:
-        raise MediaProcessingExecutionError(
-            f"No supported media file found in download directory: {root}",
-        )
-    if len(candidates) > 1:
-        names = ", ".join(str(path.relative_to(root)) for path in candidates[:5])
-        suffix = " ..." if len(candidates) > 5 else ""
-        raise MediaProcessingExecutionError(
-            f"Expected exactly one media file in {root}, found {len(candidates)}: {names}{suffix}",
-        )
-    return candidates[0]
 
 
 def build_media_asset_metadata(probe: MediaProbe) -> MediaAssetMetadata:

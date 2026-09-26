@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged; the next phase is Release Discovery & Episode Ingestion.
+The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is also complete through PR #40; the next phase is Media Source Lifecycle & Recovery.
 
 ## Completed
 
@@ -774,7 +774,7 @@ Design constraints:
 
 ### PR #40 — Anime Matching & Episode Ingestion
 
-**Next development phase.**
+**Merged into `main` as commit `fa4132143767dfe44abb7c65d648791adea26745`.**
 
 Goal: turn parsed, ephemeral release candidates into explicit, reviewable Anime/Episode associations and transactional Episode state changes without starting downloads automatically.
 
@@ -809,9 +809,46 @@ Out of scope:
 - Additional providers
 - Media/player changes
 
-Follow-up after PR #40:
+### PR #41 — Media Source Reconciliation & Recovery
 
-Media Source Lifecycle & Recovery can reconcile completed DownloadJob records with the physical source input, recover missing media when appropriate, and define explicit orphan/cleanup policies.
+**Current development phase.**
+
+Goal: make the boundary between completed downloads and physical source media explicit and recoverable without silently re-downloading or deleting user data.
+
+Implementation order:
+
+1. Define a deterministic filesystem source-resolution contract for a completed DownloadJob directory:
+   - missing directory;
+   - no supported media file;
+   - exactly one supported media file;
+   - multiple supported media files.
+2. Reuse the same source-resolution logic in media processing so source failures are classified consistently.
+3. Reconcile completed DownloadJob records when the worker starts:
+   - when a completed job has a valid source but no MediaProcessingJob, recreate the missing processing handoff and enqueue it;
+   - keep already-created processing jobs untouched;
+   - leave missing/ambiguous sources unresolved and emit actionable diagnostics.
+4. Keep source reconciliation idempotent and safe under worker restarts; never create duplicate MediaProcessingJobs.
+5. Add deterministic unit coverage for source resolution and recovery decisions plus a lightweight worker recovery integration path.
+
+Design constraints:
+
+- A completed DownloadJob remains the authoritative download execution/history record.
+- Source recovery must not automatically create or start a new torrent in this phase.
+- Missing source data must be observable before any destructive cleanup or re-download policy is introduced.
+- Source paths remain local filesystem representations; durable derived artifacts continue to use storage object keys.
+- Existing MediaProcessingJob and downstream media state are preserved.
+- Reconciliation is a recovery mechanism for lost handoff messages, not a replacement for explicit user controls.
+
+Out of scope for PR #41:
+
+- automatic re-download of missing source media
+- automatic deletion of orphaned source directories
+- source-media migration to SeaweedFS
+- release discovery, matching, or player changes
+
+The following PR can add explicit user-facing source recovery actions and a conservative orphan/cleanup policy once source state is observable and reconciled.
+
+## Handoff Notes:
 
 ## Handoff Notes
 

@@ -14,6 +14,7 @@ from animedownloader_api.dependencies import (
 from animedownloader_api.release_discovery import (
     ReleaseDiscoveryItem,
     ReleaseDiscoveryResult,
+    ReleaseRanking,
 )
 from animedownloader_api.release_ingestion import EpisodeIngestionResult
 from animedownloader_releases import (
@@ -24,7 +25,6 @@ from animedownloader_releases import (
     ParsedRelease,
     ParseStatus,
     Release,
-    ReleaseRanking,
 )
 
 @dataclass

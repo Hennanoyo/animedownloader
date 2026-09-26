@@ -160,6 +160,11 @@ class ReleaseDiscoveryService:
 
         search_profile = await self._load_search_profile(group)
         search_spec = self._to_search_profile_spec(search_profile) if search_profile else None
+        narrowing_is_available = bool(group or resolution or codec)
+
+        if not narrowing_is_available:
+            titles = titles[:1]
+
         contexts = tuple(
             SearchQueryContext(
                 group=group,

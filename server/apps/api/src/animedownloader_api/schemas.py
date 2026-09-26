@@ -146,6 +146,86 @@ class ReleaseDiscoveryResponse(BaseModel):
     items: list[ReleaseDiscoveryItemResponse]
 
 
+class ReleaseDiscoveryMatchCandidateResponse(BaseModel):
+    anime_id: UUID
+    title: str
+    matched_titles: list[str]
+
+
+class ReleaseDiscoveryCandidateResponse(BaseModel):
+    id: UUID
+    anime_id: UUID
+    last_run_id: UUID | None
+    provider_source: str
+    source_id: str
+    source_title: str
+    page_url: str
+    torrent_url: str
+    published_at: datetime | None
+    size: str | None
+    seeders: int | None
+    leechers: int | None
+    downloads: int | None
+    info_hash: str | None
+    normalized_title: str
+    release_group: str | None
+    series_title: str | None
+    episode_number: int | None
+    episode_title: str | None
+    season_number: int | None
+    resolution: str | None
+    source: str | None
+    video_codec: str | None
+    audio_codec: str | None
+    bit_depth: int | None
+    parse_status: str
+    parse_warnings: list[str]
+    failed_required_fields: list[str]
+    parser_profile_version: int | None
+    normalized_series_title: str | None
+    match_status: str
+    match_candidates: list[ReleaseDiscoveryMatchCandidateResponse]
+    ranking_score: int
+    ranking_reasons: list[str]
+    status: str
+    first_seen_at: datetime
+    last_seen_at: datetime
+    reviewed_at: datetime | None
+
+
+class ReleaseDiscoveryRunResponse(BaseModel):
+    id: UUID
+    anime_id: UUID
+    scheduled_for: datetime
+    status: str
+    query: str | None
+    search_profile_version: int | None
+    candidate_count: int
+    warning_count: int
+    error_message: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
+    created_at: datetime
+
+
+class ReleaseDiscoveryScheduleResponse(BaseModel):
+    anime_id: UUID
+    enabled: bool
+    interval_minutes: int
+    next_run_at: datetime | None
+    last_run_at: datetime | None
+    last_run_status: str | None
+
+
+class ReleaseDiscoveryScheduleUpdate(BaseModel):
+    enabled: bool = False
+    interval_minutes: int = Field(default=360, ge=15, le=1440)
+
+
+class ReleaseDiscoveryCandidateUpdate(BaseModel):
+    status: str = Field(pattern="^(reviewed|rejected|stale)$")
+
+
 class AnimeReleasePreferenceResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

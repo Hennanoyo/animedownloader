@@ -18,7 +18,11 @@ from animedownloader_releases import (
     SearchPlan,
     SearchPlanQuery,
 )
-from animedownloader_releases.entities import ReleaseGroup
+from animedownloader_releases.entities import (
+    ReleaseGroup,
+    ReleaseSearchField,
+    ReleaseSearchProfile,
+)
 
 
 def _release(title: str) -> Release:
@@ -59,6 +63,124 @@ class EmptyScalars:
 
     def first(self) -> None:
         return None
+
+
+class EmptyExecute:
+    def first(self) -> None:
+        return None
+
+
+class FirstScalars:
+    def __init__(self, value: object | None) -> None:
+        self.value = value
+
+    def first(self) -> object | None:
+        return self.value
+
+
+@pytest.mark.anyio
+async def test_build_anime_search_plan_uses_alternate_titles_and_budget() -> None:
+    anime = __import__("animedownloader_anime").Anime(
+        id=uuid7(),
+        title="Frieren",
+        titles={
+            "romaji": "Sousou no Frieren",
+            "en": "Frieren: Beyond Journey's End",
+            "jp": "葬送のフリーレン",
+        },
+    )
+    session = MagicMock()
+    session.scalar = AsyncMock(return_value=anime)
+    session.execute = AsyncMock(return_value=EmptyExecute())
+
+    service = ReleaseDiscoveryService(session, None)
+
+    plan, profile_version = await service.build_anime_search_plan(
+        anime.id,
+        max_queries=2,
+    )
+
+    assert profile_version is None
+    assert tuple(item.query for item in plan.queries) == (
+        "Sousou no Frieren",
+        "Frieren: Beyond Journey's End",
+    )
+
+
+@pytest.mark.anyio
+async def test_build_anime_search_plan_applies_preference_and_search_profile() -> None:
+    anime_id = uuid7()
+    group = ReleaseGroup(
+        id=uuid7(),
+        name="ExampleSubs",
+        slug="examplesubs",
+        enabled=True,
+    )
+    preference = AnimeReleasePreference(
+        anime_id=anime_id,
+        release_group_id=group.id,
+        resolution="1080p",
+        video_codec="HEVC",
+    )
+    profile = ReleaseSearchProfile(
+        id=uuid7(),
+        release_group_id=group.id,
+        version=4,
+        status="active",
+        release_group=group,
+        fields=[
+            ReleaseSearchField(
+                id=uuid7(),
+                priority=0,
+                field="group",
+            ),
+            ReleaseSearchField(
+                id=uuid7(),
+                priority=1,
+                field="title",
+            ),
+            ReleaseSearchField(
+                id=uuid7(),
+                priority=2,
+                field="resolution",
+            ),
+            ReleaseSearchField(
+                id=uuid7(),
+                priority=3,
+                field="codec",
+            ),
+        ],
+    )
+    anime = __import__("animedownloader_anime").Anime(
+        id=anime_id,
+        title="Frieren",
+        titles={
+            "romaji": "Sousou no Frieren",
+            "en": "Frieren: Beyond Journey's End",
+            "jp": "葬送のフリーレン",
+            "ko": "장송의 프리렌",
+        },
+    )
+
+    session = MagicMock()
+    session.scalar = AsyncMock(return_value=anime)
+    session.execute = AsyncMock(
+        return_value=FirstScalars((preference, group)),
+    )
+    session.scalars = AsyncMock(return_value=FirstScalars(profile))
+
+    service = ReleaseDiscoveryService(session, None)
+
+    plan, profile_version = await service.build_anime_search_plan(
+        anime_id,
+        max_queries=2,
+    )
+
+    assert profile_version == 4
+    assert tuple(item.query for item in plan.queries) == (
+        "ExampleSubs Sousou no Frieren 1080p HEVC",
+        "ExampleSubs Frieren: Beyond Journey's End 1080p HEVC",
+    )
 
 
 @pytest.mark.anyio

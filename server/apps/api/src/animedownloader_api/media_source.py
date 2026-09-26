@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID
@@ -252,6 +253,11 @@ class MediaSourceService:
         try:
             await self._media_dispatcher.enqueue(job_id)
         except Exception as exc:
+            with suppress(Exception):
+                await self._processing.mark_failed(
+                    job_id,
+                    error_message="Failed to enqueue media processing task.",
+                )
             raise MediaSourceRecoveryError(
                 "Media processing task queue is temporarily unavailable",
             ) from exc

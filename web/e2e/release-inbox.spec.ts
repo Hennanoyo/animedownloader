@@ -18,7 +18,29 @@ const anime = {
   episodes: [],
 };
 
-let candidateStatus: "new" | "reviewed" | "rejected" | "stale" = "new";
+let candidateStatus: "new" | "reviewed" | "accepted" | "rejected" | "stale" = "new";
+
+const existingEpisode = {
+  id: "019a0000-0000-7000-8000-000000000030",
+  anime_id: ANIME_ID,
+  release_group_id: null,
+  episode_number: 1,
+  title: "Existing Episode",
+  source: "nyaa",
+  source_id: "old-release",
+  source_title: "Old release",
+  source_url: "https://e2e.invalid/release/old",
+  torrent_url: "https://e2e.invalid/download/old.torrent",
+  size: "1 GiB",
+  seeders: 4,
+  leechers: 1,
+  downloads: 10,
+  info_hash: "oldhash0123456789oldhash0123456789oldhash01",
+  download_status: "not_started",
+  conversion_status: "not_started",
+  created_at: "2026-09-26T00:00:00Z",
+  updated_at: "2026-09-26T00:00:00Z",
+};
 
 const candidate = () => ({
   id: CANDIDATE_ID,
@@ -84,6 +106,40 @@ test.beforeEach(async ({ page }) => {
     });
   });
   await page.route("**/api/release-discovery/candidates**", async (route) => {
+    if (route.request().method() === "POST") {
+      const body = JSON.parse(route.request().postData() ?? "{}") as {
+        replace_episode_id?: string | null;
+      };
+      if (body.replace_episode_id) {
+        candidateStatus = "accepted";
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            status: "replaced",
+            candidate: candidate(),
+            episode: {
+              ...existingEpisode,
+              source_id: "123456",
+              source_title: candidate().source_title,
+            },
+            existing_episode: null,
+          }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            status: "replacement_candidate",
+            candidate: candidate(),
+            episode: null,
+            existing_episode: existingEpisode,
+          }),
+        });
+      }
+      return;
+    }
     if (route.request().method() === "PATCH") {
       const body = JSON.parse(route.request().postData() ?? "{}") as {
         status?: typeof candidateStatus;
@@ -165,4 +221,30 @@ test("shows recent discovery run history", async ({ page }) => {
   await expect(page.getByText("Candidate Inbox Anime", { exact: true })).toHaveCount(2);
   await expect(page.getByText("completed", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "candidates" })).toContainText("1 candidates");
+});
+
+
+
+test("accepts a candidate and explicitly confirms an episode replacement", async ({ page }) => {
+  await page.goto("/release-inbox");
+
+  const card = page.locator("article").filter({
+    hasText: "[ExampleSubs] Candidate Inbox Anime - 01 [1080p][HEVC]",
+  });
+
+  await card.getByRole("button", { name: "Accept" }).click();
+
+  await expect(card).toContainText(
+    'Episode 1 already exists as "Existing Episode".',
+  );
+  await expect(
+    card.getByRole("button", { name: "Replace Episode" }),
+  ).toBeVisible();
+
+  await card.getByRole("button", { name: "Replace Episode" }).click();
+
+  await expect(card.getByText("accepted", { exact: true })).toBeVisible();
+  await expect(
+    card.getByRole("button", { name: "Accept" }),
+  ).toHaveCount(0);
 });

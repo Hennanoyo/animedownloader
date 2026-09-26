@@ -101,7 +101,6 @@ const runQuerySchema = z.object({
   result_cap_reached: z.boolean(),
   error_message: z.string().nullable(),
   created_at: z.coerce.date(),
-  queries: z.array(runQuerySchema),
 });
 
 
@@ -118,6 +117,7 @@ const runSchema = z.object({
   started_at: z.coerce.date().nullable(),
   completed_at: z.coerce.date().nullable(),
   created_at: z.coerce.date(),
+  queries: z.array(runQuerySchema),
 });
 
 const scheduleSchema = z.object({

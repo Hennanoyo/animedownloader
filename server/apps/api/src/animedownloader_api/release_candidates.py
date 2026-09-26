@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from uuid import UUID
 
+from animedownloader_anime import Anime, AnimeNotFoundError
 from animedownloader_database import Base
 from animedownloader_releases import AnimeMatchResult
 from sqlalchemy import (
@@ -416,6 +417,12 @@ class ReleaseDiscoveryCandidateService:
             raise ValueError("interval must be between 15 and 1440 minutes")
 
         async with self.session.begin():
+            anime_exists = await self.session.scalar(
+                select(1).where(Anime.id == anime_id),
+            )
+            if anime_exists is None:
+                raise AnimeNotFoundError(anime_id)
+
             schedule = await self.session.scalar(
                 select(ReleaseDiscoverySchedule)
                 .where(ReleaseDiscoverySchedule.anime_id == anime_id)
@@ -438,6 +445,12 @@ class ReleaseDiscoveryCandidateService:
 
     async def create_manual_run(self, anime_id: UUID) -> ReleaseDiscoveryRun:
         async with self.session.begin():
+            anime_exists = await self.session.scalar(
+                select(1).where(Anime.id == anime_id),
+            )
+            if anime_exists is None:
+                raise AnimeNotFoundError(anime_id)
+
             active = await self.session.scalar(
                 select(ReleaseDiscoveryRun)
                 .where(

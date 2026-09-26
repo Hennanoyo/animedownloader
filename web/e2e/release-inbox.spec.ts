@@ -19,7 +19,7 @@ const anime = {
 };
 
 let candidateStatus: "new" | "reviewed" | "rejected" | "stale" = "new";
-let schedule = {
+let _schedule = {
   anime_id: ANIME_ID,
   enabled: false,
   interval_minutes: 360,

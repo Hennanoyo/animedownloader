@@ -2,6 +2,8 @@ from uuid import UUID
 
 from animedownloader_config import Settings
 from animedownloader_database import create_database
+from animedownloader_api.release_candidate_automation import ReleaseCandidateAutomationService
+from animedownloader_api.task_queue import RELEASE_CANDIDATE_AUTOMATION_TASK_NAME
 from animedownloader_media_processing import (
     MEDIA_PACKAGING_TASK_NAME,
     MEDIA_PREPARATION_TASK_NAME,
@@ -79,6 +81,24 @@ async def recover_active_media_jobs(_state: TaskiqState) -> None:
         f"[worker] startup media job recovery completed: recovered={recovered}",
         flush=True,
     )
+
+    automation_task = broker.find_task(RELEASE_CANDIDATE_AUTOMATION_TASK_NAME)
+    if automation_task is not None:
+        automation_database = create_database(settings.database_url)
+        try:
+            async with automation_database.session_factory() as session:
+                recovery_anime_ids = await ReleaseCandidateAutomationService(
+                    session,
+                ).list_recovery_anime_ids()
+            for anime_id in recovery_anime_ids:
+                await automation_task.kiq(str(anime_id))
+                print(
+                    "[worker] recovered release candidate automation: "
+                    f"anime_id={anime_id}",
+                    flush=True,
+                )
+        finally:
+            await automation_database.dispose()
 
     media_task = broker.find_task(MEDIA_PROCESSING_TASK_NAME)
     if media_task is None:

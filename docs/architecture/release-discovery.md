@@ -251,6 +251,82 @@ The service executes exactly one provider query for each discovery action. A zer
 
 Search profile ordering and parsing profile ordering are separate concerns. Search field order is request intent and can be overridden by the discovery UI, while parsing rules remain independent.
 
+### Discovery Search Plan
+
+The manual release finder, `Discovery now`, and periodic discovery should share one search-planning layer rather than maintaining separate query-building behavior.
+
+The responsibilities are intentionally separated:
+
+- **Search Profile** describes the default search-field recipe associated with a ReleaseGroup.
+- **Anime release preferences** provide Anime-specific search constraints and ranking signals, such as preferred group, resolution, and video codec.
+- **Discovery Search Plan** turns those inputs into a bounded set of concrete provider queries for one discovery action.
+- **Parser Profile** remains a post-search interpretation layer; it does not define provider query syntax.
+- **Candidate automation policy** remains the final decision layer and must not broaden search scope merely to find an automatable release.
+
+Conceptual flow:
+
+```
+Anime titles + release preferences
+              │
+              ▼
+       Release Search Profile
+              │
+              ▼
+      Discovery Search Plan
+          ├─ Query 1
+          ├─ Query 2
+          └─ Query N (bounded)
+              │
+              ▼
+        Provider searches
+              │
+              ▼
+     merge_releases / dedupe
+              │
+              ▼
+       Parse → Match → Rank
+              │
+              ▼
+      Normalized Candidate
+```
+
+A Search Plan may use more than one Anime title form when it materially narrows or improves recall, but it must not generate a Cartesian product of every title, group, resolution, codec, and other field combination. The plan has an explicit query budget and deterministic ordering.
+
+The plan should prefer the most specific useful queries first. For an Anime with a configured preferred group and technical preferences, a typical plan may be:
+
+1. preferred group + representative title + preferred resolution/codec
+2. preferred group + alternate title + preferred resolution/codec
+
+A title-only query is intentionally treated as a broad search. It remains useful as an explicit manual search, but scheduled discovery should avoid silently falling back to progressively broader queries. Automatic downloads should never turn a broad title-only search into unrestricted automatic selection.
+
+Multiple provider responses are merged in memory using stable source identity, info hash, and normalized title fallbacks. Raw RSS/XML payloads remain ephemeral.
+
+Discovery runs should retain lightweight per-query diagnostics when multiple queries are introduced, such as rendered query, result count, cap/warning state, and execution status. This provides visibility into provider limits without persisting raw provider responses.
+
+### Shared manual and scheduled search behavior
+
+The same Search Plan builder should serve:
+
+- **Find releases**: the user can inspect and optionally override the fields/query recipe before a manual search.
+- **Discovery now**: use the Anime's persisted search inputs to generate a bounded deterministic plan.
+- **Periodic discovery**: use the same plan generation path as Discovery now.
+
+This keeps manual discovery and automation behavior aligned. A manual override may be broader than the scheduled policy, while scheduled discovery must remain bounded and deterministic.
+
+Search Profile configuration and Parser Profile configuration remain independent:
+
+```
+Search Profile
+  = how to ask the provider for releases
+
+Parser Profile
+  = how to interpret release titles after retrieval
+```
+
+Anime Release Preferences influence both discovery search specificity and candidate ranking where a field is safely expressible in provider queries. Fields that cannot be expressed reliably as search terms remain post-search ranking/eligibility signals.
+
+The Search Plan is an execution plan, not a cache. It does not persist provider results beyond the normalized candidate observations already defined by the periodic discovery boundary.
+
 ## Anime matching
 
 Matching is deterministic and conservative.

@@ -199,6 +199,18 @@ test.beforeEach(async ({ page }) => {
           started_at: "2026-09-26T00:00:01Z",
           completed_at: "2026-09-26T00:00:05Z",
           created_at: "2026-09-26T00:00:00Z",
+          queries: [
+            {
+              id: "019a0000-0000-7000-8000-000000000023",
+              position: 1,
+              query: "Candidate Inbox Anime",
+              status: "completed",
+              result_count: 18,
+              result_cap_reached: false,
+              error_message: null,
+              created_at: "2026-09-26T00:00:01Z",
+            },
+          ],
         },
       ]),
     });

@@ -184,6 +184,11 @@ class EpisodeIngestionService:
                     "release series title does not match the selected anime",
                 )
 
+            if parsed.episode_number != episode.episode_number:
+                raise ReleaseReplacementConflictError(
+                    "release episode number does not match the existing Episode",
+                )
+
             download_job_id = await self.session.scalar(
                 select(DownloadJob.id)
                 .where(DownloadJob.episode_id == episode_id)

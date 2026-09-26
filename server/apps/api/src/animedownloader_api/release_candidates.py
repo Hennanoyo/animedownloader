@@ -6,11 +6,7 @@ from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 from uuid import UUID
 
-from animedownloader_releases import (
-    AnimeMatchResult,
-    ParseStatus,
-    ReleaseDiscoveryResult,
-)
+from animedownloader_releases import AnimeMatchResult
 from sqlalchemy import (
     DateTime,
     ForeignKey,
@@ -25,6 +21,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from animedownloader_database import Base
+
+from .release_discovery import ReleaseDiscoveryResult
 
 
 class ReleaseDiscoverySchedule(Base):
@@ -275,7 +273,7 @@ class ReleaseDiscoveryCandidateService:
                 candidate = await self.session.scalar(
                     select(ReleaseDiscoveryCandidate)
                     .where(
-                        ReleaseDiscoveryCandidate.anime_id == self._anime_id(run),
+                        ReleaseDiscoveryCandidate.anime_id == run.anime_id,
                         ReleaseDiscoveryCandidate.provider_source
                         == item.release.source,
                         ReleaseDiscoveryCandidate.source_id == item.release.id,
@@ -284,7 +282,7 @@ class ReleaseDiscoveryCandidateService:
                 )
                 if candidate is None:
                     candidate = ReleaseDiscoveryCandidate(
-                        anime_id=self._anime_id(run),
+                        anime_id=run.anime_id,
                         provider_source=item.release.source,
                         source_id=item.release.id,
                         source_title=item.release.title,

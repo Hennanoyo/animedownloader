@@ -30,6 +30,8 @@ class FakeSession:
         return None
 
     async def scalar(self, _statement: object) -> object | None:
+        if not self.scalar_results:
+            return None
         return self.scalar_results.pop(0)
 
     def add(self, value: object) -> None:
@@ -144,6 +146,7 @@ async def test_ingestion_creates_new_episode_without_download_job() -> None:
     assert result.episode.episode_number == 8
     assert result.episode.download_status == "not_started"
     assert result.episode.conversion_status == "not_started"
+    assert result.episode.release_group_id is None
     assert len(session.added) == 1
     assert session.refreshed == [result.episode]
 
@@ -168,6 +171,7 @@ async def test_same_release_is_idempotent_and_preserves_user_state() -> None:
     assert episode.conversion_status == "completed"
     assert episode.seeders == 99
     assert episode.source_title == "[ExampleSubs] Frieren - 08 [1080p].mkv"
+    assert episode.release_group_id is None
     assert session.added == []
 
 
@@ -246,4 +250,90 @@ async def test_non_actionable_release_is_rejected(
                 series_title=series_title,
                 episode_number=episode_number,
             ),
+        )
+
+
+@pytest.mark.anyio
+async def test_ingestion_persists_known_release_group() -> None:
+    anime = _anime()
+    release_group_id = uuid7()
+    session = FakeSession([anime, None, release_group_id, None])
+    service = EpisodeIngestionService(cast(AsyncSession, session))
+
+    result = await service.ingest(
+        anime_id=anime.id,
+        release=_release(),
+        parsed=_parsed(),
+    )
+
+    assert result.status == EpisodeIngestionStatus.CREATED
+    assert result.episode is not None
+    assert result.episode.release_group_id == release_group_id
+
+
+@pytest.mark.anyio
+async def test_idempotent_ingestion_updates_known_release_group_without_resetting_state() -> None:
+    anime = _anime()
+    episode = _episode(anime.id)
+    release_group_id = uuid7()
+    session = FakeSession([anime, episode, release_group_id])
+    service = EpisodeIngestionService(cast(AsyncSession, session))
+
+    result = await service.ingest(
+        anime_id=anime.id,
+        release=_release(seeders=77),
+        parsed=_parsed(episode_title="Replacement title"),
+    )
+
+    assert result.status == EpisodeIngestionStatus.IDEMPOTENT
+    assert result.episode is episode
+    assert episode.release_group_id == release_group_id
+    assert episode.title == "User title"
+    assert episode.download_status == "completed"
+
+
+@pytest.mark.anyio
+async def test_replace_release_requires_no_download_history_and_preserves_episode_state() -> None:
+    anime = _anime()
+    existing = _episode(anime.id, title="Keep this title")
+    existing.download_status = "not_started"
+    existing.conversion_status = "not_started"
+    release_group_id = uuid7()
+    session = FakeSession(
+        [existing, anime, None, None, None, release_group_id],
+    )
+    service = EpisodeIngestionService(cast(AsyncSession, session))
+
+    result = await service.replace(
+        episode_id=existing.id,
+        release=_release(release_id="release-9", seeders=55),
+        parsed=_parsed(episode_title="Parsed title"),
+    )
+
+    assert result.status == EpisodeIngestionStatus.REPLACED
+    assert result.episode is existing
+    assert result.existing_episode is None
+    assert existing.title == "Keep this title"
+    assert existing.source_id == "release-9"
+    assert existing.seeders == 55
+    assert existing.release_group_id == release_group_id
+    assert existing.download_status == "not_started"
+    assert existing.conversion_status == "not_started"
+    assert session.added == []
+
+
+@pytest.mark.anyio
+async def test_replace_release_rejects_existing_download_history() -> None:
+    anime = _anime()
+    existing = _episode(anime.id, title="Keep this title")
+    session = FakeSession([existing, anime, uuid7()])
+    service = EpisodeIngestionService(cast(AsyncSession, session))
+
+    from animedownloader_api.release_ingestion import ReleaseReplacementConflictError
+
+    with pytest.raises(ReleaseReplacementConflictError):
+        await service.replace(
+            episode_id=existing.id,
+            release=_release(release_id="release-9"),
+            parsed=_parsed(),
         )

@@ -8,8 +8,8 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidateService,
     ReleaseDiscoveryRun,
     ReleaseDiscoveryRunStatus,
+    ReleaseDiscoverySchedule,
 )
-from fastapi import Request
 from sqlalchemy import select
 
 from .task_queue import RELEASE_DISCOVERY_TASK_NAME, ReleaseDiscoveryTaskDispatcher
@@ -133,4 +133,3 @@ class ReleaseDiscoveryScheduler:
                 return claimed
 
 
-from .release_candidates import ReleaseDiscoverySchedule  # noqa: E402

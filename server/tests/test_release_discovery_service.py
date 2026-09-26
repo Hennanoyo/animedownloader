@@ -2,12 +2,15 @@ from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from animedownloader_anime import AnimeReleasePreference
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_nyaa import NyaaError
 from animedownloader_releases import (
     AnimeMatchCandidate,
     AnimeMatchResult,
     AnimeMatchStatus,
+    ParsedRelease,
+    ParseStatus,
     Release,
     SearchField,
 )
@@ -113,8 +116,6 @@ async def test_discovery_reports_a_failed_single_query_without_retrying() -> Non
 
 
 def test_rank_release_uses_only_matching_anime_and_preference_fields() -> None:
-    from animedownloader_anime.models import AnimeReleasePreference
-
     anime_id = __import__("uuid").uuid7()
     group = ReleaseGroup(
         name="ExampleSubs",
@@ -140,7 +141,7 @@ def test_rank_release_uses_only_matching_anime_and_preference_fields() -> None:
             ),
         ),
     )
-    parsed = __import__("animedownloader_releases").ParsedRelease(
+    parsed = ParsedRelease(
         provider_source="nyaa",
         source_id="release-1",
         original_title="[ExampleSubs] Frieren - 01 [1080p][HEVC]",
@@ -155,10 +156,10 @@ def test_rank_release_uses_only_matching_anime_and_preference_fields() -> None:
         video_codec="HEVC",
         audio_codec=None,
         bit_depth=10,
-        status=__import__("animedownloader_releases").ParseStatus.PARSED,
+        status=ParseStatus.PARSED,
     )
 
-    ranking = ReleaseDiscoveryService._rank_release(
+    ranking = ReleaseDiscoveryService.rank_release(
         parsed,
         match,
         (preference, group),

@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from animedownloader_api.job_progress import JobProgressHub
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
+from animedownloader_api.media_source import MediaSourceService
 from animedownloader_api.pipeline import AnimePipelineService
 from animedownloader_api.pipeline_control import EpisodePipelineControlService
 from animedownloader_api.playback import PlaybackService
@@ -179,3 +180,24 @@ def get_release_profile_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ReleaseProfileService:
     return ReleaseProfileService(session)
+
+
+def get_media_source_service(
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    download_dispatcher: Annotated[
+        DownloadTaskDispatcher,
+        Depends(get_download_task_dispatcher),
+    ],
+    media_dispatcher: Annotated[
+        MediaProcessingTaskDispatcher,
+        Depends(get_media_processing_task_dispatcher),
+    ],
+) -> MediaSourceService:
+    settings: Settings = request.app.state.settings
+    return MediaSourceService(
+        session,
+        download_root=settings.download_root,
+        download_dispatcher=download_dispatcher,
+        media_dispatcher=media_dispatcher,
+    )

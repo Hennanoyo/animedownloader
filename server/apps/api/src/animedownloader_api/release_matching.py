@@ -30,7 +30,7 @@ def canonicalize_title(value: str) -> str:
     return " ".join(parts)
 
 
-_BRACKETED_TITLE_RE = __import__("re").compile(r"\\[[^\\]]*\\]|\\([^\\)]*\\)")
+_BRACKETED_TITLE_RE = re.compile(r"\[[^\]]*\]|\([^\)]*\)")
 
 
 def canonicalize_match_title(value: str) -> str:

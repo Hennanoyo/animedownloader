@@ -84,6 +84,18 @@ See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 - Current provider metadata such as seeders may only be used as a deterministic tie-breaker after preference scoring; it must not override explicit preference matches.
 - Automatic ranking is advisory in this phase. Periodic discovery, automatic selection, and automatic downloads remain separate future workflows.
 
+## Release Discovery Candidate Inbox Rules
+
+- Raw Nyaa RSS/search payloads remain ephemeral. Persist only normalized discovery-candidate records needed for review, deduplication, and later acceptance.
+- A persisted candidate is not an Episode and is not authoritative release state. It may be updated with the latest observed provider metadata without creating or replacing an Episode.
+- Candidate identity is stable per Anime/provider/source ID so repeated discovery runs update an existing candidate instead of creating duplicates.
+- Persist ranking score and explicit ranking reasons from the discovery observation; changing Anime preferences must not silently rewrite unrelated historical records until a later discovery observes the release again.
+- Keep discovery-run history separate from DownloadJob, MediaProcessingJob, and Episode execution state.
+- Periodic scheduling is DB-driven and restart-safe. Use transactional row locking/claiming so multiple API instances do not enqueue the same due schedule concurrently.
+- Candidate collection must never create an Episode, replace an Episode, create a DownloadJob, or start a torrent automatically.
+- Candidate review may mark a candidate reviewed/rejected/stale, but acceptance is reserved for an explicit later workflow that reuses Episode ingestion and replacement guards.
+- Keep candidate lists bounded at the API boundary and make destructive candidate cleanup explicit; never run cleanup implicitly as part of discovery.
+
 ## Storage Rules
 
 - Persist storage `object_key` values in PostgreSQL rather than environment-specific public URLs.

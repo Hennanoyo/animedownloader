@@ -15,9 +15,11 @@ from animedownloader_api.dependencies import get_anime_service
 from animedownloader_api.schemas import (
     AnimeCreate,
     AnimeResponse,
+    AnimeReleasePreferenceUpdate,
     AnimeUpdate,
     EpisodeCreate,
     EpisodeResponse,
+    AnimeReleasePreferenceResponse,
 )
 
 router = APIRouter(prefix="/api/animes", tags=["animes"])
@@ -72,6 +74,46 @@ async def delete_anime(
 ) -> Response:
     await service.delete_anime(anime_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/{anime_id}/release-preferences",
+    response_model=AnimeReleasePreferenceResponse | None,
+)
+async def get_release_preferences(
+    anime_id: UUID,
+    service: AnimeServiceDependency,
+) -> AnimeReleasePreferenceResponse | None:
+    preference = await service.get_release_preference(anime_id)
+    return (
+        AnimeReleasePreferenceResponse.model_validate(preference)
+        if preference is not None
+        else None
+    )
+
+
+@router.patch(
+    "/{anime_id}/release-preferences",
+    response_model=AnimeReleasePreferenceResponse,
+)
+async def update_release_preferences(
+    anime_id: UUID,
+    payload: AnimeReleasePreferenceUpdate,
+    service: AnimeServiceDependency,
+) -> AnimeReleasePreferenceResponse:
+    try:
+        preference = await service.update_release_preference(
+            anime_id,
+            AnimeReleasePreferenceData(
+                release_group_id=payload.release_group_id,
+                resolution=payload.resolution.strip() if payload.resolution else None,
+                video_codec=payload.video_codec.strip() if payload.video_codec else None,
+                source=payload.source.strip() if payload.source else None,
+            ),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return AnimeReleasePreferenceResponse.model_validate(preference)
 
 
 @router.get("/{anime_id}/episodes", response_model=list[EpisodeResponse])

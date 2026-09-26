@@ -45,6 +45,12 @@ from .release_candidates import (
 from .release_ingestion import ReleaseDoesNotMatchAnimeError
 
 
+class ReleaseAutomationMode(StrEnum):
+    OFF = "off"
+    ACCEPT = "accept"
+    DOWNLOAD = "download"
+
+
 class ReleaseAutomationPolicyError(ValueError):
     pass
 
@@ -380,6 +386,10 @@ class ReleaseCandidateAutomationService:
                 candidate_id,
                 "candidate requires an explicit Episode replacement and cannot be automated",
             )
+            return
+
+        if policy.mode == ReleaseAutomationMode.ACCEPT.value:
+            await self.complete(candidate_id)
             return
 
         episode_id = acceptance.episode.id

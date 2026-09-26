@@ -64,3 +64,11 @@ class AnimeUpdateData:
     weekday: Weekday | None = None
     air_time: time | None = None
     timezone: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class AnimeReleasePreferenceData:
+    release_group_id: UUID | None = None
+    resolution: str | None = None
+    video_codec: str | None = None
+    source: str | None = None

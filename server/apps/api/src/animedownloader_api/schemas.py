@@ -147,6 +147,8 @@ class ReleaseDiscoveryResponse(BaseModel):
 
 
 class AnimeReleasePreferenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     release_group_id: UUID | None
     resolution: str | None
     video_codec: str | None

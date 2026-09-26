@@ -189,7 +189,7 @@ class ReleaseCandidateAutomationService:
             .limit(max(1, min(limit, 100))),
         )
         return [
-            self._evaluate(candidate, policy, preference, preferred_group)
+            self.evaluate_candidate(candidate, policy, preference, preferred_group)
             for candidate in result.all()
         ]
 

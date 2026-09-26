@@ -123,9 +123,9 @@ async def select_episode_media_source(
         ) from exc
 
     return EpisodePipelineRetryResponse(
-        stage="processing",
+        stage=EpisodePipelineCurrentStage.PROCESSING,
         job_id=job.id,
-        status="pending",
+        status=EpisodePipelineStageStatus.PENDING,
     )
 
 

@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from animedownloader_api.dependencies import (
     get_anime_service,
-    get_release_discovery_candidate_service,
     get_release_discovery_candidate_acceptance_service,
+    get_release_discovery_candidate_service,
     get_release_discovery_scheduler,
 )
 from animedownloader_api.release_candidate_acceptance import (

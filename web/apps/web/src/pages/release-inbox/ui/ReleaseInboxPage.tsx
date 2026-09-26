@@ -19,7 +19,10 @@ import {
   useReleaseDiscoveryRuns,
   useUpdateReleaseDiscoveryCandidate,
 } from "../../../features/release-discovery/model/useReleaseDiscoveryCandidates";
-import type { ReleaseDiscoveryCandidate } from "../../../entities/release/api/discoveryCandidates";
+import type {
+  ReleaseDiscoveryCandidate,
+  ReleaseDiscoveryCandidateAcceptance,
+} from "../../../entities/release/api/discoveryCandidates";
 import styles from "./ReleaseInboxPage.module.scss";
 
 const FILTERS: Array<{
@@ -183,7 +186,7 @@ function CandidateCard({
 }: CandidateCardProps) {
   const accept = useAcceptReleaseDiscoveryCandidate();
   const [replacementEpisode, setReplacementEpisode] =
-    useState<ReleaseDiscoveryCandidate["match_candidates"][number] | null>(null);
+    useState<ReleaseDiscoveryCandidateAcceptance["existing_episode"]>(null);
 
   const canAccept =
     (candidate.status === "new" || candidate.status === "reviewed") &&
@@ -200,15 +203,7 @@ function CandidateCard({
       result.status === "replacement_candidate" &&
       result.existing_episode !== null
     ) {
-      setReplacementEpisode({
-        anime_id: result.existing_episode.anime_id,
-        title: result.existing_episode.title,
-        matched_titles: [
-          "Episode " + result.existing_episode.episode_number,
-          result.existing_episode.download_status,
-          result.existing_episode.conversion_status,
-        ],
-      });
+      setReplacementEpisode(result.existing_episode);
       return;
     }
     setReplacementEpisode(null);
@@ -291,7 +286,7 @@ function CandidateCard({
           <div className={styles.actions}>
             <Button
               className={styles.primaryButton}
-              onPress={() => void handleAccept(getReplacementEpisodeId(candidate, replacementEpisode))}
+              onPress={() => void handleAccept(replacementEpisode.id)}
               isDisabled={accept.isPending}
             >
               {accept.isPending ? "Replacing..." : "Replace Episode"}
@@ -372,15 +367,6 @@ function CandidateCard({
       </div>
     </article>
   );
-}
-
-function getReplacementEpisodeId(
-  candidate: ReleaseDiscoveryCandidate,
-  replacementEpisode: ReleaseDiscoveryCandidate["match_candidates"][number],
-): string {
-  void candidate;
-  void replacementEpisode;
-  throw new Error("replacement episode id must be provided by the acceptance state");
 }
 
 function formatDate(value: Date): string {

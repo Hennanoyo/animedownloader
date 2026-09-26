@@ -141,7 +141,7 @@ async def replace_episode_release(
 ) -> EpisodeIngestionResponse:
     try:
         result = await service.replace(
-            episode_id=UUID(episode_id),
+            episode_id=episode_id,
             release=_release_from_response(payload.release),
             parsed=payload.parsed.to_parsed(),
         )

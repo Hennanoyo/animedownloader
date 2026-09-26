@@ -13,7 +13,10 @@ from animedownloader_worker import source_recovery
 from animedownloader_worker.media_source import (
     MediaSourceStatus,
     describe_media_source,
+    find_download_directories,
+    relative_media_source,
     resolve_media_source,
+    resolve_selected_media_source,
 )
 
 
@@ -147,3 +150,33 @@ async def test_recover_completed_download_handoffs_enqueues_only_resolved_source
     assert recovered == 1
     assert unresolved == 1
     assert calls == [ready_job_id]
+
+
+def test_resolve_selected_media_source_accepts_relative_supported_file(tmp_path: Path) -> None:
+    root = tmp_path / "download"
+    root.mkdir()
+    media = root / "episode.mkv"
+    media.touch()
+
+    selected = resolve_selected_media_source(root, "episode.mkv")
+
+    assert selected == media.resolve()
+    assert relative_media_source(root, selected) == "episode.mkv"
+
+
+def test_resolve_selected_media_source_rejects_path_traversal(tmp_path: Path) -> None:
+    root = tmp_path / "download"
+    root.mkdir()
+    outside = tmp_path / "outside.mkv"
+    outside.touch()
+
+    assert resolve_selected_media_source(root, "../outside.mkv") is None
+
+
+def test_find_download_directories_ignores_non_uuid_directories(tmp_path: Path) -> None:
+    valid = tmp_path / str(uuid7())
+    invalid = tmp_path / "not-a-download"
+    valid.mkdir()
+    invalid.mkdir()
+
+    assert find_download_directories(tmp_path) == (valid,)

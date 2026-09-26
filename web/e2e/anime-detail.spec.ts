@@ -298,7 +298,9 @@ test("reviews the downloaded source and can reprocess it", async ({ page }) => {
   await page.getByRole("button", { name: "Review source" }).click();
 
   await expect(page.getByText("Downloaded source", { exact: true })).toBeVisible();
-  await expect(page.getByText("Episode One.mkv", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Selected source: Episode One.mkv", { exact: true }),
+  ).toBeVisible();
 
   const processButton = page.getByRole("button", { name: "Process source" });
   await expect(processButton).toBeVisible();

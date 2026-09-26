@@ -236,18 +236,27 @@ class ReleaseDiscoveryService:
             score += 100
             reasons.append("Preferred release group")
 
-        if settings.resolution and parsed.resolution:
-            if parsed.resolution.casefold() == settings.resolution.casefold():
+        if (
+            settings.resolution
+            and parsed.resolution
+            and parsed.resolution.casefold() == settings.resolution.casefold()
+        ):
                 score += 30
                 reasons.append("Preferred resolution")
 
-        if settings.video_codec and parsed.video_codec:
-            if parsed.video_codec.casefold() == settings.video_codec.casefold():
+        if (
+            settings.video_codec
+            and parsed.video_codec
+            and parsed.video_codec.casefold() == settings.video_codec.casefold()
+        ):
                 score += 20
                 reasons.append("Preferred video codec")
 
-        if settings.source and parsed.source:
-            if parsed.source.casefold() == settings.source.casefold():
+        if (
+            settings.source
+            and parsed.source
+            and parsed.source.casefold() == settings.source.casefold()
+        ):
                 score += 10
                 reasons.append("Preferred source")
 

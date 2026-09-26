@@ -55,6 +55,7 @@ const animeMatchSchema = z.object({
 
 const responseSchema = z.object({
   query: z.string(),
+  queries: z.array(z.string()).min(1),
   warnings: z.array(z.string()),
   search_profile_version: z.number().int().positive().nullable(),
   items: z.array(

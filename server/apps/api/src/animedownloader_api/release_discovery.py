@@ -20,11 +20,13 @@ from animedownloader_releases import (
     ReleaseProfileService,
     ReleaseSearchProfile,
     SearchField,
+    SearchPlan,
     SearchProfileSpec,
     SearchProfileStatus,
     SearchQueryContext,
     apply_parser_profile,
-    build_search_query,
+    build_search_plan,
+    merge_releases,
     normalize_release_group_slug,
     parse_release,
 )
@@ -56,17 +58,24 @@ class ReleaseDiscoveryItem:
 
 @dataclass(frozen=True, slots=True)
 class ReleaseDiscoveryResult:
-    query: str
+    queries: tuple[str, ...]
     warnings: tuple[str, ...]
     search_profile_version: int | None
     items: tuple[ReleaseDiscoveryItem, ...]
+
+    @property
+    def query(self) -> str:
+        if not self.queries:
+            return ""
+        rendered = " | ".join(self.queries)
+        return rendered if len(rendered) <= 500 else rendered[:497] + "..."
 
 
 class ReleaseDiscoveryService:
     def __init__(
         self,
         session: AsyncSession,
-        client: ReleaseSearchClient,
+        client: ReleaseSearchClient | None,
     ) -> None:
         self._session = session
         self._client = client
@@ -91,19 +100,95 @@ class ReleaseDiscoveryService:
         )
         search_profile = await self._load_search_profile(group)
         search_spec = self._to_search_profile_spec(search_profile) if search_profile else None
-        query = build_search_query(context, search_spec, fields=fields)
-        if query is None:
+        plan = build_search_plan(
+            (context,),
+            profile=search_spec,
+            fields=fields,
+            max_queries=1,
+        )
+        if not plan.queries:
             raise ValueError("at least one non-empty search field is required")
 
-        try:
-            releases = tuple(await self._client.search(query))
-        except NyaaError:
-            return ReleaseDiscoveryResult(
-                query=query,
-                warnings=(f"Search query failed: {query}",),
-                search_profile_version=search_profile.version if search_profile else None,
-                items=(),
+        return await self.discover_plan(
+            plan,
+            anime_id=anime_id,
+            search_profile_version=search_profile.version if search_profile else None,
+        )
+
+    async def build_anime_search_plan(
+        self,
+        anime_id: UUID,
+        *,
+        max_queries: int = 3,
+    ) -> tuple[SearchPlan, int | None]:
+        anime = await self._session.scalar(
+            select(Anime).where(Anime.id == anime_id),
+        )
+        if anime is None:
+            raise ValueError(f"anime not found: {anime_id}")
+
+        preference = await self._load_release_preference(anime_id)
+        group = None
+        resolution = None
+        codec = None
+        if preference is not None:
+            settings, preferred_group = preference
+            if preferred_group is not None and preferred_group.enabled:
+                group = preferred_group.name
+            resolution = settings.resolution
+            codec = settings.video_codec
+
+        titles: list[str] = []
+        for key in ("romaji", "en", "jp", "ko"):
+            value = anime.titles.get(key)
+            if value and value.strip() and value.strip() not in titles:
+                titles.append(value.strip())
+        if anime.title.strip() and anime.title.strip() not in titles:
+            titles.append(anime.title.strip())
+
+        search_profile = await self._load_search_profile(group)
+        search_spec = self._to_search_profile_spec(search_profile) if search_profile else None
+        contexts = tuple(
+            SearchQueryContext(
+                group=group,
+                title=title,
+                resolution=resolution,
+                codec=codec,
             )
+            for title in titles
+        )
+        plan = build_search_plan(
+            contexts,
+            profile=search_spec,
+            max_queries=max_queries,
+        )
+        if not plan.queries:
+            raise ValueError(f"Anime has no usable search title: {anime_id}")
+
+        return plan, search_profile.version if search_profile else None
+
+    async def discover_plan(
+        self,
+        plan: SearchPlan,
+        *,
+        anime_id: UUID | None = None,
+        search_profile_version: int | None = None,
+    ) -> ReleaseDiscoveryResult:
+        if not plan.queries:
+            raise ValueError("search plan must contain at least one query")
+
+        if self._client is None:
+            raise RuntimeError("provider client is required to execute a search plan")
+
+        release_batches: list[tuple[Release, ...]] = []
+        warnings: list[str] = []
+        for plan_query in plan.queries:
+            try:
+                release_batches.append(tuple(await self._client.search(plan_query.query)))
+            except NyaaError:
+                warnings.append(f"Search query failed: {plan_query.query}")
+
+        releases = merge_releases(release_batches)
 
         preference = await self._load_release_preference(anime_id)
         parser_profiles = await self._load_parser_profiles()
@@ -118,7 +203,6 @@ class ReleaseDiscoveryService:
         )
         anime_matcher = AnimeMatcher(anime_result.all())
 
-        warnings: list[str] = []
         observed_results: dict[
             UUID, tuple[UUID, list[tuple[Release, ParsedRelease]]]
         ] = {}
@@ -176,11 +260,9 @@ class ReleaseDiscoveryService:
             )
 
         return ReleaseDiscoveryResult(
-            query=query,
+            queries=tuple(query.query for query in plan.queries),
             warnings=tuple(warnings),
-            search_profile_version=(
-                search_profile.version if search_profile is not None else None
-            ),
+            search_profile_version=search_profile_version,
             items=tuple(items),
         )
 

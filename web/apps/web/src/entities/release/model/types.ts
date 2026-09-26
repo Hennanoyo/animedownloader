@@ -92,6 +92,7 @@ export interface EpisodeReleaseReplacementInput {
 
 export interface ReleaseDiscoveryResponse {
   query: string;
+  queries: string[];
   warnings: string[];
   search_profile_version: number | null;
   items: ReleaseDiscoveryItem[];

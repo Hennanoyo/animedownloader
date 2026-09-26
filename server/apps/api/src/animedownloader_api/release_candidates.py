@@ -233,10 +233,19 @@ class ReleaseDiscoveryCandidateService:
             )
             if run is None:
                 raise ValueError(f"release discovery run not found: {run_id}")
+            completed_at = datetime.now(timezone.utc)
             run.status = ReleaseDiscoveryRunStatus.COMPLETED.value
             run.candidate_count = result.candidate_count
             run.warning_count = result.warning_count
-            run.completed_at = datetime.now(timezone.utc)
+            run.completed_at = completed_at
+            schedule = await self.session.scalar(
+                select(ReleaseDiscoverySchedule)
+                .where(ReleaseDiscoverySchedule.anime_id == run.anime_id)
+                .with_for_update(),
+            )
+            if schedule is not None:
+                schedule.last_run_at = completed_at
+                schedule.last_run_status = ReleaseDiscoveryRunStatus.COMPLETED.value
 
     async def fail_run(self, run_id: UUID, message: str) -> None:
         async with self.session.begin():
@@ -247,9 +256,18 @@ class ReleaseDiscoveryCandidateService:
             )
             if run is None:
                 raise ValueError(f"release discovery run not found: {run_id}")
+            completed_at = datetime.now(timezone.utc)
             run.status = ReleaseDiscoveryRunStatus.FAILED.value
             run.error_message = message[:2000]
-            run.completed_at = datetime.now(timezone.utc)
+            run.completed_at = completed_at
+            schedule = await self.session.scalar(
+                select(ReleaseDiscoverySchedule)
+                .where(ReleaseDiscoverySchedule.anime_id == run.anime_id)
+                .with_for_update(),
+            )
+            if schedule is not None:
+                schedule.last_run_at = completed_at
+                schedule.last_run_status = ReleaseDiscoveryRunStatus.FAILED.value
 
     async def record_discovery(
         self,

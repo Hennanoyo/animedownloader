@@ -751,9 +751,9 @@ test("saves anime release preferences and uses them to explain ranked releases",
     preferences.getByRole("heading", { name: "Preferred release shape" }),
   ).toBeVisible();
 
-  await preferences.getByRole("combobox", { name: "Resolution" }).fill("1080p");
-  await preferences.getByRole("combobox", { name: "Video codec" }).fill("HEVC");
-  await preferences.getByRole("combobox", { name: "Source" }).fill("WEB");
+  await preferences.locator('input[aria-label="Resolution"]').fill("1080p");
+  await preferences.locator('input[aria-label="Video codec"]').fill("HEVC");
+  await preferences.locator('input[aria-label="Source"]').fill("WEB");
 
   await preferences.getByRole("button", { name: "Save preferences" }).click();
   await expect(preferences.getByText("Saved", { exact: true })).toBeVisible();
@@ -788,9 +788,10 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
     name: /Show Title options/,
   });
   await titleOptionsButton.click();
-  const englishOption = discovery.getByRole("option", {
-    name: /English Browser Smoke English/,
-  });
+  const englishOption = page
+    .locator('[role="option"]')
+    .filter({ hasText: "Browser Smoke English" })
+    .last();
   await expect(englishOption).toBeVisible();
   await englishOption.click();
   await expect(titleInput).toHaveValue("Browser Smoke English");

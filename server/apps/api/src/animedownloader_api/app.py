@@ -47,6 +47,7 @@ from animedownloader_api.routes import (
 )
 from animedownloader_api.task_queue import (
     DownloadTaskDispatcher,
+    ReleaseCandidateAutomationTaskDispatcher,
     ReleaseDiscoveryTaskDispatcher,
     create_task_broker,
 )
@@ -59,6 +60,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     task_dispatcher = DownloadTaskDispatcher(task_broker)
     media_processing_task_dispatcher = MediaProcessingTaskDispatcher(task_broker)
     release_discovery_dispatcher = ReleaseDiscoveryTaskDispatcher(task_broker)
+    release_candidate_automation_dispatcher = ReleaseCandidateAutomationTaskDispatcher(
+        task_broker,
+    )
     job_progress_hub = JobProgressHub(app_settings.redis_url)
     release_discovery_scheduler = ReleaseDiscoveryScheduler(
         database,
@@ -94,6 +98,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.job_progress_hub = job_progress_hub
     app.state.media_processing_task_dispatcher = media_processing_task_dispatcher
     app.state.release_discovery_scheduler = release_discovery_scheduler
+    app.state.release_candidate_automation_dispatcher = (
+        release_candidate_automation_dispatcher
+    )
     app.state.media_storage = media_storage
     app.state.settings = app_settings
 

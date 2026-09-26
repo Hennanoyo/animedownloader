@@ -414,15 +414,54 @@ Only configured fields contribute to the score. A candidate that does not match 
 
 The API returns the score and explicit match reasons so the UI can explain ordering. Seeders are not treated as a preference and cannot outweigh an explicit preference match.
 
+## Policy-controlled candidate automation
+
+Optional automation is a separate policy layer above the persisted candidate contract:
+
+```
+Discovery
+   ↓
+Candidate
+   ↓
+Policy evaluation
+   ↓
+Claim (PostgreSQL row lock)
+   ↓
+Current policy/preference revalidation
+   ↓
+EpisodeIngestionService
+   ├─ create / idempotent update
+   └─ replacement candidate → blocked for automation
+   ↓
+DownloadJobService
+   ↓
+Taskiq → qBittorrent
+```
+
+The policy is stored per Anime and is disabled by default. Its current controls are:
+
+- enabled/disabled
+- minimum candidate ranking score
+- whether all configured release preferences must match
+
+When preference matching is required, an Anime with no configured preference is not eligible for automatic downloads. This prevents enabling automation from silently becoming an unrestricted downloader.
+
+The evaluator accepts only actionable parsed episodes with an unambiguous Anime match. Ranking order remains deterministic and explainable; the preview API exposes the current decision and reasons without mutating state.
+
+Candidates are claimed with PostgreSQL row locking. Claims have a bounded timeout so a worker interruption can be recovered on worker startup. Execution re-evaluates the current policy and preferences after claiming, because policy or preference configuration may have changed while a task was queued.
+
+Automatic Episode mutation is delegated to the existing EpisodeIngestionService. If an existing Episode would require replacement, automation stops at a blocked candidate and never invokes the explicit replacement path.
+
+Download creation remains behind DownloadJobService. Existing active jobs are reused, completed jobs are not re-downloaded automatically, and failed/cancelled terminal history is not retried automatically. A paused job is treated as intentional user state. The automation task may re-enqueue an existing pending job after a restart.
+
+Discovery still remains review-only unless an Anime explicitly enables automation. Raw provider search payloads remain ephemeral, and automation consumes only normalized persisted candidate data.
+
 ## Future evolution
 
 This design intentionally keeps later automation behind explicit workflow boundaries:
 
-- explicit candidate acceptance and Episode ingestion
-- policy-controlled automatic candidate selection
-- automatic download scheduling
+- policy-controlled automatic candidate selection and download scheduling
 - additional release providers
+- richer operator-facing automation history and approval controls
 
-Periodic discovery and candidate ranking are now implemented as a review-only collection layer. Future automation must consume the normalized candidate contract rather than bypassing parsing, matching, provenance, and replacement safeguards.
-
-Those features must build on the same parsing, matching, and ingestion boundaries rather than bypassing them.
+Future automation must consume the normalized candidate contract rather than bypassing parsing, matching, provenance, ingestion, and replacement safeguards.

@@ -99,6 +99,14 @@ See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 - Explicit replacement must identify the target Episode and must verify the target belongs to the candidate Anime and has the same episode number before using the existing replacement-history guards.
 - Candidate acceptance and replacement must never create or start a DownloadJob implicitly; downloading remains a separate explicit action.
 - Keep candidate lists bounded at the API boundary and make destructive candidate cleanup explicit; never run cleanup implicitly as part of discovery.
+- Automatic candidate selection is opt-in per Anime and defaults to disabled.
+- Automatic selection may use only actionable, uniquely matched candidates and must re-evaluate the current policy/preferences immediately before Episode ingestion.
+- When automatic selection requires preference matching, at least one configured Anime release preference must match; no-preference automation must not silently broaden into unrestricted downloads.
+- Automatic selection must preserve deterministic ranking and expose decision reasons through a dry-run/preview path.
+- Candidate automation uses persistent claim state with transactional row locking and restart-safe stale-claim recovery.
+- Automatic acceptance may not perform Episode replacement. A replacement candidate remains blocked for automation and requires the existing explicit replacement workflow.
+- Automatic download creation must use the existing DownloadJobService, never create duplicate active jobs, and must not automatically retry failed/cancelled terminal history.
+- Candidate automation may enqueue an existing pending DownloadJob after a restart, but it must never start a paused download that the user has intentionally paused.
 
 ## Storage Rules
 

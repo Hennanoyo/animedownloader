@@ -191,6 +191,10 @@ class ReleaseDiscoveryCandidateResponse(BaseModel):
     first_seen_at: datetime
     last_seen_at: datetime
     reviewed_at: datetime | None
+    automation_status: str
+    automation_claimed_at: datetime | None
+    automation_completed_at: datetime | None
+    automation_error: str | None
 
 
 class ReleaseDiscoveryRunResponse(BaseModel):
@@ -233,8 +237,8 @@ class AnimeReleasePreferenceResponse(BaseModel):
     resolution: str | None
     video_codec: str | None
     source: str | None
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None
+    updated_at: datetime | None
 
 
 class AnimeReleasePreferenceUpdate(BaseModel):
@@ -783,6 +787,35 @@ class EpisodeIngestionResponse(BaseModel):
     status: EpisodeIngestionStatus
     episode: EpisodeResponse | None
     existing_episode: EpisodeResponse | None
+
+
+class ReleaseAutomationPolicyUpdate(BaseModel):
+    enabled: bool = False
+    min_ranking_score: int = Field(0, ge=0, le=160)
+    require_preference_match: bool = True
+
+
+class ReleaseAutomationPolicyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    anime_id: UUID
+    enabled: bool
+    min_ranking_score: int
+    require_preference_match: bool
+    created_at: datetime | None
+    updated_at: datetime | None
+
+
+class ReleaseAutomationCandidatePreviewResponse(BaseModel):
+    candidate: ReleaseDiscoveryCandidateResponse
+    eligible: bool
+    reasons: list[str]
+    automation_status: str
+
+
+class ReleaseAutomationRunResponse(BaseModel):
+    anime_id: UUID
+    status: str
 
 
 class ReleaseDiscoveryCandidateAcceptanceRequest(BaseModel):

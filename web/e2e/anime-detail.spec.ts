@@ -11,6 +11,11 @@ let releasePreference = {
   video_codec: null as string | null,
   source: null as string | null,
 };
+let releaseAutomationPolicy = {
+  enabled: false,
+  min_ranking_score: 0,
+  require_preference_match: true,
+};
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
 const INGESTED_EPISODE_ID = "019a0000-0000-7000-8000-000000000012";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
@@ -34,6 +39,11 @@ test.beforeEach(async ({ page }) => {
     video_codec: null,
     source: null,
   };
+  releaseAutomationPolicy = {
+    enabled: false,
+    min_ranking_score: 0,
+    require_preference_match: true,
+  };
   let mediaSourceProcessingStatus = "pending";
   await page.route(`**/api/animes/${ANIME_ID}`, async (route) => {
     await route.fulfill({
@@ -43,6 +53,50 @@ test.beforeEach(async ({ page }) => {
     });
   });
   pipelineRequests = 0;
+  await page.route(
+    `**/api/animes/${ANIME_ID}/release-automation-policy`,
+    async (route) => {
+      if (route.request().method() === "PATCH") {
+        releaseAutomationPolicy = JSON.parse(
+          route.request().postData() ?? "{}",
+        ) as typeof releaseAutomationPolicy;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          anime_id: ANIME_ID,
+          ...releaseAutomationPolicy,
+          created_at: "2026-09-25T00:00:00Z",
+          updated_at: "2026-09-25T00:10:00Z",
+        }),
+      });
+    },
+  );
+  await page.route(
+    `**/api/animes/${ANIME_ID}/release-automation-preview`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([]),
+      });
+    },
+  );
+  await page.route(
+    `**/api/animes/${ANIME_ID}/release-automation/run`,
+    async (route) => {
+      await route.fulfill({
+        status: 202,
+        contentType: "application/json",
+        body: JSON.stringify({
+          anime_id: ANIME_ID,
+          status: "queued",
+        }),
+      });
+    },
+  );
+
   await page.route(
     `**/api/animes/${ANIME_ID}/release-preferences`,
     async (route) => {
@@ -890,4 +944,39 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await expect(
     resultCard,
   ).toContainText("Episode 2 added to this Anime.");
+});
+
+
+test("configures policy-controlled automatic candidate downloads", async ({ page }) => {
+  await page.goto("/animes/" + ANIME_ID);
+
+  const automation = page.getByRole("region", {
+    name: "Policy-controlled candidate selection",
+  });
+  await expect(
+    automation.getByRole("heading", {
+      name: "Policy-controlled candidate selection",
+    }),
+  ).toBeVisible();
+
+  await automation
+    .getByText("Enable automatic candidate downloads", { exact: true })
+    .click();
+
+  const score = automation.getByLabel("Minimum ranking score");
+  await score.fill("120");
+
+  await automation
+    .getByRole("button", { name: "Save automation policy" })
+    .click();
+
+  await expect(automation.getByText("Saved", { exact: true })).toBeVisible();
+  await expect(
+    automation.getByRole("button", { name: "Run automation now" }),
+  ).toBeEnabled();
+  await expect(
+    automation.getByText(
+      "At least one Anime release preference must be configured before a candidate can be selected automatically.",
+    ),
+  ).toBeVisible();
 });

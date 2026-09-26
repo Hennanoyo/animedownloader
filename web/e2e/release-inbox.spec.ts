@@ -93,6 +93,10 @@ const candidate = () => ({
   last_seen_at: "2026-09-26T00:05:00Z",
   reviewed_at:
     candidateStatus === "new" ? null : "2026-09-26T00:06:00Z",
+  automation_status: "idle",
+  automation_claimed_at: null,
+  automation_completed_at: null,
+  automation_error: null,
 });
 
 test.beforeEach(async ({ page }) => {

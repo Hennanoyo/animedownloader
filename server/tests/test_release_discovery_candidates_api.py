@@ -8,6 +8,8 @@ from animedownloader_anime import Anime, AnimeService
 from animedownloader_api.app import create_app
 from animedownloader_api.dependencies import (
     get_anime_service,
+    get_release_candidate_automation_service,
+    get_release_candidate_automation_task_dispatcher,
     get_release_discovery_candidate_acceptance_service,
     get_release_discovery_candidate_service,
     get_release_discovery_scheduler,
@@ -15,6 +17,11 @@ from animedownloader_api.dependencies import (
 from animedownloader_api.release_candidate_acceptance import (
     ReleaseDiscoveryCandidateAcceptanceResult,
     ReleaseDiscoveryCandidateAcceptanceService,
+)
+from animedownloader_api.release_candidate_automation import (
+    AnimeReleaseAutomationPolicy,
+    ReleaseAutomationCandidatePreview,
+    ReleaseCandidateAutomationService,
 )
 from animedownloader_api.release_candidates import (
     ReleaseCandidateStatus,
@@ -217,6 +224,106 @@ async def test_schedule_and_manual_run_are_explicit_and_queued() -> None:
     assert scheduler.enqueue_run.await_count == 1
     scheduler.enqueue_run.assert_awaited_once_with(run.id)
 
+
+
+@pytest.mark.anyio
+async def test_automation_policy_can_be_saved_and_previewed() -> None:
+    anime = make_anime()
+    now = datetime(2026, 9, 26, tzinfo=UTC)
+    policy = AnimeReleaseAutomationPolicy(
+        anime_id=anime.id,
+        enabled=True,
+        min_ranking_score=100,
+        require_preference_match=True,
+        created_at=now,
+        updated_at=now,
+    )
+    preview = ReleaseAutomationCandidatePreview(
+        candidate=make_candidate(anime.id),
+        eligible=True,
+        reasons=("Candidate satisfies the automatic download policy",),
+    )
+
+    service = MagicMock(spec=ReleaseCandidateAutomationService)
+    service.get_policy = AsyncMock(return_value=policy)
+    service.update_policy = AsyncMock(return_value=policy)
+    service.preview = AsyncMock(return_value=[preview])
+
+    dispatcher = MagicMock()
+    dispatcher.enqueue = AsyncMock()
+
+    app = create_app()
+    app.dependency_overrides[get_release_candidate_automation_service] = lambda: service
+    app.dependency_overrides[get_release_candidate_automation_task_dispatcher] = (
+        lambda: dispatcher
+    )
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+    ) as client:
+        patch_response = await client.patch(
+            f"/api/animes/{anime.id}/release-automation-policy",
+            json={
+                "enabled": True,
+                "min_ranking_score": 100,
+                "require_preference_match": True,
+            },
+        )
+        preview_response = await client.get(
+            f"/api/animes/{anime.id}/release-automation-preview",
+        )
+        run_response = await client.post(
+            f"/api/animes/{anime.id}/release-automation/run",
+            json={},
+        )
+
+    assert patch_response.status_code == 200
+    assert patch_response.json()["enabled"] is True
+    assert patch_response.json()["min_ranking_score"] == 100
+    assert preview_response.status_code == 200
+    assert preview_response.json()[0]["eligible"] is True
+    assert run_response.status_code == 202
+    dispatcher.enqueue.assert_awaited_once_with(anime.id)
+
+
+@pytest.mark.anyio
+async def test_disabled_automation_cannot_be_started() -> None:
+    anime = make_anime()
+    now = datetime(2026, 9, 26, tzinfo=UTC)
+    policy = AnimeReleaseAutomationPolicy(
+        anime_id=anime.id,
+        enabled=False,
+        min_ranking_score=0,
+        require_preference_match=True,
+        created_at=now,
+        updated_at=now,
+    )
+
+    service = MagicMock(spec=ReleaseCandidateAutomationService)
+    service.get_policy = AsyncMock(return_value=policy)
+    dispatcher = MagicMock()
+    dispatcher.enqueue = AsyncMock()
+
+    app = create_app()
+    app.dependency_overrides[get_release_candidate_automation_service] = lambda: service
+    app.dependency_overrides[get_release_candidate_automation_task_dispatcher] = (
+        lambda: dispatcher
+    )
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+    ) as client:
+        response = await client.post(
+            f"/api/animes/{anime.id}/release-automation/run",
+            json={},
+        )
+
+    assert response.status_code == 409
+    dispatcher.enqueue.assert_not_awaited()
 
 
 @pytest.mark.anyio

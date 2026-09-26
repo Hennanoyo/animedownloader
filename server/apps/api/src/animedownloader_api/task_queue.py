@@ -5,10 +5,18 @@ from taskiq import AsyncBroker
 from taskiq_redis import RedisStreamBroker
 
 RELEASE_DISCOVERY_TASK_NAME = "release-discovery.run"
+RELEASE_CANDIDATE_AUTOMATION_TASK_NAME = "release-candidate-automation.run"
 
 
 async def _download_task_placeholder(job_id: str) -> None:
     raise RuntimeError(f"Download task {job_id} must be executed by the worker application")
+
+
+async def _release_candidate_automation_task_placeholder(anime_id: str) -> None:
+    raise RuntimeError(
+        "Release candidate automation task "
+        f"{anime_id} must be executed by the worker application",
+    )
 
 
 async def _release_discovery_task_placeholder(run_id: str) -> None:
@@ -26,6 +34,17 @@ class DownloadTaskDispatcher:
 
     async def enqueue(self, job_id: UUID) -> None:
         await self._task.kiq(str(job_id))
+
+
+class ReleaseCandidateAutomationTaskDispatcher:
+    def __init__(self, broker: AsyncBroker) -> None:
+        self._task = broker.register_task(
+            _release_candidate_automation_task_placeholder,
+            task_name=RELEASE_CANDIDATE_AUTOMATION_TASK_NAME,
+        )
+
+    async def enqueue(self, anime_id: UUID) -> None:
+        await self._task.kiq(str(anime_id))
 
 
 class ReleaseDiscoveryTaskDispatcher:

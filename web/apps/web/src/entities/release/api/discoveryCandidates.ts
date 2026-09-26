@@ -18,7 +18,7 @@ const matchCandidateSchema = z.object({
   matched_titles: z.array(z.string()),
 });
 
-const candidateSchema = z.object({
+export const candidateSchema = z.object({
   id: z.uuid(),
   anime_id: z.uuid(),
   last_run_id: z.uuid().nullable(),
@@ -57,6 +57,10 @@ const candidateSchema = z.object({
   first_seen_at: z.coerce.date(),
   last_seen_at: z.coerce.date(),
   reviewed_at: z.coerce.date().nullable(),
+  automation_status: z.enum(["idle", "claimed", "completed", "blocked"]),
+  automation_claimed_at: z.coerce.date().nullable(),
+  automation_completed_at: z.coerce.date().nullable(),
+  automation_error: z.string().nullable(),
 });
 
 const episodeSchema = z.object({

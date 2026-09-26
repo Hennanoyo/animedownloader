@@ -63,6 +63,13 @@ class ReleaseCandidateStatus(StrEnum):
     STALE = "stale"
 
 
+class ReleaseCandidateAutomationStatus(StrEnum):
+    IDLE = "idle"
+    CLAIMED = "claimed"
+    COMPLETED = "completed"
+    BLOCKED = "blocked"
+
+
 class ReleaseDiscoveryRun(Base):
     __tablename__ = "release_discovery_runs"
 
@@ -173,6 +180,18 @@ class ReleaseDiscoveryCandidate(Base):
         server_default=func.now(),
     )
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    automation_status: Mapped[str] = mapped_column(
+        String(16),
+        default=ReleaseCandidateAutomationStatus.IDLE.value,
+        server_default=ReleaseCandidateAutomationStatus.IDLE.value,
+    )
+    automation_claimed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+    )
+    automation_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+    )
+    automation_error: Mapped[str | None] = mapped_column(String(2000))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

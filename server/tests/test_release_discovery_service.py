@@ -4,7 +4,14 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_nyaa import NyaaError
-from animedownloader_releases import Release, SearchField
+from animedownloader_releases import (
+    AnimeMatchCandidate,
+    AnimeMatchResult,
+    AnimeMatchStatus,
+    Release,
+    SearchField,
+)
+from animedownloader_releases.entities import ReleaseGroup
 
 
 def _release(title: str) -> Release:
@@ -103,3 +110,64 @@ async def test_discovery_reports_a_failed_single_query_without_retrying() -> Non
     assert client.queries == ["Frieren"]
     assert result.items == ()
     assert result.warnings == ("Search query failed: Frieren",)
+
+
+def test_rank_release_uses_only_matching_anime_and_preference_fields() -> None:
+    from animedownloader_anime.models import AnimeReleasePreference
+
+    anime_id = __import__("uuid").uuid7()
+    group = ReleaseGroup(
+        name="ExampleSubs",
+        slug="examplesubs",
+        enabled=True,
+    )
+    group.id = __import__("uuid").uuid7()
+    preference = AnimeReleasePreference(
+        anime_id=anime_id,
+        release_group_id=group.id,
+        resolution="1080p",
+        video_codec="HEVC",
+        source="WEB",
+    )
+    match = AnimeMatchResult(
+        status=AnimeMatchStatus.MATCHED,
+        normalized_series_title="frieren",
+        candidates=(
+            AnimeMatchCandidate(
+                anime_id=anime_id,
+                title="Frieren",
+                matched_titles=("Frieren",),
+            ),
+        ),
+    )
+    parsed = __import__("animedownloader_releases").ParsedRelease(
+        provider_source="nyaa",
+        source_id="release-1",
+        original_title="[ExampleSubs] Frieren - 01 [1080p][HEVC]",
+        normalized_title="frieren",
+        release_group="ExampleSubs",
+        series_title="Frieren",
+        episode_number=1,
+        episode_title=None,
+        season_number=None,
+        resolution="1080p",
+        source="WEB",
+        video_codec="HEVC",
+        audio_codec=None,
+        bit_depth=10,
+        status=__import__("animedownloader_releases").ParseStatus.PARSED,
+    )
+
+    ranking = ReleaseDiscoveryService._rank_release(
+        parsed,
+        match,
+        (preference, group),
+    )
+
+    assert ranking.score == 160
+    assert ranking.reasons == (
+        "Preferred release group",
+        "Preferred resolution",
+        "Preferred video codec",
+        "Preferred source",
+    )

@@ -60,7 +60,7 @@ class MediaProcessingContext:
         *,
         status: MediaProcessingJobStatus,
         download_directory: str,
-        media_path: str | None,
+        media_path: str | None = None,
         media_asset_ready: bool = False,
     ) -> None:
         self.status = status

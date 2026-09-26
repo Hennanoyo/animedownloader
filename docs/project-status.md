@@ -969,38 +969,59 @@ Safety boundary:
 
 ### PR #47 — Policy-Controlled Candidate Selection & Download Scheduling
 
-**Next development phase.**
+**Current development phase.**
 
-Goal: build optional automation on top of the normalized Candidate contract without bypassing explicit parsing, matching, provenance, replacement, and download safeguards.
+Goal: add opt-in automation on top of normalized discovery candidates without bypassing parsing, matching, provenance, Episode ingestion, replacement protection, or DownloadJob safeguards.
 
-Planned scope:
+Current implementation:
 
-- add per-Anime automation policy/configuration for whether candidates may be auto-selected
-- evaluate only actionable, matched candidates that satisfy the Anime's configured release preferences
-- make selection deterministic and explainable using the existing candidate ranking contract
-- keep an explicit dry-run / preview path so automation decisions can be inspected without creating work
-- add a scheduler/worker boundary that can claim eligible candidates safely across restarts
-- create a DownloadJob only after a candidate passes the configured automation policy
-- preserve the existing EpisodeIngestionService boundary before download creation
-- keep automatic replacement disabled by default and require an explicit replacement path
-- add backend, integration, and browser coverage for policy evaluation, idempotency, restart safety, and failure recovery
-- update AGENTS.md and architecture/project-status documentation with the new automation boundaries
+- added per-Anime automatic download policy with a disabled-by-default safety boundary
+- added minimum ranking threshold and optional strict release-preference matching
+- rejected automatic selection when no preference is configured under strict matching
+- added deterministic dry-run/preview decisions
+- added persistent candidate automation claim state and 30-minute stale-claim recovery
+- added PostgreSQL row-lock based candidate claiming
+- revalidated current policy/preferences immediately before automatic Episode ingestion
+- reused EpisodeIngestionService and DownloadJobService instead of creating a parallel mutation/download path
+- blocked automatic Episode replacement and automatic retries of failed/cancelled terminal download history
+- added Anime-detail automation controls and current-candidate preview
+- added worker handoff from completed discovery runs into policy-controlled automation
+- added backend/browser coverage and automation safety documentation
 
-Safety boundaries:
+Workflow:
 
-- discovery remains review-only until a policy explicitly enables automation
-- rejected, stale, ambiguous, unmatched, or non-actionable candidates are never auto-selected
-- candidate acceptance/ingestion remains responsible for Episode state
-- automatic download creation must be idempotent and must not create duplicate active DownloadJobs
-- automatic replacement is not enabled as a side effect of candidate selection
-- provider payloads remain ephemeral; automation consumes persisted normalized candidates
+```
+Periodic / manual discovery
+        ↓
+Normalized Candidate
+        ↓
+Automation policy + deterministic ranking
+        ↓
+Claim / current policy revalidation
+        ↓
+EpisodeIngestionService
+        ↓
+DownloadJobService
+        ↓
+Taskiq → qBittorrent
+```
+
+Design constraints:
+
+- Automation is never enabled implicitly.
+- Rejected, stale, ambiguous, unmatched, or non-actionable candidates are not automatically selected.
+- A replacement candidate requires explicit user action.
+- DownloadJob creation is idempotent and remains separate from discovery.
+- A paused user download is not resumed by automation.
+- Parser profile drafts remain validation-only; only active profiles affect newly observed discovery results.
+- Raw provider payloads remain ephemeral.
 
 Out of scope:
 
-- new release providers
 - automatic media replacement
+- new release providers
 - player/media-pipeline changes
-- opaque heuristic selection without persisted reasons
+- unrestricted heuristic selection without persisted decision reasons
 
 ## Handoff Notes
 

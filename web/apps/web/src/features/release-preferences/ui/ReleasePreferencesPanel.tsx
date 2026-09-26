@@ -43,11 +43,7 @@ export default function ReleasePreferencesPanel({
   }, [query.data]);
 
   const releaseGroupItems = useMemo(
-    () =>
-      groups.data?.map((group) => ({
-        id: group.id,
-        name: group.name,
-      })) ?? [],
+    () => groups.data?.map((group) => group.name) ?? [],
     [groups.data],
   );
 
@@ -93,10 +89,19 @@ export default function ReleasePreferencesPanel({
         <ComboBox
           className={styles.field}
           items={releaseGroupItems}
-          selectedKey={releaseGroupId}
-          onSelectionChange={(key) =>
-            setReleaseGroupId(key === null ? null : String(key))
+          selectedKey={
+            groups.data?.find((group) => group.id === releaseGroupId)?.name ??
+            null
           }
+          onSelectionChange={(key) => {
+            const name = key === null ? null : String(key);
+            setReleaseGroupId(
+              name === null
+                ? null
+                : (groups.data?.find((group) => group.name === name)?.id ??
+                    null),
+            );
+          }}
         >
           <Label>Release group</Label>
           <div className={styles.control}>
@@ -105,7 +110,7 @@ export default function ReleasePreferencesPanel({
           </div>
           <Popover className={styles.popover}>
             <ListBox>
-              {(item) => (
+              {(item: string) => (
                 <ListBoxItem
                   id={item.id}
                   textValue={item.name}
@@ -136,7 +141,7 @@ export default function ReleasePreferencesPanel({
             </div>
             <Popover className={styles.popover}>
               <ListBox>
-                {(item) => (
+                {(item: string) => (
                   <ListBoxItem
                     id={item}
                     textValue={item}

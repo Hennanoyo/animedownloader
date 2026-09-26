@@ -72,7 +72,7 @@ class ReleaseDiscoveryService:
     def __init__(
         self,
         session: AsyncSession,
-        client: ReleaseSearchClient,
+        client: ReleaseSearchClient | None,
     ) -> None:
         self._session = session
         self._client = client
@@ -173,6 +173,9 @@ class ReleaseDiscoveryService:
     ) -> ReleaseDiscoveryResult:
         if not plan.queries:
             raise ValueError("search plan must contain at least one query")
+
+        if self._client is None:
+            raise RuntimeError("provider client is required to execute a search plan")
 
         release_batches: list[tuple[Release, ...]] = []
         warnings: list[str] = []

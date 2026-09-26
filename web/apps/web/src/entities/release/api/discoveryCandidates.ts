@@ -92,6 +92,19 @@ const acceptanceSchema = z.object({
   existing_episode: episodeSchema.nullable(),
 });
 
+const runQuerySchema = z.object({
+  id: z.uuid(),
+  position: z.number().int().positive(),
+  query: z.string(),
+  status: z.string(),
+  result_count: z.number().int().nonnegative(),
+  result_cap_reached: z.boolean(),
+  error_message: z.string().nullable(),
+  created_at: z.coerce.date(),
+  queries: z.array(runQuerySchema),
+});
+
+
 const runSchema = z.object({
   id: z.uuid(),
   anime_id: z.uuid(),

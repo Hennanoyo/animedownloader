@@ -120,6 +120,19 @@ const runSchema = z.object({
   queries: z.array(runQuerySchema),
 });
 
+const searchPlanQuerySchema = z.object({
+  position: z.number().int().positive(),
+  query: z.string(),
+  fields: z.array(z.string()),
+});
+
+const searchPlanSchema = z.object({
+  anime_id: z.uuid(),
+  query_budget: z.number().int().positive(),
+  search_profile_version: z.number().int().positive().nullable(),
+  queries: z.array(searchPlanQuerySchema).min(1),
+});
+
 const scheduleSchema = z.object({
   anime_id: z.uuid(),
   enabled: z.boolean(),
@@ -133,6 +146,7 @@ export type ReleaseDiscoveryCandidate = z.infer<typeof candidateSchema>;
 export type ReleaseDiscoveryCandidateAcceptance = z.infer<typeof acceptanceSchema>;
 export type ReleaseDiscoveryRun = z.infer<typeof runSchema>;
 export type ReleaseDiscoverySchedule = z.infer<typeof scheduleSchema>;
+export type ReleaseDiscoverySearchPlan = z.infer<typeof searchPlanSchema>;
 
 export class ReleaseDiscoveryCandidateResponseError extends Error {
   constructor(readonly issues: z.core.$ZodIssue[]) {
@@ -200,6 +214,21 @@ export async function listReleaseDiscoveryRuns(
   );
   const result = z.array(runSchema).safeParse(payload);
   if (!result.success) throw new ReleaseDiscoveryCandidateResponseError(result.error.issues);
+  return result.data;
+}
+
+export async function getReleaseDiscoverySearchPlan(
+  animeId: string,
+  signal?: AbortSignal,
+): Promise<ReleaseDiscoverySearchPlan> {
+  const payload = await getJson(
+    "/api/animes/" + animeId + "/release-discovery/plan",
+    { signal },
+  );
+  const result = searchPlanSchema.safeParse(payload);
+  if (!result.success) {
+    throw new ReleaseDiscoveryCandidateResponseError(result.error.issues);
+  }
   return result.data;
 }
 

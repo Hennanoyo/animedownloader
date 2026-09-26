@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   acceptReleaseDiscoveryCandidate,
   getReleaseDiscoverySchedule,
+  getReleaseDiscoverySearchPlan,
   listReleaseDiscoveryCandidates,
   listReleaseDiscoveryRuns,
   runReleaseDiscoveryNow,
@@ -25,6 +26,14 @@ export function useReleaseDiscoveryRuns(animeId?: string) {
     queryKey: ["release-discovery-runs", animeId],
     queryFn: ({ signal }) => listReleaseDiscoveryRuns(animeId, signal),
     staleTime: 5_000,
+  });
+}
+
+export function useReleaseDiscoverySearchPlan(animeId: string) {
+  return useQuery({
+    queryKey: ["release-discovery-search-plan", animeId],
+    queryFn: ({ signal }) => getReleaseDiscoverySearchPlan(animeId, signal),
+    staleTime: 30_000,
   });
 }
 

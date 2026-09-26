@@ -227,6 +227,19 @@ class ReleaseDiscoveryRunResponse(BaseModel):
     queries: list[ReleaseDiscoveryQueryResponse]
 
 
+class ReleaseDiscoverySearchPlanQueryResponse(BaseModel):
+    position: int
+    query: str
+    fields: list[str]
+
+
+class ReleaseDiscoverySearchPlanResponse(BaseModel):
+    anime_id: UUID
+    query_budget: int
+    search_profile_version: int | None
+    queries: list[ReleaseDiscoverySearchPlanQueryResponse]
+
+
 class ReleaseDiscoveryScheduleResponse(BaseModel):
     anime_id: UUID
     enabled: bool

@@ -170,6 +170,61 @@
   color: #fecaca;
 }
 
+.plan {
+  margin-top: 0.85rem;
+  border: 1px solid #26324a;
+  border-radius: 0.6rem;
+  background: #0b1222;
+}
+
+.plan summary {
+  padding: 0.65rem 0.7rem;
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.planBody {
+  padding: 0 0.7rem 0.7rem;
+}
+
+.planBody p {
+  margin: 0 0 0.55rem;
+  color: #64748b;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.planList {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.planItem {
+  min-width: 0;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #26324a;
+  border-radius: 0.45rem;
+  background: #080f1d;
+}
+
+.planItem code {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #dbeafe;
+  font-size: 0.68rem;
+}
+
+.planItem span {
+  display: block;
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-size: 0.62rem;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

@@ -11,6 +11,7 @@ from animedownloader_api.dependencies import (
     get_release_discovery_candidate_acceptance_service,
     get_release_discovery_candidate_service,
     get_release_discovery_scheduler,
+    get_release_discovery_service,
 )
 from animedownloader_api.release_candidate_acceptance import (
     ReleaseCandidateNotAcceptableError,
@@ -26,6 +27,7 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidate,
     ReleaseDiscoveryCandidateService,
 )
+from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 from animedownloader_api.release_ingestion import (
     ReleaseDoesNotMatchAnimeError,
@@ -47,6 +49,8 @@ from animedownloader_api.schemas import (
     ReleaseDiscoveryRunResponse,
     ReleaseDiscoveryScheduleResponse,
     ReleaseDiscoveryScheduleUpdate,
+    ReleaseDiscoverySearchPlanQueryResponse,
+    ReleaseDiscoverySearchPlanResponse,
 )
 from animedownloader_api.task_queue import ReleaseCandidateAutomationTaskDispatcher
 
@@ -56,6 +60,10 @@ AnimeServiceDependency = Annotated[AnimeService, Depends(get_anime_service)]
 CandidateServiceDependency = Annotated[
     ReleaseDiscoveryCandidateService,
     Depends(get_release_discovery_candidate_service),
+]
+DiscoveryServiceDependency = Annotated[
+    ReleaseDiscoveryService,
+    Depends(get_release_discovery_service),
 ]
 AcceptanceServiceDependency = Annotated[
     ReleaseDiscoveryCandidateAcceptanceService,
@@ -254,6 +262,34 @@ async def run_automation(
             detail="release automation task could not be queued",
         ) from exc
     return ReleaseAutomationRunResponse(anime_id=anime_id, status="queued")
+
+
+@router.get(
+    "/animes/{anime_id}/release-discovery/plan",
+    response_model=ReleaseDiscoverySearchPlanResponse,
+)
+async def get_discovery_search_plan(
+    anime_id: UUID,
+    service: DiscoveryServiceDependency,
+) -> ReleaseDiscoverySearchPlanResponse:
+    try:
+        plan, search_profile_version = await service.build_anime_search_plan(anime_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return ReleaseDiscoverySearchPlanResponse(
+        anime_id=anime_id,
+        query_budget=len(plan.queries),
+        search_profile_version=search_profile_version,
+        queries=[
+            ReleaseDiscoverySearchPlanQueryResponse(
+                position=index,
+                query=query.query,
+                fields=[field.value for field in query.fields],
+            )
+            for index, query in enumerate(plan.queries, start=1)
+        ],
+    )
 
 
 @router.get(

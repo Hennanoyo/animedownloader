@@ -52,6 +52,49 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify(animeResponse),
     });
   });
+  await page.route(
+    `**/api/animes/${ANIME_ID}/release-discovery-schedule`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          anime_id: ANIME_ID,
+          enabled: false,
+          interval_minutes: 360,
+          next_run_at: null,
+          last_run_at: null,
+          last_run_status: null,
+        }),
+      });
+    },
+  );
+  await page.route(
+    `**/api/animes/${ANIME_ID}/release-discovery/plan`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          anime_id: ANIME_ID,
+          query_budget: 3,
+          search_profile_version: 4,
+          queries: [
+            {
+              position: 1,
+              query: "ExampleSubs Browser Smoke Romaji 1080p HEVC",
+              fields: ["group", "title", "resolution", "codec"],
+            },
+            {
+              position: 2,
+              query: "ExampleSubs Browser Smoke English 1080p HEVC",
+              fields: ["group", "title", "resolution", "codec"],
+            },
+          ],
+        }),
+      });
+    },
+  );
   pipelineRequests = 0;
   await page.route(
     `**/api/animes/${ANIME_ID}/release-automation-policy`,
@@ -831,6 +874,40 @@ test("saves anime release preferences and uses them to explain ranked releases",
   );
 });
  
+test("previews the persisted discovery search plan", async ({ page }) => {
+  await page.goto("/animes/" + ANIME_ID);
+
+  const schedule = page.getByRole("region", {
+    name: "Keep a candidate inbox updated",
+  });
+  await expect(
+    schedule.getByText(/Search plan · 2 queries · Search profile v4/, {
+      exact: false,
+    }),
+  ).toBeVisible();
+
+  const plan = schedule.locator("details").filter({
+    hasText: "Search plan",
+  });
+  await plan.locator("summary").click();
+  await expect(
+    plan.getByText("ExampleSubs Browser Smoke Romaji 1080p HEVC", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    plan.getByText("ExampleSubs Browser Smoke English 1080p HEVC", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    plan.getByText(
+      "This is the same bounded plan used by Discover now and periodic discovery.",
+      { exact: false },
+    ),
+  ).toBeVisible();
+});
+
 test("discovers parsed releases from the anime detail page", async ({ page }) => {
   await page.goto("/animes/" + ANIME_ID);
 

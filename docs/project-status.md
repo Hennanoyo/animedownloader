@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is complete through PR #40. Media Source Lifecycle & Recovery is complete through PR #42. Release Provenance & Explicit Replacement is complete through PR #43; the current phase is Anime Release Preferences & Candidate Ranking.
+The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is complete through PR #40. Media Source Lifecycle & Recovery is complete through PR #42. Release Provenance & Explicit Replacement is complete through PR #43. Anime Release Preferences & Candidate Ranking is complete through PR #44; the next phase is Periodic Release Discovery & Candidate Inbox.
 
 ## Completed
 
@@ -911,7 +911,15 @@ Out of scope:
 
 ### PR #44 — Anime Release Preferences & Candidate Ranking
 
-**Current development phase.**
+**Merged into `main` as commit `70716665f6a10a0b79679cc7ee23c55763201a25`.**
+
+- Added optional per-Anime release preferences for ReleaseGroup, resolution, video codec, and source
+- Added GET/PATCH preference APIs and Anime-detail preference editing
+- Added deterministic, explainable preference ranking to release discovery
+- Kept unset preference fields neutral and seeders as a post-score tie-breaker
+- Preserved discovery-only safety boundaries: no automatic downloads, Episode replacement, or provenance mutation
+- Added backend, frontend, browser, and integration regression coverage
+
 
 Goal: let each Anime store optional release preferences and use them to produce deterministic, explainable discovery ordering without starting downloads or silently changing Episode state.
 
@@ -942,9 +950,50 @@ Out of scope:
 - new providers
 - media/player changes
 
+## Next Phase — Periodic Release Discovery & Candidate Inbox
+
+The next phase should move discovery from a purely user-triggered operation toward a persistent, reviewable candidate workflow without crossing into automatic Episode mutation or downloads.
+
+### PR #45 — Periodic Release Discovery & Candidate Inbox
+
+Goal: periodically execute the existing Anime discovery recipe, retain normalized candidates as a deliberate application record, and give the user a reviewable inbox while keeping provider RSS/search payloads ephemeral.
+
+Implementation order:
+
+1. Define a provider-neutral persisted discovery-candidate snapshot containing Anime identity, normalized release/provenance fields, parser/match outcome, observed-at timestamp, and the ranking explanation produced by the current preference scorer.
+2. Keep raw Nyaa RSS/search results ephemeral; persist only normalized candidate data needed for review, deduplication, and later acceptance.
+3. Add deterministic candidate identity/deduplication so repeated discovery runs do not create an unbounded duplicate stream for the same external release.
+4. Add an explicit discovery-run record with started/completed/failed state and lightweight diagnostics, separate from DownloadJob and Episode state.
+5. Add a Taskiq-backed periodic discovery trigger with per-Anime scheduling configuration, but keep scheduling limited to candidate collection.
+6. Expose recent discovery runs and candidate inbox APIs with filters for new, reviewed, accepted, rejected, and stale candidates.
+7. Add Anime-detail and/or dedicated discovery-inbox UI showing ranking score/reasons, parser/match state, observed time, and an explicit review action.
+8. Preserve all existing safety boundaries: candidate collection never creates Episodes, replaces existing media, or starts DownloadJobs automatically.
+9. Add backend, frontend, browser, and integration coverage for idempotency, scheduler behavior, candidate retention, and restart safety.
+
+Design constraints:
+
+- Raw provider search/RSS responses remain ephemeral and must not become a general release-result cache.
+- Persisted candidates are normalized review records, not authoritative Episode records.
+- Candidate identity must be stable across repeated discovery runs for the same provider release.
+- Ranking remains deterministic and explainable using Anime release preferences; preference changes must not rewrite historical candidate observations silently.
+- Periodic discovery must be restart-safe and must not enqueue duplicate runs for the same Anime/time window.
+- Candidate collection never starts a DownloadJob and never performs automatic Episode ingestion or replacement.
+- Retention/cleanup must be explicit and bounded so the inbox cannot grow without limit.
+
+Out of scope:
+
+- automatic candidate acceptance/selection
+- automatic downloads
+- new release providers
+- media/player changes
+
+### Following phase — Explicit Candidate Acceptance & Download Policy
+
+After the candidate inbox is stable, introduce a separate user-controlled acceptance flow that can create/update Episodes only through explicit review, followed by DownloadJob creation under an explicit download policy. Automatic selection and automatic download scheduling should remain separate from candidate collection so each transition is observable and recoverable.
+
 ## Handoff Notes:
 
-PR #44 is the active branch `feature/anime-release-preferences-ranking`. The branch starts from merged PR #43 and focuses on optional Anime release preferences plus deterministic, explainable discovery candidate ranking.
+PR #44 is merged into `main`. The next development branch should start from merge commit `70716665f6a10a0b79679cc7ee23c55763201a25` and implement PR #45 Periodic Release Discovery & Candidate Inbox.
 
 ## Handoff Notes
 

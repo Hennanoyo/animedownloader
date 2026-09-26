@@ -399,7 +399,11 @@ class ReleaseDiscoveryCandidateService:
         )
         if schedule is not None:
             return schedule
-        return ReleaseDiscoverySchedule(anime_id=anime_id)
+        return ReleaseDiscoverySchedule(
+            anime_id=anime_id,
+            enabled=False,
+            interval_minutes=360,
+        )
 
     async def update_schedule(
         self,

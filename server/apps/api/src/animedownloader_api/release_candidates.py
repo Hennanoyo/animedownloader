@@ -417,6 +417,24 @@ class ReleaseDiscoveryCandidateService:
 
     async def create_manual_run(self, anime_id: UUID) -> ReleaseDiscoveryRun:
         async with self.session.begin():
+            active = await self.session.scalar(
+                select(ReleaseDiscoveryRun)
+                .where(
+                    ReleaseDiscoveryRun.anime_id == anime_id,
+                    ReleaseDiscoveryRun.status.in_(
+                        [
+                            ReleaseDiscoveryRunStatus.QUEUED.value,
+                            ReleaseDiscoveryRunStatus.RUNNING.value,
+                        ],
+                    ),
+                )
+                .order_by(ReleaseDiscoveryRun.created_at.desc())
+                .limit(1)
+                .with_for_update(),
+            )
+            if active is not None:
+                return active
+
             run = ReleaseDiscoveryRun(
                 anime_id=anime_id,
                 scheduled_for=datetime.now(timezone.utc),

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from animedownloader_config import Settings
 from animedownloader_database import create_database
 from animedownloader_media_processing import (
@@ -73,5 +75,42 @@ async def recover_active_media_jobs(_state: TaskiqState) -> None:
 
     print(
         f"[worker] startup media job recovery completed: recovered={recovered}",
+        flush=True,
+    )
+
+    media_task = broker.find_task(MEDIA_PROCESSING_TASK_NAME)
+    if media_task is None:
+        print(
+            "[worker] completed download handoff recovery skipped: "
+            "media-processing task not registered",
+            flush=True,
+        )
+        return
+
+    async def enqueue_media_processing(job_id: UUID) -> None:
+        await media_task.kiq(str(job_id))
+
+    handoff_database = create_database(settings.database_url)
+    try:
+        recovered_handoffs, unresolved_sources = (
+            await recover_completed_download_handoffs(
+                handoff_database,
+                download_root=settings.download_root,
+                enqueue_media_processing=enqueue_media_processing,
+            )
+        )
+    except Exception as exc:
+        print(
+            "[worker] completed download handoff recovery failed: "
+            f"{type(exc).__name__}: {exc}",
+            flush=True,
+        )
+        raise
+    finally:
+        await handoff_database.dispose()
+
+    print(
+        "[worker] completed download handoff recovery completed: "
+        f"recovered={recovered_handoffs} unresolved={unresolved_sources}",
         flush=True,
     )

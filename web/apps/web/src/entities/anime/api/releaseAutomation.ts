@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { candidateSchema } from "../../../entities/release/api/discoveryCandidates";
+import { candidateSchema } from "../../release/api/discoveryCandidates";
 import { getJson, patchJson, postJson } from "../../../shared/api/client";
 
 const policySchema = z.object({

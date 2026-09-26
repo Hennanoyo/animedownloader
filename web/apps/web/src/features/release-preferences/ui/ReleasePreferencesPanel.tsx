@@ -7,7 +7,6 @@ import {
   ListBox,
   ListBoxItem,
   Popover,
-  TextField,
 } from "react-aria-components";
 import { useReleaseGroups } from "../../../entities/release/model/useReleaseGroups";
 import {

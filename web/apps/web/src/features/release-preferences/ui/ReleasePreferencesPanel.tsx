@@ -112,11 +112,11 @@ export default function ReleasePreferencesPanel({
             <ListBox>
               {(item: string) => (
                 <ListBoxItem
-                  id={item.id}
-                  textValue={item.name}
+                  id={item}
+                  textValue={item}
                   className={styles.option}
                 >
-                  {item.name}
+                  {item}
                 </ListBoxItem>
               )}
             </ListBox>
@@ -173,7 +173,7 @@ export default function ReleasePreferencesPanel({
             </div>
             <Popover className={styles.popover}>
               <ListBox>
-                {(item) => (
+                {(item: string) => (
                   <ListBoxItem
                     id={item}
                     textValue={item}

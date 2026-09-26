@@ -491,16 +491,18 @@ function renderStageBody(
         <>
           <OutputStatusList
             items={[
-            {
-              label: "File downloaded",
-              detail: formatDownloadedBytes(
-                pipeline.download.downloaded_bytes,
-                pipeline.download.total_bytes,
-              ),
-              icon: "download",
-            },
-          ]}
-        />
+              {
+                label: "File downloaded",
+                detail: formatDownloadedBytes(
+                  pipeline.download.downloaded_bytes,
+                  pipeline.download.total_bytes,
+                ),
+                icon: "download",
+              },
+            ]}
+          />
+          <MediaSourceRecovery episodeId={pipeline.episode_id} />
+        </>
       );
     }
 

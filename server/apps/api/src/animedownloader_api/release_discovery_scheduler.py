@@ -4,6 +4,8 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
+from animedownloader_database import Database
+
 from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidateService,
     ReleaseDiscoveryRun,
@@ -12,13 +14,13 @@ from animedownloader_api.release_candidates import (
 )
 from sqlalchemy import select
 
-from .task_queue import RELEASE_DISCOVERY_TASK_NAME, ReleaseDiscoveryTaskDispatcher
+from .task_queue import ReleaseDiscoveryTaskDispatcher
 
 
 class ReleaseDiscoveryScheduler:
     def __init__(
         self,
-        database,
+        database: Database,
         dispatcher: ReleaseDiscoveryTaskDispatcher,
         *,
         poll_seconds: float = 15.0,
@@ -63,6 +65,9 @@ class ReleaseDiscoveryScheduler:
             except TimeoutError:
                 pass
 
+    async def enqueue_run(self, run_id: UUID) -> None:
+        await self._dispatcher.enqueue(run_id)
+
     async def run_due(self, *, now: datetime | None = None, limit: int = 8) -> int:
         claimed = await self._claim_due_runs(
             now=now or datetime.now(timezone.utc),
@@ -70,7 +75,7 @@ class ReleaseDiscoveryScheduler:
         )
         for run in claimed:
             try:
-                await self._dispatcher.enqueue(run.id)
+                await self.enqueue_run(run.id)
             except Exception as exc:
                 async with self._database.session_factory() as session:
                     await ReleaseDiscoveryCandidateService(session).fail_run(

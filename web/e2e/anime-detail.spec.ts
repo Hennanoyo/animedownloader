@@ -99,6 +99,41 @@ test.beforeEach(async ({ page }) => {
     },
   );
 
+  await page.route(
+    `**/api/episodes/${EPISODE_ID}/media-source`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          episode_id: EPISODE_ID,
+          download_job_id: pipeline.episodes[0].download.job_id,
+          download_status: "completed",
+          status: "found",
+          root: "/downloads/019a0000-0000-7000-8000-000000000099",
+          selected_path: "Episode One.mkv",
+          candidates: [{ path: "Episode One.mkv" }],
+          processing_job_id: pipeline.episodes[0].processing.job_id,
+          processing_status: "pending",
+        }),
+      });
+    },
+  );
+  await page.route(
+    `**/api/episodes/${EPISODE_ID}/media-source/reprocess`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          stage: "processing",
+          job_id: pipeline.episodes[0].processing.job_id,
+          status: "pending",
+        }),
+      });
+    },
+  );
+
   await page.route("**/api/releases/ingest", async (route) => {
     const body = JSON.parse(route.request().postData() ?? "{}") as {
       anime_id?: string;
@@ -255,6 +290,23 @@ test("renders episode media pipeline and sprite thumbnail", async ({ page }) => 
   await expect(pipelineStatus).toBeHidden();
 });
 
+
+test("reviews the downloaded source and can reprocess it", async ({ page }) => {
+  await page.goto(`/animes/${ANIME_ID}`);
+
+  await page.getByRole("button", { name: "Show details" }).click();
+  await page.getByRole("button", { name: "Review source" }).click();
+
+  await expect(page.getByText("Downloaded source", { exact: true })).toBeVisible();
+  await expect(page.getByText("Episode One.mkv", { exact: true })).toBeVisible();
+
+  const processButton = page.getByRole("button", { name: "Process source" });
+  await expect(processButton).toBeVisible();
+  await processButton.click();
+
+  await expect(page.getByText("Media processing is already running.", { exact: true }))
+    .toBeVisible();
+});
 
 test("receives live pipeline updates without polling", async ({ page }) => {
   await page.addInitScript(() => {

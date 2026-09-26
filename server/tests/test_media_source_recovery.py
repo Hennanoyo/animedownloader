@@ -7,7 +7,6 @@ from typing import cast
 from uuid import UUID, uuid7
 
 import pytest
-
 from animedownloader_database import Database
 from animedownloader_media_processing import MediaProcessingJobStatus
 from animedownloader_worker import source_recovery

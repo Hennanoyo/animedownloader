@@ -83,6 +83,7 @@
 
 .checkboxBox {
   display: inline-grid;
+  pointer-events: none;
   width: 1.05rem;
   height: 1.05rem;
   flex: 0 0 auto;

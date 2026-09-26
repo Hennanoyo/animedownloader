@@ -27,8 +27,8 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidate,
     ReleaseDiscoveryCandidateService,
 )
-from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
+from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 from animedownloader_api.release_ingestion import (
     ReleaseDoesNotMatchAnimeError,
     ReleaseNotActionableError,
@@ -48,9 +48,9 @@ from animedownloader_api.schemas import (
     ReleaseDiscoveryMatchCandidateResponse,
     ReleaseDiscoveryRunResponse,
     ReleaseDiscoveryScheduleResponse,
+    ReleaseDiscoveryScheduleUpdate,
     ReleaseDiscoverySearchPlanQueryResponse,
     ReleaseDiscoverySearchPlanResponse,
-    ReleaseDiscoveryScheduleUpdate,
 )
 from animedownloader_api.task_queue import ReleaseCandidateAutomationTaskDispatcher
 

@@ -105,6 +105,7 @@ class EpisodeIngestionStatus(StrEnum):
     CREATED = "created"
     IDEMPOTENT = "idempotent"
     REPLACEMENT_CANDIDATE = "replacement_candidate"
+    REPLACED = "replaced"
 
 
 class AnimeMatchStatus(StrEnum):

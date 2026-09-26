@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import time
+from uuid import UUID
 
 from .enums import ConversionStatus, DownloadStatus, Season, Weekday
 
@@ -18,12 +19,14 @@ class EpisodeCreateData:
     leechers: int | None
     downloads: int | None
     info_hash: str | None
+    release_group_id: UUID | None = None
     download_status: DownloadStatus = DownloadStatus.NOT_STARTED
     conversion_status: ConversionStatus = ConversionStatus.NOT_STARTED
 
 
 @dataclass(frozen=True, slots=True)
 class EpisodeUpdateData:
+    release_group_id: UUID | None = None
     episode_number: int | None = None
     title: str | None = None
     source: str | None = None

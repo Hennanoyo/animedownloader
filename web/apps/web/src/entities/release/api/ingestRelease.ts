@@ -4,11 +4,13 @@ import { postJson } from "../../../shared/api/client";
 import type {
   EpisodeIngestionInput,
   EpisodeIngestionResponse,
+  EpisodeReleaseReplacementInput,
 } from "../model/types";
 
 const episodeSchema = z.object({
   id: z.uuid(),
   anime_id: z.uuid(),
+  release_group_id: z.uuid().nullable().default(null),
   episode_number: z.number().int().positive(),
   title: z.string(),
   source: z.string(),
@@ -38,7 +40,7 @@ const episodeSchema = z.object({
 });
 
 const responseSchema = z.object({
-  status: z.enum(["created", "idempotent", "replacement_candidate"]),
+  status: z.enum(["created", "idempotent", "replacement_candidate", "replaced"]),
   episode: episodeSchema.nullable(),
   existing_episode: episodeSchema.nullable(),
 });
@@ -56,6 +58,22 @@ export async function ingestRelease(
   input: EpisodeIngestionInput,
 ): Promise<EpisodeIngestionResponse> {
   const payload = await postJson("/api/releases/ingest", input);
+  const result = responseSchema.safeParse(payload);
+  if (!result.success) {
+    throw new EpisodeIngestionResponseError(result.error.issues);
+  }
+  return result.data;
+}
+
+
+export async function replaceEpisodeRelease(
+  episodeId: string,
+  input: EpisodeReleaseReplacementInput,
+): Promise<EpisodeIngestionResponse> {
+  const payload = await postJson(
+    "/api/releases/episodes/" + episodeId + "/replace",
+    input,
+  );
   const result = responseSchema.safeParse(payload);
   if (!result.success) {
     throw new EpisodeIngestionResponseError(result.error.issues);

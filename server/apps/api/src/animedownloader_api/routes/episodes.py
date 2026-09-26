@@ -214,6 +214,7 @@ async def update_episode(
     return await service.update_episode(
         episode_id,
         EpisodeUpdateData(
+            release_group_id=payload.release_group_id,
             episode_number=payload.episode_number,
             title=payload.title,
             source=payload.source,

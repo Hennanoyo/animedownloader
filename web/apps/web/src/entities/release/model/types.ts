@@ -64,7 +64,8 @@ export interface ReleaseDiscoveryItem {
 export type EpisodeIngestionStatus =
   | "created"
   | "idempotent"
-  | "replacement_candidate";
+  | "replacement_candidate"
+  | "replaced";
 
 export interface EpisodeIngestionResponse {
   status: EpisodeIngestionStatus;
@@ -74,6 +75,11 @@ export interface EpisodeIngestionResponse {
 
 export interface EpisodeIngestionInput {
   anime_id: string;
+  release: Release;
+  parsed: ParsedRelease;
+}
+
+export interface EpisodeReleaseReplacementInput {
   release: Release;
   parsed: ParsedRelease;
 }

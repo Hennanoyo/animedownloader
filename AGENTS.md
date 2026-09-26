@@ -64,6 +64,16 @@ See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 - Orphan source cleanup must check both DownloadJob and MediaProcessingJob references before allowing deletion.
 - Deleting a source directory must never implicitly delete derived media-storage artifacts or persistent processing history.
 
+## Release Provenance & Replacement Rules
+
+- An Episode may persist a nullable reference to an existing enabled ReleaseGroup; release discovery/ingestion must never auto-create ReleaseGroup records.
+- Treat the Episode's release provenance as durable metadata separate from the ephemeral provider search result.
+- Re-ingestion of the same release may refresh mutable provider metadata and a known ReleaseGroup reference, but must not overwrite user-edited Episode title or execution state.
+- Release replacement must be an explicit user action. Never replace an Episode automatically because another release appears newer, healthier, or better seeded.
+- Reject release replacement when the Episode has any DownloadJob, MediaProcessingJob, or MediaAsset history. Preserving existing execution/media history is safer than rewriting provenance around it.
+- A successful replacement updates release provenance/metadata only; it must not create or start a DownloadJob.
+- Unknown release groups remain unlinked until an operator creates/configures the corresponding ReleaseGroup.
+
 ## Storage Rules
 
 - Persist storage `object_key` values in PostgreSQL rather than environment-specific public URLs.

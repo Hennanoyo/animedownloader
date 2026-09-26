@@ -35,6 +35,7 @@ export type ConversionStatus = (typeof conversionStatuses)[number];
 export interface Episode {
   id: string;
   anime_id: string;
+  release_group_id: string | null;
   episode_number: number;
   title: string;
   source: string;
@@ -68,6 +69,7 @@ export interface Anime {
 }
 
 export interface EpisodeInput {
+  release_group_id?: string | null;
   episode_number: number;
   title: string;
   source: string;

@@ -50,6 +50,9 @@ class FakeIngestionService:
     async def ingest(self, **_: object) -> EpisodeIngestionResult:
         return self.result
 
+    async def replace(self, **_: object) -> EpisodeIngestionResult:
+        return self.result
+
 
 @pytest.mark.anyio
 async def test_search_releases() -> None:
@@ -243,4 +246,91 @@ async def test_ingest_release_returns_created_episode() -> None:
     payload = response.json()
     assert payload["status"] == "created"
     assert payload["episode"]["episode_number"] == 8
+    assert payload["existing_episode"] is None
+
+
+@pytest.mark.anyio
+async def test_replace_episode_release_returns_replaced_episode() -> None:
+    anime_id = uuid7()
+    episode_id = uuid7()
+    now = datetime(2026, 9, 26, tzinfo=UTC)
+    episode = Episode(
+        id=episode_id,
+        anime_id=anime_id,
+        episode_number=1,
+        title="User title",
+        source="nyaa",
+        source_id="e2e-release-2",
+        source_title="New release",
+        source_url="https://e2e.invalid/release/2",
+        torrent_url="https://e2e.invalid/download/2.torrent",
+        size="1.3 GiB",
+        seeders=20,
+        leechers=2,
+        downloads=40,
+        info_hash="cccccccccccccccccccccccccccccccccccccccc",
+        download_status="not_started",
+        conversion_status="not_started",
+        created_at=now,
+        updated_at=now,
+    )
+    service = FakeIngestionService(
+        EpisodeIngestionResult(
+            status=EpisodeIngestionStatus.REPLACED,
+            episode=episode,
+            existing_episode=None,
+        ),
+    )
+
+    app = create_app()
+    app.dependency_overrides[get_release_ingestion_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+    ) as client:
+        response = await client.post(
+            f"/api/releases/episodes/{episode_id}/replace",
+            json={
+                "release": {
+                    "source": "nyaa",
+                    "id": "e2e-release-2",
+                    "title": "New release",
+                    "page_url": "https://e2e.invalid/release/2",
+                    "torrent_url": "https://e2e.invalid/download/2.torrent",
+                    "published_at": None,
+                    "size": "1.3 GiB",
+                    "seeders": 20,
+                    "leechers": 2,
+                    "downloads": 40,
+                    "info_hash": "cccccccccccccccccccccccccccccccccccccccc",
+                },
+                "parsed": {
+                    "provider_source": "nyaa",
+                    "source_id": "e2e-release-2",
+                    "original_title": "New release",
+                    "normalized_title": "New release",
+                    "release_group": "ExampleSubs",
+                    "series_title": "Frieren",
+                    "episode_number": 1,
+                    "episode_title": "Parsed title",
+                    "season_number": None,
+                    "resolution": "1080p",
+                    "source": "WEB",
+                    "video_codec": "HEVC",
+                    "audio_codec": "AAC",
+                    "bit_depth": 10,
+                    "status": "parsed",
+                    "warnings": [],
+                    "failed_required_fields": [],
+                    "parser_profile_version": 1,
+                },
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "replaced"
+    assert payload["episode"]["id"] == str(episode_id)
     assert payload["existing_episode"] is None

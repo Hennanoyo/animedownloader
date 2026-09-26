@@ -24,7 +24,7 @@ import type {
 } from "../../../entities/release/model/types";
 import { useReleaseGroups } from "../../../entities/release/model/useReleaseGroups";
 import { useReleaseDiscovery } from "../model/useReleaseDiscovery";
-import { useIngestRelease } from "../model/useIngestRelease";
+import { useIngestRelease, useReplaceRelease } from "../model/useIngestRelease";
 import styles from "./ReleaseDiscoveryPanel.module.scss";
 
 const schema = z.object({
@@ -581,12 +581,28 @@ function DiscoveryResults({
   profileVersion,
 }: DiscoveryResultsProps) {
   const ingest = useIngestRelease(animeId);
+  const replace = useReplaceRelease(animeId);
   const [ingestions, setIngestions] = useState<
     Record<string, EpisodeIngestionResponse>
   >({});
 
   async function handleIngest(item: ReleaseDiscoveryItem) {
     const result = await ingest.mutateAsync({
+      release: item.release,
+      parsed: item.parsed,
+    });
+    setIngestions((current) => ({
+      ...current,
+      [item.release.id]: result,
+    }));
+  }
+
+  async function handleReplace(
+    item: ReleaseDiscoveryItem,
+    episodeId: string,
+  ) {
+    const result = await replace.mutateAsync({
+      episodeId,
       release: item.release,
       parsed: item.parsed,
     });
@@ -622,8 +638,12 @@ function DiscoveryResults({
         <p className={styles.empty}>No matching releases were found.</p>
       ) : (
         <div className={styles.list}>
-          {items.map((item) => (
-            <article className={styles.card} key={item.release.id}>
+          {items.map((item) => {
+            const ingestion = ingestions[item.release.id];
+            const existingEpisode = ingestion?.existing_episode;
+
+            return (
+              <article className={styles.card} key={item.release.id}>
               <div className={styles.cardHeader}>
                 <div>
                   <h3>{item.release.title}</h3>
@@ -717,15 +737,43 @@ function DiscoveryResults({
                 </div>
               </div>
 
-              {ingestions[item.release.id] ? (
-                <p
+              {ingestion ? (
+                <div
                   className={styles.ingestResult}
-                  data-status={ingestions[item.release.id].status}
+                  data-status={ingestion.status}
                 >
-                  {formatIngestionResult(
-                    ingestions[item.release.id],
-                  )}
-                </p>
+                  <p>{formatIngestionResult(ingestion)}</p>
+                  {ingestion.status === "replacement_candidate" &&
+                  existingEpisode ? (
+                    <div className={styles.replacementActions}>
+                      <span>
+                        Existing release:{" "}
+                        {existingEpisode.source_title ?? "Unknown"}
+                      </span>
+                      <Button
+                        className={styles.replaceButton}
+                        onPress={() =>
+                          void handleReplace(item, existingEpisode.id)
+                        }
+                        isDisabled={
+                          replace.isPending ||
+                          item.parsed.status !== "parsed" ||
+                          item.parsed.episode_number === null
+                        }
+                      >
+                        {replace.isPending &&
+                        replace.variables?.episodeId === existingEpisode.id
+                          ? "Replacing..."
+                          : "Replace release"}
+                      </Button>
+                    </div>
+                  ) : null}
+                  {replace.isError ? (
+                    <p className={styles.error} role="alert">
+                      Failed to replace release: {replace.error.message}
+                    </p>
+                  ) : null}
+                </div>
               ) : null}
 
               <div className={styles.links}>
@@ -744,8 +792,9 @@ function DiscoveryResults({
                   Torrent
                 </a>
               </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
     </div>
@@ -777,6 +826,13 @@ function formatIngestionResult(result: EpisodeIngestionResponse): string {
       "Episode " +
       result.episode.episode_number +
       " was already linked; release metadata was refreshed."
+    );
+  }
+  if (result.status === "replaced" && result.episode) {
+    return (
+      "Episode " +
+      result.episode.episode_number +
+      " release was replaced."
     );
   }
   if (result.existing_episode) {

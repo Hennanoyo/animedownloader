@@ -1,5 +1,7 @@
 from typing import Annotated
+from uuid import UUID
 
+from animedownloader_anime import AnimeNotFoundError, EpisodeNotFoundError
 from animedownloader_nyaa import NyaaClient, NyaaError
 from animedownloader_releases import AnimeMatchResult, Release, SearchField
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -15,12 +17,14 @@ from animedownloader_api.release_ingestion import (
     EpisodeIngestionService,
     ReleaseDoesNotMatchAnimeError,
     ReleaseNotActionableError,
+    ReleaseReplacementConflictError,
 )
 from animedownloader_api.schemas import (
     AnimeMatchCandidateResponse,
     AnimeMatchResponse,
     EpisodeIngestionRequest,
     EpisodeIngestionResponse,
+    EpisodeReleaseReplacementRequest,
     EpisodeResponse,
     ParsedReleaseResponse,
     ReleaseDiscoveryItemResponse,
@@ -122,6 +126,34 @@ async def ingest_release(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ReleaseDoesNotMatchAnimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return _ingestion_response(result)
+
+
+@router.post(
+    "/episodes/{episode_id}/replace",
+    response_model=EpisodeIngestionResponse,
+)
+async def replace_episode_release(
+    episode_id: UUID,
+    payload: EpisodeReleaseReplacementRequest,
+    service: EpisodeIngestionServiceDependency,
+) -> EpisodeIngestionResponse:
+    try:
+        result = await service.replace(
+            episode_id=episode_id,
+            release=_release_from_response(payload.release),
+            parsed=payload.parsed.to_parsed(),
+        )
+    except (AnimeNotFoundError, EpisodeNotFoundError) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (
+        ReleaseDoesNotMatchAnimeError,
+        ReleaseReplacementConflictError,
+    ) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ReleaseNotActionableError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return _ingestion_response(result)
 

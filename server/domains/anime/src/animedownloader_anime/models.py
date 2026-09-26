@@ -55,6 +55,10 @@ class Episode(Base):
         ForeignKey("animes.id", ondelete="CASCADE"),
         index=True,
     )
+    release_group_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("release_groups.id", ondelete="SET NULL"),
+        index=True,
+    )
     episode_number: Mapped[int] = mapped_column(Integer)
     title: Mapped[str] = mapped_column(String(300))
     source: Mapped[str] = mapped_column(String(32))

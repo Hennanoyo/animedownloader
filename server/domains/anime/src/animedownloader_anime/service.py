@@ -118,6 +118,8 @@ class AnimeService:
             ):
                 raise DuplicateEpisodeError(data.episode_number)
 
+            if data.release_group_id is not None:
+                episode.release_group_id = data.release_group_id
             if data.episode_number is not None:
                 episode.episode_number = data.episode_number
             if data.title is not None:
@@ -175,6 +177,7 @@ class AnimeService:
     def _build_episode(anime: Anime, data: EpisodeCreateData) -> Episode:
         return Episode(
             anime=anime,
+            release_group_id=data.release_group_id,
             episode_number=data.episode_number,
             title=data.title.strip(),
             source=data.source,

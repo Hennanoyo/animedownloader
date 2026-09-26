@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is also complete through PR #40. Media Source Lifecycle & Recovery is complete through PR #41; the current phase is User-facing Media Source Recovery & Orphan Cleanup.
+The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is complete through PR #40. Media Source Lifecycle & Recovery is complete through PR #42; the current phase is Release Provenance & Explicit Replacement.
 
 ## Completed
 
@@ -850,7 +850,17 @@ The following PR can add explicit user-facing source recovery actions and a cons
 
 ### PR #42 — User-facing Media Source Recovery & Orphan Cleanup
 
-**Current development phase.**
+**Merged into `main` as commit `e23e3fa71994e9bf2839dece3a789f37e11245ee`.**
+
+- Added deterministic user-facing downloaded-source inspection and recovery
+- Added explicit ambiguous-source selection with path traversal protection
+- Added explicit media reprocessing and explicit re-download without deleting prior history
+- Added orphan download-source inventory and destructive cleanup with DownloadJob/MediaProcessingJob/MediaAsset reference protection
+- Added Anime detail source review and Downloads-page orphan maintenance UI
+- Documented source lifecycle and recovery safety boundaries
+- Added Backend, Frontend, Browser, and Integration coverage
+
+
 
 Goal: make local downloaded source state inspectable and recoverable from the application while keeping re-download and destructive cleanup explicitly user-controlled.
 
@@ -889,6 +899,8 @@ Out of scope:
 - additional media/player features
 
 ## Handoff Notes:
+
+PR #43 is the active branch `feature/release-provenance-replacement`. The branch starts from merged PR #42 and is focused on durable Episode release provenance plus an explicit, history-safe replacement action.
 
 ## Handoff Notes
 

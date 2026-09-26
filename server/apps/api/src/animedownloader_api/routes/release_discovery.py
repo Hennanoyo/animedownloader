@@ -1,11 +1,11 @@
 from typing import Annotated
 from uuid import UUID
 
-from animedownloader_anime import Anime, AnimeNotFoundError, AnimeService
+from animedownloader_anime import AnimeService
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import select
 
 from animedownloader_api.dependencies import get_anime_service, get_db_session
+from sqlalchemy.ext.asyncio import AsyncSession
 from animedownloader_api.release_candidates import (
     ReleaseCandidateStatus,
     ReleaseDiscoveryCandidateService,
@@ -22,7 +22,7 @@ from animedownloader_api.release_discovery_scheduler import ReleaseDiscoverySche
 
 router = APIRouter(prefix="/api", tags=["release-discovery"])
 
-SessionDependency = Annotated[object, Depends(get_db_session)]
+SessionDependency = Annotated[AsyncSession, Depends(get_db_session)]
 AnimeServiceDependency = Annotated[AnimeService, Depends(get_anime_service)]
 
 
@@ -155,7 +155,7 @@ async def run_discovery_now(
     return ReleaseDiscoveryRunResponse.model_validate(run, from_attributes=True)
 
 
-def _candidate_response(candidate) -> ReleaseDiscoveryCandidateResponse:
+def _candidate_response(candidate: object) -> ReleaseDiscoveryCandidateResponse:
     return ReleaseDiscoveryCandidateResponse(
         id=candidate.id,
         anime_id=candidate.anime_id,

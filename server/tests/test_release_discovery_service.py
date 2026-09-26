@@ -14,6 +14,7 @@ from animedownloader_releases import (
     ParsedRelease,
     ParseStatus,
     Release,
+    ReleaseSearchResult,
     SearchField,
     SearchPlan,
     SearchPlanQuery,
@@ -45,15 +46,17 @@ class FakeNyaaClient:
     def __init__(self) -> None:
         self.queries: list[str] = []
 
-    async def search(self, query: str) -> list[Release]:
+    async def search(self, query: str) -> ReleaseSearchResult:
         self.queries.append(query)
         if query == "ExampleSubs Frieren 1 1080p HEVC":
-            return [
-                replace(
-                    _release("[ExampleSubs] Frieren - 01 [1080p][HEVC]"),
-                    id="release-1",
+            return ReleaseSearchResult(
+                items=(
+                    replace(
+                        _release("[ExampleSubs] Frieren - 01 [1080p][HEVC]"),
+                        id="release-1",
+                    ),
                 ),
-            ]
+            )
         raise NyaaError("unexpected second request")
 
 
@@ -198,9 +201,9 @@ async def test_discovery_executes_each_plan_query_and_deduplicates_results() -> 
         async def search(self, query: str) -> list[Release]:
             self.queries.append(query)
             if query == "ExampleSubs Frieren":
-                return [first]
+                return ReleaseSearchResult(items=(first,))
             if query == "ExampleSubs Sousou no Frieren":
-                return [replace(first), second]
+                return ReleaseSearchResult(items=(replace(first), second))
             raise NyaaError("unexpected query")
 
     client = MultiQueryClient()
@@ -242,7 +245,7 @@ async def test_discovery_continues_when_one_plan_query_fails() -> None:
             self.queries.append(query)
             if query == "Frieren":
                 raise NyaaError("search failed")
-            return [_release("[ExampleSubs] Frieren - 01")]
+            return ReleaseSearchResult(items=(_release("[ExampleSubs] Frieren - 01"),))
 
     client = PartialFailureClient()
     service = ReleaseDiscoveryService(session, client)

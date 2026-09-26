@@ -888,12 +888,12 @@ test("saves the Search Plan and configures Discovery automation", async ({ page 
   await discovery
     .getByRole("combobox", { name: "Resolution", exact: true })
     .fill("1080p");
-  await discovery
-    .getByRole("combobox", { name: "Codec", exact: true })
-    .fill("HEVC");
-  await discovery
-    .getByRole("combobox", { name: "Source", exact: true })
-    .fill("WEB");
+  await discovery.locator(
+    '[data-search-field="codec"] input[aria-label="Codec"]',
+  ).fill("HEVC");
+  await discovery.locator(
+    '[data-search-field="source"] input[aria-label="Source"]',
+  ).fill("WEB");
 
   await discovery
     .getByRole("button", { name: "Create Search Plan" })

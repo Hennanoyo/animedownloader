@@ -2,9 +2,14 @@ from typing import Annotated
 from uuid import UUID
 
 from animedownloader_anime import AnimeService
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from animedownloader_api.dependencies import get_anime_service, get_db_session
+from animedownloader_api.dependencies import (
+    get_anime_service,
+    get_db_session,
+    get_release_discovery_candidate_service,
+    get_release_discovery_scheduler,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from animedownloader_api.release_candidates import (
     ReleaseCandidateStatus,
@@ -25,6 +30,14 @@ router = APIRouter(prefix="/api", tags=["release-discovery"])
 
 SessionDependency = Annotated[AsyncSession, Depends(get_db_session)]
 AnimeServiceDependency = Annotated[AnimeService, Depends(get_anime_service)]
+CandidateServiceDependency = Annotated[
+    ReleaseDiscoveryCandidateService,
+    Depends(get_release_discovery_candidate_service),
+]
+SchedulerDependency = Annotated[
+    ReleaseDiscoveryScheduler,
+    Depends(get_release_discovery_scheduler),
+]
 
 
 @router.get(
@@ -32,7 +45,7 @@ AnimeServiceDependency = Annotated[AnimeService, Depends(get_anime_service)]
     response_model=list[ReleaseDiscoveryCandidateResponse],
 )
 async def list_candidates(
-    session: SessionDependency,
+    service: CandidateServiceDependency,
     anime_id: UUID | None = None,
     status_filter: Annotated[
         ReleaseCandidateStatus | None,
@@ -40,7 +53,6 @@ async def list_candidates(
     ] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
 ) -> list[ReleaseDiscoveryCandidateResponse]:
-    service = ReleaseDiscoveryCandidateService(session)
     candidates = await service.list_candidates(
         anime_id=anime_id,
         status=status_filter,
@@ -56,11 +68,11 @@ async def list_candidates(
 async def update_candidate(
     candidate_id: UUID,
     payload: ReleaseDiscoveryCandidateUpdate,
-    session: SessionDependency,
+    service: CandidateServiceDependency,
 ) -> ReleaseDiscoveryCandidateResponse:
     try:
         next_status = ReleaseCandidateStatus(payload.status)
-        candidate = await ReleaseDiscoveryCandidateService(session).update_candidate_status(
+        candidate = await service.update_candidate_status(
             candidate_id,
             next_status,
         )
@@ -74,11 +86,11 @@ async def update_candidate(
     response_model=list[ReleaseDiscoveryRunResponse],
 )
 async def list_runs(
-    session: SessionDependency,
+    service: CandidateServiceDependency,
     anime_id: UUID | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> list[ReleaseDiscoveryRunResponse]:
-    runs = await ReleaseDiscoveryCandidateService(session).list_runs(
+    runs = await service.list_runs(
         anime_id=anime_id,
         limit=limit,
     )
@@ -95,10 +107,10 @@ async def list_runs(
 async def get_schedule(
     anime_id: UUID,
     anime_service: AnimeServiceDependency,
-    session: SessionDependency,
+    service: CandidateServiceDependency,
 ) -> ReleaseDiscoveryScheduleResponse:
     await anime_service.get_anime(anime_id)
-    schedule = await ReleaseDiscoveryCandidateService(session).get_schedule(anime_id)
+    schedule = await service.get_schedule(anime_id)
     return ReleaseDiscoveryScheduleResponse.model_validate(schedule, from_attributes=True)
 
 
@@ -110,11 +122,11 @@ async def update_schedule(
     anime_id: UUID,
     payload: ReleaseDiscoveryScheduleUpdate,
     anime_service: AnimeServiceDependency,
-    session: SessionDependency,
+    service: CandidateServiceDependency,
 ) -> ReleaseDiscoveryScheduleResponse:
     await anime_service.get_anime(anime_id)
     try:
-        schedule = await ReleaseDiscoveryCandidateService(session).update_schedule(
+        schedule = await service.update_schedule(
             anime_id,
             enabled=payload.enabled,
             interval_minutes=payload.interval_minutes,
@@ -131,20 +143,18 @@ async def update_schedule(
 )
 async def run_discovery_now(
     anime_id: UUID,
-    request: Request,
     anime_service: AnimeServiceDependency,
-    session: SessionDependency,
+    service: CandidateServiceDependency,
+    scheduler: SchedulerDependency,
 ) -> ReleaseDiscoveryRunResponse:
     await anime_service.get_anime(anime_id)
-    run = await ReleaseDiscoveryCandidateService(session).create_manual_run(anime_id)
-    scheduler = request.app.state.release_discovery_scheduler
-    assert isinstance(scheduler, ReleaseDiscoveryScheduler)
+    run = await service.create_manual_run(anime_id)
 
     if run.status == "queued":
         try:
             await scheduler.enqueue_run(run.id)
         except Exception as exc:
-            await ReleaseDiscoveryCandidateService(session).fail_run(
+            await service.fail_run(
                 run.id,
                 f"Failed to enqueue discovery task: {type(exc).__name__}: {exc}",
             )

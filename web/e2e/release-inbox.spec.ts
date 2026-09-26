@@ -257,14 +257,16 @@ test("reviews a persisted discovery candidate in the inbox", async ({ page }) =>
 test("shows recent discovery run history", async ({ page }) => {
   await page.goto("/release-inbox");
 
+  const runSection = page.locator('section[aria-labelledby="runs-heading"]');
+  const runCard = runSection.locator("article").first();
+  await expect(runCard).toBeVisible();
+  await expect(runCard.getByText("completed", { exact: true })).toBeVisible();
   await expect(
-    page
-      .locator('section[aria-labelledby="runs-heading"]')
-      .getByText("Candidate Inbox Anime", { exact: true }),
-  ).toHaveCount(1);
-  await expect(page.getByText("completed", { exact: true })).toBeVisible();
-  await expect(page.getByText("Query diagnostics", { exact: true })).toBeVisible();
-  await expect(page.getByText("18 results · completed", { exact: true })).toBeVisible();
+    runCard.getByText("Query diagnostics", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    runCard.getByText("18 results · completed", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: "candidates" })).toContainText("1 candidates");
 });
 

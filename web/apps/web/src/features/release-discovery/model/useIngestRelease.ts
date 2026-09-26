@@ -18,3 +18,27 @@ export function useIngestRelease(animeId: string) {
     },
   });
 }
+
+
+import { replaceEpisodeRelease } from "../../../entities/release/api/ingestRelease";
+import type { EpisodeReleaseReplacementInput } from "../../../entities/release/model/types";
+
+export function useReplaceRelease(animeId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      episodeId,
+      ...input
+    }: EpisodeReleaseReplacementInput & { episodeId: string }) =>
+      replaceEpisodeRelease(episodeId, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["animes", animeId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["anime-pipelines", animeId],
+      });
+    },
+  });
+}

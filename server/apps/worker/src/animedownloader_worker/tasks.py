@@ -41,7 +41,6 @@ from animedownloader_media_processing import (
 )
 from animedownloader_nyaa import NyaaClient
 from animedownloader_qbittorrent import QBittorrentClient
-from animedownloader_releases import SearchField
 from sqlalchemy import select
 
 from .broker import broker
@@ -87,17 +86,25 @@ async def run_release_discovery(run_id: str) -> None:
             if anime is None:
                 raise ValueError(f"anime not found for discovery run: {run.anime_id}")
 
-            search_title = anime.titles.get("romaji") or anime.title
             anime_id = anime.id
+
+        # Build the bounded Search Plan from persisted Anime titles, release
+        # preferences, and any active group-specific Search Profile before
+        # opening the provider I/O session.
+        async with database.session_factory() as session:
+            discovery = ReleaseDiscoveryService(session, NyaaClient())
+            search_plan, search_profile_version = (
+                await discovery.build_anime_search_plan(anime_id)
+            )
 
         # Keep provider I/O and read-heavy discovery work isolated from the
         # persistence transaction that records the normalized candidates.
         async with NyaaClient() as client, database.session_factory() as session:
             discovery = ReleaseDiscoveryService(session, client)
-            result = await discovery.discover(
-                title=search_title,
+            result = await discovery.discover_plan(
+                search_plan,
                 anime_id=anime_id,
-                fields=(SearchField.TITLE,),
+                search_profile_version=search_profile_version,
             )
 
         async with database.session_factory() as session:

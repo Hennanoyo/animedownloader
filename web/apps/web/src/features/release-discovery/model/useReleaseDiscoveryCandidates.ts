@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  acceptReleaseDiscoveryCandidate,
   getReleaseDiscoverySchedule,
   listReleaseDiscoveryCandidates,
   listReleaseDiscoveryRuns,
@@ -56,6 +57,37 @@ export function useRunReleaseDiscoveryNow(animeId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ["release-discovery-runs", animeId],
+      });
+    },
+  });
+}
+
+export function useAcceptReleaseDiscoveryCandidate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      candidateId,
+      replaceEpisodeId,
+    }: {
+      candidateId: string;
+      replaceEpisodeId?: string;
+    }) => acceptReleaseDiscoveryCandidate(candidateId, replaceEpisodeId),
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["release-discovery-candidates"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["release-discovery-runs"],
+      });
+      queryClient.setQueryData(
+        ["release-discovery-candidate", data.candidate.id],
+        data.candidate,
+      );
+      void queryClient.invalidateQueries({
+        queryKey: ["animes", data.candidate.anime_id],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["anime-pipelines", data.candidate.anime_id],
       });
     },
   });

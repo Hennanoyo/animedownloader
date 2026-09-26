@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is complete through PR #40. Media Source Lifecycle & Recovery is complete through PR #42. Release Provenance & Explicit Replacement is complete through PR #43. Anime Release Preferences & Candidate Ranking is complete through PR #44. Periodic Release Discovery & Candidate Inbox is complete through PR #45; the next phase is Explicit Candidate Acceptance & Download Policy.
+The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is complete through PR #40. Media Source Lifecycle & Recovery is complete through PR #42. Release Provenance & Explicit Replacement is complete through PR #43. Anime Release Preferences & Candidate Ranking is complete through PR #44. Periodic Release Discovery & Candidate Inbox is complete through PR #45; the current phase is Explicit Candidate Acceptance & Download Policy.
 
 ## Completed
 
@@ -951,10 +951,6 @@ Out of scope:
 
 **Status: Merged** into `main` as commit `b16dd701e8b22c1f94872f2d36c449a2a55ed795`.
 
-Goal: periodically execute the existing Anime discovery recipe, retain normalized candidates as a deliberate application record, and give the user a reviewable inbox while keeping provider RSS/search payloads ephemeral.
-
-Completed scope:
-
 - Added persisted per-Anime discovery schedules and transactional due-run claiming
 - Added durable discovery-run state with query, counts, warnings, timestamps, and failure diagnostics
 - Added normalized candidate persistence with stable Anime/provider/source identity and latest observation updates
@@ -964,33 +960,64 @@ Completed scope:
 - Added Anime-detail scheduling controls and a dedicated Discovery Inbox UI
 - Added backend, frontend, browser, and integration regression coverage
 - Fixed SQLAlchemy transaction-boundary issues in both API-triggered and worker-side discovery execution
-- Documented candidate lifecycle and safety rules in `AGENTS.md` and `docs/architecture/release-discovery.md`
 
 Safety boundary:
 
 - Discovery only collects and persists review candidates. It does not create or replace Episodes and does not create or start DownloadJobs.
 
-### Next Phase — Explicit Candidate Acceptance & Download Policy
+## Current Phase — Explicit Candidate Acceptance & Download Policy
+
+### PR #46 — Explicit Candidate Acceptance & Download Policy
+
+**Current development phase.**
 
 Goal: turn a reviewed candidate into an Episode only through an explicit user action, then keep download creation as a separate explicit step.
 
-Planned implementation order:
+Current implementation:
 
-1. Add candidate acceptance API/action that revalidates the candidate's Anime match and parsed episode data before ingestion.
-2. Reuse `EpisodeIngestionService` for new Episode creation and same-release idempotency rather than writing Episodes directly from the candidate model.
-3. Surface an explicit replacement flow when the target episode already has a different release, preserving existing DownloadJob/media history guards.
-4. Keep DownloadJob creation separate from acceptance so accepting a release never starts a torrent implicitly.
-5. Add an explicit Download action/policy boundary for accepted Episodes and preserve the existing DownloadJob → Taskiq → qBittorrent flow.
-6. Add Anime-detail/Discovery Inbox UI for accept, replacement review, and the separate download action.
-7. Add backend, browser, and integration coverage for acceptance idempotency, replacement protection, and download separation.
+- Added a dedicated candidate-acceptance service that reconstructs the persisted Release/ParsedRelease snapshot and delegates Episode state changes to EpisodeIngestionService
+- Added candidate acceptance API with explicit replacement targeting
+- Added candidate status transition to accepted after successful creation, idempotent re-ingestion, or explicit replacement
+- Added replacement-target validation for Anime and episode-number identity
+- Strengthened Episode replacement to reject a mismatched candidate episode number
+- Added Discovery Inbox Accept and Replace Episode actions
+- Added candidate acceptance API/browser regression coverage
+- Kept DownloadJob creation completely separate from candidate acceptance
 
-Constraints:
+Workflow:
 
-- Candidate acceptance must never bypass deterministic Anime matching or Episode ingestion/replacement guards.
-- A candidate remains a review record until the user explicitly accepts it.
-- Acceptance must not silently create or start a DownloadJob.
-- Existing Episode titles and execution/media history remain protected.
-- Automatic candidate selection and automatic download scheduling remain separate future workflows.
+```
+Candidate
+   ↓
+User: Accept
+   ↓
+Current Anime/match revalidation
+   ↓
+EpisodeIngestionService
+   ├─ new Episode
+   ├─ idempotent update
+   └─ replacement candidate
+          ↓
+      User: Replace
+          ↓
+      EpisodeIngestionService.replace
+   ↓
+Accepted Candidate + Episode
+   ↓
+Separate user-triggered Download
+   ↓
+DownloadJob → Taskiq → qBittorrent
+```
+
+Design constraints:
+
+- Rejected and stale candidates cannot be accepted.
+- Candidate acceptance never directly writes Episode rows.
+- Existing Episode title and execution/media history remain protected.
+- A replacement request must name the target Episode and match the candidate Anime and episode number.
+- Existing DownloadJob, MediaProcessingJob, and MediaAsset replacement guards remain authoritative.
+- Accepting a candidate never creates or starts a DownloadJob.
+- Automatic candidate selection and automatic download scheduling remain separate future phases.
 
 Out of scope:
 
@@ -998,8 +1025,9 @@ Out of scope:
 - automatic download scheduling
 - new release providers
 - media/player changes
+
 ## Handoff Notes
 
-PR #45 is merged into `main`; the next development branch should start from the latest `main` and implement Explicit Candidate Acceptance & Download Policy. Candidate collection, acceptance, Episode ingestion/replacement, and DownloadJob creation must remain explicit workflow boundaries.
+PR #45 is merged into `main`, and PR #46 is the active branch `feature/explicit-candidate-acceptance-download-policy`. The next work should complete explicit candidate acceptance/replacement and keep DownloadJob creation as a separate user action.
 
 For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current repository state, and recent commits. Treat the repository state as authoritative and update this file whenever the development phase changes.

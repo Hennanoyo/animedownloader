@@ -5,6 +5,7 @@ import { getJson, patchJson, postJson } from "../../../shared/api/client";
 export const releaseCandidateStatuses = [
   "new",
   "reviewed",
+  "accepted",
   "rejected",
   "stale",
 ] as const;
@@ -58,6 +59,35 @@ const candidateSchema = z.object({
   reviewed_at: z.coerce.date().nullable(),
 });
 
+const episodeSchema = z.object({
+  id: z.uuid(),
+  anime_id: z.uuid(),
+  release_group_id: z.uuid().nullable(),
+  episode_number: z.number().int().positive(),
+  title: z.string(),
+  source: z.string(),
+  source_id: z.string().nullable(),
+  source_title: z.string().nullable(),
+  source_url: z.string().url().nullable(),
+  torrent_url: z.string().url(),
+  size: z.string().nullable(),
+  seeders: z.number().int().nonnegative().nullable(),
+  leechers: z.number().int().nonnegative().nullable(),
+  downloads: z.number().int().nonnegative().nullable(),
+  info_hash: z.string().nullable(),
+  download_status: z.string(),
+  conversion_status: z.string(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+const acceptanceSchema = z.object({
+  status: z.enum(["created", "idempotent", "replacement_candidate", "replaced"]),
+  candidate: candidateSchema,
+  episode: episodeSchema.nullable(),
+  existing_episode: episodeSchema.nullable(),
+});
+
 const runSchema = z.object({
   id: z.uuid(),
   anime_id: z.uuid(),
@@ -83,6 +113,7 @@ const scheduleSchema = z.object({
 });
 
 export type ReleaseDiscoveryCandidate = z.infer<typeof candidateSchema>;
+export type ReleaseDiscoveryCandidateAcceptance = z.infer<typeof acceptanceSchema>;
 export type ReleaseDiscoveryRun = z.infer<typeof runSchema>;
 export type ReleaseDiscoverySchedule = z.infer<typeof scheduleSchema>;
 
@@ -121,6 +152,21 @@ export async function updateReleaseDiscoveryCandidate(
     { signal },
   );
   const result = candidateSchema.safeParse(payload);
+  if (!result.success) throw new ReleaseDiscoveryCandidateResponseError(result.error.issues);
+  return result.data;
+}
+
+export async function acceptReleaseDiscoveryCandidate(
+  candidateId: string,
+  replaceEpisodeId?: string,
+  signal?: AbortSignal,
+): Promise<ReleaseDiscoveryCandidateAcceptance> {
+  const payload = await postJson(
+    "/api/release-discovery/candidates/" + candidateId + "/accept",
+    { replace_episode_id: replaceEpisodeId ?? null },
+    { signal },
+  );
+  const result = acceptanceSchema.safeParse(payload);
   if (!result.success) throw new ReleaseDiscoveryCandidateResponseError(result.error.issues);
   return result.data;
 }

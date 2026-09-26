@@ -1,13 +1,19 @@
 from typing import Annotated
 from uuid import UUID
 
-from animedownloader_anime import AnimeService
+from animedownloader_anime import AnimeService, EpisodeNotFoundError
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from animedownloader_api.dependencies import (
     get_anime_service,
+    get_release_discovery_candidate_acceptance_service,
     get_release_discovery_candidate_service,
     get_release_discovery_scheduler,
+)
+from animedownloader_api.release_candidate_acceptance import (
+    ReleaseCandidateNotAcceptableError,
+    ReleaseCandidateReplacementTargetError,
+    ReleaseDiscoveryCandidateAcceptanceService,
 )
 from animedownloader_api.release_candidates import (
     ReleaseCandidateStatus,
@@ -15,7 +21,16 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidateService,
 )
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
+from animedownloader_api.release_ingestion import (
+    ReleaseDoesNotMatchAnimeError,
+    ReleaseNotActionableError,
+    ReleaseReplacementConflictError,
+)
 from animedownloader_api.schemas import (
+    EpisodeIngestionStatus,
+    EpisodeResponse,
+    ReleaseDiscoveryCandidateAcceptanceRequest,
+    ReleaseDiscoveryCandidateAcceptanceResponse,
     ReleaseDiscoveryCandidateResponse,
     ReleaseDiscoveryCandidateUpdate,
     ReleaseDiscoveryMatchCandidateResponse,
@@ -30,6 +45,10 @@ AnimeServiceDependency = Annotated[AnimeService, Depends(get_anime_service)]
 CandidateServiceDependency = Annotated[
     ReleaseDiscoveryCandidateService,
     Depends(get_release_discovery_candidate_service),
+]
+AcceptanceServiceDependency = Annotated[
+    ReleaseDiscoveryCandidateAcceptanceService,
+    Depends(get_release_discovery_candidate_acceptance_service),
 ]
 SchedulerDependency = Annotated[
     ReleaseDiscoveryScheduler,
@@ -76,6 +95,49 @@ async def update_candidate(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return _candidate_response(candidate)
+
+
+@router.post(
+    "/release-discovery/candidates/{candidate_id}/accept",
+    response_model=ReleaseDiscoveryCandidateAcceptanceResponse,
+)
+async def accept_candidate(
+    candidate_id: UUID,
+    payload: ReleaseDiscoveryCandidateAcceptanceRequest,
+    service: AcceptanceServiceDependency,
+) -> ReleaseDiscoveryCandidateAcceptanceResponse:
+    try:
+        result = await service.accept(
+            candidate_id,
+            replace_episode_id=payload.replace_episode_id,
+        )
+    except ReleaseCandidateNotAcceptableError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except EpisodeNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ReleaseCandidateReplacementTargetError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (ReleaseDoesNotMatchAnimeError, ReleaseReplacementConflictError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ReleaseNotActionableError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return ReleaseDiscoveryCandidateAcceptanceResponse(
+        status=EpisodeIngestionStatus(result.status.value),
+        candidate=_candidate_response(result.candidate),
+        episode=(
+            EpisodeResponse.model_validate(result.episode)
+            if result.episode is not None
+            else None
+        ),
+        existing_episode=(
+            EpisodeResponse.model_validate(result.existing_episode)
+            if result.existing_episode is not None
+            else None
+        ),
+    )
 
 
 @router.get(

@@ -1,6 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ingestRelease } from "../../../entities/release/api/ingestRelease";
-import type { EpisodeIngestionInput } from "../../../entities/release/model/types";
+import {
+  ingestRelease,
+  replaceEpisodeRelease,
+} from "../../../entities/release/api/ingestRelease";
+import type {
+  EpisodeIngestionInput,
+  EpisodeReleaseReplacementInput,
+} from "../../../entities/release/model/types";
 
 export function useIngestRelease(animeId: string) {
   const queryClient = useQueryClient();

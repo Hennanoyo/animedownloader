@@ -32,7 +32,6 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .release_discovery_config import ReleaseDiscoverySchedule
 from .release_candidate_acceptance import (
     ReleaseCandidateNotAcceptableError,
     ReleaseDiscoveryCandidateAcceptanceService,
@@ -42,6 +41,7 @@ from .release_candidates import (
     ReleaseCandidateStatus,
     ReleaseDiscoveryCandidate,
 )
+from .release_discovery_config import ReleaseDiscoverySchedule
 from .release_ingestion import ReleaseDoesNotMatchAnimeError
 
 

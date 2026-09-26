@@ -22,13 +22,13 @@ from animedownloader_api.release_candidate_automation import (
     ReleaseAutomationCandidatePreview,
     ReleaseCandidateAutomationService,
 )
-from animedownloader_api.release_discovery_config import ReleaseDiscoverySchedule
 from animedownloader_api.release_candidates import (
     ReleaseCandidateStatus,
     ReleaseDiscoveryCandidate,
     ReleaseDiscoveryCandidateService,
 )
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
+from animedownloader_api.release_discovery_config import ReleaseDiscoverySchedule
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 from animedownloader_api.release_ingestion import (
     ReleaseDoesNotMatchAnimeError,

@@ -232,12 +232,21 @@ class ReleaseCandidateAutomationService:
                             )
                         ),
                         (
-                            ReleaseCandidateAutomationStatus.CLAIMED.value
-                            == ReleaseDiscoveryCandidate.automation_status
-                        )
-                        & (
-                            ReleaseDiscoveryCandidate.automation_claimed_at
-                            < stale_before
+                            ReleaseDiscoveryCandidate.status.in_(
+                                (
+                                    ReleaseCandidateStatus.NEW.value,
+                                    ReleaseCandidateStatus.REVIEWED.value,
+                                    ReleaseCandidateStatus.ACCEPTED.value,
+                                ),
+                            )
+                            & (
+                                ReleaseDiscoveryCandidate.automation_status
+                                == ReleaseCandidateAutomationStatus.CLAIMED.value
+                            )
+                            & (
+                                ReleaseDiscoveryCandidate.automation_claimed_at
+                                < stale_before
+                            )
                         ),
                     ),
                 )
@@ -460,9 +469,8 @@ class ReleaseCandidateAutomationService:
             eligible = False
 
         if policy.require_preference_match and configured_fields == 0:
-            reasons.append(
-                "No release preference is configured; candidate is allowed by policy",
-            )
+            eligible = False
+            reasons.append("No release preference is configured")
 
         if eligible and not any(
             reason.endswith("does not match")

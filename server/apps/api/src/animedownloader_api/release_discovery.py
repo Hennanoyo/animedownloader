@@ -188,7 +188,7 @@ class ReleaseDiscoveryService:
     async def _load_release_preference(
         self,
         anime_id: UUID | None,
-    ) -> tuple[AnimeReleasePreference, ReleaseGroup] | None:
+    ) -> tuple[AnimeReleasePreference, ReleaseGroup | None] | None:
         if anime_id is None:
             return None
 

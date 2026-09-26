@@ -62,6 +62,10 @@ const responseSchema = z.object({
       release: releaseSchema,
       parsed: parsedReleaseSchema,
       match: animeMatchSchema,
+      ranking: z.object({
+        score: z.number().int().nonnegative(),
+        reasons: z.array(z.string()),
+      }),
     }),
   ),
 });
@@ -80,6 +84,7 @@ export async function discoverReleases(
   signal?: AbortSignal,
 ): Promise<ReleaseDiscoveryResponse> {
   const params = new URLSearchParams({ title: input.title });
+  if (input.anime_id) params.set("anime_id", input.anime_id);
   for (const field of input.fields) params.append("fields", field);
   if (input.group) params.set("group", input.group);
   if (input.episode !== undefined) params.set("episode", String(input.episode));

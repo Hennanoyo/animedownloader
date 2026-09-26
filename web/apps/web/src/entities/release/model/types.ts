@@ -55,10 +55,16 @@ export interface AnimeMatch {
   candidates: AnimeMatchCandidate[];
 }
 
+export interface ReleaseRanking {
+  score: number;
+  reasons: string[];
+}
+
 export interface ReleaseDiscoveryItem {
   release: Release;
   parsed: ParsedRelease;
   match: AnimeMatch;
+  ranking: ReleaseRanking;
 }
 
 export type EpisodeIngestionStatus =
@@ -102,6 +108,7 @@ export type SearchField = (typeof searchFields)[number];
 
 export interface ReleaseDiscoveryInput {
   title: string;
+  anime_id?: string;
   fields: readonly SearchField[];
   group?: string;
   episode?: number;

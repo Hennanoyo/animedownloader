@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
 
-from animedownloader_anime import Anime
+from animedownloader_anime import Anime, AnimeReleasePreference
 from animedownloader_nyaa import NyaaError
 from animedownloader_releases import (
     AnimeMatchResult,
@@ -42,10 +42,17 @@ class ReleaseSearchClient(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
+class ReleaseRanking:
+    score: int
+    reasons: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class ReleaseDiscoveryItem:
     release: Release
     parsed: ParsedRelease
     match: AnimeMatchResult
+    ranking: ReleaseRanking
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,6 +76,7 @@ class ReleaseDiscoveryService:
         self,
         *,
         title: str,
+        anime_id: UUID | None = None,
         group: str | None = None,
         episode: int | None = None,
         resolution: str | None = None,
@@ -98,6 +106,7 @@ class ReleaseDiscoveryService:
                 items=(),
             )
 
+        preference = await self._load_release_preference(anime_id)
         parser_profiles = await self._load_parser_profiles()
         parser_map: dict[str, tuple[ReleaseParserProfile, ParserProfileSpec]] = {}
         for profile in parser_profiles:
@@ -131,13 +140,19 @@ class ReleaseDiscoveryService:
                             (profile.release_group_id, []),
                         )
                         group_observations[1].append((release, parsed))
+                match = anime_matcher.match(parsed)
                 items.append(
-                ReleaseDiscoveryItem(
-                    release=release,
-                    parsed=parsed,
-                    match=anime_matcher.match(parsed),
-                ),
-            )
+                    ReleaseDiscoveryItem(
+                        release=release,
+                        parsed=parsed,
+                        match=match,
+                        ranking=self.rank_release(
+                            parsed,
+                            match,
+                            preference,
+                        ),
+                    ),
+                )
             except ValueError as exc:
                 warnings.append(
                     f"Release could not be parsed and was skipped: {release.title}: {exc}",
@@ -151,6 +166,16 @@ class ReleaseDiscoveryService:
                 },
             )
 
+        if preference is not None:
+            items.sort(
+                key=lambda item: (
+                    -item.ranking.score,
+                    0 if item.parsed.status.value == "parsed" else 1,
+                    -(item.release.seeders or 0),
+                    item.release.title.casefold(),
+                ),
+            )
+
         return ReleaseDiscoveryResult(
             query=query,
             warnings=tuple(warnings),
@@ -159,6 +184,83 @@ class ReleaseDiscoveryService:
             ),
             items=tuple(items),
         )
+
+    async def _load_release_preference(
+        self,
+        anime_id: UUID | None,
+    ) -> tuple[AnimeReleasePreference, ReleaseGroup | None] | None:
+        if anime_id is None:
+            return None
+
+        result = await self._session.execute(
+            select(AnimeReleasePreference, ReleaseGroup)
+            .outerjoin(
+                ReleaseGroup,
+                ReleaseGroup.id == AnimeReleasePreference.release_group_id,
+            )
+            .where(AnimeReleasePreference.anime_id == anime_id)
+        )
+        row = result.first()
+        if row is None:
+            return None
+        preference, group = row
+        if group is None or not group.enabled:
+            return preference, group
+
+        return preference, group
+
+    @staticmethod
+    def rank_release(
+        parsed: ParsedRelease,
+        match: AnimeMatchResult,
+        preference: tuple[AnimeReleasePreference, ReleaseGroup | None] | None,
+    ) -> ReleaseRanking:
+        if preference is None:
+            return ReleaseRanking(score=0)
+
+        settings, preferred_group = preference
+        if not any(
+            candidate.anime_id == settings.anime_id for candidate in match.candidates
+        ):
+            return ReleaseRanking(score=0, reasons=("Does not match this Anime",))
+
+        score = 0
+        reasons: list[str] = []
+        if (
+            preferred_group is not None
+            and preferred_group.enabled
+            and parsed.release_group
+            and normalize_release_group_slug(parsed.release_group)
+            == preferred_group.slug
+        ):
+            score += 100
+            reasons.append("Preferred release group")
+
+        if (
+            settings.resolution
+            and parsed.resolution
+            and parsed.resolution.casefold() == settings.resolution.casefold()
+        ):
+                score += 30
+                reasons.append("Preferred resolution")
+
+        if (
+            settings.video_codec
+            and parsed.video_codec
+            and parsed.video_codec.casefold() == settings.video_codec.casefold()
+        ):
+                score += 20
+                reasons.append("Preferred video codec")
+
+        if (
+            settings.source
+            and parsed.source
+            and parsed.source.casefold() == settings.source.casefold()
+        ):
+                score += 10
+                reasons.append("Preferred source")
+
+        return ReleaseRanking(score=score, reasons=tuple(reasons))
 
     async def _load_search_profile(
         self,

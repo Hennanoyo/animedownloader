@@ -74,6 +74,16 @@ See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 - A successful replacement updates release provenance/metadata only; it must not create or start a DownloadJob.
 - Unknown release groups remain unlinked until an operator creates/configures the corresponding ReleaseGroup.
 
+## Anime Release Preference & Ranking Rules
+
+- Anime release preferences are user-maintained hints for discovery ordering, not download commands.
+- Preference fields are optional; an unset field must not penalize or exclude a release.
+- Prefer an existing enabled ReleaseGroup identity when a group preference is selected; do not create groups from preference edits.
+- Candidate ranking must remain deterministic and explainable through explicit preference-match reasons.
+- Ranking must not silently start downloads, replace Episodes, or mutate persistent Episode release provenance.
+- Current provider metadata such as seeders may only be used as a deterministic tie-breaker after preference scoring; it must not override explicit preference matches.
+- Automatic ranking is advisory in this phase. Periodic discovery, automatic selection, and automatic downloads remain separate future workflows.
+
 ## Storage Rules
 
 - Persist storage `object_key` values in PostgreSQL rather than environment-specific public URLs.

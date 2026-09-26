@@ -14,6 +14,7 @@ from animedownloader_api.dependencies import (
 from animedownloader_api.release_discovery import (
     ReleaseDiscoveryItem,
     ReleaseDiscoveryResult,
+    ReleaseRanking,
 )
 from animedownloader_api.release_ingestion import EpisodeIngestionResult
 from animedownloader_releases import (
@@ -144,7 +145,14 @@ async def test_discover_releases_returns_parsed_candidates() -> None:
             query="ExampleSubs Frieren 8",
             warnings=(),
             search_profile_version=2,
-            items=(ReleaseDiscoveryItem(release=release, parsed=parsed, match=match),),
+            items=(
+                ReleaseDiscoveryItem(
+                    release=release,
+                    parsed=parsed,
+                    match=match,
+                    ranking=ReleaseRanking(score=0),
+                ),
+            ),
         )
     )
 

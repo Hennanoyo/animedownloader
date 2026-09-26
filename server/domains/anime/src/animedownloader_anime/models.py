@@ -42,6 +42,12 @@ class Anime(Base):
         lazy="selectin",
         order_by="Episode.episode_number",
     )
+    release_preference: Mapped[AnimeReleasePreference | None] = relationship(
+        back_populates="anime",
+        cascade="all, delete-orphan",
+        uselist=False,
+        lazy="selectin",
+    )
 
 
 class Episode(Base):
@@ -84,3 +90,30 @@ class Episode(Base):
     )
 
     anime: Mapped[Anime] = relationship(back_populates="episodes")
+
+
+class AnimeReleasePreference(Base):
+    __tablename__ = "anime_release_preferences"
+
+    anime_id: Mapped[UUID] = mapped_column(
+        ForeignKey("animes.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    release_group_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("release_groups.id", ondelete="SET NULL"),
+        index=True,
+    )
+    resolution: Mapped[str | None] = mapped_column(String(32))
+    video_codec: Mapped[str | None] = mapped_column(String(32))
+    source: Mapped[str | None] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    anime: Mapped[Anime] = relationship(back_populates="release_preference")

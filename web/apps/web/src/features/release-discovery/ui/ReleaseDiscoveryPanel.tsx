@@ -189,6 +189,7 @@ export default function ReleaseDiscoveryPanel({
       if (!buildQueryPreview(value, fields)) return;
 
       setRequest({
+        anime_id: animeId,
         title: value.title.trim(),
         fields,
         ...(value.group.trim() ? { group: value.group.trim() } : {}),
@@ -649,6 +650,11 @@ function DiscoveryResults({
                   <h3>{item.release.title}</h3>
                   <p>{formatReleaseMeta(item)}</p>
                 </div>
+                {item.ranking.score > 0 ? (
+                  <span className={styles.rankBadge}>
+                    Preferred {item.ranking.score}
+                  </span>
+                ) : null}
                 <span
                   className={styles.status}
                   data-status={item.parsed.status}
@@ -685,6 +691,12 @@ function DiscoveryResults({
                     : "Generic"}
                 </span>
               </div>
+
+              {item.ranking.reasons.length > 0 ? (
+                <p className={styles.rankingReasons}>
+                  {item.ranking.reasons.join(" · ")}
+                </p>
+              ) : null}
 
               {item.parsed.warnings.length > 0 ? (
                 <p className={styles.itemWarning}>

@@ -221,3 +221,59 @@ async def test_delete_episode() -> None:
 
     assert response.status_code == 204
     service.delete_episode.assert_awaited_once_with(episode_id)
+
+
+@pytest.mark.anyio
+async def test_get_release_preferences() -> None:
+    service = MagicMock(spec=AnimeService)
+    service.get_release_preference = AsyncMock(return_value=None)
+
+    app = create_app()
+    app.dependency_overrides[get_anime_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    anime_id = uuid7()
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get(
+            f"/api/animes/{anime_id}/release-preferences",
+        )
+
+    assert response.status_code == 200
+    assert response.json() is None
+    service.get_release_preference.assert_awaited_once_with(anime_id)
+
+
+@pytest.mark.anyio
+async def test_update_release_preferences() -> None:
+    anime_id = uuid7()
+    now = datetime(2026, 9, 26, tzinfo=UTC)
+    preference = __import__("animedownloader_anime").AnimeReleasePreference(
+        anime_id=anime_id,
+        release_group_id=uuid7(),
+        resolution="1080p",
+        video_codec="HEVC",
+        source="WEB",
+        created_at=now,
+        updated_at=now,
+    )
+    service = MagicMock(spec=AnimeService)
+    service.update_release_preference = AsyncMock(return_value=preference)
+
+    app = create_app()
+    app.dependency_overrides[get_anime_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.patch(
+            f"/api/animes/{anime_id}/release-preferences",
+            json={
+                "release_group_id": str(preference.release_group_id),
+                "resolution": "1080p",
+                "video_codec": "HEVC",
+                "source": "WEB",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["resolution"] == "1080p"
+    service.update_release_preference.assert_awaited_once()

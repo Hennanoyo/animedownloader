@@ -128,7 +128,7 @@ class AnimeMatchResponse(BaseModel):
 
 
 class ReleaseRankingResponse(BaseModel):
-    score: int
+    score: int = Field(ge=0)
     reasons: list[str]
 
 

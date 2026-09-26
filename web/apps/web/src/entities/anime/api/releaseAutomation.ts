@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  candidateSchema,
-  type ReleaseDiscoveryCandidate,
-} from "../release/api/discoveryCandidates";
+import { candidateSchema } from "../../../entities/release/api/discoveryCandidates";
 import { getJson, patchJson, postJson } from "../../../shared/api/client";
 
 const policySchema = z.object({
@@ -100,4 +97,3 @@ export async function runReleaseAutomation(
   return result.data;
 }
 
-export type { ReleaseDiscoveryCandidate };

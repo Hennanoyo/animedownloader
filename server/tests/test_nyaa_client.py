@@ -26,7 +26,7 @@ async def test_search_reports_when_rss_result_limit_is_reached() -> None:
             request=request,
         ),
     )
-    client = httpx.AsyncClient(transport=transport)
+    client = httpx.AsyncClient(base_url="https://nyaa.si", transport=transport)
 
     async with NyaaClient(http_client=client) as nyaa:
         result = await nyaa.search("Frieren")

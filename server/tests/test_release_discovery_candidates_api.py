@@ -13,6 +13,7 @@ from animedownloader_api.dependencies import (
     get_release_discovery_candidate_acceptance_service,
     get_release_discovery_candidate_service,
     get_release_discovery_scheduler,
+    get_release_discovery_service,
 )
 from animedownloader_api.release_candidate_acceptance import (
     ReleaseDiscoveryCandidateAcceptanceResult,
@@ -31,7 +32,12 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoverySchedule,
 )
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
-from animedownloader_releases import EpisodeIngestionStatus
+from animedownloader_releases import (
+    EpisodeIngestionStatus,
+    SearchField,
+    SearchPlan,
+    SearchPlanQuery,
+)
 
 
 def make_anime() -> Anime:
@@ -161,6 +167,72 @@ async def test_review_candidate_updates_status() -> None:
         candidate.id,
         ReleaseCandidateStatus.REVIEWED,
     )
+
+
+class FakeDiscoveryService:
+    async def build_anime_search_plan(self, anime_id: UUID) -> tuple[SearchPlan, int | None]:
+        return (
+            SearchPlan(
+                queries=(
+                    SearchPlanQuery(
+                        query="ExampleSubs Sousou no Frieren 1080p HEVC",
+                        fields=(
+                            SearchField.GROUP,
+                            SearchField.TITLE,
+                            SearchField.RESOLUTION,
+                            SearchField.CODEC,
+                        ),
+                    ),
+                    SearchPlanQuery(
+                        query="ExampleSubs Frieren: Beyond Journey's End 1080p HEVC",
+                        fields=(
+                            SearchField.GROUP,
+                            SearchField.TITLE,
+                            SearchField.RESOLUTION,
+                            SearchField.CODEC,
+                        ),
+                    ),
+                ),
+            ),
+            4,
+        )
+
+
+@pytest.mark.anyio
+async def test_discovery_search_plan_preview_uses_same_plan_builder() -> None:
+    anime = make_anime()
+    service = FakeDiscoveryService()
+
+    app = create_app()
+    app.dependency_overrides[get_release_discovery_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+    ) as client:
+        response = await client.get(
+            f"/api/animes/{anime.id}/release-discovery/plan",
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "anime_id": str(anime.id),
+        "query_budget": 2,
+        "search_profile_version": 4,
+        "queries": [
+            {
+                "position": 1,
+                "query": "ExampleSubs Sousou no Frieren 1080p HEVC",
+                "fields": ["group", "title", "resolution", "codec"],
+            },
+            {
+                "position": 2,
+                "query": "ExampleSubs Frieren: Beyond Journey's End 1080p HEVC",
+                "fields": ["group", "title", "resolution", "codec"],
+            },
+        ],
+    }
 
 
 @pytest.mark.anyio

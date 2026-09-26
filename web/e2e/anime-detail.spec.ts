@@ -898,7 +898,9 @@ test("saves the Search Plan and configures Discovery automation", async ({ page 
   await discovery
     .getByRole("button", { name: "Create Search Plan" })
     .click();
-  await expect(discovery.getByText("Saved", { exact: true })).toBeVisible();
+  await expect(
+    discovery.getByRole("button", { name: "Save Search Plan" }),
+  ).toBeVisible();
 
   const schedule = page.getByRole("region", {
     name: "Schedule and automation",

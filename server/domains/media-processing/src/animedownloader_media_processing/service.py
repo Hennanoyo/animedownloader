@@ -6,6 +6,7 @@ from animedownloader_download import (
     DownloadJobNotFoundError,
     DownloadJobStatus,
 )
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .enums import MediaProcessingJobStatus
@@ -35,9 +36,20 @@ class MediaProcessingJobService:
         self,
         download_job_id: UUID,
     ) -> MediaProcessingJob:
+        job, _created = await self.ensure_for_download_job(download_job_id)
+        return job
+
+    async def ensure_for_download_job(
+        self,
+        download_job_id: UUID,
+    ) -> tuple[MediaProcessingJob, bool]:
         await self.session.rollback()
         async with self.session.begin():
-            download_job = await self.session.get(DownloadJob, download_job_id)
+            download_job = await self.session.scalar(
+                select(DownloadJob)
+                .where(DownloadJob.id == download_job_id)
+                .with_for_update(),
+            )
             if download_job is None:
                 raise DownloadJobNotFoundError(download_job_id)
 
@@ -48,7 +60,7 @@ class MediaProcessingJobService:
 
             existing = await self.jobs.get_by_download_job(download_job_id)
             if existing is not None:
-                return existing
+                return existing, False
 
             episode = await self.session.get(Episode, download_job.episode_id)
             if episode is None:
@@ -62,7 +74,7 @@ class MediaProcessingJobService:
             await self.jobs.add(job)
 
         await self.session.refresh(job)
-        return job
+        return job, True
 
     async def create_job(
         self,

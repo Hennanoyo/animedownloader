@@ -788,7 +788,7 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
     name: /Show Title options/,
   });
   await titleOptionsButton.click();
-  const englishOption = page.getByRole("option", {
+  const englishOption = discovery.getByRole("option", {
     name: /English Browser Smoke English/,
   });
   await expect(englishOption).toBeVisible();

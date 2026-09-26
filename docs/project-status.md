@@ -1023,7 +1023,7 @@ Out of scope:
 - player/media-pipeline changes
 - unrestricted heuristic selection without persisted decision reasons
 
-## Current Phase — Unified Discovery Search Planning
+## Completed Phase — Unified Discovery Search Planning
 
 The next development phase addresses provider result caps and overly broad title-only discovery by making manual and scheduled discovery share one bounded Search Plan.
 
@@ -1106,7 +1106,24 @@ Out of scope for this phase:
 - automatic Episode replacement
 - player or media-pipeline changes
 
+## Next Phase — Discovery Search Plan Preview & Operator Controls
+
+The Unified Discovery Search Planning implementation is complete through PR #51. The next phase makes the generated scheduled search behavior visible before a provider request is queued.
+
+Goals:
+
+- expose the deterministic Search Plan for an Anime without executing provider searches
+- show the planned queries and the active Search Profile version in the Anime detail Discovery schedule
+- make the bounded query budget and alternate-title selection observable to the user
+- keep `Discover now` and periodic discovery on exactly the same Search Plan builder
+- keep manual `Find releases` overrides separate from persisted scheduled discovery inputs
+- surface whether the plan is broad or uses configured narrowing inputs without treating that state as an error
+
+The first implementation should add a read-only plan-preview API and UI. It must not add automatic broadening, query retries, or a new provider-search path.
+
+Follow-up refinement can use the persisted per-query diagnostics from previous runs to help users decide whether their saved preferences/Search Profile should be narrowed further.
+
 ## Handoff Notes
 
-PR #47 is merged into `main`. The Unified Discovery Search Planning implementation now includes bounded multi-query execution, Anime-driven title/preference inputs, shared manual/scheduled planning, and per-query diagnostics. The remaining work is iterative refinement of query-generation quality and operator controls based on real discovery results; do not introduce unbounded query expansion or hidden broadening.
+PR #47 and the Unified Discovery Search Planning implementation through PR #51 are merged into `main`. PR #52 was a duplicate branch created after PR #51 had already been merged and was closed without merging. The next implementation is the read-only Discovery Search Plan Preview & Operator Controls phase described above.
 

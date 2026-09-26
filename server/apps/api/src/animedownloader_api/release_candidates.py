@@ -54,8 +54,6 @@ class ReleaseDiscoveryQueryStatus(StrEnum):
     FAILED = "failed"
 
 
-
-
 class ReleaseDiscoveryQuery(Base):
     __tablename__ = "release_discovery_queries"
     __table_args__ = (
@@ -86,7 +84,7 @@ class ReleaseDiscoveryQuery(Base):
         server_default=func.now(),
     )
 
-    run: Mapped[ReleaseDiscoveryRun] = relationship(back_populates="queries")
+    run: Mapped["ReleaseDiscoveryRun"] = relationship(back_populates="queries")
 
 class ReleaseDiscoveryRunStatus(StrEnum):
     QUEUED = "queued"

@@ -111,6 +111,28 @@ class MediaProcessingJobService:
         await self.session.refresh(job)
         return job
 
+    async def select_source(
+        self,
+        job_id: UUID,
+        *,
+        media_path: str,
+    ) -> MediaProcessingJob:
+        await self.session.rollback()
+        async with self.session.begin():
+            job = await self.get_job(job_id)
+            if job.job_status is MediaProcessingJobStatus.PROCESSING:
+                raise ValueError("Media processing is already in progress.")
+            if job.job_status is MediaProcessingJobStatus.COMPLETED:
+                raise ValueError("Completed media processing cannot change its source.")
+
+            if job.job_status is MediaProcessingJobStatus.FAILED:
+                job.transition_to(MediaProcessingJobStatus.PENDING)
+
+            job.media_path = media_path
+
+        await self.session.refresh(job)
+        return job
+
     async def mark_processing(self, job_id: UUID) -> MediaProcessingJob:
         return await self._transition(job_id, MediaProcessingJobStatus.PROCESSING)
 

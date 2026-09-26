@@ -205,7 +205,7 @@ export default function ReleasePreferencesPanel({
             </div>
             <Popover className={styles.popover}>
               <ListBox>
-                {(item) => (
+                {(item: string) => (
                   <ListBoxItem
                     id={item}
                     textValue={item}

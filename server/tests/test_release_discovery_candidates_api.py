@@ -4,7 +4,6 @@ from uuid import uuid7
 
 import httpx
 import pytest
-
 from animedownloader_anime import Anime, AnimeService
 from animedownloader_api.app import create_app
 from animedownloader_api.dependencies import (

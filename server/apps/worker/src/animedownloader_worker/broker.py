@@ -10,8 +10,9 @@ from animedownloader_media_processing import (
     MediaProcessingJobService,
     MediaStreamingPackageService,
 )
-from .source_recovery import recover_completed_download_handoffs
 from taskiq import AsyncBroker, TaskiqEvents, TaskiqState
+
+from .source_recovery import recover_completed_download_handoffs
 from taskiq_redis import RedisStreamBroker
 
 settings = Settings()

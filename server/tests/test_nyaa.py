@@ -11,7 +11,7 @@ FIXTURE_PATH = Path(__file__).parent / "fixtures" / "nyaa_search.xml"
 def test_parse_rss_feed() -> None:
     releases = parse_rss_feed(FIXTURE_PATH.read_text())
 
-    assert len(releases) == 2
+    assert len(releases.items) == 2
     assert releases[0].id == "https://nyaa.si/view/123456"
     assert releases[0].title == "[ExampleSubs] Frieren - 01 [1080p].mkv"
     assert releases[0].torrent_url.endswith("/123456.torrent")

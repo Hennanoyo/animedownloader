@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import cast
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import UUID, uuid7
 
@@ -128,13 +129,14 @@ async def test_accept_creates_episode_and_marks_candidate_accepted() -> None:
     episode = _episode(anime_id)
     accepted_candidate = _candidate(anime_id, status="accepted")
     accepted_candidate.id = candidate.id
-    ingestion = AsyncMock(
+    ingest = AsyncMock(
         return_value=EpisodeIngestionResult(
             status=EpisodeIngestionStatus.CREATED,
             episode=episode,
             existing_episode=None,
         ),
     )
+    ingestion = SimpleNamespace(ingest=ingest)
     session = FakeSession([candidate, accepted_candidate, episode])
     service = ReleaseDiscoveryCandidateAcceptanceService(
         cast(AsyncSession, session),
@@ -147,7 +149,7 @@ async def test_accept_creates_episode_and_marks_candidate_accepted() -> None:
     assert result.candidate.status == "accepted"
     assert result.episode is episode
     assert result.existing_episode is None
-    ingestion.ingest.assert_awaited_once()
+    ingest.assert_awaited_once()
     assert session.rollback_count == 2
 
 
@@ -156,13 +158,14 @@ async def test_accept_returns_replacement_candidate_without_mutation() -> None:
     anime_id = uuid7()
     candidate = _candidate(anime_id)
     existing_episode = _episode(anime_id)
-    ingestion = AsyncMock(
+    ingest = AsyncMock(
         return_value=EpisodeIngestionResult(
             status=EpisodeIngestionStatus.REPLACEMENT_CANDIDATE,
             episode=None,
             existing_episode=existing_episode,
         ),
     )
+    ingestion = SimpleNamespace(ingest=ingest)
     session = FakeSession([candidate, candidate, existing_episode])
     service = ReleaseDiscoveryCandidateAcceptanceService(
         cast(AsyncSession, session),
@@ -175,7 +178,7 @@ async def test_accept_returns_replacement_candidate_without_mutation() -> None:
     assert result.candidate.status == "reviewed"
     assert result.episode is None
     assert result.existing_episode is existing_episode
-    ingestion.ingest.assert_awaited_once()
+    ingest.assert_awaited_once()
     assert session.rollback_count == 2
 
 
@@ -188,13 +191,14 @@ async def test_accept_can_explicitly_replace_the_existing_episode() -> None:
     accepted_candidate.id = candidate.id
     replaced_episode = _episode(anime_id)
     replaced_episode.id = existing_episode.id
-    ingestion = AsyncMock(
+    replace = AsyncMock(
         return_value=EpisodeIngestionResult(
             status=EpisodeIngestionStatus.REPLACED,
             episode=replaced_episode,
             existing_episode=None,
         ),
     )
+    ingestion = SimpleNamespace(replace=replace)
     session = FakeSession([candidate, existing_episode, accepted_candidate, replaced_episode])
     service = ReleaseDiscoveryCandidateAcceptanceService(
         cast(AsyncSession, session),
@@ -209,7 +213,7 @@ async def test_accept_can_explicitly_replace_the_existing_episode() -> None:
     assert result.status is EpisodeIngestionStatus.REPLACED
     assert result.candidate.status == "accepted"
     assert result.episode is replaced_episode
-    ingestion.replace.assert_awaited_once()
+    replace.assert_awaited_once()
     assert session.rollback_count == 2
 
 

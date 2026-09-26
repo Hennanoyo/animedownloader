@@ -154,7 +154,7 @@ async def test_build_anime_search_plan_applies_preference_and_search_profile() -
             ),
         ],
     )
-    anime = __import__("animedownloader_anime").Anime(
+    anime = Anime(
         id=anime_id,
         title="Frieren",
         titles={

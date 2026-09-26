@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-
 MEDIA_EXTENSIONS = frozenset(
     {
         ".avi",

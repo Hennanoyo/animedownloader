@@ -212,6 +212,8 @@ class ReleaseDiscoveryQueryResponse(BaseModel):
 
 
 class ReleaseDiscoveryRunResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     anime_id: UUID
     scheduled_for: datetime

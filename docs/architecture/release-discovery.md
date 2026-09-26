@@ -382,7 +382,11 @@ Candidate status is an explicit review state:
 - rejected: intentionally excluded from later acceptance
 - stale: intentionally retained for historical context but no longer considered current
 
-Acceptance is intentionally absent from this phase. A future acceptance workflow must pass the existing deterministic Anime matching and Episode ingestion/replacement guards rather than directly creating or mutating Episodes from the candidate row.
+Acceptance is an explicit workflow over the persisted candidate snapshot. The acceptance service reconstructs the provider-neutral Release and ParsedRelease values stored on the candidate, verifies that the candidate is actionable and matched, then delegates Episode creation/idempotency/replacement decisions to the existing EpisodeIngestionService. This reuses the current Anime matching and replacement-history guards instead of writing Episodes directly from the candidate row.
+
+A candidate that targets an already-populated episode is returned as a replacement candidate without mutation. Replacement requires a separate explicit request naming the target Episode; the target must belong to the same Anime and have the same episode number, and the existing DownloadJob/MediaProcessingJob/MediaAsset history guards still apply. Successful acceptance marks the candidate as accepted.
+
+Acceptance never creates or starts a DownloadJob. Downloading remains a separate explicit action after an Episode exists.
 
 The candidate inbox is not a general-purpose release cache. API list endpoints use bounded limits, and any destructive cleanup must be an explicit action rather than a side effect of discovery.
 

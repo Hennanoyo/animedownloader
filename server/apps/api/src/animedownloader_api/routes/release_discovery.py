@@ -3,9 +3,12 @@ from uuid import UUID
 
 from animedownloader_anime import AnimeService, EpisodeNotFoundError
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 
 from animedownloader_api.dependencies import (
     get_anime_service,
+    get_release_candidate_automation_service,
+    get_release_candidate_automation_task_dispatcher,
     get_release_discovery_candidate_acceptance_service,
     get_release_discovery_candidate_service,
     get_release_discovery_scheduler,
@@ -15,12 +18,17 @@ from animedownloader_api.release_candidate_acceptance import (
     ReleaseCandidateReplacementTargetError,
     ReleaseDiscoveryCandidateAcceptanceService,
 )
+from animedownloader_api.release_candidate_automation import (
+    ReleaseAutomationCandidatePreview,
+    ReleaseCandidateAutomationService,
+)
 from animedownloader_api.release_candidates import (
     ReleaseCandidateStatus,
     ReleaseDiscoveryCandidate,
     ReleaseDiscoveryCandidateService,
 )
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
+from animedownloader_api.task_queue import ReleaseCandidateAutomationTaskDispatcher
 from animedownloader_api.release_ingestion import (
     ReleaseDoesNotMatchAnimeError,
     ReleaseNotActionableError,
@@ -37,6 +45,10 @@ from animedownloader_api.schemas import (
     ReleaseDiscoveryRunResponse,
     ReleaseDiscoveryScheduleResponse,
     ReleaseDiscoveryScheduleUpdate,
+    ReleaseAutomationCandidatePreviewResponse,
+    ReleaseAutomationPolicyResponse,
+    ReleaseAutomationPolicyUpdate,
+    ReleaseAutomationRunResponse,
 )
 
 router = APIRouter(prefix="/api", tags=["release-discovery"])
@@ -53,6 +65,14 @@ AcceptanceServiceDependency = Annotated[
 SchedulerDependency = Annotated[
     ReleaseDiscoveryScheduler,
     Depends(get_release_discovery_scheduler),
+]
+AutomationServiceDependency = Annotated[
+    ReleaseCandidateAutomationService,
+    Depends(get_release_candidate_automation_service),
+]
+AutomationDispatcherDependency = Annotated[
+    ReleaseCandidateAutomationTaskDispatcher,
+    Depends(get_release_candidate_automation_task_dispatcher),
 ]
 
 
@@ -160,6 +180,84 @@ async def list_runs(
 
 
 @router.get(
+    "/animes/{anime_id}/release-automation-policy",
+    response_model=ReleaseAutomationPolicyResponse,
+)
+async def get_automation_policy(
+    anime_id: UUID,
+    service: AutomationServiceDependency,
+) -> ReleaseAutomationPolicyResponse:
+    try:
+        policy = await service.get_policy(anime_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return ReleaseAutomationPolicyResponse.model_validate(policy, from_attributes=True)
+
+
+@router.patch(
+    "/animes/{anime_id}/release-automation-policy",
+    response_model=ReleaseAutomationPolicyResponse,
+)
+async def update_automation_policy(
+    anime_id: UUID,
+    payload: ReleaseAutomationPolicyUpdate,
+    service: AutomationServiceDependency,
+) -> ReleaseAutomationPolicyResponse:
+    try:
+        policy = await service.update_policy(
+            anime_id,
+            enabled=payload.enabled,
+            min_ranking_score=payload.min_ranking_score,
+            require_preference_match=payload.require_preference_match,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return ReleaseAutomationPolicyResponse.model_validate(policy, from_attributes=True)
+
+
+@router.get(
+    "/animes/{anime_id}/release-automation-preview",
+    response_model=list[ReleaseAutomationCandidatePreviewResponse],
+)
+async def preview_automation(
+    anime_id: UUID,
+    service: AutomationServiceDependency,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> list[ReleaseAutomationCandidatePreviewResponse]:
+    try:
+        previews = await service.preview(anime_id, limit=limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return [_automation_preview_response(preview) for preview in previews]
+
+
+@router.post(
+    "/animes/{anime_id}/release-automation/run",
+    response_model=ReleaseAutomationRunResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def run_automation(
+    anime_id: UUID,
+    service: AutomationServiceDependency,
+    dispatcher: AutomationDispatcherDependency,
+) -> ReleaseAutomationRunResponse:
+    try:
+        policy = await service.get_policy(anime_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if not policy.enabled:
+        raise HTTPException(status_code=409, detail="release automation is disabled")
+    try:
+        await dispatcher.enqueue(anime_id)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="release automation task could not be queued",
+        ) from exc
+    return ReleaseAutomationRunResponse(anime_id=anime_id, status="queued")
+
+
+@router.get(
     "/animes/{anime_id}/release-discovery-schedule",
     response_model=ReleaseDiscoveryScheduleResponse,
 )
@@ -219,6 +317,17 @@ async def run_discovery_now(
             ) from exc
 
     return ReleaseDiscoveryRunResponse.model_validate(run, from_attributes=True)
+
+
+def _automation_preview_response(
+    preview: ReleaseAutomationCandidatePreview,
+) -> ReleaseAutomationCandidatePreviewResponse:
+    return ReleaseAutomationCandidatePreviewResponse(
+        candidate=_candidate_response(preview.candidate),
+        eligible=preview.eligible,
+        reasons=list(preview.reasons),
+        automation_status=preview.candidate.automation_status,
+    )
 
 
 def _candidate_response(candidate: ReleaseDiscoveryCandidate) -> ReleaseDiscoveryCandidateResponse:

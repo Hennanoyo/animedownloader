@@ -233,8 +233,8 @@ class AnimeReleasePreferenceResponse(BaseModel):
     resolution: str | None
     video_codec: str | None
     source: str | None
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None
+    updated_at: datetime | None
 
 
 class AnimeReleasePreferenceUpdate(BaseModel):

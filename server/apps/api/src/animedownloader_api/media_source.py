@@ -186,9 +186,8 @@ class MediaSourceService:
         return processing
 
     async def list_orphans(self) -> list[MediaSourceOrphan]:
-        async with self._session.begin():
-            result = await self._session.scalars(select(DownloadJob.id))
-            known_ids = set(result)
+        result = await self._session.scalars(select(DownloadJob.id))
+        known_ids = set(result)
 
         return [
             MediaSourceOrphan(
@@ -200,10 +199,9 @@ class MediaSourceService:
         ]
 
     async def delete_orphan(self, directory_id: UUID) -> None:
-        async with self._session.begin():
-            exists = await self._session.scalar(
-                select(DownloadJob.id).where(DownloadJob.id == directory_id),
-            )
+        exists = await self._session.scalar(
+            select(DownloadJob.id).where(DownloadJob.id == directory_id),
+        )
 
         if exists is not None:
             raise MediaSourceRecoveryConflictError(

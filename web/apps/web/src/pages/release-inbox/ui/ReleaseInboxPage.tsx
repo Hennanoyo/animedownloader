@@ -331,7 +331,7 @@ function CandidateCard({
         ) : null}
         {candidate.status === "new" ? (
           <Button
-            className={styles.secondaryButton}
+            className={styles.primaryButton}
             onPress={() =>
               void updateStatus.mutateAsync({
                 candidateId: candidate.id,

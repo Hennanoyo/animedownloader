@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Button,
   Form,
@@ -19,6 +19,7 @@ import type {
   Season,
   Weekday,
 } from "../../../entities/anime/model/types";
+import { formatZodIssues } from "../../../shared/lib/validation";
 import { useCreateAnime } from "../model/useCreateAnime";
 import {
   animeCreateFormSchema,
@@ -103,39 +104,61 @@ function duplicateNumbers(episodes: AnimeEpisodeDraft[]): number[] {
     .sort((a, b) => a - b);
 }
 
-function getSubmitErrors(
-  errorMap: unknown,
-): string[] {
-  if (errorMap === null || typeof errorMap !== "object") {
-    return [];
+function getSubmitErrors(errorMap: unknown): string[] {
+  const messages: string[] = [];
+
+  function visit(value: unknown, path: string[] = []) {
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item, path);
+      return;
+    }
+
+    if (typeof value === "string") {
+      if (value.trim()) {
+        messages.push(path.length > 0 ? path.join(".") + ": " + value : value);
+      }
+      return;
+    }
+
+    if (value === null || typeof value !== "object") {
+      return;
+    }
+
+    if (
+      "message" in value &&
+      typeof value.message === "string" &&
+      value.message.trim()
+    ) {
+      const message = value.message.trim();
+      messages.push(path.length > 0 ? path.join(".") + ": " + message : message);
+    }
+
+    for (const [key, child] of Object.entries(value)) {
+      if (
+        key === "message" ||
+        key === "code" ||
+        key === "path" ||
+        key === "onSubmit" ||
+        key === "onChange" ||
+        key === "onBlur"
+      ) {
+        visit(child, path);
+        continue;
+      }
+      visit(child, [...path, key]);
+    }
   }
 
-  return Object.values(errorMap)
-    .flatMap((issues) => (Array.isArray(issues) ? issues : [issues]))
-    .flatMap((issue) => {
-      if (
-        issue !== null &&
-        typeof issue === "object" &&
-        "message" in issue &&
-        typeof issue.message === "string"
-      ) {
-        return [issue.message];
-      }
-
-      if (typeof issue === "string") {
-        return [issue];
-      }
-
-      return [];
-    });
+  visit(errorMap);
+  return Array.from(new Set(messages));
 }
 
 export default function AnimeCreateForm() {
   const navigate = useNavigate();
   const mutation = useCreateAnime();
-  const [episodes, setEpisodes] = useState<AnimeEpisodeDraft[]>([
-    emptyEpisode(1),
-  ]);
+  const [submitValidationErrors, setSubmitValidationErrors] = useState<string[]>(
+    [],
+  );
 
   const defaultValues: AnimeCreateFormValues = {
     title: "",
@@ -145,7 +168,7 @@ export default function AnimeCreateForm() {
     weekday: "friday",
     air_time: "",
     timezone: "Asia/Tokyo",
-    episodes,
+    episodes: [],
   };
 
   const form = useForm({
@@ -154,43 +177,40 @@ export default function AnimeCreateForm() {
       onSubmit: animeCreateFormSchema,
     },
     onSubmit: async ({ value }) => {
-      await mutation.mutateAsync(toCreateInput(value));
-      await navigate({ to: "/animes" });
+      setSubmitValidationErrors([]);
+      const createdAnime = await mutation.mutateAsync(toCreateInput(value));
+      await navigate({
+        to: "/animes/$animeId",
+        params: { animeId: createdAnime.id },
+      });
+    },
+    onSubmitInvalid: ({ value }) => {
+      const result = animeCreateFormSchema.safeParse(value);
+      if (result.success) {
+        setSubmitValidationErrors([]);
+        return;
+      }
+
+      const rootMessages = result.error.issues
+        .filter((issue) => issue.path.length === 0)
+        .map((issue) => issue.message);
+
+      setSubmitValidationErrors(
+        Array.from(
+          new Set(
+            rootMessages.length > 0
+              ? rootMessages
+              : [formatZodIssues(result.error.issues)],
+          ),
+        ),
+      );
     },
   });
 
-  useEffect(() => {
-    form.setFieldValue("episodes", episodes);
-  }, [episodes, form]);
-
-  function updateEpisode(index: number, update: Partial<AnimeEpisodeDraft>) {
-    setEpisodes((current) =>
-      current.map((episode, episodeIndex) =>
-        episodeIndex === index ? { ...episode, ...update } : episode,
-      ),
-    );
-  }
-
-  function addEpisode() {
-    setEpisodes((current) => {
-      const max = current.reduce(
-        (value, episode) => Math.max(value, episode.episode_number),
-        0,
-      );
-      return [...current, emptyEpisode(max + 1)];
-    });
-  }
-
-  function removeEpisode(index: number) {
-    setEpisodes((current) =>
-      current.length === 1
-        ? current
-        : current.filter((_, episodeIndex) => episodeIndex !== index),
-    );
-  }
-
-  const duplicates = duplicateNumbers(episodes);
-  const submitErrors = getSubmitErrors(form.state.errorMap.onSubmit);
+  const submitErrors = [
+    ...submitValidationErrors,
+    ...getSubmitErrors(form.state.errorMap.onSubmit),
+  ].filter((error, index, errors) => errors.indexOf(error) === index);
 
   return (
     <Form
@@ -404,125 +424,176 @@ export default function AnimeCreateForm() {
       </div>
 
       <section className={styles.episodes}>
-        <div className={styles.sectionHeader}>
-          <div>
-            <h2>Episodes</h2>
-            <p>
-              Select a Nyaa release for each episode, then clean up the episode
-              title.
-            </p>
-          </div>
-          <Button
-            type="button"
-            className={styles.secondaryButton}
-            onPress={addEpisode}
-          >
-            Add episode
-          </Button>
-        </div>
+        <form.Field name="episodes" mode="array">
+          {(episodesField) => {
+            const episodes = episodesField.state.value;
+            const duplicates = duplicateNumbers(episodes);
 
-        {duplicates.length > 0 ? (
-          <p className={styles.warning}>
-            Duplicate episode numbers: {duplicates.join(", ")}.
-          </p>
-        ) : null}
+            return (
+              <>
+                <div className={styles.sectionHeader}>
+                  <div>
+                    <h2>Episodes</h2>
+                    <p>
+                      Add episodes when you are ready. Each episode can then
+                      select a Nyaa release and clean up its title.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onPress={() => {
+                      const max = episodes.reduce(
+                        (value, episode) =>
+                          Math.max(value, episode.episode_number),
+                        0,
+                      );
+                      episodesField.pushValue(emptyEpisode(max + 1));
+                    }}
+                  >
+                    Add episode
+                  </Button>
+                </div>
 
-        {submitErrors.length > 0 ? (
-          <div className={styles.formError} role="alert" aria-live="polite">
-            <strong>Check the form before creating the anime.</strong>
-            <ul className={styles.errorList}>
-              {Array.from(new Set(submitErrors)).map((error) => (
-                <li key={error}>{error}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+                {submitErrors.length > 0 ? (
+                  <div
+                    className={styles.formError}
+                    role="alert"
+                    aria-live="polite"
+                  >
+                    <strong>Check the form before creating the anime.</strong>
+                    <ul className={styles.errorList}>
+                      {submitErrors.map((error) => (
+                        <li key={error}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
 
-        {episodes.map((episode, index) => (
-          <article className={styles.episode} key={index}>
-            <div className={styles.episodeHeader}>
-              <strong>Episode {index + 1}</strong>
-              <Button
-                type="button"
-                className={styles.removeButton}
-                onPress={() => removeEpisode(index)}
-                isDisabled={episodes.length === 1}
-              >
-                Remove
-              </Button>
-            </div>
+                {duplicates.length > 0 ? (
+                  <p className={styles.warning}>
+                    Duplicate episode numbers: {duplicates.join(", ")}.
+                  </p>
+                ) : null}
 
-            <TextField
-              className={styles.field}
-              isRequired
-              isInvalid={episode.title.trim().length === 0}
-              validationBehavior="aria"
-            >
-              <Label>Episode title</Label>
-              <Input
-                value={episode.title}
-                onChange={(event) =>
-                  updateEpisode(index, { title: event.target.value })
-                }
-                placeholder="Frieren - 01"
-              />
-              {episode.title.trim().length === 0 ? (
-                <Text slot="errorMessage" className={styles.fieldError}>
-                  Enter an episode title.
-                </Text>
-              ) : null}
-            </TextField>
+                {episodes.length === 0 ? (
+                  <div className={styles.emptyEpisodes}>
+                    <p>No episodes added yet.</p>
+                    <span>
+                      Use Add episode to add the first episode.
+                    </span>
+                  </div>
+                ) : null}
 
-            <TextField
-              className={styles.field}
-              isRequired
-              isInvalid={
-                !Number.isInteger(episode.episode_number) ||
-                episode.episode_number < 1 ||
-                episode.episode_number > 9999 ||
-                duplicates.includes(episode.episode_number)
-              }
-              validationBehavior="aria"
-            >
-              <Label>Episode number</Label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                value={String(episode.episode_number)}
-                onChange={(event) =>
-                  updateEpisode(index, {
-                    episode_number: Number(event.target.value),
-                  })
-                }
-              />
-              {duplicates.includes(episode.episode_number) ? (
-                <Text slot="errorMessage" className={styles.fieldError}>
-                  Episode number must be unique.
-                </Text>
-              ) : null}
-            </TextField>
+                {episodes.map((episode, index) => (
+                  <article className={styles.episode} key={index}>
+                    <div className={styles.episodeHeader}>
+                      <strong>Episode {episode.episode_number}</strong>
+                      <Button
+                        type="button"
+                        className={styles.removeButton}
+                        onPress={() => episodesField.removeValue(index)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
 
-            <ReleasePicker
-              release={episode.release}
-              onSelect={(release) => {
-                updateEpisode(index, {
-                  release,
-                  title: episode.title.trim() ? episode.title : release.title,
-                });
-              }}
-            />
+                    <form.Field name={`episodes[${index}].title`}>
+                      {(field) => (
+                        <TextField
+                          className={styles.field}
+                          isRequired
+                          isInvalid={!field.state.meta.isValid}
+                          validationBehavior="aria"
+                        >
+                          <Label>Episode title</Label>
+                          <Input
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(event) =>
+                              field.handleChange(event.target.value)
+                            }
+                            placeholder="Frieren - 01"
+                          />
+                          {!field.state.meta.isValid ? (
+                            <Text
+                              slot="errorMessage"
+                              className={styles.fieldError}
+                            >
+                              {field.state.meta.errors
+                                .map(String)
+                                .join(", ")}
+                            </Text>
+                          ) : null}
+                        </TextField>
+                      )}
+                    </form.Field>
 
-            {!episode.release ? (
-              <p className={styles.warning}>
-                Select a Nyaa release before submitting this anime.
-              </p>
-            ) : null}
-          </article>
-        ))}
+                    <form.Field
+                      name={`episodes[${index}].episode_number`}
+                    >
+                      {(field) => (
+                        <TextField
+                          className={styles.field}
+                          isRequired
+                          isInvalid={
+                            !Number.isInteger(field.state.value) ||
+                            field.state.value < 1 ||
+                            field.state.value > 9999 ||
+                            duplicates.includes(field.state.value)
+                          }
+                          validationBehavior="aria"
+                        >
+                          <Label>Episode number</Label>
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            value={String(field.state.value)}
+                            onBlur={field.handleBlur}
+                            onChange={(event) =>
+                              field.handleChange(Number(event.target.value))
+                            }
+                          />
+                          {duplicates.includes(field.state.value) ? (
+                            <Text
+                              slot="errorMessage"
+                              className={styles.fieldError}
+                            >
+                              Episode number must be unique.
+                            </Text>
+                          ) : null}
+                        </TextField>
+                      )}
+                    </form.Field>
+
+                    <ReleasePicker
+                      release={episode.release}
+                      onSelect={(release) => {
+                        episodesField.replaceValue(index, {
+                          ...episode,
+                          release,
+                          title: episode.title.trim()
+                            ? episode.title
+                            : release.title,
+                        });
+                      }}
+                    />
+
+                    {!episode.release ? (
+                      <p className={styles.warning}>
+                        Select a Nyaa release before submitting this anime.
+                      </p>
+                    ) : null}
+                  </article>
+                ))}
+              </>
+            );
+          }}
+        </form.Field>
       </section>
 
       {mutation.isError ? (
-        <p className={styles.formError}>
+        <p className={styles.formError} role="alert" aria-live="polite">
           Failed to create anime: {mutation.error.message}
         </p>
       ) : null}
@@ -536,8 +607,9 @@ export default function AnimeCreateForm() {
           Cancel
         </Button>
         <Button
-          type="submit"
+          type="button"
           className={styles.primaryButton}
+          onPress={() => void form.handleSubmit()}
           isDisabled={form.state.isSubmitting || mutation.isPending}
         >
           {mutation.isPending ? "Creating..." : "Create anime"}

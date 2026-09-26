@@ -1,15 +1,27 @@
 from typing import Annotated
 
 from animedownloader_nyaa import NyaaClient, NyaaError
-from animedownloader_releases import SearchField
+from animedownloader_releases import AnimeMatchResult, Release, SearchField
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from animedownloader_api.dependencies import (
     get_nyaa_client,
     get_release_discovery_service,
+    get_release_ingestion_service,
 )
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
+from animedownloader_api.release_ingestion import (
+    EpisodeIngestionResult,
+    EpisodeIngestionService,
+    ReleaseDoesNotMatchAnimeError,
+    ReleaseNotActionableError,
+)
 from animedownloader_api.schemas import (
+    AnimeMatchCandidateResponse,
+    AnimeMatchResponse,
+    EpisodeIngestionRequest,
+    EpisodeIngestionResponse,
+    EpisodeResponse,
     ParsedReleaseResponse,
     ReleaseDiscoveryItemResponse,
     ReleaseDiscoveryResponse,
@@ -79,7 +91,87 @@ async def discover_releases(
             ReleaseDiscoveryItemResponse(
                 release=ReleaseResponse.model_validate(item.release),
                 parsed=ParsedReleaseResponse.from_parsed(item.parsed),
+                match=_match_response(item.match),
             )
             for item in result.items
         ],
+    )
+
+
+EpisodeIngestionServiceDependency = Annotated[
+    EpisodeIngestionService,
+    Depends(get_release_ingestion_service),
+]
+
+
+@router.post(
+    "/ingest",
+    response_model=EpisodeIngestionResponse,
+)
+async def ingest_release(
+    payload: EpisodeIngestionRequest,
+    service: EpisodeIngestionServiceDependency,
+) -> EpisodeIngestionResponse:
+    try:
+        result = await service.ingest(
+            anime_id=payload.anime_id,
+            release=_release_from_response(payload.release),
+            parsed=payload.parsed.to_parsed(),
+        )
+    except ReleaseNotActionableError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except ReleaseDoesNotMatchAnimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return _ingestion_response(result)
+
+
+def _match_response(match: AnimeMatchResult) -> AnimeMatchResponse:
+    return AnimeMatchResponse(
+        status=match.status.value,
+        normalized_series_title=match.normalized_series_title,
+        candidates=[
+            AnimeMatchCandidateResponse(
+                anime_id=candidate.anime_id,
+                title=candidate.title,
+                matched_titles=list(candidate.matched_titles),
+            )
+            for candidate in match.candidates
+        ],
+    )
+
+
+def _release_from_response(payload: ReleaseResponse) -> Release:
+    return Release(
+        source=payload.source,
+        id=payload.id,
+        title=payload.title,
+        page_url=payload.page_url,
+        torrent_url=payload.torrent_url,
+        published_at=payload.published_at,
+        size=payload.size,
+        seeders=payload.seeders,
+        leechers=payload.leechers,
+        downloads=payload.downloads,
+        info_hash=payload.info_hash,
+    )
+
+
+def _ingestion_response(
+    result: EpisodeIngestionResult,
+) -> EpisodeIngestionResponse:
+    return EpisodeIngestionResponse.model_validate(
+        {
+            "status": result.status.value,
+            "episode": (
+                EpisodeResponse.model_validate(result.episode)
+                if result.episode is not None
+                else None
+            ),
+            "existing_episode": (
+                EpisodeResponse.model_validate(result.existing_episode)
+                if result.existing_episode is not None
+                else None
+            ),
+        },
     )

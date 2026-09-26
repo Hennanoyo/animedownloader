@@ -4,8 +4,10 @@ from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
 
+from animedownloader_anime import Anime
 from animedownloader_nyaa import NyaaError
 from animedownloader_releases import (
+    AnimeMatchResult,
     ParsedRelease,
     ParserField,
     ParserProfileSpec,
@@ -30,6 +32,8 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from .release_matching import AnimeMatcher
+
 
 
 class ReleaseSearchClient(Protocol):
@@ -41,6 +45,7 @@ class ReleaseSearchClient(Protocol):
 class ReleaseDiscoveryItem:
     release: Release
     parsed: ParsedRelease
+    match: AnimeMatchResult
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +105,11 @@ class ReleaseDiscoveryService:
             parser_map[normalize_release_group_slug(spec.release_group)] = (profile, spec)
             parser_map[spec.release_group.casefold()] = (profile, spec)
 
+        anime_result = await self._session.scalars(
+            select(Anime).order_by(Anime.id),
+        )
+        anime_matcher = AnimeMatcher(anime_result.all())
+
         warnings: list[str] = []
         observed_results: dict[
             UUID, tuple[UUID, list[tuple[Release, ParsedRelease]]]
@@ -121,7 +131,13 @@ class ReleaseDiscoveryService:
                             (profile.release_group_id, []),
                         )
                         group_observations[1].append((release, parsed))
-                items.append(ReleaseDiscoveryItem(release=release, parsed=parsed))
+                items.append(
+                ReleaseDiscoveryItem(
+                    release=release,
+                    parsed=parsed,
+                    match=anime_matcher.match(parsed),
+                ),
+            )
             except ValueError as exc:
                 warnings.append(
                     f"Release could not be parsed and was skipped: {release.title}: {exc}",

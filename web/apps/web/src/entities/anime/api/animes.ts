@@ -1,10 +1,6 @@
 import { z } from "zod";
-import {
-  deleteJson,
-  getJson,
-  patchJson,
-  postJson,
-} from "../../../shared/api/client";
+import { formatZodIssues } from "../../../shared/lib/validation";
+import { deleteJson, getJson, patchJson, postJson } from "../../../shared/api/client";
 import type { Anime, CreateAnimeInput, Episode, EpisodeInput } from "../model/types";
 
 const episodeSchema = z.object({
@@ -63,13 +59,7 @@ const animeSchema = z.object({
 export class AnimeResponseError extends Error {
   constructor(readonly issues: z.core.$ZodIssue[]) {
     super(
-      "Invalid anime API response: " +
-        issues
-          .map(
-            (issue) =>
-              (issue.path.join(".") || "<root>") + ": " + issue.message,
-          )
-          .join("; "),
+      "Invalid anime API response: " + formatZodIssues(issues),
     );
     this.name = "AnimeResponseError";
   }

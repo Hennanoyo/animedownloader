@@ -5,9 +5,11 @@ const ANIME_ID = "019a0000-0000-7000-8000-000000000010";
 let pipelineRequests = 0;
 let pipelineResponse: AnimePipeline;
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
+const INGESTED_EPISODE_ID = "019a0000-0000-7000-8000-000000000012";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
 
 const anime = {"id":"019a0000-0000-7000-8000-000000000010","title":"Browser Smoke Anime","titles":{"romaji":"Browser Smoke Romaji","jp":"ブラウザスモークアニメ","en":"Browser Smoke English"},"year":2026,"season":"fall","weekday":"friday","air_time":"23:00:00","timezone":"Asia/Tokyo","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z","episodes":[{"id":"019a0000-0000-7000-8000-000000000011","anime_id":"019a0000-0000-7000-8000-000000000010","episode_number":1,"title":"Episode One","source":"nyaa","source_id":"e2e-1","source_title":"Episode One","source_url":"https://e2e.invalid/release/1","torrent_url":"https://e2e.invalid/download/1.torrent","size":"1 GiB","seeders":8,"leechers":1,"downloads":10,"info_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","download_status":"completed","conversion_status":"completed","created_at":"2026-09-25T00:00:00Z","updated_at":"2026-09-25T00:00:00Z"}]};
+let animeResponse = structuredClone(anime);
 const pipeline: AnimePipeline = {"anime_id":"019a0000-0000-7000-8000-000000000010","episodes":[{"episode_id":"019a0000-0000-7000-8000-000000000011","episode_number":1,"title":"Episode One","download":{"job_id":"019a0000-0000-7000-8000-000000000099","status":"completed","downloaded_bytes":1048576,"total_bytes":1048576,"error_message":null,"updated_at":"2026-09-25T00:05:00Z"},"processing":{"job_id":"019a0000-0000-7000-8000-000000000100","preparation_job_id":"019a0000-0000-7000-8000-000000000101","status":"completed","progress_percent":100,"playable_ready":true,"error_message":null},"subtitles":"completed","attachments":"completed","streaming":{"job_id":"019a0000-0000-7000-8000-000000000102","status":"completed","progress_percent":100,"hls_ready":true,"dash_ready":true,"error_message":null},"thumbnail":{"status":"completed","progress_percent":100,"url":"https://e2e.invalid/anime/episode-one-sprite.jpg","vtt_url":"https://e2e.invalid/anime/episode-one-sprite.vtt","error_message":null},"current_stage":null,"playback_ready":true,"active":false}]};
 
 const transparentPng = Buffer.from(
@@ -17,11 +19,12 @@ const transparentPng = Buffer.from(
 
 test.beforeEach(async ({ page }) => {
   pipelineResponse = structuredClone(pipeline);
+  animeResponse = structuredClone(anime);
   await page.route(`**/api/animes/${ANIME_ID}`, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(anime),
+      body: JSON.stringify(animeResponse),
     });
   });
   pipelineRequests = 0;
@@ -78,12 +81,109 @@ test.beforeEach(async ({ page }) => {
                 failed_required_fields: [],
                 parser_profile_version: null,
               },
+              match: {
+                status: "matched",
+                normalized_series_title: "browser smoke anime",
+                candidates: [
+                  {
+                    anime_id: ANIME_ID,
+                    title: "Browser Smoke Anime",
+                    matched_titles: ["Browser Smoke Anime"],
+                  },
+                ],
+              },
             },
           ],
         }),
       });
     },
   );
+
+  await page.route("**/api/releases/ingest", async (route) => {
+    const body = JSON.parse(route.request().postData() ?? "{}") as {
+      anime_id?: string;
+      release?: { id?: string };
+      parsed?: { episode_number?: number | null };
+    };
+    expect(body.anime_id).toBe(ANIME_ID);
+    expect(body.release?.id).toBe("e2e-release-1");
+    expect(body.parsed?.episode_number).toBe(1);
+
+    const episode = {
+      ...anime.episodes[0],
+      id: INGESTED_EPISODE_ID,
+      episode_number: 2,
+      title: "Browser Smoke Anime - Episode 2",
+      source_id: "e2e-release-1",
+      source_title: "Browser Smoke Anime - Episode 2",
+      source_url: "https://e2e.invalid/release/1",
+      torrent_url: "https://e2e.invalid/download/1.torrent",
+      download_status: "not_started" as const,
+      conversion_status: "not_started" as const,
+    };
+
+    animeResponse = {
+      ...animeResponse,
+      episodes: [...animeResponse.episodes, episode],
+    };
+    pipelineResponse = {
+      ...pipelineResponse,
+      episodes: [
+        ...pipelineResponse.episodes,
+        {
+          episode_id: episode.id,
+          episode_number: episode.episode_number,
+          title: episode.title,
+          download: {
+            job_id: null,
+            status: "not_started" as const,
+            downloaded_bytes: 0,
+            total_bytes: null,
+            error_message: null,
+            updated_at: "2026-09-25T00:00:00Z",
+          },
+          processing: {
+            job_id: null,
+            preparation_job_id: null,
+            status: "not_started" as const,
+            progress_percent: 0,
+            playable_ready: false,
+            error_message: null,
+          },
+          subtitles: "not_started" as const,
+          attachments: "not_started" as const,
+          streaming: {
+            job_id: null,
+            status: "not_started" as const,
+            progress_percent: 0,
+            hls_ready: false,
+            dash_ready: false,
+            error_message: null,
+          },
+          thumbnail: {
+            status: "not_started" as const,
+            progress_percent: 0,
+            url: null,
+            vtt_url: null,
+            error_message: null,
+          },
+          current_stage: null,
+          playback_ready: false,
+          active: false,
+        },
+      ],
+    };
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "created",
+        episode,
+        existing_episode: null,
+      }),
+    });
+  });
 
   await page.route(THUMBNAIL_URL, async (route) => {
     await route.fulfill({
@@ -564,4 +664,13 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await expect(resultCard).toContainText("Browser Smoke Anime");
   await expect(resultCard).toContainText("1080p");
   await expect(resultCard).toContainText("HEVC");
+  await expect(
+    resultCard.getByRole("button", { name: "Add to this Anime" }),
+  ).toBeVisible();
+  await resultCard
+    .getByRole("button", { name: "Add to this Anime" })
+    .click();
+  await expect(
+    resultCard,
+  ).toContainText("Episode 2 added to this Anime.");
 });

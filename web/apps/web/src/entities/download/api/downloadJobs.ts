@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatZodIssues } from "../../../shared/lib/validation";
 import { deleteJson, getJson, postJson } from "../../../shared/api/client";
 import type {
   DownloadJob,
@@ -45,13 +46,7 @@ const downloadJobListResponseSchema = z.object({
 export class DownloadJobResponseError extends Error {
   constructor(readonly issues: z.core.$ZodIssue[]) {
     super(
-      "Invalid download job API response: " +
-        issues
-          .map(
-            (issue) =>
-              (issue.path.join(".") || "<root>") + ": " + issue.message,
-          )
-          .join("; "),
+      "Invalid download job API response: " + formatZodIssues(issues),
     );
     this.name = "DownloadJobResponseError";
   }

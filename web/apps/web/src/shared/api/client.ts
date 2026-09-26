@@ -98,6 +98,20 @@ function jsonHeaders(headers?: HeadersInit): Headers {
   return result;
 }
 
+function formatFastApiLocation(value: unknown): string {
+  if (!Array.isArray(value)) return "";
+
+  let path = "";
+  for (const segment of value) {
+    if (typeof segment === "number") {
+      path += "[" + (segment + 1) + "]";
+    } else if (typeof segment === "string") {
+      path = path ? path + "." + segment : segment;
+    }
+  }
+  return path;
+}
+
 function extractErrorDetail(responseBody: string): string | null {
   try {
     const payload: unknown = JSON.parse(responseBody);
@@ -105,14 +119,36 @@ function extractErrorDetail(responseBody: string): string | null {
     if (
       typeof payload === "object" &&
       payload !== null &&
-      "detail" in payload &&
-      typeof payload.detail === "string"
+      "detail" in payload
     ) {
-      return payload.detail;
+      const detail = payload.detail;
+
+      if (typeof detail === "string") {
+        return detail;
+      }
+
+      if (Array.isArray(detail)) {
+        const messages = detail.flatMap((issue) => {
+          if (typeof issue !== "object" || issue === null) return [];
+
+          const message =
+            "msg" in issue && typeof issue.msg === "string"
+              ? issue.msg
+              : null;
+          if (!message) return [];
+
+          const location =
+            "loc" in issue ? formatFastApiLocation(issue.loc) : "";
+
+          return [location ? location + ": " + message : message];
+        });
+
+        return messages.length > 0 ? Array.from(new Set(messages)).join("; ") : null;
+      }
     }
   } catch {
     return responseBody.trim() || null;
   }
 
-  return null;
+  return responseBody.trim() || null;
 }

@@ -43,15 +43,13 @@ export const animeCreateFormSchema = z
       .string()
       .regex(/^$|^(?:[01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM format."),
     timezone: z.string().trim().min(1).max(64),
-    episodes: z
-      .array(
-        z.object({
-          episode_number: z.number().int().min(1).max(9999),
-          title: z.string().trim().min(1).max(300),
-          release: z.custom<Release>().nullable(),
-        }),
-      )
-      .min(1, "Add at least one episode."),
+    episodes: z.array(
+      z.object({
+        episode_number: z.number().int().min(1).max(9999),
+        title: z.string().trim().min(1).max(300),
+        release: z.custom<Release>().nullable(),
+      }),
+    ),
   })
   .superRefine((value, ctx) => {
     const seen = new Set<number>();

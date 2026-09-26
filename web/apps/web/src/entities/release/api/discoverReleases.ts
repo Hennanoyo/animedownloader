@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatZodIssues } from "../../../shared/lib/validation";
 import { getJson } from "../../../shared/api/client";
 import type {
   ReleaseDiscoveryInput,
@@ -40,6 +41,18 @@ const parsedReleaseSchema = z.object({
   parser_profile_version: z.number().int().positive().nullable(),
 });
 
+const animeMatchSchema = z.object({
+  status: z.enum(["matched", "ambiguous", "unmatched"]),
+  normalized_series_title: z.string().nullable(),
+  candidates: z.array(
+    z.object({
+      anime_id: z.string().uuid(),
+      title: z.string(),
+      matched_titles: z.array(z.string()),
+    }),
+  ),
+});
+
 const responseSchema = z.object({
   query: z.string(),
   warnings: z.array(z.string()),
@@ -48,6 +61,7 @@ const responseSchema = z.object({
     z.object({
       release: releaseSchema,
       parsed: parsedReleaseSchema,
+      match: animeMatchSchema,
     }),
   ),
 });
@@ -55,13 +69,7 @@ const responseSchema = z.object({
 export class ReleaseDiscoveryResponseError extends Error {
   constructor(readonly issues: z.core.$ZodIssue[]) {
     super(
-      "Invalid release discovery response: " +
-        issues
-          .map(
-            (issue) =>
-              (issue.path.join(".") || "<root>") + ": " + issue.message,
-          )
-          .join("; "),
+      "Invalid release discovery response: " + formatZodIssues(issues),
     );
     this.name = "ReleaseDiscoveryResponseError";
   }

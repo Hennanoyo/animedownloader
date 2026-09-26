@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Final
+from uuid import UUID
 
 
 class ParseStatus(StrEnum):
@@ -96,6 +97,34 @@ class ParsedRelease:
             and self.series_title is not None
             and self.episode_number is not None
         )
+
+
+
+
+class EpisodeIngestionStatus(StrEnum):
+    CREATED = "created"
+    IDEMPOTENT = "idempotent"
+    REPLACEMENT_CANDIDATE = "replacement_candidate"
+
+
+class AnimeMatchStatus(StrEnum):
+    MATCHED = "matched"
+    AMBIGUOUS = "ambiguous"
+    UNMATCHED = "unmatched"
+
+
+@dataclass(frozen=True, slots=True)
+class AnimeMatchCandidate:
+    anime_id: UUID
+    title: str
+    matched_titles: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class AnimeMatchResult:
+    status: AnimeMatchStatus
+    normalized_series_title: str | None
+    candidates: tuple[AnimeMatchCandidate, ...] = ()
 
 
 class SearchField(StrEnum):

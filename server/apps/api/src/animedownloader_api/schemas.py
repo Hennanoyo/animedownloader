@@ -87,11 +87,50 @@ class ParsedReleaseResponse(BaseModel):
             failed_required_fields=[field.value for field in parsed.failed_required_fields],
             parser_profile_version=parsed.parser_profile_version,
         )
+    def to_parsed(self) -> ParsedRelease:
+        from animedownloader_releases import ParserField, ParseStatus
+
+        return ParsedRelease(
+            provider_source=self.provider_source,
+            source_id=self.source_id,
+            original_title=self.original_title,
+            normalized_title=self.normalized_title,
+            release_group=self.release_group,
+            series_title=self.series_title,
+            episode_number=self.episode_number,
+            episode_title=self.episode_title,
+            season_number=self.season_number,
+            resolution=self.resolution,
+            source=self.source,
+            video_codec=self.video_codec,
+            audio_codec=self.audio_codec,
+            bit_depth=self.bit_depth,
+            status=ParseStatus(self.status),
+            warnings=tuple(self.warnings),
+            failed_required_fields=tuple(
+                ParserField(field) for field in self.failed_required_fields
+            ),
+            parser_profile_version=self.parser_profile_version,
+        )
+
+
+
+class AnimeMatchCandidateResponse(BaseModel):
+    anime_id: UUID
+    title: str
+    matched_titles: list[str]
+
+
+class AnimeMatchResponse(BaseModel):
+    status: str
+    normalized_series_title: str | None
+    candidates: list[AnimeMatchCandidateResponse]
 
 
 class ReleaseDiscoveryItemResponse(BaseModel):
     release: ReleaseResponse
     parsed: ParsedReleaseResponse
+    match: AnimeMatchResponse
 
 
 class ReleaseDiscoveryResponse(BaseModel):
@@ -582,3 +621,21 @@ class MediaPackagingJobResponse(BaseModel):
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class EpisodeIngestionStatus(StrEnum):
+    CREATED = "created"
+    IDEMPOTENT = "idempotent"
+    REPLACEMENT_CANDIDATE = "replacement_candidate"
+
+
+class EpisodeIngestionRequest(BaseModel):
+    anime_id: UUID
+    release: ReleaseResponse
+    parsed: ParsedReleaseResponse
+
+
+class EpisodeIngestionResponse(BaseModel):
+    status: EpisodeIngestionStatus
+    episode: EpisodeResponse | None
+    existing_episode: EpisodeResponse | None

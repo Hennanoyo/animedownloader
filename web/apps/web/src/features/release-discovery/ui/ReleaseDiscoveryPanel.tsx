@@ -14,6 +14,8 @@ import {
 } from "react-aria-components";
 import { z } from "zod";
 import { ApiRequestError } from "../../../shared/api/client";
+import type { EpisodeIngestionResponse } from "../../../entities/release/model/types";
+
 import { ReleaseDiscoveryResponseError } from "../../../entities/release/api/discoverReleases";
 import type {
   ReleaseDiscoveryInput,
@@ -22,6 +24,7 @@ import type {
 } from "../../../entities/release/model/types";
 import { useReleaseGroups } from "../../../entities/release/model/useReleaseGroups";
 import { useReleaseDiscovery } from "../model/useReleaseDiscovery";
+import { useIngestRelease } from "../model/useIngestRelease";
 import styles from "./ReleaseDiscoveryPanel.module.scss";
 
 const schema = z.object({
@@ -142,9 +145,11 @@ function getTitleOption(
 }
 
 export default function ReleaseDiscoveryPanel({
+  animeId,
   titleOptions,
   defaultTitleSource,
 }: {
+  animeId: string;
   titleOptions: ReleaseDiscoveryTitleOption[];
   defaultTitleSource: ReleaseDiscoveryTitleSource;
 }) {
@@ -545,6 +550,7 @@ export default function ReleaseDiscoveryPanel({
 
       {query.isSuccess ? (
         <DiscoveryResults
+          animeId={animeId}
           items={query.data.items}
           query={query.data.query}
           warnings={query.data.warnings}
@@ -560,6 +566,7 @@ export default function ReleaseDiscoveryPanel({
 }
 
 interface DiscoveryResultsProps {
+  animeId: string;
   items: ReleaseDiscoveryItem[];
   query: string;
   warnings: string[];
@@ -567,11 +574,27 @@ interface DiscoveryResultsProps {
 }
 
 function DiscoveryResults({
+  animeId,
   items,
   query,
   warnings,
   profileVersion,
 }: DiscoveryResultsProps) {
+  const ingest = useIngestRelease(animeId);
+  const [ingestions, setIngestions] = useState<
+    Record<string, EpisodeIngestionResponse>
+  >({});
+
+  async function handleIngest(item: ReleaseDiscoveryItem) {
+    const result = await ingest.mutateAsync({
+      release: item.release,
+      parsed: item.parsed,
+    });
+    setIngestions((current) => ({
+      ...current,
+      [item.release.id]: result,
+    }));
+  }
   return (
     <div className={styles.results} aria-live="polite">
       <div className={styles.resultsMeta}>
@@ -649,6 +672,62 @@ function DiscoveryResults({
                 </p>
               ) : null}
 
+              <div className={styles.matchPanel}>
+                <div>
+                  <strong>Anime match</strong>
+                  <span>
+                    {item.match.status === "matched"
+                      ? item.match.candidates.length === 1
+                        ? item.match.candidates[0]?.matched_titles.join(" · ") ||
+                          "Exact title match"
+                        : "Exact title match"
+                      : item.match.status === "ambiguous"
+                        ? item.match.candidates.length + " Anime candidates"
+                        : "No Anime candidate"}
+                  </span>
+                </div>
+                <div className={styles.matchActions}>
+                  {item.match.candidates.some(
+                    (candidate) => candidate.anime_id === animeId,
+                  ) ? (
+                    <Button
+                      className={styles.ingestButton}
+                      onPress={() => void handleIngest(item)}
+                      isDisabled={
+                        item.parsed.status !== "parsed" ||
+                        item.parsed.episode_number === null ||
+                        ingest.isPending
+                      }
+                    >
+                      {ingest.isPending &&
+                      ingest.variables?.release.id === item.release.id
+                        ? "Adding..."
+                        : "Add to this Anime"}
+                    </Button>
+                  ) : (
+                    <span
+                      className={styles.matchStatus}
+                      data-status={item.match.status}
+                    >
+                      {item.match.status === "unmatched"
+                        ? "No match"
+                        : "Does not match this Anime"}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {ingestions[item.release.id] ? (
+                <p
+                  className={styles.ingestResult}
+                  data-status={ingestions[item.release.id].status}
+                >
+                  {formatIngestionResult(
+                    ingestions[item.release.id],
+                  )}
+                </p>
+              ) : null}
+
               <div className={styles.links}>
                 <a
                   href={item.release.page_url}
@@ -686,4 +765,26 @@ function getErrorMessage(error: unknown): string {
   if (error instanceof ApiRequestError) return error.message;
   if (error instanceof Error) return error.message;
   return "Release discovery failed.";
+}
+
+
+function formatIngestionResult(result: EpisodeIngestionResponse): string {
+  if (result.status === "created" && result.episode) {
+    return "Episode " + result.episode.episode_number + " added to this Anime.";
+  }
+  if (result.status === "idempotent" && result.episode) {
+    return (
+      "Episode " +
+      result.episode.episode_number +
+      " was already linked; release metadata was refreshed."
+    );
+  }
+  if (result.existing_episode) {
+    return (
+      "Episode " +
+      result.existing_episode.episode_number +
+      " already exists with another release. Replacement review is required."
+    );
+  }
+  return "Ingestion completed.";
 }

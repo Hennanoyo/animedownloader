@@ -17,6 +17,10 @@ from .exceptions import (
     ReleaseParserSampleNotFoundError,
 )
 from .models import (
+    AnimeMatchCandidate,
+    AnimeMatchResult,
+    AnimeMatchStatus,
+    EpisodeIngestionStatus,
     ParsedRelease,
     ParserField,
     ParserProfileSpec,
@@ -49,6 +53,10 @@ from .search import (
 from .service import ReleaseProfileService
 
 __all__ = [
+    "AnimeMatchCandidate",
+    "AnimeMatchResult",
+    "AnimeMatchStatus",
+    "EpisodeIngestionStatus",
     "MAX_INPUT_LENGTH",
     "MAX_PATTERN_LENGTH",
     "MAX_RULES_PER_PROFILE",

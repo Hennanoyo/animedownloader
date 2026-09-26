@@ -127,10 +127,16 @@ class AnimeMatchResponse(BaseModel):
     candidates: list[AnimeMatchCandidateResponse]
 
 
+class ReleaseRankingResponse(BaseModel):
+    score: int
+    reasons: list[str]
+
+
 class ReleaseDiscoveryItemResponse(BaseModel):
     release: ReleaseResponse
     parsed: ParsedReleaseResponse
     match: AnimeMatchResponse
+    ranking: ReleaseRankingResponse
 
 
 class ReleaseDiscoveryResponse(BaseModel):
@@ -138,6 +144,22 @@ class ReleaseDiscoveryResponse(BaseModel):
     warnings: list[str]
     search_profile_version: int | None
     items: list[ReleaseDiscoveryItemResponse]
+
+
+class AnimeReleasePreferenceResponse(BaseModel):
+    release_group_id: UUID | None
+    resolution: str | None
+    video_codec: str | None
+    source: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AnimeReleasePreferenceUpdate(BaseModel):
+    release_group_id: UUID | None = None
+    resolution: str | None = Field(default=None, max_length=32)
+    video_codec: str | None = Field(default=None, max_length=32)
+    source: str | None = Field(default=None, max_length=32)
 
 
 class EpisodeCreate(BaseModel):

@@ -14,6 +14,7 @@ import {
   type ReleaseCandidateStatus,
 } from "../../../entities/release/api/discoveryCandidates";
 import {
+  useAcceptReleaseDiscoveryCandidate,
   useReleaseDiscoveryCandidates,
   useReleaseDiscoveryRuns,
   useUpdateReleaseDiscoveryCandidate,
@@ -21,10 +22,14 @@ import {
 import type { ReleaseDiscoveryCandidate } from "../../../entities/release/api/discoveryCandidates";
 import styles from "./ReleaseInboxPage.module.scss";
 
-const FILTERS: Array<{ value: "all" | ReleaseCandidateStatus; label: string }> = [
+const FILTERS: Array<{
+  value: "all" | ReleaseCandidateStatus;
+  label: string;
+}> = [
   { value: "all", label: "All candidates" },
   { value: "new", label: "New" },
   { value: "reviewed", label: "Reviewed" },
+  { value: "accepted", label: "Accepted" },
   { value: "rejected", label: "Rejected" },
   { value: "stale", label: "Stale" },
 ];
@@ -50,8 +55,9 @@ export default function ReleaseInboxPage() {
           <p className={styles.kicker}>Release discovery</p>
           <h1>Candidate inbox</h1>
           <p className={styles.description}>
-            Review normalized release candidates collected by scheduled or manual discovery.
-            Candidate review never starts a download.
+            Review normalized release candidates collected by scheduled or
+            manual discovery. Acceptance creates or updates an Episode, but
+            never starts a download automatically.
           </p>
         </div>
         <Link className={styles.secondaryLink} to="/animes">
@@ -146,142 +152,235 @@ export default function ReleaseInboxPage() {
         </div>
 
         {candidateQuery.data?.length === 0 ? (
-          <p className={styles.state}>
-            No candidates match this filter.
-          </p>
+          <p className={styles.state}>No candidates match this filter.</p>
         ) : (
           <div className={styles.list}>
             {candidateQuery.data?.map((candidate) => (
-              <article className={styles.card} key={candidate.id}>
-                <div className={styles.cardHeader}>
-                  <div>
-                    <p className={styles.animeName}>
-                      {animeTitles.get(candidate.anime_id) ?? "Unknown Anime"}
-                    </p>
-                    <h3>{candidate.source_title}</h3>
-                    <p className={styles.meta}>
-                      {formatCandidateMeta(candidate)} · Last seen {formatDate(candidate.last_seen_at)}
-                    </p>
-                  </div>
-                  <div className={styles.badges}>
-                    <span className={styles.status} data-status={candidate.status}>
-                      {candidate.status}
-                    </span>
-                    {candidate.ranking_score > 0 ? (
-                      <span className={styles.rank}>Preferred {candidate.ranking_score}</span>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className={styles.details}>
-                  <span>
-                    <strong>Episode</strong>
-                    {candidate.episode_number ?? "—"}
-                  </span>
-                  <span>
-                    <strong>Group</strong>
-                    {candidate.release_group ?? "—"}
-                  </span>
-                  <span>
-                    <strong>Resolution</strong>
-                    {candidate.resolution ?? "—"}
-                  </span>
-                  <span>
-                    <strong>Source</strong>
-                    {candidate.source ?? "—"}
-                  </span>
-                  <span>
-                    <strong>Codec</strong>
-                    {candidate.video_codec ?? "—"}
-                  </span>
-                  <span>
-                    <strong>Match</strong>
-                    {candidate.match_status}
-                  </span>
-                  <span>
-                    <strong>Parse</strong>
-                    {candidate.parse_status}
-                  </span>
-                </div>
-
-                {candidate.ranking_reasons.length > 0 ? (
-                  <p className={styles.reasons}>
-                    {candidate.ranking_reasons.join(" · ")}
-                  </p>
-                ) : null}
-
-                {candidate.parse_warnings.length > 0 ? (
-                  <p className={styles.warning}>
-                    {candidate.parse_warnings.join(" · ")}
-                  </p>
-                ) : null}
-
-                <div className={styles.actions}>
-                  <a
-                    className={styles.secondaryLink}
-                    href={candidate.page_url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    View release
-                  </a>
-                  <a
-                    className={styles.secondaryLink}
-                    href={candidate.torrent_url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Torrent
-                  </a>
-                  {candidate.status === "new" ? (
-                    <Button
-                      className={styles.primaryButton}
-                      onPress={() =>
-                        void update.mutateAsync({
-                          candidateId: candidate.id,
-                          status: "reviewed",
-                        })
-                      }
-                      isDisabled={update.isPending}
-                    >
-                      Mark reviewed
-                    </Button>
-                  ) : null}
-                  {candidate.status !== "rejected" ? (
-                    <Button
-                      className={styles.dangerButton}
-                      onPress={() =>
-                        void update.mutateAsync({
-                          candidateId: candidate.id,
-                          status: "rejected",
-                        })
-                      }
-                      isDisabled={update.isPending}
-                    >
-                      Reject
-                    </Button>
-                  ) : null}
-                  <Link
-                    className={styles.detailLink}
-                    to="/animes/$animeId"
-                    params={{ animeId: candidate.anime_id }}
-                  >
-                    Open Anime
-                  </Link>
-                </div>
-              </article>
+              <CandidateCard
+                key={candidate.id}
+                candidate={candidate}
+                animeTitle={animeTitles.get(candidate.anime_id) ?? "Unknown Anime"}
+                updateStatus={update}
+              />
             ))}
           </div>
         )}
       </section>
-
-      {update.isError ? (
-        <p className={styles.error} role="alert">
-          Failed to update candidate: {update.error.message}
-        </p>
-      ) : null}
     </main>
   );
+}
+
+interface CandidateCardProps {
+  candidate: ReleaseDiscoveryCandidate;
+  animeTitle: string;
+  updateStatus: ReturnType<typeof useUpdateReleaseDiscoveryCandidate>;
+}
+
+function CandidateCard({
+  candidate,
+  animeTitle,
+  updateStatus,
+}: CandidateCardProps) {
+  const accept = useAcceptReleaseDiscoveryCandidate();
+  const [replacementEpisode, setReplacementEpisode] =
+    useState<ReleaseDiscoveryCandidate["match_candidates"][number] | null>(null);
+
+  const canAccept =
+    (candidate.status === "new" || candidate.status === "reviewed") &&
+    candidate.match_status === "matched" &&
+    candidate.parse_status === "parsed" &&
+    candidate.episode_number !== null;
+
+  async function handleAccept(replaceEpisodeId?: string) {
+    const result = await accept.mutateAsync({
+      candidateId: candidate.id,
+      replaceEpisodeId,
+    });
+    if (
+      result.status === "replacement_candidate" &&
+      result.existing_episode !== null
+    ) {
+      setReplacementEpisode({
+        anime_id: result.existing_episode.anime_id,
+        title: result.existing_episode.title,
+        matched_titles: [
+          "Episode " + result.existing_episode.episode_number,
+          result.existing_episode.download_status,
+          result.existing_episode.conversion_status,
+        ],
+      });
+      return;
+    }
+    setReplacementEpisode(null);
+  }
+
+  return (
+    <article className={styles.card}>
+      <div className={styles.cardHeader}>
+        <div>
+          <p className={styles.animeName}>{animeTitle}</p>
+          <h3>{candidate.source_title}</h3>
+          <p className={styles.meta}>
+            {formatCandidateMeta(candidate)} · Last seen{" "}
+            {formatDate(candidate.last_seen_at)}
+          </p>
+        </div>
+        <div className={styles.badges}>
+          <span className={styles.status} data-status={candidate.status}>
+            {candidate.status}
+          </span>
+          {candidate.ranking_score > 0 ? (
+            <span className={styles.rank}>
+              Preferred {candidate.ranking_score}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className={styles.details}>
+        <span>
+          <strong>Episode</strong>
+          {candidate.episode_number ?? "—"}
+        </span>
+        <span>
+          <strong>Group</strong>
+          {candidate.release_group ?? "—"}
+        </span>
+        <span>
+          <strong>Resolution</strong>
+          {candidate.resolution ?? "—"}
+        </span>
+        <span>
+          <strong>Source</strong>
+          {candidate.source ?? "—"}
+        </span>
+        <span>
+          <strong>Codec</strong>
+          {candidate.video_codec ?? "—"}
+        </span>
+        <span>
+          <strong>Match</strong>
+          {candidate.match_status}
+        </span>
+        <span>
+          <strong>Parse</strong>
+          {candidate.parse_status}
+        </span>
+      </div>
+
+      {candidate.ranking_reasons.length > 0 ? (
+        <p className={styles.reasons}>{candidate.ranking_reasons.join(" · ")}</p>
+      ) : null}
+
+      {candidate.parse_warnings.length > 0 ? (
+        <p className={styles.warning}>
+          {candidate.parse_warnings.join(" · ")}
+        </p>
+      ) : null}
+
+      {replacementEpisode !== null ? (
+        <div className={styles.warning} role="alert">
+          <strong>
+            Episode {candidate.episode_number} already exists as "
+            {replacementEpisode.title}".
+          </strong>
+          <span>
+            This does not replace it automatically. Confirm replacement below;
+            existing download or media history will still block replacement.
+          </span>
+          <div className={styles.actions}>
+            <Button
+              className={styles.primaryButton}
+              onPress={() => void handleAccept(getReplacementEpisodeId(candidate, replacementEpisode))}
+              isDisabled={accept.isPending}
+            >
+              {accept.isPending ? "Replacing..." : "Replace Episode"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {accept.isError ? (
+        <p className={styles.error} role="alert">
+          Failed to accept candidate: {accept.error.message}
+        </p>
+      ) : null}
+
+      <div className={styles.actions}>
+        <a
+          className={styles.secondaryLink}
+          href={candidate.page_url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          View release
+        </a>
+        <a
+          className={styles.secondaryLink}
+          href={candidate.torrent_url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Torrent
+        </a>
+        {canAccept ? (
+          <Button
+            className={styles.primaryButton}
+            onPress={() => void handleAccept()}
+            isDisabled={accept.isPending}
+          >
+            {accept.isPending ? "Accepting..." : "Accept"}
+          </Button>
+        ) : candidate.status === "accepted" ? (
+          <span className={styles.stateInline}>Accepted</span>
+        ) : null}
+        {candidate.status === "new" ? (
+          <Button
+            className={styles.secondaryButton}
+            onPress={() =>
+              void updateStatus.mutateAsync({
+                candidateId: candidate.id,
+                status: "reviewed",
+              })
+            }
+            isDisabled={updateStatus.isPending || accept.isPending}
+          >
+            Mark reviewed
+          </Button>
+        ) : null}
+        {candidate.status !== "rejected" && candidate.status !== "accepted" ? (
+          <Button
+            className={styles.dangerButton}
+            onPress={() =>
+              void updateStatus.mutateAsync({
+                candidateId: candidate.id,
+                status: "rejected",
+              })
+            }
+            isDisabled={updateStatus.isPending || accept.isPending}
+          >
+            Reject
+          </Button>
+        ) : null}
+        <Link
+          className={styles.detailLink}
+          to="/animes/$animeId"
+          params={{ animeId: candidate.anime_id }}
+        >
+          Open Anime
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function getReplacementEpisodeId(
+  candidate: ReleaseDiscoveryCandidate,
+  replacementEpisode: ReleaseDiscoveryCandidate["match_candidates"][number],
+): string {
+  void candidate;
+  void replacementEpisode;
+  throw new Error("replacement episode id must be provided by the acceptance state");
 }
 
 function formatDate(value: Date): string {

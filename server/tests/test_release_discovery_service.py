@@ -18,6 +18,7 @@ from animedownloader_releases import (
     SearchField,
     SearchPlan,
     SearchPlanQuery,
+    ReleaseDiscoveryQueryResult,
 )
 from animedownloader_releases.entities import (
     ReleaseGroup,
@@ -265,6 +266,41 @@ async def test_discovery_records_query_counts_caps_and_errors() -> None:
     assert result.warnings == (
         "Search query may be truncated at the provider result limit: capped",
         "Search query failed: failed",
+    )
+
+
+@pytest.mark.anyio
+async def test_discovery_records_provider_cap_signal() -> None:
+    session = MagicMock()
+    session.scalars = AsyncMock(return_value=EmptyScalars())
+
+    class CappedClient:
+        async def search(self, query: str) -> ReleaseSearchResult:
+            return ReleaseSearchResult(
+                items=(_release("[ExampleSubs] Frieren - 01"),),
+                result_cap_reached=True,
+            )
+
+    service = ReleaseDiscoveryService(session, CappedClient())
+    plan = SearchPlan(
+        queries=(
+            SearchPlanQuery(query="Frieren", fields=(SearchField.TITLE,)),
+        ),
+    )
+
+    result = await service.discover_plan(plan)
+
+    assert result.query_results == (
+        ReleaseDiscoveryQueryResult(
+            position=1,
+            query="Frieren",
+            status="completed",
+            result_count=1,
+            result_cap_reached=True,
+        ),
+    )
+    assert result.warnings == (
+        "Search query may be truncated at the provider result limit: Frieren",
     )
 
 

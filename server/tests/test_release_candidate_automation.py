@@ -76,7 +76,7 @@ def test_disabled_policy_never_selects_candidate() -> None:
 
 
 def test_automation_requires_preferences_by_default() -> None:
-    result = ReleaseCandidateAutomationService._evaluate(
+    result = ReleaseCandidateAutomationService.evaluate_candidate(
         make_candidate(),
         make_policy(),
         None,
@@ -96,7 +96,7 @@ def test_all_configured_preferences_must_match() -> None:
         source="WEB",
     )
 
-    result = ReleaseCandidateAutomationService._evaluate(
+    result = ReleaseCandidateAutomationService.evaluate_candidate(
         make_candidate(),
         make_policy(),
         preference,
@@ -116,7 +116,7 @@ def test_preference_mismatch_blocks_automatic_selection() -> None:
         source="WEB",
     )
 
-    result = ReleaseCandidateAutomationService._evaluate(
+    result = ReleaseCandidateAutomationService.evaluate_candidate(
         make_candidate(),
         make_policy(),
         preference,
@@ -131,13 +131,13 @@ def test_non_actionable_or_ambiguous_candidates_are_blocked() -> None:
     non_actionable = make_candidate(parse_status="ambiguous", episode_number=None)
     ambiguous = make_candidate(match_status=AnimeMatchStatus.AMBIGUOUS.value)
 
-    non_actionable_result = ReleaseCandidateAutomationService._evaluate(
+    non_actionable_result = ReleaseCandidateAutomationService.evaluate_candidate(
         non_actionable,
         make_policy(require_preference_match=False),
         None,
         None,
     )
-    ambiguous_result = ReleaseCandidateAutomationService._evaluate(
+    ambiguous_result = ReleaseCandidateAutomationService.evaluate_candidate(
         ambiguous,
         make_policy(require_preference_match=False),
         None,
@@ -149,7 +149,7 @@ def test_non_actionable_or_ambiguous_candidates_are_blocked() -> None:
 
 
 def test_score_threshold_is_applied_after_candidate_ranking() -> None:
-    result = ReleaseCandidateAutomationService._evaluate(
+    result = ReleaseCandidateAutomationService.evaluate_candidate(
         make_candidate(ranking_score=99),
         make_policy(require_preference_match=False, min_ranking_score=100),
         None,

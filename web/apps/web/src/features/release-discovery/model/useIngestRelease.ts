@@ -26,9 +26,6 @@ export function useIngestRelease(animeId: string) {
 }
 
 
-import { replaceEpisodeRelease } from "../../../entities/release/api/ingestRelease";
-import type { EpisodeReleaseReplacementInput } from "../../../entities/release/model/types";
-
 export function useReplaceRelease(animeId: string) {
   const queryClient = useQueryClient();
 

@@ -2,7 +2,11 @@ from uuid import uuid7
 
 import pytest
 from animedownloader_anime import Anime
-from animedownloader_api.release_matching import AnimeMatcher, canonicalize_title
+from animedownloader_api.release_matching import (
+    AnimeMatcher,
+    canonicalize_match_title,
+    canonicalize_title,
+)
 from animedownloader_releases import AnimeMatchStatus, ParsedRelease, ParseStatus
 
 
@@ -37,6 +41,30 @@ def _parsed(title: str | None) -> ParsedRelease:
 def test_canonicalize_title(value: str, expected: str) -> None:
     assert canonicalize_title(value) == expected
 
+
+
+
+def test_match_ignores_bracketed_title_regions_removed_by_parser() -> None:
+    anime = Anime(
+        id=uuid7(),
+        title="Heroine? Seijo? Iie, All Works Maid desu (Hokori)!",
+        titles={},
+    )
+
+    result = AnimeMatcher([anime]).match(
+        _parsed("Heroine Seijo Iie All Works Maid desu"),
+    )
+
+    assert result.status == AnimeMatchStatus.MATCHED
+    assert result.candidates[0].matched_titles == (
+        "Heroine? Seijo? Iie, All Works Maid desu (Hokori)!",
+    )
+
+
+def test_canonicalize_match_title_removes_bracketed_regions() -> None:
+    assert canonicalize_match_title(
+        "Heroine? Seijo? Iie, All Works Maid desu (Hokori)!",
+    ) == "heroine seijo iie all works maid desu"
 
 def test_match_uses_main_and_alternate_titles() -> None:
     anime = Anime(

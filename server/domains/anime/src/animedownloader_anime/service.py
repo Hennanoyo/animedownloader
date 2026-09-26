@@ -118,6 +118,8 @@ class AnimeService:
             ):
                 raise DuplicateEpisodeError(data.episode_number)
 
+            if data.release_group_id is not None:
+                episode.release_group_id = data.release_group_id
             if data.episode_number is not None:
                 episode.episode_number = data.episode_number
             if data.title is not None:

@@ -25,6 +25,7 @@ from animedownloader_api.media_source import MediaSourceService
 from animedownloader_api.pipeline import AnimePipelineService
 from animedownloader_api.pipeline_control import EpisodePipelineControlService
 from animedownloader_api.playback import PlaybackService
+from animedownloader_api.release_candidate_acceptance import ReleaseDiscoveryCandidateAcceptanceService
 from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
@@ -85,6 +86,11 @@ def get_release_discovery_candidate_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ReleaseDiscoveryCandidateService:
     return ReleaseDiscoveryCandidateService(session)
+
+def get_release_discovery_candidate_acceptance_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> ReleaseDiscoveryCandidateAcceptanceService:
+    return ReleaseDiscoveryCandidateAcceptanceService(session)
 
 
 def get_release_discovery_scheduler(request: Request) -> ReleaseDiscoveryScheduler:

@@ -71,6 +71,14 @@ test("creates an Anime after all required fields and a release are selected", as
     });
   });
 
+  await page.route(`**/api/animes/${ANIME_ID}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(createdAnime),
+    });
+  });
+
   await page.route("**/api/animes", async (route) => {
     if (route.request().method() === "POST") {
       const body = JSON.parse(route.request().postData() ?? "{}") as {
@@ -135,11 +143,12 @@ test("creates an Anime after all required fields and a release are selected", as
 
   await page.getByRole("button", { name: "Create anime" }).click();
 
+  await expect(page).toHaveURL(/\/animes\/019a0000-0000-7000-8000-000000000120$/);
   await expect(
-    page.getByRole("heading", { name: "Anime", exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Browser Create Anime", exact: true }),
+    page.getByRole("heading", {
+      name: "Browser Create Anime",
+      exact: true,
+    }),
   ).toBeVisible();
 });
 
@@ -147,6 +156,18 @@ test("creates an Anime without episodes when none have been added", async ({
   page,
 }) => {
   let createRequests = 0;
+
+  await page.route(`**/api/animes/${ANIME_ID}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...createdAnime,
+        title: "Anime Without Episodes",
+        episodes: [],
+      }),
+    });
+  });
 
   await page.route("**/api/animes", async (route) => {
     if (route.request().method() === "POST") {
@@ -185,8 +206,12 @@ test("creates an Anime without episodes when none have been added", async ({
 
   await page.getByRole("button", { name: "Create anime" }).click();
 
+  await expect(page).toHaveURL(/\/animes\/019a0000-0000-7000-8000-000000000120$/);
   await expect(
-    page.getByRole("heading", { name: "Anime", exact: true }),
+    page.getByRole("heading", {
+      name: "Anime Without Episodes",
+      exact: true,
+    }),
   ).toBeVisible();
   await expect.poll(() => createRequests).toBe(1);
 });

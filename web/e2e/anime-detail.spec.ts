@@ -147,6 +147,7 @@ test.beforeEach(async ({ page }) => {
         contentType: "application/json",
         body: JSON.stringify({
           query: "ExampleSubs Browser Smoke Anime 1",
+          queries: ["ExampleSubs Browser Smoke Anime 1"],
           warnings: [],
           search_profile_version: null,
           items: [

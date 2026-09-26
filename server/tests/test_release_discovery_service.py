@@ -277,7 +277,7 @@ async def test_discovery_continues_when_one_plan_query_fails() -> None:
         def __init__(self) -> None:
             self.queries: list[str] = []
 
-        async def search(self, query: str) -> list[Release]:
+        async def search(self, query: str) -> ReleaseSearchResult:
             self.queries.append(query)
             if query == "Frieren":
                 raise NyaaError("search failed")
@@ -348,7 +348,7 @@ async def test_discovery_reports_a_failed_single_query_without_retrying() -> Non
         def __init__(self) -> None:
             self.queries: list[str] = []
 
-        async def search(self, query: str) -> list[Release]:
+        async def search(self, query: str) -> ReleaseSearchResult:
             self.queries.append(query)
             raise NyaaError("search failed")
 

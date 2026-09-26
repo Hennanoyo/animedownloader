@@ -66,6 +66,24 @@ def test_canonicalize_match_title_removes_bracketed_regions() -> None:
         "Heroine? Seijo? Iie, All Works Maid desu (Hokori)!",
     ) == "heroine seijo iie all works maid desu"
 
+def test_match_supports_conservative_romanization_aliases() -> None:
+    anime = Anime(
+        id=uuid7(),
+        title="Kimi ga Shinu made Koi o Shitai",
+        titles={"romaji": "Kimi ga Shinu made Koi o Shitai"},
+    )
+
+    result = AnimeMatcher([anime]).match(
+        _parsed("Kimi ga Shinu made Koi wo Shitai"),
+    )
+
+    assert result.status == AnimeMatchStatus.MATCHED
+    assert result.candidates[0].anime_id == anime.id
+    assert result.candidates[0].matched_titles == (
+        "Kimi ga Shinu made Koi o Shitai",
+    )
+
+
 def test_match_uses_main_and_alternate_titles() -> None:
     anime = Anime(
         id=uuid7(),

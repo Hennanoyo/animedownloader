@@ -956,6 +956,8 @@ The next phase should move discovery from a purely user-triggered operation towa
 
 ### PR #45 — Periodic Release Discovery & Candidate Inbox
 
+**Current development phase.**
+
 Goal: periodically execute the existing Anime discovery recipe, retain normalized candidates as a deliberate application record, and give the user a reviewable inbox while keeping provider RSS/search payloads ephemeral.
 
 Implementation order:
@@ -987,13 +989,25 @@ Out of scope:
 - new release providers
 - media/player changes
 
+Current implementation:
+
+- Added persisted per-Anime discovery schedules and transactional due-run claiming
+- Added durable discovery-run state with query, counts, warnings, timestamps, and failure diagnostics
+- Added normalized candidate persistence with stable Anime/provider/source identity and latest observation updates
+- Kept raw Nyaa search/RSS payloads ephemeral
+- Added Taskiq worker execution for periodic/manual candidate discovery without Episode or DownloadJob mutation
+- Added candidate, run, schedule, and candidate-review APIs
+- Added Anime-detail scheduling controls and a dedicated Discovery Inbox UI
+- Added backend and Browser regression coverage
+- Documented candidate lifecycle and safety rules in `AGENTS.md` and `docs/architecture/release-discovery.md`
+
 ### Following phase — Explicit Candidate Acceptance & Download Policy
 
 After the candidate inbox is stable, introduce a separate user-controlled acceptance flow that can create/update Episodes only through explicit review, followed by DownloadJob creation under an explicit download policy. Automatic selection and automatic download scheduling should remain separate from candidate collection so each transition is observable and recoverable.
 
 ## Handoff Notes:
 
-PR #44 is merged into `main`. The next development branch should start from merge commit `70716665f6a10a0b79679cc7ee23c55763201a25` and implement PR #45 Periodic Release Discovery & Candidate Inbox.
+PR #45 is the active branch `feature/periodic-release-discovery-candidate-inbox`. It starts from merged PR #44 and implements persisted periodic discovery runs, normalized candidate snapshots, and a review-only candidate inbox. Candidate acceptance, Episode ingestion, and automatic downloads remain separate follow-up phases.
 
 ## Handoff Notes
 

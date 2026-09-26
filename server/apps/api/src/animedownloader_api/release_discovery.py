@@ -35,7 +35,6 @@ from sqlalchemy.orm import selectinload
 from .release_matching import AnimeMatcher
 
 
-
 class ReleaseSearchClient(Protocol):
     async def search(self, query: str) -> list[Release]:
         ...
@@ -241,24 +240,24 @@ class ReleaseDiscoveryService:
             and parsed.resolution
             and parsed.resolution.casefold() == settings.resolution.casefold()
         ):
-                score += 30
-                reasons.append("Preferred resolution")
+            score += 30
+            reasons.append("Preferred resolution")
 
         if (
             settings.video_codec
             and parsed.video_codec
             and parsed.video_codec.casefold() == settings.video_codec.casefold()
         ):
-                score += 20
-                reasons.append("Preferred video codec")
+            score += 20
+            reasons.append("Preferred video codec")
 
         if (
             settings.source
             and parsed.source
             and parsed.source.casefold() == settings.source.casefold()
         ):
-                score += 10
-                reasons.append("Preferred source")
+            score += 10
+            reasons.append("Preferred source")
 
         return ReleaseRanking(score=score, reasons=tuple(reasons))
 

@@ -1,8 +1,10 @@
 from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid7
 
 import pytest
 from animedownloader_anime import AnimeReleasePreference
+from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_nyaa import NyaaError
 from animedownloader_releases import (
@@ -113,6 +115,19 @@ async def test_discovery_reports_a_failed_single_query_without_retrying() -> Non
     assert client.queries == ["Frieren"]
     assert result.items == ()
     assert result.warnings == ("Search query failed: Frieren",)
+
+
+@pytest.mark.anyio
+async def test_get_schedule_returns_defaults_for_unconfigured_anime() -> None:
+    session = MagicMock()
+    session.scalar = AsyncMock(return_value=None)
+    service = ReleaseDiscoveryCandidateService(session)
+
+    schedule = await service.get_schedule(uuid7())
+
+    assert schedule.enabled is False
+    assert schedule.interval_minutes == 360
+    assert schedule.next_run_at is None
 
 
 def test_rank_release_uses_only_matching_anime_and_preference_fields() -> None:

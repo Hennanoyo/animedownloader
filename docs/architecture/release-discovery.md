@@ -335,6 +335,57 @@ Episode
 
 This keeps discovery safe and allows a user to inspect candidates before any torrent activity begins.
 
+## Periodic discovery and candidate inbox
+
+Periodic discovery adds a persistence boundary after parsing, matching, and ranking without turning the normalized candidate into an Episode:
+
+```
+Schedule
+   │
+   ▼
+Discovery Run (PostgreSQL)
+   │
+   ▼
+Nyaa RSS / provider search
+   │
+   ▼
+Ephemeral Release
+   │
+   ▼
+Parse → Match → Rank
+   │
+   ▼
+Normalized Candidate (PostgreSQL)
+   │
+   ▼
+Candidate Inbox
+   │
+   ├─ review
+   ├─ reject
+   └─ stale
+        │
+        └─ later explicit acceptance workflow
+```
+
+A ReleaseDiscoverySchedule stores whether periodic collection is enabled, the minimum interval, and the next due time for one Anime. The scheduler claims due schedules inside a database transaction using row-level locking, advances the next due time, creates a queued ReleaseDiscoveryRun, and hands only the run ID to Taskiq. This keeps the API responsive and makes worker execution restartable.
+
+A ReleaseDiscoveryRun records execution state and lightweight diagnostics such as the rendered search query, parser/search-profile version, candidate count, warning count, and timestamps. It is separate from DownloadJob and does not imply Episode state.
+
+A ReleaseDiscoveryCandidate stores only the normalized data needed to inspect and later accept a release: provider/source identity, latest release metadata, parsed technical fields, Anime match evidence, and the ranking score/reasons. Raw Nyaa RSS/XML payloads are intentionally not persisted.
+
+Candidate identity is scoped to (Anime, provider source, source ID). Repeated discovery therefore refreshes the existing candidate's latest observation instead of creating a duplicate candidate row. Provider fields such as seeders may change between observations; the candidate keeps the latest observed values and last_seen_at.
+
+Candidate status is an explicit review state:
+
+- new: discovered but not reviewed
+- reviewed: inspected and retained
+- rejected: intentionally excluded from later acceptance
+- stale: intentionally retained for historical context but no longer considered current
+
+Acceptance is intentionally absent from this phase. A future acceptance workflow must pass the existing deterministic Anime matching and Episode ingestion/replacement guards rather than directly creating or mutating Episodes from the candidate row.
+
+The candidate inbox is not a general-purpose release cache. API list endpoints use bounded limits, and any destructive cleanup must be an explicit action rather than a side effect of discovery.
+
 ## Anime release preferences and ranking
 
 An Anime may store optional release preferences for:
@@ -361,12 +412,13 @@ The API returns the score and explicit match reasons so the UI can explain order
 
 ## Future evolution
 
-This design intentionally supports later automation without making it part of the current PR:
+This design intentionally keeps later automation behind explicit workflow boundaries:
 
-- periodic release discovery
-- preferred release-group configuration per Anime
-- automatic candidate ranking
-- automatic Episode discovery
+- explicit candidate acceptance and Episode ingestion
+- policy-controlled automatic candidate selection
 - automatic download scheduling
+- additional release providers
+
+Periodic discovery and candidate ranking are now implemented as a review-only collection layer. Future automation must consume the normalized candidate contract rather than bypassing parsing, matching, provenance, and replacement safeguards.
 
 Those features must build on the same parsing, matching, and ingestion boundaries rather than bypassing them.

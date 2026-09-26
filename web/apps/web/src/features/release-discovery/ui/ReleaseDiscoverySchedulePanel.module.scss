@@ -1,0 +1,223 @@
+.panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #26324a;
+  border-radius: 0.8rem;
+  background: #0f172a;
+}
+
+.header {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.kicker {
+  margin: 0 0 0.35rem;
+  color: #60a5fa;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.header h2,
+.description,
+.meta,
+.warning {
+  margin: 0;
+}
+
+.header h2 {
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.description {
+  max-width: 72ch;
+  margin-top: 0.35rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.saved {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #166534;
+  border-radius: 999px;
+  color: #bbf7d0;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 18rem);
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+  align-items: end;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.35rem;
+  color: #cbd5e1;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.toggle input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #2563eb;
+}
+
+.interval {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.interval > label {
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.selectButton {
+  display: flex;
+  width: 100%;
+  min-height: 2.35rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.65rem;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  background: #0b1222;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.selectButton[data-focus-visible="true"] {
+  outline: 2px solid #60a5fa;
+  outline-offset: 1px;
+}
+
+.popover {
+  box-sizing: border-box;
+  width: var(--trigger-width, 14rem);
+  max-width: calc(100vw - 1rem);
+  padding: 0.25rem;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  background: #0f172a;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 35%);
+}
+
+.listBox {
+  display: grid;
+  gap: 0.15rem;
+  outline: 0;
+}
+
+.option {
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.4rem;
+  color: #cbd5e1;
+  font-size: 0.74rem;
+  cursor: pointer;
+  outline: 0;
+}
+
+.option[data-focused="true"],
+.option[data-hovered="true"] {
+  background: #172036;
+  color: #f8fafc;
+}
+
+.option[data-selected="true"] {
+  background: #1d4ed8;
+  color: #eff6ff;
+}
+
+.meta {
+  margin-top: 0.65rem;
+  color: #64748b;
+  font-size: 0.7rem;
+}
+
+.warning,
+.error {
+  margin-top: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.72rem;
+}
+
+.warning {
+  border: 1px solid #854d0e;
+  background: #1c1710;
+  color: #fde68a;
+}
+
+.error {
+  border: 1px solid #7f1d1d;
+  background: #2a1014;
+  color: #fecaca;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: 2.3rem;
+  padding: 0 0.8rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 1px solid #2563eb;
+  background: #1d4ed8;
+  color: #eff6ff;
+}
+
+.secondaryButton {
+  border: 1px solid #334155;
+  background: #111827;
+  color: #cbd5e1;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (max-width: 700px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    flex: 1;
+  }
+}

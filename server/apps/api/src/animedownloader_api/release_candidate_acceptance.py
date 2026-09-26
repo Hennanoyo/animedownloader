@@ -170,6 +170,16 @@ class ReleaseDiscoveryCandidateAcceptanceService:
 def _candidate_to_ingestion_data(
     candidate: ReleaseDiscoveryCandidate,
 ) -> tuple[Release, ParsedRelease]:
+    try:
+        parsed_status = ParseStatus(candidate.parse_status)
+        failed_required_fields = tuple(
+            ParserField(field) for field in candidate.failed_required_fields
+        )
+    except ValueError as exc:
+        raise ReleaseCandidateNotAcceptableError(
+            "candidate contains invalid persisted parser data",
+        ) from exc
+
     return (
         Release(
             source=candidate.provider_source,
@@ -199,11 +209,9 @@ def _candidate_to_ingestion_data(
             video_codec=candidate.video_codec,
             audio_codec=candidate.audio_codec,
             bit_depth=candidate.bit_depth,
-            status=ParseStatus(candidate.parse_status),
+            status=parsed_status,
             warnings=tuple(candidate.parse_warnings),
-            failed_required_fields=tuple(
-                ParserField(field) for field in candidate.failed_required_fields
-            ),
+            failed_required_fields=failed_required_fields,
             parser_profile_version=candidate.parser_profile_version,
         ),
     )

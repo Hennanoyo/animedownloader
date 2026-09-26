@@ -474,6 +474,7 @@ jobs:
                   "/api/episodes/" + episode_ids[0] + "/media"
               )
               assert media.status_code == 200, media.text
+              assert media.json() is None
 
               import json
 
@@ -593,7 +594,6 @@ jobs:
                           accepted_published_at,
                           accepted_published_at,
                           accepted_published_at,
-                          accepted_published_at,
                       )
                   finally:
                       await connection.close()
@@ -680,8 +680,6 @@ jobs:
                   ).json()
                   is None
               )
-
-              assert media.json() is None
 
               async def create_media_asset() -> None:
                   connection = await asyncpg.connect(

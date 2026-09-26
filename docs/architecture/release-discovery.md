@@ -234,7 +234,7 @@ A multi-sample test is preferred over a single successful sample so that a rule 
 
 ## Search strategy
 
-Discovery builds one explicit query per user action.
+Discovery builds an explicit, bounded Search Plan per discovery action. Manual Find releases currently supplies one query, while scheduled discovery may execute several deterministic plan queries.
 
 Conceptual query fields include:
 
@@ -247,7 +247,7 @@ Conceptual query fields include:
 
 A Search Profile provides an ordered default field recipe. The discovery UI may enable/disable fields, edit their values, and override the field order for the current search.
 
-The service executes exactly one provider query for each discovery action. A zero-result or provider failure is returned to the caller without automatic progressive broadening or retry.
+The service executes the queries present in the Search Plan in deterministic order. A provider failure for one query is recorded as a warning and does not silently broaden or retry that query. Each scheduled plan has a fixed query budget.
 
 Search profile ordering and parsing profile ordering are separate concerns. Search field order is request intent and can be overridden by the discovery UI, while parsing rules remain independent.
 
@@ -301,7 +301,7 @@ A title-only query is intentionally treated as a broad search. It remains useful
 
 Multiple provider responses are merged in memory using stable source identity, info hash, and normalized title fallbacks. Raw RSS/XML payloads remain ephemeral.
 
-Discovery runs should retain lightweight per-query diagnostics when multiple queries are introduced, such as rendered query, result count, cap/warning state, and execution status. This provides visibility into provider limits without persisting raw provider responses.
+Discovery runs persist lightweight per-query diagnostics: position, rendered query, result count, provider-cap signal, execution status, and a bounded error message. For Nyaa, a response at the known RSS result boundary is recorded as a cap signal; this is evidence that the provider may have truncated the result set, not a claim that truncation definitely occurred. Raw provider responses remain ephemeral.
 
 ### Shared manual and scheduled search behavior
 
@@ -445,7 +445,7 @@ Candidate Inbox
 
 A ReleaseDiscoverySchedule stores whether periodic collection is enabled, the minimum interval, and the next due time for one Anime. The scheduler claims due schedules inside a database transaction using row-level locking, advances the next due time, creates a queued ReleaseDiscoveryRun, and hands only the run ID to Taskiq. This keeps the API responsive and makes worker execution restartable.
 
-A ReleaseDiscoveryRun records execution state and lightweight diagnostics such as the rendered search query, parser/search-profile version, candidate count, warning count, and timestamps. It is separate from DownloadJob and does not imply Episode state.
+A ReleaseDiscoveryRun records execution state and lightweight diagnostics such as the rendered Search Plan summary, parser/search-profile version, candidate count, warning count, and timestamps. Each executed query has a child diagnostic row containing its query, result count, cap signal, status, and bounded error message. It is separate from DownloadJob and does not imply Episode state.
 
 A ReleaseDiscoveryCandidate stores only the normalized data needed to inspect and later accept a release: provider/source identity, latest release metadata, parsed technical fields, Anime match evidence, and the ranking score/reasons. Raw Nyaa RSS/XML payloads are intentionally not persisted.
 

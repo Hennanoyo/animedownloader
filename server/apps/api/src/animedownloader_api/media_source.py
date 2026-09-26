@@ -17,6 +17,7 @@ from animedownloader_download import (
     resolve_media_source,
     resolve_selected_media_source,
 )
+from animedownloader_media_asset import MediaAsset
 from animedownloader_media_processing import (
     MediaProcessingJob,
     MediaProcessingJobService,
@@ -205,6 +206,16 @@ class MediaSourceService:
             if _is_uuid(value)
         )
 
+        media_paths = list(
+            await self._session.scalars(select(MediaAsset.path)),
+        )
+        for directory in find_download_directories(self._download_root):
+            if any(
+                _path_is_under(media_path, directory)
+                for media_path in media_paths
+            ):
+                known_ids.add(directory.name)
+
         return [
             MediaSourceOrphan(
                 directory_id=UUID(directory.name),
@@ -223,13 +234,24 @@ class MediaSourceService:
                 MediaProcessingJob.download_directory == str(directory_id),
             ),
         )
+        asset_paths = list(
+            await self._session.scalars(select(MediaAsset.path)),
+        )
+        directory = self._download_root / str(directory_id)
+        asset_references_source = any(
+            _path_is_under(media_path, directory)
+            for media_path in asset_paths
+        )
 
-        if exists is not None or processing_exists is not None:
+        if (
+            exists is not None
+            or processing_exists is not None
+            or asset_references_source
+        ):
             raise MediaSourceRecoveryConflictError(
                 "Download directory is still referenced by persisted media state.",
             )
 
-        directory = self._download_root / str(directory_id)
         if not directory.is_dir():
             raise FileNotFoundError(directory)
 
@@ -285,6 +307,17 @@ def _relative_source_path(root: Path, path: str) -> str:
 def _is_uuid(value: str) -> bool:
     try:
         UUID(value)
+    except ValueError:
+        return False
+    return True
+
+
+def _path_is_under(path: str, directory: Path) -> bool:
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        return False
+    try:
+        candidate.resolve().relative_to(directory.resolve())
     except ValueError:
         return False
     return True

@@ -755,9 +755,11 @@ test("saves anime release preferences and uses them to explain ranked releases",
   await preferences.locator('input[aria-label="Video codec"]').fill("HEVC");
   await preferences.locator('input[aria-label="Source"]').fill("WEB");
 
-  const savePreferences = preferences.getByRole("button", {
-    name: "Save preferences",
-  });
+  const savePreferences = preferences
+    .locator("button")
+    .filter({ hasText: "Save preferences" })
+    .first();
+  await expect(savePreferences).toBeVisible();
   await expect(savePreferences).toBeEnabled();
   await savePreferences.click();
   await expect(preferences.getByText("Saved", { exact: true })).toBeVisible();
@@ -789,7 +791,6 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await expect(titleInput).toHaveValue("Browser Smoke Romaji");
 
   await titleInput.click();
-  await titleInput.press("ArrowDown");
   await titleInput.press("ArrowDown");
   await titleInput.press("ArrowDown");
   await titleInput.press("ArrowDown");

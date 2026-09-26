@@ -1000,6 +1000,6 @@ Out of scope:
 - media/player changes
 ## Handoff Notes
 
-PR #45 is merged into `main` at `b16dd701e8b22c1f94872f2d36c449a2a55ed795`. The next development branch should start from this merge commit and implement Explicit Candidate Acceptance & Download Policy. Candidate collection, acceptance, Episode ingestion/replacement, and DownloadJob creation must remain explicit workflow boundaries.
+PR #45 is merged into `main`; the next development branch should start from the latest `main` and implement Explicit Candidate Acceptance & Download Policy. Candidate collection, acceptance, Episode ingestion/replacement, and DownloadJob creation must remain explicit workflow boundaries.
 
 For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current repository state, and recent commits. Treat the repository state as authoritative and update this file whenever the development phase changes.

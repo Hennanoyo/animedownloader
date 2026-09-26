@@ -158,7 +158,10 @@ class ReleaseDiscoveryService:
                 ReleaseDiscoverySchedule.anime_id == anime_id,
             ),
         )
-        if schedule is not None and has_saved_search_plan(schedule):
+        if (
+            isinstance(schedule, ReleaseDiscoverySchedule)
+            and has_saved_search_plan(schedule)
+        ):
             try:
                 field_order = tuple(
                     SearchField(value) for value in schedule.search_field_order or []

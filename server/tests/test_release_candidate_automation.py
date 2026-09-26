@@ -118,7 +118,7 @@ def test_all_configured_preferences_must_match() -> None:
     )
 
     assert result.eligible is True
-    assert result.reasons == ("Candidate satisfies the automatic download policy",)
+    assert result.reasons == ("Candidate satisfies the automatic candidate policy",)
 
 
 def test_preference_mismatch_blocks_automatic_selection() -> None:

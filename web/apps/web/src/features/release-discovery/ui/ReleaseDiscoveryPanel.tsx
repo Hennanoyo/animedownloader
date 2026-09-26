@@ -824,6 +824,13 @@ function formatIngestionResult(result: EpisodeIngestionResponse): string {
       " was already linked; release metadata was refreshed."
     );
   }
+  if (result.status === "replaced" && result.episode) {
+    return (
+      "Episode " +
+      result.episode.episode_number +
+      " release was replaced."
+    );
+  }
   if (result.existing_episode) {
     return (
       "Episode " +

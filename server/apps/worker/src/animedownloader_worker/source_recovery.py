@@ -7,7 +7,11 @@ from uuid import UUID
 
 from animedownloader_database import Database
 from animedownloader_download import DownloadJob, DownloadJobStatus
-from animedownloader_media_processing import MediaProcessingJobService, MediaProcessingJobStatus
+from animedownloader_media_processing import (
+    MediaProcessingJob,
+    MediaProcessingJobService,
+    MediaProcessingJobStatus,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -81,23 +85,12 @@ async def _completed_downloads_without_processing_jobs(
     result = await session.scalars(
         select(DownloadJob.id)
         .outerjoin(
-            __import__(
-                "animedownloader_media_processing",
-                fromlist=["MediaProcessingJob"],
-            ).MediaProcessingJob,
-            __import__(
-                "animedownloader_media_processing",
-                fromlist=["MediaProcessingJob"],
-            ).MediaProcessingJob.download_job_id == DownloadJob.id,
+            MediaProcessingJob,
+            MediaProcessingJob.download_job_id == DownloadJob.id,
         )
         .where(
             DownloadJob.status == DownloadJobStatus.COMPLETED.value,
-        )
-        .where(
-            __import__(
-                "animedownloader_media_processing",
-                fromlist=["MediaProcessingJob"],
-            ).MediaProcessingJob.id.is_(None),
+            MediaProcessingJob.id.is_(None),
         )
         .order_by(DownloadJob.completed_at.asc(), DownloadJob.id.asc()),
     )

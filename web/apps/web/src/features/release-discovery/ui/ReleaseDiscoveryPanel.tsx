@@ -638,8 +638,12 @@ function DiscoveryResults({
         <p className={styles.empty}>No matching releases were found.</p>
       ) : (
         <div className={styles.list}>
-          {items.map((item) => (
-            <article className={styles.card} key={item.release.id}>
+          {items.map((item) => {
+            const ingestion = ingestions[item.release.id];
+            const existingEpisode = ingestion?.existing_episode;
+
+            return (
+              <article className={styles.card} key={item.release.id}>
               <div className={styles.cardHeader}>
                 <div>
                   <h3>{item.release.title}</h3>
@@ -733,28 +737,23 @@ function DiscoveryResults({
                 </div>
               </div>
 
-              {ingestions[item.release.id] ? (
+              {ingestion ? (
                 <div
                   className={styles.ingestResult}
-                  data-status={ingestions[item.release.id].status}
+                  data-status={ingestion.status}
                 >
-                  <p>{formatIngestionResult(ingestions[item.release.id])}</p>
-                  {ingestions[item.release.id].status ===
-                    "replacement_candidate" &&
-                  ingestions[item.release.id].existing_episode ? (
+                  <p>{formatIngestionResult(ingestion)}</p>
+                  {ingestion.status === "replacement_candidate" &&
+                  existingEpisode ? (
                     <div className={styles.replacementActions}>
                       <span>
                         Existing release:{" "}
-                        {ingestions[item.release.id].existing_episode
-                          .source_title ?? "Unknown"}
+                        {existingEpisode.source_title ?? "Unknown"}
                       </span>
                       <Button
                         className={styles.replaceButton}
                         onPress={() =>
-                          void handleReplace(
-                            item,
-                            ingestions[item.release.id]!.existing_episode!.id,
-                          )
+                          void handleReplace(item, existingEpisode.id)
                         }
                         isDisabled={
                           replace.isPending ||
@@ -763,12 +762,16 @@ function DiscoveryResults({
                         }
                       >
                         {replace.isPending &&
-                        replace.variables?.episodeId ===
-                          ingestions[item.release.id].existing_episode.id
+                        replace.variables?.episodeId === existingEpisode.id
                           ? "Replacing..."
                           : "Replace release"}
                       </Button>
                     </div>
+                  ) : null}
+                  {replace.isError ? (
+                    <p className={styles.error} role="alert">
+                      Failed to replace release: {replace.error.message}
+                    </p>
                   ) : null}
                 </div>
               ) : null}
@@ -789,8 +792,9 @@ function DiscoveryResults({
                   Torrent
                 </a>
               </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
     </div>

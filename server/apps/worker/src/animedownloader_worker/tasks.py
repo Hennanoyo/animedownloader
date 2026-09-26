@@ -6,7 +6,6 @@ from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_api.task_queue import RELEASE_DISCOVERY_TASK_NAME
 from animedownloader_config import Settings
 from animedownloader_database import Database, create_database
-from animedownloader_download
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
 from animedownloader_media import (
     FFmpegAttachmentProcessor,
@@ -25,6 +24,9 @@ from animedownloader_media_asset import (
     SUBTITLE_PROCESSING_TASK_NAME,
     MediaAssetService,
 )
+from animedownloader_nyaa import NyaaClient
+from animedownloader_qbittorrent import QBittorrentClient
+from animedownloader_releases import SearchField
 from animedownloader_media_processing import (
     MEDIA_PACKAGING_TASK_NAME,
     MEDIA_PREPARATION_TASK_NAME,
@@ -35,14 +37,9 @@ from animedownloader_media_processing import (
     MediaStreamingPackageService,
     MediaVariantService,
 )
-from animedownloader_qbittorrent import QBittorrentClient
+from sqlalchemy import select
 
 from .broker import broker
-from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
-from animedownloader_api.release_discovery import ReleaseDiscoveryService
-from animedownloader_api.task_queue import RELEASE_DISCOVERY_TASK_NAME
-
-from sqlalchemy import select
 
 from .media_attachment_processing import (
     MediaAttachmentProcessingRunner,
@@ -90,15 +87,15 @@ async def run_release_discovery(run_id: str) -> None:
             anime_id = anime.id
 
         async with NyaaClient() as client, database.session_factory() as session:
-                discovery = ReleaseDiscoveryService(session, client)
-                result = await discovery.discover(
-                    title=search_title,
-                    anime_id=anime_id,
-                    fields=(SearchField.TITLE,),
-                )
-                candidate_service = ReleaseDiscoveryCandidateService(session)
-                counts = await candidate_service.record_discovery(parsed_run_id, result)
-                await candidate_service.complete_run(parsed_run_id, counts)
+            discovery = ReleaseDiscoveryService(session, client)
+            result = await discovery.discover(
+                title=search_title,
+                anime_id=anime_id,
+                fields=(SearchField.TITLE,),
+            )
+            candidate_service = ReleaseDiscoveryCandidateService(session)
+            counts = await candidate_service.record_discovery(parsed_run_id, result)
+            await candidate_service.complete_run(parsed_run_id, counts)
 
         print(
             f"[worker] release discovery completed: run_id={run_id} "

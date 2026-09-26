@@ -94,10 +94,10 @@ class MediaSourceService:
 
         root = self._download_root / str(download.id)
         resolution = resolve_media_source(root)
-        processing = await self._processing.get_latest_job(episode_id)
+        processing = await self._processing.get_job_by_download_job(download.id)
 
         selected_path = None
-        if processing is not None and processing.download_job_id == download.id:
+        if processing is not None:
             if processing.media_path is not None:
                 selected = resolve_selected_media_source(root, _relative_source_path(root, processing.media_path))
                 if selected is not None:
@@ -114,16 +114,8 @@ class MediaSourceService:
                 MediaSourceCandidate(path=relative_media_source(root, path))
                 for path in resolution.candidates
             ),
-            processing_job_id=(
-                processing.id
-                if processing is not None and processing.download_job_id == download.id
-                else None
-            ),
-            processing_status=(
-                processing.job_status
-                if processing is not None and processing.download_job_id == download.id
-                else None
-            ),
+            processing_job_id=processing.id if processing is not None else None,
+            processing_status=processing.job_status if processing is not None else None,
         )
 
     async def reprocess(self, episode_id: UUID) -> MediaProcessingJob:
@@ -134,7 +126,9 @@ class MediaSourceService:
                 "Media source is not ready for processing.",
             )
 
-        processing, _created = await self._processing.ensure_for_download_job(download.id)
+        processing = await self._processing.get_job_by_download_job(download.id)
+        if processing is None:
+            processing, _created = await self._processing.ensure_for_download_job(download.id)
         if processing.job_status is MediaProcessingJobStatus.PROCESSING:
             raise MediaSourceRecoveryConflictError(
                 "Media processing is already in progress.",
@@ -144,7 +138,13 @@ class MediaSourceService:
                 "Media processing is already complete for this source.",
             )
         if processing.job_status is MediaProcessingJobStatus.FAILED:
+            selected_source = processing.media_path
             processing = await self._processing.retry_job(processing.id)
+            if selected_source is not None:
+                processing = await self._processing.select_source(
+                    processing.id,
+                    media_path=selected_source,
+                )
 
         await self._enqueue_processing(processing.id)
         return processing

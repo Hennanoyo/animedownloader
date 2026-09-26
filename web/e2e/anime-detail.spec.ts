@@ -960,10 +960,8 @@ test("configures policy-controlled automatic candidate downloads", async ({ page
   ).toBeVisible();
 
   await automation
-    .getByRole("checkbox", {
-      name: "Enable automatic candidate downloads",
-    })
-    .check();
+    .getByText("Enable automatic candidate downloads", { exact: true })
+    .click();
 
   const score = automation.getByLabel("Minimum ranking score");
   await score.fill("120");

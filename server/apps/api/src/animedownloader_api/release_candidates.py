@@ -6,9 +6,13 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from uuid import UUID
 
-from animedownloader_anime import Anime, AnimeNotFoundError
+from animedownloader_anime import Anime, AnimeNotFoundError, AnimeReleasePreference
 from animedownloader_database import Base
-from animedownloader_releases import AnimeMatchResult
+from animedownloader_releases import (
+    AnimeMatchResult,
+    ReleaseGroup,
+    normalize_release_group_slug,
+)
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -24,29 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .release_discovery import ReleaseDiscoveryResult
-
-
-class ReleaseDiscoverySchedule(Base):
-    __tablename__ = "release_discovery_schedules"
-
-    anime_id: Mapped[UUID] = mapped_column(
-        ForeignKey("animes.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    enabled: Mapped[bool] = mapped_column(default=False, server_default="false")
-    interval_minutes: Mapped[int] = mapped_column(Integer, default=360, server_default="360")
-    next_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    last_run_status: Mapped[str | None] = mapped_column(String(16))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-    )
+from .release_discovery_config import ReleaseDiscoverySchedule
 
 
 class ReleaseDiscoveryQueryStatus(StrEnum):
@@ -488,17 +470,52 @@ class ReleaseDiscoveryCandidateService:
         self,
         anime_id: UUID,
         *,
-        enabled: bool,
-        interval_minutes: int,
+        enabled: bool | None = None,
+        interval_minutes: int | None = None,
+        search_title_source: str | None = None,
+        search_title: str | None = None,
+        search_field_order: list[str] | None = None,
+        search_enabled_fields: list[str] | None = None,
+        search_group: str | None = None,
+        search_episode: int | None = None,
+        search_resolution: str | None = None,
+        search_codec: str | None = None,
+        search_source: str | None = None,
     ) -> ReleaseDiscoverySchedule:
-        if interval_minutes < 15 or interval_minutes > 1440:
+        if interval_minutes is not None and not 15 <= interval_minutes <= 1440:
             raise ValueError("interval must be between 15 and 1440 minutes")
 
+        allowed_fields = {"group", "title", "episode", "resolution", "codec", "source"}
+        if search_field_order is not None:
+            ordered_fields = [str(item) for item in search_field_order]
+            enabled_fields = [str(item) for item in (search_enabled_fields or [])]
+            if (
+                len(ordered_fields) != len(allowed_fields)
+                or set(ordered_fields) != allowed_fields
+                or len(enabled_fields) == 0
+                or not set(enabled_fields).issubset(allowed_fields)
+                or len(set(enabled_fields)) != len(enabled_fields)
+            ):
+                raise ValueError("search plan fields are invalid")
+        elif search_enabled_fields is not None:
+            raise ValueError("search field order is required with enabled fields")
+
+        plan_supplied = search_title is not None or search_field_order is not None
+        if plan_supplied and (
+            search_title is None
+            or search_title_source is None
+            or search_field_order is None
+            or search_enabled_fields is None
+        ):
+            raise ValueError("complete search plan is required")
+        if search_title is not None and not search_title.strip():
+            raise ValueError("search title must not be empty")
+
         async with self.session.begin():
-            anime_exists = await self.session.scalar(
-                select(1).where(Anime.id == anime_id),
+            anime = await self.session.scalar(
+                select(Anime).where(Anime.id == anime_id),
             )
-            if anime_exists is None:
+            if anime is None:
                 raise AnimeNotFoundError(anime_id)
 
             schedule = await self.session.scalar(
@@ -510,13 +527,79 @@ class ReleaseDiscoveryCandidateService:
                 schedule = ReleaseDiscoverySchedule(anime_id=anime_id)
                 self.session.add(schedule)
 
-            schedule.enabled = enabled
-            schedule.interval_minutes = interval_minutes
-            schedule.next_run_at = (
-                datetime.now(UTC) + timedelta(minutes=interval_minutes)
-                if enabled
-                else None
-            )
+            if enabled is not None:
+                schedule.enabled = enabled
+                schedule.next_run_at = (
+                    datetime.now(UTC)
+                    + timedelta(minutes=interval_minutes or schedule.interval_minutes)
+                    if enabled
+                    else None
+                )
+
+            if interval_minutes is not None:
+                schedule.interval_minutes = interval_minutes
+                if schedule.enabled:
+                    schedule.next_run_at = datetime.now(UTC) + timedelta(
+                        minutes=interval_minutes,
+                    )
+
+            if plan_supplied:
+                schedule.search_title_source = search_title_source.strip() or "custom"
+                schedule.search_title = search_title.strip()
+                schedule.search_field_order = [str(item) for item in search_field_order]
+                schedule.search_enabled_fields = [str(item) for item in search_enabled_fields]
+                schedule.search_group = search_group.strip() if search_group else None
+                schedule.search_episode = search_episode
+                schedule.search_resolution = (
+                    search_resolution.strip() if search_resolution else None
+                )
+                schedule.search_codec = search_codec.strip() if search_codec else None
+                schedule.search_source = search_source.strip() if search_source else None
+
+                # Keep the legacy preference row as derived ranking state so
+                # existing candidate ranking/automation remains compatible.
+                preference = await self.session.scalar(
+                    select(AnimeReleasePreference).where(
+                        AnimeReleasePreference.anime_id == anime_id,
+                    ),
+                )
+                if preference is None:
+                    preference = AnimeReleasePreference(anime_id=anime_id)
+                    self.session.add(preference)
+
+                preferred_group_id = None
+                if "group" in schedule.search_enabled_fields and schedule.search_group:
+                    group_slug = normalize_release_group_slug(schedule.search_group)
+                    preferred_group_id = await self.session.scalar(
+                        select(ReleaseGroup.id)
+                        .where(
+                            ReleaseGroup.enabled.is_(True),
+                            (
+                                (ReleaseGroup.slug == group_slug)
+                                | (
+                                    func.lower(ReleaseGroup.name)
+                                    == schedule.search_group.casefold()
+                                )
+                            ),
+                        )
+                        .limit(1),
+                    )
+
+                enabled_fields = set(schedule.search_enabled_fields)
+                preference.release_group_id = (
+                    preferred_group_id if "group" in enabled_fields else None
+                )
+                preference.resolution = (
+                    schedule.search_resolution
+                    if "resolution" in enabled_fields
+                    else None
+                )
+                preference.video_codec = (
+                    schedule.search_codec if "codec" in enabled_fields else None
+                )
+                preference.source = (
+                    schedule.search_source if "source" in enabled_fields else None
+                )
 
         await self.session.refresh(schedule)
         return schedule

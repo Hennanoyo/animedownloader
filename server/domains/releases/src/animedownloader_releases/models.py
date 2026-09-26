@@ -134,6 +134,7 @@ class SearchField(StrEnum):
     EPISODE = "episode"
     RESOLUTION = "resolution"
     CODEC = "codec"
+    SOURCE = "source"
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,6 +144,7 @@ class SearchQueryContext:
     episode: int | None = None
     resolution: str | None = None
     codec: str | None = None
+    source: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

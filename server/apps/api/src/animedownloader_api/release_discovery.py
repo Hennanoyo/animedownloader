@@ -101,6 +101,7 @@ class ReleaseDiscoveryService:
         episode: int | None = None,
         resolution: str | None = None,
         codec: str | None = None,
+        source: str | None = None,
         fields: tuple[SearchField, ...] | None = None,
     ) -> ReleaseDiscoveryResult:
         context = SearchQueryContext(
@@ -109,6 +110,7 @@ class ReleaseDiscoveryService:
             episode=episode,
             resolution=resolution,
             codec=codec,
+            source=source,
         )
         search_profile = await self._load_search_profile(group)
         search_spec = self._to_search_profile_spec(search_profile) if search_profile else None
@@ -139,16 +141,60 @@ class ReleaseDiscoveryService:
         if anime is None:
             raise ValueError(f"anime not found: {anime_id}")
 
+        schedule = await self._session.scalar(
+            select(ReleaseDiscoverySchedule).where(
+                ReleaseDiscoverySchedule.anime_id == anime_id,
+            ),
+        )
+        if schedule is not None and has_saved_search_plan(schedule):
+            try:
+                field_order = tuple(
+                    SearchField(value) for value in schedule.search_field_order or []
+                )
+                enabled_fields = tuple(
+                    SearchField(value)
+                    for value in schedule.search_enabled_fields or []
+                )
+            except ValueError as exc:
+                raise ValueError(f"saved search plan contains an unknown field: {exc}") from exc
+
+            enabled = set(enabled_fields)
+            fields = tuple(field for field in field_order if field in enabled)
+            if not fields:
+                raise ValueError(f"Anime has no enabled search fields: {anime_id}")
+
+            plan = build_search_plan(
+                (
+                    SearchQueryContext(
+                        group=schedule.search_group,
+                        title=schedule.search_title,
+                        episode=schedule.search_episode,
+                        resolution=schedule.search_resolution,
+                        codec=schedule.search_codec,
+                        source=schedule.search_source,
+                    ),
+                ),
+                fields=fields,
+                max_queries=1,
+            )
+            if not plan.queries:
+                raise ValueError(f"saved search plan has no usable query: {anime_id}")
+
+            search_profile = await self._load_search_profile(schedule.search_group)
+            return plan, search_profile.version if search_profile else None
+
         preference = await self._load_release_preference(anime_id)
         group = None
         resolution = None
         codec = None
+        source = None
         if preference is not None:
             settings, preferred_group = preference
             if preferred_group is not None and preferred_group.enabled:
                 group = preferred_group.name
             resolution = settings.resolution
             codec = settings.video_codec
+            source = settings.source
 
         titles: list[str] = []
         for key in ("romaji", "en", "jp", "ko"):
@@ -159,8 +205,12 @@ class ReleaseDiscoveryService:
             titles.append(anime.title.strip())
 
         search_profile = await self._load_search_profile(group)
-        search_spec = self._to_search_profile_spec(search_profile) if search_profile else None
-        narrowing_is_available = bool(group or resolution or codec)
+        search_spec = (
+            self._to_search_profile_spec(search_profile)
+            if search_profile
+            else None
+        )
+        narrowing_is_available = bool(group or resolution or codec or source)
 
         if not narrowing_is_available:
             titles = titles[:1]
@@ -171,6 +221,7 @@ class ReleaseDiscoveryService:
                 title=title,
                 resolution=resolution,
                 codec=codec,
+                source=source,
             )
             for title in titles
         )
@@ -183,7 +234,6 @@ class ReleaseDiscoveryService:
             raise ValueError(f"Anime has no usable search title: {anime_id}")
 
         return plan, search_profile.version if search_profile else None
-
     async def discover_plan(
         self,
         plan: SearchPlan,

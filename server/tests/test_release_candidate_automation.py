@@ -64,7 +64,7 @@ def make_policy(**overrides: object) -> AnimeReleaseAutomationPolicy:
 
 
 def test_disabled_policy_never_selects_candidate() -> None:
-    result = ReleaseCandidateAutomationService._evaluate(
+    result = ReleaseCandidateAutomationService.evaluate_candidate(
         make_candidate(),
         make_policy(enabled=False),
         None,

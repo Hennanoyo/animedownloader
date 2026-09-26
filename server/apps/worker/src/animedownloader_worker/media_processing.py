@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import Protocol, cast
 from uuid import UUID
 
+from animedownloader_download import (
+    describe_media_source,
+    resolve_media_source,
+    resolve_selected_media_source,
+)
 from animedownloader_media import MediaProbe, MediaStream
 from animedownloader_media_asset import (
     MediaAssetMetadata,
@@ -20,11 +25,6 @@ from animedownloader_media_processing import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from animedownloader_download import (
-    describe_media_source,
-    resolve_media_source,
-    resolve_selected_media_source,
-)
 from .progress import JobProgressCallback, emit_job_progress
 
 logger = logging.getLogger(__name__)

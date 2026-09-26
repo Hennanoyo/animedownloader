@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from animedownloader_anime import AnimeService
+from animedownloader_anime import AnimeService, EpisodeNotFoundError
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from animedownloader_api.dependencies import (
@@ -21,7 +21,13 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidateService,
 )
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
+from animedownloader_api.release_ingestion import (
+    ReleaseDoesNotMatchAnimeError,
+    ReleaseNotActionableError,
+    ReleaseReplacementConflictError,
+)
 from animedownloader_api.schemas import (
+    EpisodeResponse,
     ReleaseDiscoveryCandidateResponse,
     ReleaseDiscoveryCandidateAcceptanceRequest,
     ReleaseDiscoveryCandidateAcceptanceResponse,
@@ -104,16 +110,16 @@ async def accept_candidate(
             candidate_id,
             replace_episode_id=payload.replace_episode_id,
         )
-    except ValueError as exc:
-        if isinstance(exc, ReleaseCandidateNotAcceptableError):
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
-        if isinstance(exc, ReleaseCandidateReplacementTargetError):
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        from animedownloader_anime import EpisodeNotFoundError
-
-        if isinstance(exc, EpisodeNotFoundError):
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ReleaseCandidateNotAcceptableError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except EpisodeNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ReleaseCandidateReplacementTargetError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (ReleaseDoesNotMatchAnimeError, ReleaseReplacementConflictError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ReleaseNotActionableError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return ReleaseDiscoveryCandidateAcceptanceResponse(
         status=result.status,

@@ -142,7 +142,7 @@ async def test_discover_releases_returns_parsed_candidates() -> None:
     app = create_app()
     app.dependency_overrides[get_release_discovery_service] = lambda: FakeDiscoveryService(
         ReleaseDiscoveryResult(
-            query="ExampleSubs Frieren 8",
+            queries=("ExampleSubs Frieren 8",),
             warnings=(),
             search_profile_version=2,
             items=(
@@ -166,6 +166,7 @@ async def test_discover_releases_returns_parsed_candidates() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["query"] == "ExampleSubs Frieren 8"
+    assert payload["queries"] == ["ExampleSubs Frieren 8"]
     assert payload["search_profile_version"] == 2
     assert payload["items"][0]["release"]["title"] == release.title
     assert payload["items"][0]["parsed"]["series_title"] == "Frieren"

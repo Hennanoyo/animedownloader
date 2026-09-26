@@ -7,6 +7,7 @@ from uuid import UUID
 
 from animedownloader_anime import AnimeService
 from animedownloader_download import (
+    ActiveDownloadJobError,
     DownloadJob,
     DownloadJobService,
     DownloadJobStatus,
@@ -151,7 +152,10 @@ class MediaSourceService:
 
     async def redownload(self, episode_id: UUID) -> DownloadJob:
         await self._anime.get_episode(episode_id)
-        job = await self._downloads.create_job(episode_id)
+        try:
+            job = await self._downloads.create_job(episode_id)
+        except ActiveDownloadJobError as exc:
+            raise MediaSourceRecoveryConflictError(str(exc)) from exc
         await self._enqueue_download(job.id)
         return job
 
@@ -186,8 +190,17 @@ class MediaSourceService:
         return processing
 
     async def list_orphans(self) -> list[MediaSourceOrphan]:
-        result = await self._session.scalars(select(DownloadJob.id))
-        known_ids = set(result)
+        download_ids = await self._session.scalars(select(DownloadJob.id))
+        known_ids = {str(download_id) for download_id in download_ids}
+
+        processing_directories = await self._session.scalars(
+            select(MediaProcessingJob.download_directory),
+        )
+        known_ids.update(
+            value
+            for value in processing_directories
+            if _is_uuid(value)
+        )
 
         return [
             MediaSourceOrphan(
@@ -195,17 +208,22 @@ class MediaSourceService:
                 path=str(directory),
             )
             for directory in find_download_directories(self._download_root)
-            if UUID(directory.name) not in known_ids
+            if directory.name not in known_ids
         ]
 
     async def delete_orphan(self, directory_id: UUID) -> None:
         exists = await self._session.scalar(
             select(DownloadJob.id).where(DownloadJob.id == directory_id),
         )
+        processing_exists = await self._session.scalar(
+            select(MediaProcessingJob.id).where(
+                MediaProcessingJob.download_directory == str(directory_id),
+            ),
+        )
 
-        if exists is not None:
+        if exists is not None or processing_exists is not None:
             raise MediaSourceRecoveryConflictError(
-                "Download directory belongs to a persisted download job.",
+                "Download directory is still referenced by persisted media state.",
             )
 
         directory = self._download_root / str(directory_id)
@@ -254,3 +272,11 @@ def _relative_source_path(root: Path, path: str) -> str:
         return Path(path).resolve().relative_to(root.resolve()).as_posix()
     except ValueError:
         return path
+
+
+def _is_uuid(value: str) -> bool:
+    try:
+        UUID(value)
+    except ValueError:
+        return False
+    return True

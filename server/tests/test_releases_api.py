@@ -24,6 +24,7 @@ from animedownloader_releases import (
     ParsedRelease,
     ParseStatus,
     Release,
+    ReleaseRanking,
 )
 
 @dataclass
@@ -144,7 +145,14 @@ async def test_discover_releases_returns_parsed_candidates() -> None:
             query="ExampleSubs Frieren 8",
             warnings=(),
             search_profile_version=2,
-            items=(ReleaseDiscoveryItem(release=release, parsed=parsed, match=match),),
+            items=(
+                ReleaseDiscoveryItem(
+                    release=release,
+                    parsed=parsed,
+                    match=match,
+                    ranking=ReleaseRanking(score=0),
+                ),
+            ),
         )
     )
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import cast
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock
 from uuid import UUID, uuid7
 

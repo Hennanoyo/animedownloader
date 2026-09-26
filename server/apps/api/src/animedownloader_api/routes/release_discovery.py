@@ -3,7 +3,6 @@ from uuid import UUID
 
 from animedownloader_anime import AnimeService, EpisodeNotFoundError
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
 
 from animedownloader_api.dependencies import (
     get_anime_service,
@@ -28,7 +27,6 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidateService,
 )
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
-from animedownloader_api.task_queue import ReleaseCandidateAutomationTaskDispatcher
 from animedownloader_api.release_ingestion import (
     ReleaseDoesNotMatchAnimeError,
     ReleaseNotActionableError,
@@ -37,6 +35,10 @@ from animedownloader_api.release_ingestion import (
 from animedownloader_api.schemas import (
     EpisodeIngestionStatus,
     EpisodeResponse,
+    ReleaseAutomationCandidatePreviewResponse,
+    ReleaseAutomationPolicyResponse,
+    ReleaseAutomationPolicyUpdate,
+    ReleaseAutomationRunResponse,
     ReleaseDiscoveryCandidateAcceptanceRequest,
     ReleaseDiscoveryCandidateAcceptanceResponse,
     ReleaseDiscoveryCandidateResponse,
@@ -45,11 +47,8 @@ from animedownloader_api.schemas import (
     ReleaseDiscoveryRunResponse,
     ReleaseDiscoveryScheduleResponse,
     ReleaseDiscoveryScheduleUpdate,
-    ReleaseAutomationCandidatePreviewResponse,
-    ReleaseAutomationPolicyResponse,
-    ReleaseAutomationPolicyUpdate,
-    ReleaseAutomationRunResponse,
 )
+from animedownloader_api.task_queue import ReleaseCandidateAutomationTaskDispatcher
 
 router = APIRouter(prefix="/api", tags=["release-discovery"])
 

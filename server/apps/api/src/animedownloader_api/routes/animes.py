@@ -4,6 +4,7 @@ from uuid import UUID
 from animedownloader_anime import (
     Anime,
     AnimeCreateData,
+    AnimeReleasePreferenceData,
     AnimeService,
     AnimeUpdateData,
     Episode,
@@ -14,12 +15,12 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from animedownloader_api.dependencies import get_anime_service
 from animedownloader_api.schemas import (
     AnimeCreate,
-    AnimeResponse,
+    AnimeReleasePreferenceResponse,
     AnimeReleasePreferenceUpdate,
+    AnimeResponse,
     AnimeUpdate,
     EpisodeCreate,
     EpisodeResponse,
-    AnimeReleasePreferenceResponse,
 )
 
 router = APIRouter(prefix="/api/animes", tags=["animes"])

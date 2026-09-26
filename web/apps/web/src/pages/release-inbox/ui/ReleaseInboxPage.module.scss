@@ -175,10 +175,56 @@
 }
 
 .runStats {
-  grid-template-columns: repeat(3, auto);
+  grid-template-columns: repeat(4, auto);
   align-items: center;
   gap: 0.55rem;
   text-align: right;
+}
+
+.queryDiagnostics {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-top: 0.15rem;
+}
+
+.queryDiagnostics summary {
+  color: #93c5fd;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.queryList {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.queryItem {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #26324a;
+  border-radius: 0.4rem;
+  background: #080f1d;
+}
+
+.queryItem code {
+  overflow-wrap: anywhere;
+  color: #cbd5e1;
+  font-size: 0.68rem;
+}
+
+.queryItem span {
+  color: #64748b;
+  font-size: 0.64rem;
+}
+
+.queryItem p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #fca5a5;
+  font-size: 0.64rem;
 }
 
 .runStats span[data-status="completed"] {
@@ -419,6 +465,10 @@
     grid-template-columns: repeat(2, auto);
     justify-content: start;
     text-align: left;
+  }
+
+  .queryDiagnostics {
+    grid-column: auto;
   }
 
   .actions {

@@ -1066,7 +1066,8 @@ Design goals:
 - enforce a deterministic query budget per discovery run
 - avoid hidden progressive broadening/retry behavior in scheduled discovery
 - preserve raw provider payloads as ephemeral
-- record lightweight per-query run diagnostics when multi-query discovery is introduced
+- record lightweight per-query run diagnostics without retaining raw provider payloads
+- surface provider result-cap signals and per-query failures in release discovery run history
 
 Responsibility boundaries:
 
@@ -1093,8 +1094,8 @@ Planned implementation order:
 2. Make `Find releases`, `Discovery now`, and periodic discovery consume the same planning path while keeping manual overrides explicit.
 3. Add bounded multi-query execution and in-memory deduplication.
 4. Feed Anime alternate titles and persisted release preferences into deterministic plan generation.
-5. Persist lightweight per-query diagnostics without retaining raw Nyaa/RSS payloads.
-6. Add backend, frontend, browser, and integration coverage for query budgets, result merging, provider caps/warnings, and scheduled/manual parity.
+5. ✅ Persist lightweight per-query diagnostics without retaining raw Nyaa/RSS payloads.
+6. ✅ Add backend, frontend, browser, and integration coverage for query budgets, result merging, provider caps/warnings, and scheduled/manual parity.
 
 Out of scope for this phase:
 
@@ -1107,5 +1108,5 @@ Out of scope for this phase:
 
 ## Handoff Notes
 
-PR #47 is merged into `main`. The next implementation work is the Unified Discovery Search Planning phase described above. Treat `docs/architecture/release-discovery.md` and this section as the design handoff for the next PR.
+PR #47 is merged into `main`. The Unified Discovery Search Planning implementation now includes bounded multi-query execution, Anime-driven title/preference inputs, shared manual/scheduled planning, and per-query diagnostics. The remaining work is iterative refinement of query-generation quality and operator controls based on real discovery results; do not introduce unbounded query expansion or hidden broadening.
 

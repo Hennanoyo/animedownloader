@@ -40,4 +40,4 @@ async def test_nyaa_client_search_uses_rss_query() -> None:
     ):
         releases = await client.search("Frieren")
 
-    assert len(releases) == 2
+    assert len(releases.items) == 2

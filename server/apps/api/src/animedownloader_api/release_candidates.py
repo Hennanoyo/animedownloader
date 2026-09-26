@@ -11,6 +11,7 @@ from animedownloader_database import Base
 from animedownloader_releases import AnimeMatchResult
 from sqlalchemy import (
     JSON,
+    Boolean,
     DateTime,
     ForeignKey,
     Integer,
@@ -20,7 +21,7 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .release_discovery import ReleaseDiscoveryResult
 
@@ -47,6 +48,45 @@ class ReleaseDiscoverySchedule(Base):
         onupdate=func.now(),
     )
 
+
+class ReleaseDiscoveryQueryStatus(StrEnum):
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+
+
+class ReleaseDiscoveryQuery(Base):
+    __tablename__ = "release_discovery_queries"
+    __table_args__ = (
+        UniqueConstraint(
+            "run_id",
+            "position",
+            name="uq_release_discovery_queries_run_position",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    run_id: Mapped[UUID] = mapped_column(
+        ForeignKey("release_discovery_runs.id", ondelete="CASCADE"),
+        index=True,
+    )
+    position: Mapped[int] = mapped_column(Integer)
+    query: Mapped[str] = mapped_column(String(500))
+    status: Mapped[str] = mapped_column(String(16))
+    result_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    result_cap_reached: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default="false",
+    )
+    error_message: Mapped[str | None] = mapped_column(String(2000))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    run: Mapped[ReleaseDiscoveryRun] = relationship(back_populates="queries")
 
 class ReleaseDiscoveryRunStatus(StrEnum):
     QUEUED = "queued"
@@ -93,6 +133,12 @@ class ReleaseDiscoveryRun(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
+    )
+    queries: Mapped[list[ReleaseDiscoveryQuery]] = relationship(
+        back_populates="run",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="ReleaseDiscoveryQuery.position",
     )
 
     __table_args__ = (
@@ -304,6 +350,19 @@ class ReleaseDiscoveryCandidateService:
 
             run.query = result.query
             run.search_profile_version = result.search_profile_version
+
+            for query_result in result.query_results:
+                self.session.add(
+                    ReleaseDiscoveryQuery(
+                        run_id=run.id,
+                        position=query_result.position,
+                        query=query_result.query,
+                        status=query_result.status,
+                        result_count=query_result.result_count,
+                        result_cap_reached=query_result.result_cap_reached,
+                        error_message=query_result.error_message,
+                    ),
+                )
 
             observed_at = datetime.now(UTC)
             for item in result.items:

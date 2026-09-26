@@ -14,6 +14,7 @@ from animedownloader_releases import (
     ParsedRelease,
     ParseStatus,
     Release,
+    ReleaseSearchResult,
     SearchField,
     SearchPlan,
     SearchPlanQuery,
@@ -45,15 +46,17 @@ class FakeNyaaClient:
     def __init__(self) -> None:
         self.queries: list[str] = []
 
-    async def search(self, query: str) -> list[Release]:
+    async def search(self, query: str) -> ReleaseSearchResult:
         self.queries.append(query)
         if query == "ExampleSubs Frieren 1 1080p HEVC":
-            return [
-                replace(
-                    _release("[ExampleSubs] Frieren - 01 [1080p][HEVC]"),
-                    id="release-1",
+            return ReleaseSearchResult(
+                items=(
+                    replace(
+                        _release("[ExampleSubs] Frieren - 01 [1080p][HEVC]"),
+                        id="release-1",
+                    ),
                 ),
-            ]
+            )
         raise NyaaError("unexpected second request")
 
 
@@ -101,10 +104,7 @@ async def test_build_anime_search_plan_uses_alternate_titles_and_budget() -> Non
     )
 
     assert profile_version is None
-    assert tuple(item.query for item in plan.queries) == (
-        "Sousou no Frieren",
-        "Frieren: Beyond Journey's End",
-    )
+    assert tuple(item.query for item in plan.queries) == ("Sousou no Frieren",)
 
 
 @pytest.mark.anyio
@@ -151,7 +151,7 @@ async def test_build_anime_search_plan_applies_preference_and_search_profile() -
             ),
         ],
     )
-    anime = __import__("animedownloader_anime").Anime(
+    anime = Anime(
         id=anime_id,
         title="Frieren",
         titles={
@@ -195,12 +195,12 @@ async def test_discovery_executes_each_plan_query_and_deduplicates_results() -> 
         def __init__(self) -> None:
             self.queries: list[str] = []
 
-        async def search(self, query: str) -> list[Release]:
+        async def search(self, query: str) -> ReleaseSearchResult:
             self.queries.append(query)
             if query == "ExampleSubs Frieren":
-                return [first]
+                return ReleaseSearchResult(items=(first,))
             if query == "ExampleSubs Sousou no Frieren":
-                return [replace(first), second]
+                return ReleaseSearchResult(items=(replace(first), second))
             raise NyaaError("unexpected query")
 
     client = MultiQueryClient()
@@ -230,6 +230,42 @@ async def test_discovery_executes_each_plan_query_and_deduplicates_results() -> 
 
 
 @pytest.mark.anyio
+async def test_discovery_records_query_counts_caps_and_errors() -> None:
+    session = MagicMock()
+    session.scalars = AsyncMock(return_value=EmptyScalars())
+
+    class DiagnosticClient:
+        async def search(self, query: str) -> ReleaseSearchResult:
+            if query == "capped":
+                return ReleaseSearchResult(
+                    items=(_release("[ExampleSubs] Frieren - 01"),),
+                    result_cap_reached=True,
+                )
+            raise NyaaError("provider unavailable")
+
+    service = ReleaseDiscoveryService(session, DiagnosticClient())
+    plan = SearchPlan(
+        queries=(
+            SearchPlanQuery(query="capped", fields=(SearchField.TITLE,)),
+            SearchPlanQuery(query="failed", fields=(SearchField.TITLE,)),
+        ),
+    )
+
+    result = await service.discover_plan(plan)
+
+    assert result.query_results[0].status == "completed"
+    assert result.query_results[0].result_count == 1
+    assert result.query_results[0].result_cap_reached is True
+    assert result.query_results[1].status == "failed"
+    assert result.query_results[1].result_count == 0
+    assert result.query_results[1].error_message == "provider unavailable"
+    assert result.warnings == (
+        "Search query may be truncated at the provider result limit: capped",
+        "Search query failed: failed",
+    )
+
+
+@pytest.mark.anyio
 async def test_discovery_continues_when_one_plan_query_fails() -> None:
     session = MagicMock()
     session.scalars = AsyncMock(return_value=EmptyScalars())
@@ -238,11 +274,11 @@ async def test_discovery_continues_when_one_plan_query_fails() -> None:
         def __init__(self) -> None:
             self.queries: list[str] = []
 
-        async def search(self, query: str) -> list[Release]:
+        async def search(self, query: str) -> ReleaseSearchResult:
             self.queries.append(query)
             if query == "Frieren":
                 raise NyaaError("search failed")
-            return [_release("[ExampleSubs] Frieren - 01")]
+            return ReleaseSearchResult(items=(_release("[ExampleSubs] Frieren - 01"),))
 
     client = PartialFailureClient()
     service = ReleaseDiscoveryService(session, client)
@@ -309,7 +345,7 @@ async def test_discovery_reports_a_failed_single_query_without_retrying() -> Non
         def __init__(self) -> None:
             self.queries: list[str] = []
 
-        async def search(self, query: str) -> list[Release]:
+        async def search(self, query: str) -> ReleaseSearchResult:
             self.queries.append(query)
             raise NyaaError("search failed")
 

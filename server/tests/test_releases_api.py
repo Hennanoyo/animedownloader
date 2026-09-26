@@ -25,15 +25,16 @@ from animedownloader_releases import (
     ParsedRelease,
     ParseStatus,
     Release,
+    ReleaseSearchResult,
 )
 
 @dataclass
 class FakeNyaaClient:
     releases: list[Release]
 
-    async def search(self, query: str) -> list[Release]:
+    async def search(self, query: str) -> ReleaseSearchResult:
         assert query == "Frieren"
-        return self.releases
+        return ReleaseSearchResult(items=tuple(self.releases))
 
 
 @dataclass

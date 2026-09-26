@@ -19,6 +19,7 @@ from animedownloader_releases import (
     ReleaseParserProfile,
     ReleaseProfileService,
     ReleaseSearchProfile,
+    ReleaseSearchResult,
     SearchField,
     SearchPlan,
     SearchProfileSpec,
@@ -38,7 +39,7 @@ from .release_matching import AnimeMatcher
 
 
 class ReleaseSearchClient(Protocol):
-    async def search(self, query: str) -> list[Release]:
+    async def search(self, query: str) -> ReleaseSearchResult:
         ...
 
 
@@ -57,11 +58,22 @@ class ReleaseDiscoveryItem:
 
 
 @dataclass(frozen=True, slots=True)
+class ReleaseDiscoveryQueryResult:
+    position: int
+    query: str
+    status: str
+    result_count: int
+    result_cap_reached: bool
+    error_message: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class ReleaseDiscoveryResult:
     queries: tuple[str, ...]
     warnings: tuple[str, ...]
     search_profile_version: int | None
     items: tuple[ReleaseDiscoveryItem, ...]
+    query_results: tuple[ReleaseDiscoveryQueryResult, ...] = ()
 
     @property
     def query(self) -> str:
@@ -148,6 +160,11 @@ class ReleaseDiscoveryService:
 
         search_profile = await self._load_search_profile(group)
         search_spec = self._to_search_profile_spec(search_profile) if search_profile else None
+        narrowing_is_available = bool(group or resolution or codec)
+
+        if not narrowing_is_available:
+            titles = titles[:1]
+
         contexts = tuple(
             SearchQueryContext(
                 group=group,
@@ -182,11 +199,39 @@ class ReleaseDiscoveryService:
 
         release_batches: list[tuple[Release, ...]] = []
         warnings: list[str] = []
-        for plan_query in plan.queries:
+        query_results: list[ReleaseDiscoveryQueryResult] = []
+        for position, plan_query in enumerate(plan.queries, start=1):
             try:
-                release_batches.append(tuple(await self._client.search(plan_query.query)))
-            except NyaaError:
+                search_result: ReleaseSearchResult = await self._client.search(
+                    plan_query.query,
+                )
+                release_batches.append(search_result.items)
+                query_results.append(
+                    ReleaseDiscoveryQueryResult(
+                        position=position,
+                        query=plan_query.query,
+                        status="completed",
+                        result_count=len(search_result.items),
+                        result_cap_reached=search_result.result_cap_reached,
+                    ),
+                )
+                if search_result.result_cap_reached:
+                    warnings.append(
+                        "Search query may be truncated at the provider result limit: "
+                        f"{plan_query.query}",
+                    )
+            except NyaaError as exc:
                 warnings.append(f"Search query failed: {plan_query.query}")
+                query_results.append(
+                    ReleaseDiscoveryQueryResult(
+                        position=position,
+                        query=plan_query.query,
+                        status="failed",
+                        result_count=0,
+                        result_cap_reached=False,
+                        error_message=str(exc)[:2000],
+                    ),
+                )
 
         releases = merge_releases(release_batches)
 
@@ -261,6 +306,7 @@ class ReleaseDiscoveryService:
 
         return ReleaseDiscoveryResult(
             queries=tuple(query.query for query in plan.queries),
+            query_results=tuple(query_results),
             warnings=tuple(warnings),
             search_profile_version=search_profile_version,
             items=tuple(items),

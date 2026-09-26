@@ -99,6 +99,9 @@ See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 - Explicit replacement must identify the target Episode and must verify the target belongs to the candidate Anime and has the same episode number before using the existing replacement-history guards.
 - Candidate acceptance and replacement must never create or start a DownloadJob implicitly; downloading remains a separate explicit action.
 - Keep candidate lists bounded at the API boundary and make destructive candidate cleanup explicit; never run cleanup implicitly as part of discovery.
+- Discovery Search Plans are bounded and deterministic. Never introduce Cartesian-product query expansion or hidden progressive broadening/retry.
+- Persist per-query discovery diagnostics when a Search Plan executes multiple provider queries, but never persist raw Nyaa/RSS payloads merely for diagnostics.
+- Treat provider result-limit detection as a diagnostic signal rather than proof of truncation; expose the signal so operators can refine search plans.
 - Automatic candidate selection is opt-in per Anime and defaults to disabled.
 - Automatic selection may use only actionable, uniquely matched candidates and must re-evaluate the current policy/preferences immediately before Episode ingestion.
 - When automatic selection requires preference matching, at least one configured Anime release preference must match; no-preference automation must not silently broaden into unrestricted downloads.

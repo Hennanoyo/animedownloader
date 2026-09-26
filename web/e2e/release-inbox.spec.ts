@@ -199,6 +199,28 @@ test.beforeEach(async ({ page }) => {
           started_at: "2026-09-26T00:00:01Z",
           completed_at: "2026-09-26T00:00:05Z",
           created_at: "2026-09-26T00:00:00Z",
+          queries: [
+            {
+              id: "019a0000-0000-7000-8000-000000000023",
+              position: 1,
+              query: "Candidate Inbox Anime",
+              status: "completed",
+              result_count: 75,
+              result_cap_reached: true,
+              error_message: null,
+              created_at: "2026-09-26T00:00:01Z",
+            },
+            {
+              id: "019a0000-0000-7000-8000-000000000024",
+              position: 2,
+              query: "Candidate Inbox Anime Alt",
+              status: "failed",
+              result_count: 0,
+              result_cap_reached: false,
+              error_message: "provider unavailable",
+              created_at: "2026-09-26T00:00:02Z",
+            },
+          ],
         },
       ]),
     });
@@ -211,7 +233,11 @@ test("reviews a persisted discovery candidate in the inbox", async ({ page }) =>
   await expect(
     page.getByRole("heading", { name: "Candidate inbox", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("Candidate Inbox Anime", { exact: true })).toHaveCount(2);
+  await expect(
+    page
+      .locator('section[aria-labelledby="candidates-heading"]')
+      .getByText("Candidate Inbox Anime", { exact: true }),
+  ).toHaveCount(1);
   await expect(
     page.getByRole("heading", {
       name: "[ExampleSubs] Candidate Inbox Anime - 01 [1080p][HEVC]",
@@ -241,8 +267,25 @@ test("reviews a persisted discovery candidate in the inbox", async ({ page }) =>
 test("shows recent discovery run history", async ({ page }) => {
   await page.goto("/release-inbox");
 
-  await expect(page.getByText("Candidate Inbox Anime", { exact: true })).toHaveCount(2);
-  await expect(page.getByText("completed", { exact: true })).toBeVisible();
+  const runSection = page.locator('section[aria-labelledby="runs-heading"]');
+  const runCard = runSection.locator("article").first();
+  await expect(runCard).toBeVisible();
+  await expect(runCard.getByText("completed", { exact: true })).toBeVisible();
+  const diagnostics = runCard.getByText(
+    "Query diagnostics · provider cap signal",
+    { exact: true },
+  );
+  await expect(diagnostics).toBeVisible();
+  await diagnostics.click();
+  await expect(
+    runCard.getByText("75 results · completed · provider cap signal", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    runCard.getByText("0 results · failed", { exact: true }),
+  ).toBeVisible();
+  await expect(runCard.getByText("provider unavailable", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "candidates" })).toContainText("1 candidates");
 });
 

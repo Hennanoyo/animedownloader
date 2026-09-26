@@ -22,12 +22,11 @@ from animedownloader_releases import (
     SearchField,
     SearchProfileSpec,
     SearchPlan,
-    SearchPlanQuery,
     SearchProfileStatus,
     SearchQueryContext,
     apply_parser_profile,
     build_search_plan,
-    build_search_query,
+    merge_releases,
     normalize_release_group_slug,
     parse_release,
 )

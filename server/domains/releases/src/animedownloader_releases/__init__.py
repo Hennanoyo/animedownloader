@@ -29,6 +29,8 @@ from .models import (
     ParseStatus,
     Release,
     SearchField,
+    SearchPlan,
+    SearchPlanQuery,
     SearchProfileSpec,
     SearchQueryContext,
 )
@@ -45,6 +47,7 @@ from .parser import (
 from .search import (
     DEFAULT_SEARCH_FIELDS,
     MAX_SEARCH_FIELDS,
+    build_search_plan,
     build_search_query,
     merge_releases,
     normalize_release_group_slug,
@@ -74,6 +77,8 @@ __all__ = [
     "ReleaseSearchField",
     "ReleaseSearchProfile",
     "SearchField",
+    "SearchPlan",
+    "SearchPlanQuery",
     "SearchProfileSpec",
     "SearchProfileStatus",
     "SearchQueryContext",
@@ -92,6 +97,7 @@ __all__ = [
     "validate_parser_samples",
     "DEFAULT_SEARCH_FIELDS",
     "MAX_SEARCH_FIELDS",
+    "build_search_plan",
     "build_search_query",
     "merge_releases",
     "normalize_release_group_slug",

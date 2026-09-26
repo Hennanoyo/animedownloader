@@ -264,6 +264,7 @@ test("shows recent discovery run history", async ({ page }) => {
   await expect(
     runCard.getByText("Query diagnostics", { exact: true }),
   ).toBeVisible();
+  await runCard.getByText("Query diagnostics", { exact: true }).click();
   await expect(
     runCard.getByText("18 results · completed", { exact: true }),
   ).toBeVisible();

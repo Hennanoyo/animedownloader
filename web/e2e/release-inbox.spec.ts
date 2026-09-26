@@ -19,14 +19,6 @@ const anime = {
 };
 
 let candidateStatus: "new" | "reviewed" | "rejected" | "stale" = "new";
-let _schedule = {
-  anime_id: ANIME_ID,
-  enabled: false,
-  interval_minutes: 360,
-  next_run_at: null as string | null,
-  last_run_at: null as string | null,
-  last_run_status: null as string | null,
-};
 
 const candidate = () => ({
   id: CANDIDATE_ID,

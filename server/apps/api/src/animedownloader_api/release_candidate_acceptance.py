@@ -112,10 +112,19 @@ class ReleaseDiscoveryCandidateAcceptanceService:
                 parsed=parsed,
             )
 
+        ingestion_status = ingestion.status
+        ingestion_episode_id = (
+            ingestion.episode.id if ingestion.episode is not None else None
+        )
+        ingestion_existing_episode_id = (
+            ingestion.existing_episode.id
+            if ingestion.existing_episode is not None
+            else None
+        )
         await self.session.rollback()
 
-        if ingestion.status == EpisodeIngestionStatus.REPLACEMENT_CANDIDATE:
-            if ingestion.existing_episode is None:
+        if ingestion_status == EpisodeIngestionStatus.REPLACEMENT_CANDIDATE:
+            if ingestion_existing_episode_id is None:
                 raise RuntimeError(
                     "replacement candidate ingestion returned no existing Episode",
                 )
@@ -130,13 +139,13 @@ class ReleaseDiscoveryCandidateAcceptanceService:
                     )
                 existing_episode = await self.session.scalar(
                     select(Episode).where(
-                        Episode.id == ingestion.existing_episode.id,
+                        Episode.id == ingestion_existing_episode_id,
                     ),
                 )
             if existing_episode is None:
-                raise EpisodeNotFoundError(ingestion.existing_episode.id)
+                raise EpisodeNotFoundError(ingestion_existing_episode_id)
             return ReleaseDiscoveryCandidateAcceptanceResult(
-                status=ingestion.status,
+                status=ingestion_status,
                 candidate=current_candidate,
                 episode=None,
                 existing_episode=existing_episode,
@@ -155,13 +164,13 @@ class ReleaseDiscoveryCandidateAcceptanceService:
             current_candidate.reviewed_at = datetime.now(UTC)
 
             episode = None
-            if ingestion.episode is not None:
+            if ingestion_episode_id is not None:
                 episode = await self.session.scalar(
-                    select(Episode).where(Episode.id == ingestion.episode.id),
+                    select(Episode).where(Episode.id == ingestion_episode_id),
                 )
 
         return ReleaseDiscoveryCandidateAcceptanceResult(
-            status=ingestion.status,
+            status=ingestion_status,
             candidate=current_candidate,
             episode=episode,
             existing_episode=None,

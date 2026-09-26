@@ -233,6 +233,42 @@ async def test_discovery_executes_each_plan_query_and_deduplicates_results() -> 
 
 
 @pytest.mark.anyio
+async def test_discovery_records_query_counts_caps_and_errors() -> None:
+    session = MagicMock()
+    session.scalars = AsyncMock(return_value=EmptyScalars())
+
+    class DiagnosticClient:
+        async def search(self, query: str) -> ReleaseSearchResult:
+            if query == "capped":
+                return ReleaseSearchResult(
+                    items=(_release("[ExampleSubs] Frieren - 01"),),
+                    result_cap_reached=True,
+                )
+            raise NyaaError("provider unavailable")
+
+    service = ReleaseDiscoveryService(session, DiagnosticClient())
+    plan = SearchPlan(
+        queries=(
+            SearchPlanQuery(query="capped", fields=(SearchField.TITLE,)),
+            SearchPlanQuery(query="failed", fields=(SearchField.TITLE,)),
+        ),
+    )
+
+    result = await service.discover_plan(plan)
+
+    assert result.query_results[0].status == "completed"
+    assert result.query_results[0].result_count == 1
+    assert result.query_results[0].result_cap_reached is True
+    assert result.query_results[1].status == "failed"
+    assert result.query_results[1].result_count == 0
+    assert result.query_results[1].error_message == "provider unavailable"
+    assert result.warnings == (
+        "Search query may be truncated at the provider result limit: capped",
+        "Search query failed: failed",
+    )
+
+
+@pytest.mark.anyio
 async def test_discovery_continues_when_one_plan_query_fails() -> None:
     session = MagicMock()
     session.scalars = AsyncMock(return_value=EmptyScalars())

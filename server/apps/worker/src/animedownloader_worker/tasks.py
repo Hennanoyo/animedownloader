@@ -1,6 +1,9 @@
 from uuid import UUID
 
+from animedownloader_anime import Anime
 from animedownloader_config import Settings
+from animedownloader_nyaa import NyaaClient
+from animedownloader_releases import SearchField
 from animedownloader_database import Database, create_database
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
 from animedownloader_media import (
@@ -33,6 +36,12 @@ from animedownloader_media_processing import (
 from animedownloader_qbittorrent import QBittorrentClient
 
 from .broker import broker
+from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
+from animedownloader_api.release_discovery import ReleaseDiscoveryService
+from animedownloader_api.release_discovery_scheduler import RELEASE_DISCOVERY_TASK_NAME
+
+from sqlalchemy import select
+
 from .media_attachment_processing import (
     MediaAttachmentProcessingRunner,
     create_media_attachment_processing_state,
@@ -49,6 +58,65 @@ from .subtitle_processing import (
 )
 
 print("[worker] task module loaded", flush=True)
+
+
+@broker.task(task_name=RELEASE_DISCOVERY_TASK_NAME)
+async def run_release_discovery(run_id: str) -> None:
+    print(f"[worker] release discovery started: run_id={run_id}", flush=True)
+    settings = Settings()
+    database = create_database(settings.database_url)
+    parsed_run_id = UUID(run_id)
+
+    try:
+        async with database.session_factory() as session:
+            run_service = ReleaseDiscoveryCandidateService(session)
+            run = await run_service.start_run(parsed_run_id)
+            if run.status != "running":
+                print(
+                    f"[worker] release discovery skipped: run_id={run_id} status={run.status}",
+                    flush=True,
+                )
+                return
+
+            anime = await session.scalar(
+                select(Anime).where(Anime.id == run.anime_id),
+            )
+            if anime is None:
+                raise ValueError(f"anime not found for discovery run: {run.anime_id}")
+
+            search_title = anime.titles.get("romaji") or anime.title
+            anime_id = anime.id
+
+        async with NyaaClient() as client:
+            async with database.session_factory() as session:
+                discovery = ReleaseDiscoveryService(session, client)
+                result = await discovery.discover(
+                    title=search_title,
+                    anime_id=anime_id,
+                    fields=(SearchField.TITLE,),
+                )
+                candidate_service = ReleaseDiscoveryCandidateService(session)
+                counts = await candidate_service.record_discovery(parsed_run_id, result)
+                await candidate_service.complete_run(parsed_run_id, counts)
+
+        print(
+            f"[worker] release discovery completed: run_id={run_id} "
+            f"candidates={counts.candidate_count} warnings={counts.warning_count}",
+            flush=True,
+        )
+    except Exception as exc:
+        async with database.session_factory() as session:
+            await ReleaseDiscoveryCandidateService(session).fail_run(
+                parsed_run_id,
+                f"{type(exc).__name__}: {exc}",
+            )
+        print(
+            f"[worker] release discovery failed: run_id={run_id} "
+            f"{type(exc).__name__}: {exc}",
+            flush=True,
+        )
+    finally:
+        await database.dispose()
 
 
 @broker.task(task_name=DOWNLOAD_TASK_NAME)

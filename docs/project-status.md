@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is complete through PR #40. Media Source Lifecycle & Recovery is complete through PR #42; the current phase is Release Provenance & Explicit Replacement.
+The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is complete through PR #40. Media Source Lifecycle & Recovery is complete through PR #42. Release Provenance & Explicit Replacement is complete through PR #43; the current phase is Anime Release Preferences & Candidate Ranking.
 
 ## Completed
 
@@ -897,6 +897,50 @@ Out of scope:
 - automatic release ranking or discovery scheduling
 - source migration to object storage
 - additional media/player features
+
+### PR #43 — Release Provenance & Explicit Replacement
+
+**Merged into `main` as commit `b71bad344a5120dc02c92e534ff9bca7756741bf`.**
+
+- Persisted nullable `Episode.release_group_id` provenance with `SET NULL` semantics
+- Connected known enabled ReleaseGroup identities during release ingestion without auto-creating groups
+- Added explicit release replacement with history guards for DownloadJob, MediaProcessingJob, and MediaAsset
+- Preserved user-maintained Episode title and execution/media state during replacement
+- Added discovery UI and regression coverage for replacement candidates
+- Added release provenance/replacement safety rules to `AGENTS.md`
+
+### PR #44 — Anime Release Preferences & Candidate Ranking
+
+**Current development phase.**
+
+Goal: let each Anime store optional release preferences and use them to produce deterministic, explainable discovery ordering without starting downloads or silently changing Episode state.
+
+Implementation order:
+
+1. Add an optional per-Anime release preference record for ReleaseGroup, resolution, video codec, and source.
+2. Expose GET/PATCH preference APIs and a compact Anime-detail preference editor using existing React Aria ComboBox controls.
+3. Extend release discovery requests with the target Anime ID so ranking can be evaluated against that Anime's preferences.
+4. Add deterministic preference scoring with explicit reasons for group/resolution/codec/source matches.
+5. Keep unconfigured preference fields neutral; do not penalize candidates when a preference is unset.
+6. Sort discovery candidates only when preferences exist, with stable parser status, seeder count, and title tie-breakers after preference score.
+7. Show the ranking score/reasons next to each discovered release so users can understand why results moved.
+8. Add backend/API/Browser regression coverage.
+
+Design constraints:
+
+- Preferences are hints for discovery ordering, not automatic download policy.
+- Unknown ReleaseGroups are never created from preference editing.
+- Current Nyaa seeders are only a deterministic tie-breaker; they must not override explicit preference matches.
+- Ranking never creates DownloadJobs, replaces Episodes, or mutates Episode provenance.
+- Automatic discovery scheduling, automatic release selection, and automatic downloads remain future phases.
+
+Out of scope:
+
+- periodic discovery scheduling
+- automatic release selection
+- automatic downloads
+- new providers
+- media/player changes
 
 ## Handoff Notes:
 

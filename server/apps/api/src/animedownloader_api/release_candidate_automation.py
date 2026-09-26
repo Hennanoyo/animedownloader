@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Awaitable, Callable
 from uuid import UUID
 
 from animedownloader_anime import Anime, AnimeReleasePreference
@@ -23,7 +23,6 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
-    String,
     func,
     or_,
     select,

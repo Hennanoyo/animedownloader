@@ -36,7 +36,7 @@ _ROMANIZATION_ALIASES = {"wo": "o"}
 
 def canonicalize_match_title(value: str) -> str:
     """Normalize Anime titles using the same bracketed-region semantics as release parsing."""
-    without_bracketed_regions =_BRACKETED_TITLE_RE.sub(" ", value)
+    without_bracketed_regions = _BRACKETED_TITLE_RE.sub(" ", value)
     return canonicalize_title(without_bracketed_regions)
 
 
@@ -79,7 +79,7 @@ class AnimeMatcher:
         matches = self._index.get(normalized_series_title)
         if not matches:
             matches = self._relaxed_index.get(
-                _canonicalize_relaxed_match_title(series_title),
+                _canonicalize_relaxed_match_title(series_title or ""),
                 [],
             )
         for anime, matched_title in matches:

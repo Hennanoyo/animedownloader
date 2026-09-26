@@ -38,7 +38,7 @@ from animedownloader_qbittorrent import QBittorrentClient
 from .broker import broker
 from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
-from animedownloader_api.release_discovery_scheduler import RELEASE_DISCOVERY_TASK_NAME
+from animedownloader_api.task_queue import RELEASE_DISCOVERY_TASK_NAME
 
 from sqlalchemy import select
 

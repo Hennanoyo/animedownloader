@@ -353,9 +353,9 @@ async def run_discovery_now(
 ) -> ReleaseDiscoveryRunResponse:
     schedule = await service.get_schedule(anime_id)
     if (
-        not getattr(schedule, "search_title", None)
-        or not getattr(schedule, "search_field_order", None)
-        or not getattr(schedule, "search_enabled_fields", None)
+        not schedule.search_title
+        or not schedule.search_field_order
+        or not schedule.search_enabled_fields
     ):
         raise HTTPException(
             status_code=409,

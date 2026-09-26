@@ -5,11 +5,11 @@ from uuid import uuid7
 import pytest
 from animedownloader_anime import Anime, AnimeReleasePreference
 from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
+from animedownloader_api.release_discovery_config import ReleaseDiscoverySchedule
 from animedownloader_api.release_discovery import (
     ReleaseDiscoveryQueryResult,
     ReleaseDiscoveryService,
 )
-from animedownloader_api.release_discovery_config import ReleaseDiscoverySchedule
 from animedownloader_nyaa import NyaaError
 from animedownloader_releases import (
     AnimeMatchCandidate,

@@ -260,7 +260,7 @@ class ReleaseCandidateAutomationService:
 
             claimed: list[UUID] = []
             for candidate in candidates.all():
-                decision = self._evaluate(
+                decision = self.evaluate_candidate(
                     candidate,
                     policy,
                     preference,
@@ -322,7 +322,7 @@ class ReleaseCandidateAutomationService:
             return
 
         preference, preferred_group = await self._get_preference(candidate.anime_id)
-        decision = self._evaluate(
+        decision = self.evaluate_candidate(
             candidate,
             policy,
             preference,
@@ -420,10 +420,10 @@ class ReleaseCandidateAutomationService:
         row = result.first()
         if row is None:
             return None, None
-        return row
+        return row[0], row[1]
 
     @staticmethod
-    def _evaluate(
+    def evaluate_candidate(
         candidate: ReleaseDiscoveryCandidate,
         policy: AnimeReleaseAutomationPolicy,
         preference: AnimeReleasePreference | None,

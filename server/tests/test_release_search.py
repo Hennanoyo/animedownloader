@@ -6,6 +6,7 @@ from animedownloader_releases import (
     SearchField,
     SearchProfileSpec,
     SearchQueryContext,
+    build_search_plan,
     build_search_query,
     merge_releases,
     normalize_release_group_slug,
@@ -94,6 +95,66 @@ def test_search_profile_uses_declared_field_order() -> None:
         SearchQueryContext(title="Frieren", episode=8, codec="HEVC"),
         profile,
     ) == "Frieren 8 HEVC"
+
+
+def test_build_search_plan_deduplicates_rendered_queries_and_preserves_order() -> None:
+    contexts = (
+        SearchQueryContext(title="Frieren", group="ExampleSubs"),
+        SearchQueryContext(title="Frieren", group="ExampleSubs"),
+        SearchQueryContext(title="Sousou no Frieren", group="ExampleSubs"),
+    )
+
+    plan = build_search_plan(
+        contexts,
+        fields=(SearchField.GROUP, SearchField.TITLE),
+        max_queries=3,
+    )
+
+    assert tuple(item.query for item in plan.queries) == (
+        "ExampleSubs Frieren",
+        "ExampleSubs Sousou no Frieren",
+    )
+
+
+def test_build_search_plan_respects_query_budget() -> None:
+    contexts = tuple(
+        SearchQueryContext(title=title)
+        for title in ("Frieren", "Sousou no Frieren", "Frieren: Beyond Journey's End")
+    )
+
+    plan = build_search_plan(
+        contexts,
+        fields=(SearchField.TITLE,),
+        max_queries=2,
+    )
+
+    assert tuple(item.query for item in plan.queries) == (
+        "Frieren",
+        "Sousou no Frieren",
+    )
+
+
+def test_build_search_plan_uses_profile_fields() -> None:
+    profile = SearchProfileSpec(
+        release_group="ExampleSubs",
+        version=2,
+        fields=(SearchField.GROUP, SearchField.TITLE, SearchField.CODEC),
+    )
+
+    plan = build_search_plan(
+        (
+            SearchQueryContext(
+                group="ExampleSubs",
+                title="Frieren",
+                codec="HEVC",
+            ),
+        ),
+        profile=profile,
+    )
+
+    assert len(plan.queries) == 1
+    assert plan.queries[0].query == "ExampleSubs Frieren HEVC"
+    assert plan.queries[0].fields == profile.fields
 
 
 def test_merge_releases_deduplicates_source_and_info_hash() -> None:

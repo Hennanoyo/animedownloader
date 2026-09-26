@@ -944,7 +944,7 @@ Out of scope:
 
 ## Handoff Notes:
 
-PR #43 is the active branch `feature/release-provenance-replacement`. The branch starts from merged PR #42 and is focused on durable Episode release provenance plus an explicit, history-safe replacement action.
+PR #44 is the active branch `feature/anime-release-preferences-ranking`. The branch starts from merged PR #43 and focuses on optional Anime release preferences plus deterministic, explainable discovery candidate ranking.
 
 ## Handoff Notes
 

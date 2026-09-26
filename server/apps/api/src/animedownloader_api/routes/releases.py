@@ -92,6 +92,7 @@ async def discover_releases(
     )
     return ReleaseDiscoveryResponse(
         query=result.query,
+        queries=list(result.queries),
         warnings=list(result.warnings),
         search_profile_version=result.search_profile_version,
         items=[

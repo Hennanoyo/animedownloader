@@ -22,7 +22,7 @@ class FakeSession:
         self.scalar_results = scalar_results
         self.rollback_count = 0
 
-    def begin(self) -> "FakeSession":
+    def begin(self) -> FakeSession:
         return self
 
     async def __aenter__(self) -> "FakeSession":

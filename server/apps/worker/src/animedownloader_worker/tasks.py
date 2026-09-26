@@ -92,7 +92,7 @@ async def run_release_discovery(run_id: str) -> None:
         # preferences, and any active group-specific Search Profile before
         # opening the provider I/O session.
         async with database.session_factory() as session:
-            discovery = ReleaseDiscoveryService(session, NyaaClient())
+            discovery = ReleaseDiscoveryService(session, None)
             search_plan, search_profile_version = (
                 await discovery.build_anime_search_plan(anime_id)
             )

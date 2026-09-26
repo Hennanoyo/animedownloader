@@ -49,7 +49,7 @@ def resolve_media_source(root: Path) -> MediaSourceResolution:
             root=root,
         )
 
-    candidates = tuple(
+    candidates: tuple[Path, ...] = tuple(
         sorted(
             path
             for path in root.rglob("*")

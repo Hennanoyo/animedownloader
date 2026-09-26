@@ -11,6 +11,7 @@ import {
 import { useAnimePipelineRealtime } from "../../../features/anime-detail/model/useAnimePipelineRealtime";
 import { useDeleteAnime } from "../../../features/anime-edit/model/useEditAnime";
 import ReleasePreferencesPanel from "../../../features/release-preferences/ui/ReleasePreferencesPanel";
+import ReleaseDiscoverySchedulePanel from "../../../features/release-discovery/ui/ReleaseDiscoverySchedulePanel";
 import ReleaseDiscoveryPanel, {
   type ReleaseDiscoveryTitleOption,
 } from "../../../features/release-discovery/ui/ReleaseDiscoveryPanel";
@@ -165,6 +166,7 @@ export default function AnimeDetailPage() {
 
       {!isEditing ? (
         <>
+          <ReleaseDiscoverySchedulePanel animeId={anime.id} />
           <ReleasePreferencesPanel animeId={anime.id} />
           <ReleaseDiscoveryPanel
             animeId={anime.id}

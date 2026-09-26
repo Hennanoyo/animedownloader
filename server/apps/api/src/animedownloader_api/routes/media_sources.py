@@ -11,7 +11,10 @@ from animedownloader_api.media_source import (
 )
 from animedownloader_api.schemas import (
     EpisodeMediaSourceResponse,
+    EpisodeMediaSourceStatus,
+    EpisodePipelineCurrentStage,
     EpisodePipelineRetryResponse,
+    EpisodePipelineStageStatus,
     MediaSourceCandidateResponse,
     MediaSourceOrphanResponse,
     MediaSourceSelectionRequest,
@@ -38,7 +41,7 @@ async def get_episode_media_source(
         episode_id=source.episode_id,
         download_job_id=source.download_job_id,
         download_status=source.download_status,
-        status=source.status,
+        status=EpisodeMediaSourceStatus(source.status),
         root=source.root,
         selected_path=source.selected_path,
         candidates=[
@@ -69,9 +72,9 @@ async def reprocess_episode_media_source(
         ) from exc
 
     return EpisodePipelineRetryResponse(
-        stage="processing",
+        stage=EpisodePipelineCurrentStage.PROCESSING,
         job_id=job.id,
-        status="pending",
+        status=EpisodePipelineStageStatus.PENDING,
     )
 
 
@@ -94,9 +97,9 @@ async def redownload_episode_media_source(
         ) from exc
 
     return EpisodePipelineRetryResponse(
-        stage="download",
+        stage=EpisodePipelineCurrentStage.DOWNLOAD,
         job_id=job.id,
-        status="pending",
+        status=EpisodePipelineStageStatus.PENDING,
     )
 
 

@@ -373,7 +373,7 @@ def _candidate_response(candidate: ReleaseDiscoveryCandidate) -> ReleaseDiscover
         first_seen_at=candidate.first_seen_at,
         last_seen_at=candidate.last_seen_at,
         reviewed_at=candidate.reviewed_at,
-        automation_status=candidate.automation_status,
+        automation_status=candidate.automation_status or "idle",
         automation_claimed_at=candidate.automation_claimed_at,
         automation_completed_at=candidate.automation_completed_at,
         automation_error=candidate.automation_error,

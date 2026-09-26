@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unicodedata
 from collections import defaultdict
 from collections.abc import Iterable
@@ -34,7 +35,7 @@ _BRACKETED_TITLE_RE = __import__("re").compile(r"\\[[^\\]]*\\]|\\([^\\)]*\\)")
 
 def canonicalize_match_title(value: str) -> str:
     """Normalize Anime titles using the same bracketed-region semantics as release parsing."""
-    without_bracketed_regions = _BRACKETED_TITLE_RE.sub(" ", value)
+    without_bracketed_regions =_BRACKETED_TITLE_RE.sub(" ", value)
     return canonicalize_title(without_bracketed_regions)
 
 

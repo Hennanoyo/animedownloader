@@ -73,7 +73,7 @@ def resolve_media_source(root: Path) -> MediaSourceResolution:
     return MediaSourceResolution(
         status=MediaSourceStatus.FOUND,
         root=root,
-        path=candidates[0],
+        path=next(iter(candidates)),
         candidates=candidates,
     )
 

@@ -30,7 +30,6 @@ from fastapi.responses import JSONResponse
 from animedownloader_api.job_progress import JobProgressHub
 from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
-from animedownloader_api.task_queue import ReleaseDiscoveryTaskDispatcher
 from animedownloader_api.routes import (
     anime_pipeline_router,
     animes_router,
@@ -48,6 +47,7 @@ from animedownloader_api.routes import (
 )
 from animedownloader_api.task_queue import (
     DownloadTaskDispatcher,
+    ReleaseDiscoveryTaskDispatcher,
     create_task_broker,
 )
 

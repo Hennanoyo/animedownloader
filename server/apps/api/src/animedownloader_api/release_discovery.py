@@ -35,6 +35,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from .release_discovery_config import ReleaseDiscoverySchedule, has_saved_search_plan
 from .release_matching import AnimeMatcher
 
 
@@ -123,10 +124,21 @@ class ReleaseDiscoveryService:
         if not plan.queries:
             raise ValueError("at least one non-empty search field is required")
 
+        ranking_preference = None
+        if anime_id is not None:
+            ranking_preference = await self._build_manual_ranking_preference(
+                anime_id=anime_id,
+                group=group,
+                resolution=resolution,
+                codec=codec,
+                source=source,
+            )
+
         return await self.discover_plan(
             plan,
             anime_id=anime_id,
             search_profile_version=search_profile.version if search_profile else None,
+            ranking_preference=ranking_preference,
         )
 
     async def build_anime_search_plan(
@@ -240,6 +252,7 @@ class ReleaseDiscoveryService:
         *,
         anime_id: UUID | None = None,
         search_profile_version: int | None = None,
+        ranking_preference: tuple[AnimeReleasePreference, ReleaseGroup | None] | None = None,
     ) -> ReleaseDiscoveryResult:
         if not plan.queries:
             raise ValueError("search plan must contain at least one query")
@@ -285,7 +298,11 @@ class ReleaseDiscoveryService:
 
         releases = merge_releases(release_batches)
 
-        preference = await self._load_release_preference(anime_id)
+        preference = (
+            ranking_preference
+            if ranking_preference is not None
+            else await self._load_release_preference(anime_id)
+        )
         parser_profiles = await self._load_parser_profiles()
         parser_map: dict[str, tuple[ReleaseParserProfile, ParserProfileSpec]] = {}
         for profile in parser_profiles:
@@ -360,6 +377,41 @@ class ReleaseDiscoveryService:
             warnings=tuple(warnings),
             search_profile_version=search_profile_version,
             items=tuple(items),
+        )
+
+    async def _build_manual_ranking_preference(
+        self,
+        *,
+        anime_id: UUID,
+        group: str | None,
+        resolution: str | None,
+        codec: str | None,
+        source: str | None,
+    ) -> tuple[AnimeReleasePreference, ReleaseGroup | None]:
+        preferred_group = None
+        if group:
+            group_slug = normalize_release_group_slug(group)
+            preferred_group = await self._session.scalar(
+                select(ReleaseGroup)
+                .where(
+                    ReleaseGroup.enabled.is_(True),
+                    (
+                        (ReleaseGroup.slug == group_slug)
+                        | (func.lower(ReleaseGroup.name) == group.casefold())
+                    ),
+                )
+                .limit(1),
+            )
+
+        return (
+            AnimeReleasePreference(
+                anime_id=anime_id,
+                release_group_id=preferred_group.id if preferred_group else None,
+                resolution=resolution,
+                video_codec=codec,
+                source=source,
+            ),
+            preferred_group,
         )
 
     async def _load_release_preference(

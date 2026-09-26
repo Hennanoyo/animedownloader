@@ -274,12 +274,18 @@ class ReleaseDiscoveryScheduleResponse(BaseModel):
     last_run_at: datetime | None
     last_run_status: str | None
     search_plan: ReleaseDiscoverySavedSearchPlanResponse | None
+    automation_mode: Literal["off", "accept", "download"]
+    automation_min_ranking_score: int
+    automation_require_plan_match: bool
 
 
 class ReleaseDiscoveryScheduleUpdate(BaseModel):
     enabled: bool | None = None
     interval_minutes: int | None = Field(default=None, ge=15, le=1440)
     search_plan: ReleaseDiscoverySavedSearchPlanUpdate | None = None
+    automation_mode: Literal["off", "accept", "download"] | None = None
+    automation_min_ranking_score: int | None = Field(default=None, ge=0, le=160)
+    automation_require_plan_match: bool | None = None
 
 
 class ReleaseDiscoveryCandidateUpdate(BaseModel):

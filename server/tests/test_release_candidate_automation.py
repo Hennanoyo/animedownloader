@@ -6,6 +6,7 @@ from uuid import uuid7
 from animedownloader_anime import AnimeReleasePreference
 from animedownloader_api.release_candidate_automation import (
     AnimeReleaseAutomationPolicy,
+    ReleaseAutomationMode,
     ReleaseCandidateAutomationService,
 )
 from animedownloader_api.release_candidates import ReleaseDiscoveryCandidate
@@ -56,11 +57,24 @@ def make_policy(**overrides: object) -> AnimeReleaseAutomationPolicy:
     values: dict[str, object] = {
         "anime_id": uuid7(),
         "enabled": True,
+        "mode": ReleaseAutomationMode.DOWNLOAD.value,
         "min_ranking_score": 100,
         "require_preference_match": True,
     }
     values.update(overrides)
     return AnimeReleaseAutomationPolicy(**values)
+
+
+def test_off_mode_never_selects_candidate() -> None:
+    result = ReleaseCandidateAutomationService.evaluate_candidate(
+        make_candidate(),
+        make_policy(mode=ReleaseAutomationMode.OFF.value, enabled=False),
+        None,
+        None,
+    )
+
+    assert result.eligible is False
+    assert result.reasons == ("Automation is disabled",)
 
 
 def test_disabled_policy_never_selects_candidate() -> None:

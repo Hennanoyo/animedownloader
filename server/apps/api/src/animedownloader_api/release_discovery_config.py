@@ -28,6 +28,22 @@ class ReleaseDiscoverySchedule(Base):
     search_codec: Mapped[str | None] = mapped_column(String(32))
     search_source: Mapped[str | None] = mapped_column(String(32))
 
+    automation_mode: Mapped[str] = mapped_column(
+        String(16),
+        default="off",
+        server_default="off",
+    )
+    automation_min_ranking_score: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        server_default="0",
+    )
+    automation_require_plan_match: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        server_default="true",
+    )
+
     enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     interval_minutes: Mapped[int] = mapped_column(Integer, default=360, server_default="360")
     next_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

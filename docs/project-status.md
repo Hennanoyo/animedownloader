@@ -2,7 +2,7 @@
 
 The project has completed Anime/Episode management, persistent torrent download execution, download controls, media inspection, current MediaAsset metadata, subtitle integration and normalization, chapter/embedded attachment integration, media storage, CMAF/HLS/DASH packaging, and the initial player/playback delivery layer.
 
-The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is complete through PR #40. Media Source Lifecycle & Recovery is complete through PR #42. Release Provenance & Explicit Replacement is complete through PR #43. Anime Release Preferences & Candidate Ranking is complete through PR #44. Periodic Release Discovery & Candidate Inbox is complete through PR #45; the current phase is Explicit Candidate Acceptance & Download Policy.
+The Unified Media Preparation & Realtime Stage Progress phase is complete. PR #23 through PR #35 are merged. Release Discovery & Episode Ingestion is complete through PR #40. Media Source Lifecycle & Recovery is complete through PR #42. Release Provenance & Explicit Replacement, candidate automation, and unified discovery search planning are complete through PR #56. The current phase is Release Discovery Workflow Consolidation.
 
 ## Completed
 
@@ -1106,22 +1106,51 @@ Out of scope for this phase:
 - automatic Episode replacement
 - player or media-pipeline changes
 
-## Next Phase — Discovery Search Plan Preview & Operator Controls
+## Next Phase — Release Discovery Workflow Consolidation
 
-The Unified Discovery Search Planning implementation is complete through PR #51. The next phase makes the generated scheduled search behavior visible before a provider request is queued.
+Goal: make Release Discovery one coherent Anime workflow instead of separate Search Plan, Release Preferences, Discovery Schedule, Automatic Downloads, and Inbox concepts.
 
-Goals:
+Implementation:
 
-- expose the deterministic Search Plan for an Anime without executing provider searches
-- show the planned queries and the active Search Profile version in the Anime detail Discovery schedule
-- make the bounded query budget and alternate-title selection observable to the user
-- keep `Discover now` and periodic discovery on exactly the same Search Plan builder
-- keep manual `Find releases` overrides separate from persisted scheduled discovery inputs
-- surface whether the plan is broad or uses configured narrowing inputs without treating that state as an error
+1. Make **Find releases** the canonical Search Plan editor. Users can edit field values, enabled fields, and order; search immediately; inspect parse/match/ranking results; and explicitly save the plan.
+2. Persist the complete Search Plan on the Anime Discovery configuration, including title source, values, field order, and enabled fields.
+3. Make **Discovery** consume only the saved Search Plan for scheduled and on-demand runs.
+4. Move schedule and candidate-automation settings into the same Discovery configuration boundary, with collect-only, Episode-assignment, and Episode-assignment-plus-download modes.
+5. Keep legacy Anime Release Preferences as a compatibility projection rather than a separate UI.
+6. Remove the dedicated Automatic Downloads preview UI; ranking and eligibility decisions remain available through Discovery results/activity.
+7. Remove Discovery Inbox from the primary navigation and use it as a secondary Discovery activity/exception surface.
+8. Preserve all existing replacement, DownloadJob, candidate deduplication, query-budget, provider-cap, and no-hidden-broadening safeguards.
+9. Update backend/frontend/browser tests and architecture/handoff documentation to match the consolidated workflow.
 
-The first implementation should add a read-only plan-preview API and UI. It must not add automatic broadening, query retries, or a new provider-search path.
+Out of scope:
 
-Follow-up refinement can use the persisted per-query diagnostics from previous runs to help users decide whether their saved preferences/Search Profile should be narrowed further.
+- new external release providers
+- unrestricted automatic broadening or retry
+- automatic Episode replacement
+- media/player changes
+
+## Handoff Notes
+
+The canonical user workflow is now:
+
+```
+Find releases
+  → edit Search Plan
+  → Discover releases
+  → inspect results
+  → Save Search Plan
+        ↓
+Discovery
+  → schedule
+  → automation mode
+  → Discover now / periodic run
+        ↓
+Discovery activity / exceptions
+  → run diagnostics
+  → unresolved candidates
+```
+
+The next implementation after this consolidation is refinement of Discovery exception handling and operator feedback, not another independent search workflow.
 
 ## Handoff Notes
 

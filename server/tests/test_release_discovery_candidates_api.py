@@ -243,6 +243,18 @@ async def test_schedule_and_manual_run_are_explicit_and_queued() -> None:
         anime_id=anime.id,
         enabled=True,
         interval_minutes=360,
+        search_title_source="romaji",
+        search_title="Sousou no Frieren",
+        search_field_order=["group", "title", "episode", "resolution", "codec", "source"],
+        search_enabled_fields=["group", "title", "resolution", "codec"],
+        search_group="ExampleSubs",
+        search_episode=None,
+        search_resolution="1080p",
+        search_codec="HEVC",
+        search_source=None,
+        automation_mode="off",
+        automation_min_ranking_score=0,
+        automation_require_plan_match=True,
         next_run_at=now,
         last_run_at=None,
         last_run_status=None,
@@ -375,6 +387,7 @@ async def test_automation_policy_can_be_saved_and_previewed() -> None:
     policy = AnimeReleaseAutomationPolicy(
         anime_id=anime.id,
         enabled=True,
+        mode="download",
         min_ranking_score=100,
         require_preference_match=True,
         created_at=now,
@@ -408,7 +421,7 @@ async def test_automation_policy_can_be_saved_and_previewed() -> None:
         patch_response = await client.patch(
             f"/api/animes/{anime.id}/release-automation-policy",
             json={
-                "enabled": True,
+                "mode": "download",
                 "min_ranking_score": 100,
                 "require_preference_match": True,
             },
@@ -437,6 +450,7 @@ async def test_disabled_automation_cannot_be_started() -> None:
     policy = AnimeReleaseAutomationPolicy(
         anime_id=anime.id,
         enabled=False,
+        mode="off",
         min_ranking_score=0,
         require_preference_match=True,
         created_at=now,

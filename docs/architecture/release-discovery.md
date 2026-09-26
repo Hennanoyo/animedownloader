@@ -234,7 +234,16 @@ A multi-sample test is preferred over a single successful sample so that a rule 
 
 ## Search strategy
 
-Discovery builds an explicit, bounded Search Plan per discovery action. Manual Find releases currently supplies one query, while scheduled discovery may execute several deterministic plan queries.
+Release Discovery uses one canonical, bounded Search Plan workflow for manual search, on-demand discovery, and periodic discovery.
+
+The user-facing workflow is intentionally centered on the Anime's **Find releases** section:
+
+1. edit the Search Plan fields, values, enabled state, and order
+2. run **Discover releases** against the provider
+3. inspect parse, Anime-match, and ranking results
+4. explicitly save the Search Plan when the search behavior is satisfactory
+
+The saved Search Plan is the durable input for scheduled Discovery. The schedule does not maintain a second query-building recipe.
 
 Conceptual query fields include:
 
@@ -243,91 +252,118 @@ Conceptual query fields include:
 - episode
 - resolution
 - codec
-- other profile-defined tokens
+- source
 
-A Search Profile provides an ordered default field recipe. The discovery UI may enable/disable fields, edit their values, and override the field order for the current search.
+A Search Profile remains a ReleaseGroup-level default recipe. It may provide the field order used by a plan, but the Anime's saved Search Plan is the explicit user-owned configuration for actual scheduled execution.
 
-The service executes the queries present in the Search Plan in deterministic order. A provider failure for one query is recorded as a warning and does not silently broaden or retry that query. Each scheduled plan has a fixed query budget.
+### Canonical Discovery configuration
 
-Search profile ordering and parsing profile ordering are separate concerns. Search field order is request intent and can be overridden by the discovery UI, while parsing rules remain independent.
+The release_discovery_schedules record is the canonical Anime Discovery configuration boundary. It stores:
 
-### Discovery Search Plan
+- Search Plan title source and title
+- complete Search Plan field order
+- enabled Search Plan fields
+- concrete group/title/episode/resolution/codec/source values
+- periodic schedule state
+- candidate-automation mode and selection thresholds
 
-The manual release finder, `Discovery now`, and periodic discovery should share one search-planning layer rather than maintaining separate query-building behavior.
+This replaces separate user-facing configuration panels while preserving the underlying bounded responsibilities.
 
-The responsibilities are intentionally separated:
+Legacy Anime Release Preferences remain as a compatibility projection for existing ranking code and older clients. When a Search Plan is saved, its enabled group/resolution/codec/source criteria are synchronized into that legacy preference record. New Discovery behavior should read the saved Search Plan rather than asking the user to maintain a separate preference panel.
 
-- **Search Profile** describes the default search-field recipe associated with a ReleaseGroup.
-- **Anime release preferences** provide Anime-specific search constraints and ranking signals, such as preferred group, resolution, and video codec.
-- **Discovery Search Plan** turns those inputs into a bounded set of concrete provider queries for one discovery action.
-- **Parser Profile** remains a post-search interpretation layer; it does not define provider query syntax.
-- **Candidate automation policy** remains the final decision layer and must not broaden search scope merely to find an automatable release.
+### Search execution modes
 
-Conceptual flow:
+The same Search Plan execution path serves three workflows:
 
 ```
-Anime titles + release preferences
-              │
-              ▼
-       Release Search Profile
-              │
-              ▼
-      Discovery Search Plan
-          ├─ Query 1
-          ├─ Query 2
-          └─ Query N (bounded)
-              │
-              ▼
-        Provider searches
-              │
-              ▼
-     merge_releases / dedupe
-              │
-              ▼
-       Parse → Match → Rank
-              │
-              ▼
-      Normalized Candidate
+Saved Search Plan
+       │
+       ▼
+   Provider search
+       │
+       ▼
+Parse → Match → Rank
+       │
+       ├── Discover releases
+       │      └─ manual review / explicit Episode ingestion
+       │
+       └── Discovery
+              ├─ scheduled run
+              └─ Discover now
+                     │
+                     ▼
+                automation mode
+                ├─ collect only
+                ├─ assign Episode
+                └─ assign + download
 ```
 
-A Search Plan may use more than one Anime title form when it materially narrows or improves recall, but it must not generate a Cartesian product of every title, group, resolution, codec, and other field combination. The plan has an explicit query budget and deterministic ordering.
+**Discover releases** is a manual search and review action. It may use transient edits that have not yet been saved.
 
-Provider result limits are treated as observability signals rather than proof of truncation. For Nyaa RSS, receiving the provider's known 75-item first-page size is recorded as a `result_cap_reached` signal; exactly 75 matching results does not prove that relevant results were omitted. This signal is useful for deciding whether a future search plan should be made more specific, but it does not trigger automatic query broadening or retry by itself.
+**Discover now** and periodic Discovery require a saved Search Plan. They must use the same persisted plan and must never invent a broader plan at runtime.
 
-The plan should prefer the most specific useful queries first. For an Anime with a configured preferred group and technical preferences, a typical plan may be:
+Search plan execution remains bounded and deterministic. It must not generate a Cartesian product of every title, group, resolution, codec, and source combination, and it must not use hidden progressive broadening or retry.
 
-1. preferred group + representative title + preferred resolution/codec
-2. preferred group + alternate title + preferred resolution/codec
+Provider failures for individual queries are recorded as diagnostics. Provider result-limit signals are observational evidence, not proof that relevant results were truncated, and do not automatically cause broadening or retry.
 
-A title-only query is intentionally treated as a broad search. It remains useful as an explicit manual search, but scheduled discovery should avoid silently falling back to progressively broader queries. Automatic downloads should never turn a broad title-only search into unrestricted automatic selection.
+### Candidate selection and automation
 
-Multiple provider responses are merged in memory using stable source identity, info hash, and normalized title fallbacks. Raw RSS/XML payloads remain ephemeral.
+After parsing and matching, candidates retain their ranking score and explicit reasons.
 
-Discovery runs persist lightweight per-query diagnostics: position, rendered query, result count, provider-cap signal, execution status, and a bounded error message. For Nyaa, a response at the known RSS result boundary is recorded as a cap signal; this is evidence that the provider may have truncated the result set, not a claim that truncation definitely occurred. Raw provider responses remain ephemeral.
+Automation is configured as a Discovery setting:
 
-### Shared manual and scheduled search behavior
+- **off** — collect and rank candidates only
+- **accept** — automatically assign eligible candidates to Episodes
+- **download** — automatically assign eligible candidates and create/enqueue a DownloadJob through the existing download service
 
-The same Search Plan builder should serve:
+Automation remains conservative:
 
-- **Find releases**: the user can inspect and optionally override the fields/query recipe before a manual search.
-- **Discovery now**: use the Anime's persisted search inputs to generate a bounded deterministic plan.
-- **Periodic discovery**: use the same plan generation path as Discovery now.
+- only actionable, uniquely matched candidates are eligible
+- the current selection policy is re-evaluated immediately before acceptance
+- an existing Episode is never replaced automatically
+- failed or cancelled terminal download history is not automatically retried
+- an intentionally paused download is not automatically resumed
 
-This keeps manual discovery and automation behavior aligned. A manual override may be broader than the scheduled policy, while scheduled discovery must remain bounded and deterministic.
+The ranking threshold and 'require all configured Search Plan criteria' setting are selection guards. Ranking itself remains deterministic and explainable.
 
-Search Profile configuration and Parser Profile configuration remain independent:
+### Manual and scheduled behavior
+
+The same Search Plan builder serves:
+
+- **Find releases** — edit, test, inspect, and save the canonical plan
+- **Discover now** — execute the saved plan immediately
+- **Periodic discovery** — execute the same saved plan on its schedule
+
+A manual Search Plan edit does not alter scheduled behavior until the user explicitly saves it.
+
+The Search Profile and Parser Profile remain independent:
 
 ```
 Search Profile
-  = how to ask the provider for releases
+  = default provider-search recipe for a ReleaseGroup
+
+Saved Search Plan
+  = the explicit Anime-specific provider-search configuration
 
 Parser Profile
   = how to interpret release titles after retrieval
 ```
 
-Anime Release Preferences influence both discovery search specificity and candidate ranking where a field is safely expressible in provider queries. Fields that cannot be expressed reliably as search terms remain post-search ranking/eligibility signals.
+The persisted Search Plan is configuration, not a provider-result cache. Raw Nyaa/RSS responses remain ephemeral. Discovery runs persist only normalized candidates and lightweight per-query diagnostics.
 
-The Search Plan is an execution plan, not a cache. It does not persist provider results beyond the normalized candidate observations already defined by the periodic discovery boundary.
+### Discovery activity and exceptions
+
+The former candidate inbox is an activity/exception surface rather than a primary discovery workflow.
+
+Anime Detail exposes the active Discovery configuration directly. A separate **Discovery activity** page remains available for:
+
+- recent Discovery Run history
+- per-query diagnostics
+- provider-cap signals and failures
+- candidates that still require manual review
+- explicit acceptance/rejection/replacement actions
+
+It is intentionally not part of the primary navigation. Normal users should complete Search Plan design and Discovery configuration from Anime Detail.
 
 ## Anime matching
 

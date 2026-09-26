@@ -481,9 +481,16 @@ class ReleaseDiscoveryCandidateService:
         search_resolution: str | None = None,
         search_codec: str | None = None,
         search_source: str | None = None,
+        automation_mode: str | None = None,
+        automation_min_ranking_score: int | None = None,
+        automation_require_plan_match: bool | None = None,
     ) -> ReleaseDiscoverySchedule:
         if interval_minutes is not None and not 15 <= interval_minutes <= 1440:
             raise ValueError("interval must be between 15 and 1440 minutes")
+        if automation_min_ranking_score is not None and not 0 <= automation_min_ranking_score <= 160:
+            raise ValueError("minimum ranking score must be between 0 and 160")
+        if automation_mode is not None and automation_mode not in {"off", "accept", "download"}:
+            raise ValueError("automation mode must be off, accept, or download")
 
         allowed_fields = {"group", "title", "episode", "resolution", "codec", "source"}
         if search_field_order is not None:
@@ -600,6 +607,13 @@ class ReleaseDiscoveryCandidateService:
                 preference.source = (
                     schedule.search_source if "source" in enabled_fields else None
                 )
+
+            if automation_mode is not None:
+                schedule.automation_mode = automation_mode
+            if automation_min_ranking_score is not None:
+                schedule.automation_min_ranking_score = automation_min_ranking_score
+            if automation_require_plan_match is not None:
+                schedule.automation_require_plan_match = automation_require_plan_match
 
         await self.session.refresh(schedule)
         return schedule

@@ -9,6 +9,7 @@ import {
   updateReleaseDiscoveryCandidate,
   updateReleaseDiscoverySchedule,
   type ReleaseCandidateStatus,
+  type ReleaseDiscoveryScheduleUpdate,
 } from "../../../entities/release/api/discoveryCandidates";
 
 export function useReleaseDiscoveryCandidates(
@@ -48,7 +49,7 @@ export function useReleaseDiscoverySchedule(animeId: string) {
 export function useUpdateReleaseDiscoverySchedule(animeId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { enabled: boolean; interval_minutes: number }) =>
+    mutationFn: (input: ReleaseDiscoveryScheduleUpdate) =>
       updateReleaseDiscoverySchedule(animeId, input),
     onSuccess: (data) => {
       queryClient.setQueryData(

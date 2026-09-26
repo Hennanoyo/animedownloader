@@ -104,6 +104,7 @@ export const searchFields = [
   "episode",
   "resolution",
   "codec",
+  "source",
 ] as const;
 export type SearchField = (typeof searchFields)[number];
 
@@ -115,4 +116,5 @@ export interface ReleaseDiscoveryInput {
   episode?: number;
   resolution?: string;
   codec?: string;
+  source?: string;
 }

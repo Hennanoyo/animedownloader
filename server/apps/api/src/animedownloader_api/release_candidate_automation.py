@@ -31,6 +31,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
+from .release_discovery_config import ReleaseDiscoverySchedule
 from .release_candidate_acceptance import (
     ReleaseCandidateNotAcceptableError,
     ReleaseDiscoveryCandidateAcceptanceService,
@@ -105,33 +106,40 @@ class ReleaseCandidateAutomationService:
         if anime_exists is None:
             raise ReleaseAutomationPolicyError(f"anime not found: {anime_id}")
 
-        policy = await self.session.scalar(
-            select(AnimeReleaseAutomationPolicy).where(
-                AnimeReleaseAutomationPolicy.anime_id == anime_id,
+        schedule = await self.session.scalar(
+            select(ReleaseDiscoverySchedule).where(
+                ReleaseDiscoverySchedule.anime_id == anime_id,
             ),
         )
-        if policy is not None:
-            return policy
+        if schedule is not None:
+            return AnimeReleaseAutomationPolicy(
+                anime_id=anime_id,
+                enabled=schedule.automation_mode != ReleaseAutomationMode.OFF.value,
+                mode=schedule.automation_mode,
+                min_ranking_score=schedule.automation_min_ranking_score,
+                require_preference_match=schedule.automation_require_plan_match,
+                created_at=schedule.created_at,
+                updated_at=schedule.updated_at,
+            )
+
         return AnimeReleaseAutomationPolicy(
             anime_id=anime_id,
             enabled=False,
+            mode=ReleaseAutomationMode.OFF.value,
             min_ranking_score=0,
             require_preference_match=True,
         )
 
     async def is_enabled(self, anime_id: UUID) -> bool:
-        policy = await self.session.scalar(
-            select(AnimeReleaseAutomationPolicy.enabled).where(
-                AnimeReleaseAutomationPolicy.anime_id == anime_id,
-            ),
-        )
-        return bool(policy)
+        policy = await self.get_policy(anime_id)
+        return policy.mode != ReleaseAutomationMode.OFF.value
 
     async def update_policy(
         self,
         anime_id: UUID,
         *,
-        enabled: bool,
+        mode: str | None = None,
+        enabled: bool | None = None,
         min_ranking_score: int,
         require_preference_match: bool,
     ) -> AnimeReleaseAutomationPolicy:
@@ -139,6 +147,18 @@ class ReleaseCandidateAutomationService:
             raise ReleaseAutomationPolicyError(
                 "minimum ranking score must be between 0 and 160",
             )
+        if mode is None:
+            mode = (
+                ReleaseAutomationMode.DOWNLOAD.value
+                if enabled
+                else ReleaseAutomationMode.OFF.value
+            )
+        try:
+            normalized_mode = ReleaseAutomationMode(mode).value
+        except ValueError as exc:
+            raise ReleaseAutomationPolicyError(
+                "automation mode must be off, accept, or download",
+            ) from exc
 
         async with self.session.begin():
             anime_exists = await self.session.scalar(
@@ -147,21 +167,20 @@ class ReleaseCandidateAutomationService:
             if anime_exists is None:
                 raise ReleaseAutomationPolicyError(f"anime not found: {anime_id}")
 
-            policy = await self.session.scalar(
-                select(AnimeReleaseAutomationPolicy)
-                .where(AnimeReleaseAutomationPolicy.anime_id == anime_id)
+            schedule = await self.session.scalar(
+                select(ReleaseDiscoverySchedule)
+                .where(ReleaseDiscoverySchedule.anime_id == anime_id)
                 .with_for_update(),
             )
-            if policy is None:
-                policy = AnimeReleaseAutomationPolicy(anime_id=anime_id)
-                self.session.add(policy)
+            if schedule is None:
+                schedule = ReleaseDiscoverySchedule(anime_id=anime_id)
+                self.session.add(schedule)
 
-            policy.enabled = enabled
-            policy.min_ranking_score = min_ranking_score
-            policy.require_preference_match = require_preference_match
+            schedule.automation_mode = normalized_mode
+            schedule.automation_min_ranking_score = min_ranking_score
+            schedule.automation_require_plan_match = require_preference_match
 
-        await self.session.refresh(policy)
-        return policy
+        return await self.get_policy(anime_id)
 
     async def preview(
         self,
@@ -205,14 +224,21 @@ class ReleaseCandidateAutomationService:
         stale_before = now - self.CLAIM_TIMEOUT
 
         async with self.session.begin():
-            policy = await self.session.scalar(
-                select(AnimeReleaseAutomationPolicy)
-                .where(AnimeReleaseAutomationPolicy.anime_id == anime_id)
+            schedule = await self.session.scalar(
+                select(ReleaseDiscoverySchedule)
+                .where(ReleaseDiscoverySchedule.anime_id == anime_id)
                 .with_for_update(),
             )
-            if policy is None or not policy.enabled:
+            if schedule is None or schedule.automation_mode == ReleaseAutomationMode.OFF.value:
                 return []
 
+            policy = AnimeReleaseAutomationPolicy(
+                anime_id=anime_id,
+                enabled=True,
+                mode=schedule.automation_mode,
+                min_ranking_score=schedule.automation_min_ranking_score,
+                require_preference_match=schedule.automation_require_plan_match,
+            )
             preference, preferred_group = await self._get_preference(anime_id)
             candidates = await self.session.scalars(
                 select(ReleaseDiscoveryCandidate)
@@ -313,13 +339,12 @@ class ReleaseCandidateAutomationService:
         if candidate.automation_status != ReleaseCandidateAutomationStatus.CLAIMED.value:
             return
 
-        policy = await self.session.scalar(
-            select(AnimeReleaseAutomationPolicy).where(
-                AnimeReleaseAutomationPolicy.anime_id == candidate.anime_id,
-            ),
-        )
-        if policy is None or not policy.enabled:
-            await self.block(candidate_id, "automatic download policy is no longer enabled")
+        policy = await self.get_policy(candidate.anime_id)
+        if policy.mode == ReleaseAutomationMode.OFF.value:
+            await self.block(
+                candidate_id,
+                "automatic candidate automation is no longer enabled",
+            )
             return
 
         preference, preferred_group = await self._get_preference(candidate.anime_id)
@@ -330,7 +355,7 @@ class ReleaseCandidateAutomationService:
             preferred_group,
         )
         if not decision.eligible:
-            await self.block(candidate_id, "candidate no longer satisfies the automatic download policy")
+            await self.block(candidate_id, "candidate no longer satisfies the automatic candidate policy")
             return
 
         try:
@@ -502,7 +527,7 @@ class ReleaseCandidateAutomationService:
             or reason.startswith("Release is")
             for reason in reasons
         ):
-            reasons.append("Candidate satisfies the automatic download policy")
+            reasons.append("Candidate satisfies the automatic candidate policy")
 
         return ReleaseAutomationCandidatePreview(
             candidate=candidate,

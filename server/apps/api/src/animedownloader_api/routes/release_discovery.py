@@ -331,6 +331,9 @@ async def update_schedule(
             search_resolution=plan.resolution if plan else None,
             search_codec=plan.codec if plan else None,
             search_source=plan.source if plan else None,
+            automation_mode=payload.automation_mode,
+            automation_min_ranking_score=payload.automation_min_ranking_score,
+            automation_require_plan_match=payload.automation_require_plan_match,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -347,6 +350,17 @@ async def run_discovery_now(
     service: CandidateServiceDependency,
     scheduler: SchedulerDependency,
 ) -> ReleaseDiscoveryRunResponse:
+    schedule = await service.get_schedule(anime_id)
+    if (
+        not getattr(schedule, "search_title", None)
+        or not getattr(schedule, "search_field_order", None)
+        or not getattr(schedule, "search_enabled_fields", None)
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="save a Search Plan in Find releases before running discovery",
+        )
+
     run = await service.create_manual_run(anime_id)
 
     if run.status == "queued":
@@ -392,6 +406,13 @@ def _schedule_response(
         last_run_at=getattr(schedule, "last_run_at"),
         last_run_status=getattr(schedule, "last_run_status"),
         search_plan=search_plan,
+        automation_mode=getattr(schedule, "automation_mode", "off"),
+        automation_min_ranking_score=getattr(schedule, "automation_min_ranking_score", 0),
+        automation_require_plan_match=getattr(
+            schedule,
+            "automation_require_plan_match",
+            True,
+        ),
     )
 
 

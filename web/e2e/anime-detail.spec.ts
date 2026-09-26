@@ -52,23 +52,65 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify(animeResponse),
     });
   });
+  let releaseDiscoverySchedule = {
+    anime_id: ANIME_ID,
+    enabled: false,
+    interval_minutes: 360,
+    next_run_at: null,
+    last_run_at: null,
+    last_run_status: null,
+    search_plan: null as null | {
+      title_source: string;
+      title: string;
+      field_order: string[];
+      enabled_fields: string[];
+      group: string | null;
+      episode: number | null;
+      resolution: string | null;
+      codec: string | null;
+      source: string | null;
+    },
+    automation_mode: "off" as "off" | "accept" | "download",
+    automation_min_ranking_score: 0,
+    automation_require_plan_match: true,
+  };
+
   await page.route(
     `**/api/animes/${ANIME_ID}/release-discovery-schedule`,
     async (route) => {
+      if (route.request().method() === "PATCH") {
+        const body = JSON.parse(route.request().postData() ?? "{}") as {
+          enabled?: boolean;
+          interval_minutes?: number;
+          search_plan?: typeof releaseDiscoverySchedule.search_plan;
+          automation_mode?: "off" | "accept" | "download";
+          automation_min_ranking_score?: number;
+          automation_require_plan_match?: boolean;
+        };
+        releaseDiscoverySchedule = {
+          ...releaseDiscoverySchedule,
+          enabled: body.enabled ?? releaseDiscoverySchedule.enabled,
+          interval_minutes:
+            body.interval_minutes ?? releaseDiscoverySchedule.interval_minutes,
+          search_plan: body.search_plan ?? releaseDiscoverySchedule.search_plan,
+          automation_mode:
+            body.automation_mode ?? releaseDiscoverySchedule.automation_mode,
+          automation_min_ranking_score:
+            body.automation_min_ranking_score ??
+            releaseDiscoverySchedule.automation_min_ranking_score,
+          automation_require_plan_match:
+            body.automation_require_plan_match ??
+            releaseDiscoverySchedule.automation_require_plan_match,
+        };
+      }
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          anime_id: ANIME_ID,
-          enabled: false,
-          interval_minutes: 360,
-          next_run_at: null,
-          last_run_at: null,
-          last_run_status: null,
-        }),
+        body: JSON.stringify(releaseDiscoverySchedule),
       });
     },
   );
+
   await page.route(
     `**/api/animes/${ANIME_ID}/release-discovery/plan`,
     async (route) => {
@@ -839,73 +881,57 @@ test("explicitly replaces an existing episode release before download", async ({
   ).toHaveCount(0);
 });
 
-test("saves anime release preferences and uses them to explain ranked releases", async ({ page }) => {
+test("saves the Search Plan and configures Discovery automation", async ({ page }) => {
   await page.goto("/animes/" + ANIME_ID);
-
-  const preferences = page.getByRole("region", {
-    name: "Release preferences",
-  });
-  await expect(
-    preferences.getByRole("heading", { name: "Preferred release shape" }),
-  ).toBeVisible();
-
-  await preferences.locator('input[aria-label="Resolution"]').fill("1080p");
-  await preferences.locator('input[aria-label="Video codec"]').fill("HEVC");
-  await preferences.locator('input[aria-label="Source"]').fill("WEB");
-
-  const savePreferences = preferences
-    .locator("button")
-    .filter({ hasText: "Save preferences" })
-    .first();
-  await expect(savePreferences).toBeVisible();
-  await expect(savePreferences).toBeEnabled();
-  await savePreferences.click();
-  await expect(preferences.getByText("Saved", { exact: true })).toBeVisible();
 
   const discovery = page.getByRole("region", { name: "Find releases" });
-  await discovery.getByRole("button", { name: "Discover releases" }).click();
+  await discovery
+    .getByRole("combobox", { name: "Resolution", exact: true })
+    .fill("1080p");
+  await discovery
+    .getByRole("combobox", { name: "Codec", exact: true })
+    .fill("HEVC");
+  await discovery
+    .getByRole("combobox", { name: "Source", exact: true })
+    .fill("WEB");
 
-  const resultCard = discovery.locator("article").filter({
-    hasText: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
-  });
-  await expect(resultCard).toContainText("Preferred 160");
-  await expect(resultCard).toContainText(
-    "Preferred resolution · Preferred video codec · Preferred source",
-  );
-});
- 
-test("previews the persisted discovery search plan", async ({ page }) => {
-  await page.goto("/animes/" + ANIME_ID);
+  await discovery
+    .getByRole("button", { name: "Create Search Plan" })
+    .click();
+  await expect(discovery.getByText("Saved", { exact: true })).toBeVisible();
 
   const schedule = page.getByRole("region", {
-    name: "Keep a candidate inbox updated",
+    name: "Schedule and automation",
   });
+  await expect(schedule.getByText("Saved Search Plan", { exact: true })).toBeVisible();
   await expect(
-    schedule.getByText(/Search plan · 2 queries · Search profile v4/, {
-      exact: false,
-    }),
+    schedule.getByText("Browser Smoke Romaji 1080p HEVC WEB", { exact: true }),
   ).toBeVisible();
 
-  const plan = schedule.locator("details").filter({
-    hasText: "Search plan",
+  const automationSelect = schedule.getByRole("button", {
+    name: "Discovery automation mode",
   });
-  await plan.locator("summary").click();
+  await automationSelect.click();
   await expect(
-    plan.getByText("ExampleSubs Browser Smoke Romaji 1080p HEVC", {
-      exact: true,
-    }),
+    page.getByRole("option", { name: /Automatically assign Episodes/ }),
   ).toBeVisible();
+  await page
+    .getByRole("option", { name: /Automatically assign Episodes/ })
+    .click();
+
+  await schedule.getByLabel("Minimum ranking score").fill("120");
+  await schedule
+    .getByText("Require all configured Search Plan criteria", { exact: true })
+    .click();
+
+  await schedule
+    .getByRole("button", { name: "Save discovery settings" })
+    .click();
+  await expect(schedule.getByText("Saved", { exact: true })).toBeVisible();
+
   await expect(
-    plan.getByText("ExampleSubs Browser Smoke English 1080p HEVC", {
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(
-    plan.getByText(
-      "This is the same bounded plan used by Discover now and periodic discovery.",
-      { exact: false },
-    ),
-  ).toBeVisible();
+    schedule.getByRole("button", { name: "Discover & assign now" }),
+  ).toBeEnabled();
 });
 
 test("discovers parsed releases from the anime detail page", async ({ page }) => {
@@ -1022,39 +1048,4 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   await expect(
     resultCard,
   ).toContainText("Episode 2 added to this Anime.");
-});
-
-
-test("configures policy-controlled automatic candidate downloads", async ({ page }) => {
-  await page.goto("/animes/" + ANIME_ID);
-
-  const automation = page.getByRole("region", {
-    name: "Policy-controlled candidate selection",
-  });
-  await expect(
-    automation.getByRole("heading", {
-      name: "Policy-controlled candidate selection",
-    }),
-  ).toBeVisible();
-
-  await automation
-    .getByText("Enable automatic candidate downloads", { exact: true })
-    .click();
-
-  const score = automation.getByLabel("Minimum ranking score");
-  await score.fill("120");
-
-  await automation
-    .getByRole("button", { name: "Save automation policy" })
-    .click();
-
-  await expect(automation.getByText("Saved", { exact: true })).toBeVisible();
-  await expect(
-    automation.getByRole("button", { name: "Run automation now" }),
-  ).toBeEnabled();
-  await expect(
-    automation.getByText(
-      "At least one Anime release preference must be configured before a candidate can be selected automatically.",
-    ),
-  ).toBeVisible();
 });

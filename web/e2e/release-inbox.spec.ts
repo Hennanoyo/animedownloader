@@ -72,7 +72,7 @@ const candidate = () => ({
   parse_warnings: [],
   failed_required_fields: [],
   parser_profile_version: 1,
-  normalized_series_title: "candidate inbox anime",
+  normalized_series_title: "discovery activity anime",
   match_status: "matched",
   match_candidates: [
     {
@@ -231,7 +231,7 @@ test("reviews a persisted discovery candidate in the inbox", async ({ page }) =>
   await page.goto("/release-inbox");
 
   await expect(
-    page.getByRole("heading", { name: "Candidate inbox", exact: true }),
+    page.getByRole("heading", { name: "Discovery activity", exact: true }),
   ).toBeVisible();
   await expect(
     page

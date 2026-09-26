@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 from uuid import UUID
 
@@ -25,6 +25,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from animedownloader_database import Base
+
+
+class ReleaseDiscoverySchedule(Base):
+    __tablename__ = "release_discovery_schedules"
+
+    anime_id: Mapped[UUID] = mapped_column(
+        ForeignKey("animes.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    enabled: Mapped[bool] = mapped_column(default=False, server_default="false")
+    interval_minutes: Mapped[int] = mapped_column(Integer, default=360, server_default="360")
+    next_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_run_status: Mapped[str | None] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
 
 
 class ReleaseDiscoveryRunStatus(StrEnum):
@@ -323,7 +346,7 @@ class ReleaseDiscoveryCandidateService:
         statement = select(ReleaseDiscoveryCandidate).order_by(
             ReleaseDiscoveryCandidate.ranking_score.desc(),
             ReleaseDiscoveryCandidate.last_seen_at.desc(),
-            ReleaseDiscoveryCandidate.source_title.casefold(),
+            func.lower(ReleaseDiscoveryCandidate.source_title),
         )
         if anime_id is not None:
             statement = statement.where(ReleaseDiscoveryCandidate.anime_id == anime_id)
@@ -352,6 +375,47 @@ class ReleaseDiscoveryCandidateService:
         return await self.session.scalar(
             select(ReleaseDiscoveryRun).where(ReleaseDiscoveryRun.id == run_id),
         )
+
+    async def get_schedule(self, anime_id: UUID) -> ReleaseDiscoverySchedule:
+        schedule = await self.session.scalar(
+            select(ReleaseDiscoverySchedule).where(
+                ReleaseDiscoverySchedule.anime_id == anime_id,
+            ),
+        )
+        if schedule is not None:
+            return schedule
+        return ReleaseDiscoverySchedule(anime_id=anime_id)
+
+    async def update_schedule(
+        self,
+        anime_id: UUID,
+        *,
+        enabled: bool,
+        interval_minutes: int,
+    ) -> ReleaseDiscoverySchedule:
+        if interval_minutes < 15 or interval_minutes > 1440:
+            raise ValueError("interval must be between 15 and 1440 minutes")
+
+        async with self.session.begin():
+            schedule = await self.session.scalar(
+                select(ReleaseDiscoverySchedule)
+                .where(ReleaseDiscoverySchedule.anime_id == anime_id)
+                .with_for_update(),
+            )
+            if schedule is None:
+                schedule = ReleaseDiscoverySchedule(anime_id=anime_id)
+                self.session.add(schedule)
+
+            schedule.enabled = enabled
+            schedule.interval_minutes = interval_minutes
+            schedule.next_run_at = (
+                datetime.now(timezone.utc) + timedelta(minutes=interval_minutes)
+                if enabled
+                else None
+            )
+
+        await self.session.refresh(schedule)
+        return schedule
 
     async def create_manual_run(self, anime_id: UUID) -> ReleaseDiscoveryRun:
         async with self.session.begin():

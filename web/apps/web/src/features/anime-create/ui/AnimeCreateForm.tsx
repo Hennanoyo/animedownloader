@@ -178,8 +178,11 @@ export default function AnimeCreateForm() {
     },
     onSubmit: async ({ value }) => {
       setSubmitValidationErrors([]);
-      await mutation.mutateAsync(toCreateInput(value));
-      await navigate({ to: "/animes" });
+      const createdAnime = await mutation.mutateAsync(toCreateInput(value));
+      await navigate({
+        to: "/animes/$animeId",
+        params: { animeId: createdAnime.id },
+      });
     },
     onSubmitInvalid: ({ value }) => {
       const result = animeCreateFormSchema.safeParse(value);

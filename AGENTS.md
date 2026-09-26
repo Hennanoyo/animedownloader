@@ -93,7 +93,11 @@ See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 - Keep discovery-run history separate from DownloadJob, MediaProcessingJob, and Episode execution state.
 - Periodic scheduling is DB-driven and restart-safe. Use transactional row locking/claiming so multiple API instances do not enqueue the same due schedule concurrently.
 - Candidate collection must never create an Episode, replace an Episode, create a DownloadJob, or start a torrent automatically.
-- Candidate review may mark a candidate reviewed/rejected/stale, but acceptance is reserved for an explicit later workflow that reuses Episode ingestion and replacement guards.
+- Candidate review may mark a candidate reviewed/rejected/stale; explicit acceptance must revalidate the persisted candidate against the current Anime and reuse Episode ingestion/replacement guards.
+- Rejected and stale candidates must not be accepted. Re-accepting an already accepted candidate must remain idempotent when the underlying release is unchanged.
+- If acceptance finds an existing Episode for the same Anime/episode number with a different release, return a replacement candidate and require a separate explicit replacement action.
+- Explicit replacement must identify the target Episode and must verify the target belongs to the candidate Anime and has the same episode number before using the existing replacement-history guards.
+- Candidate acceptance and replacement must never create or start a DownloadJob implicitly; downloading remains a separate explicit action.
 - Keep candidate lists bounded at the API boundary and make destructive candidate cleanup explicit; never run cleanup implicitly as part of discovery.
 
 ## Storage Rules

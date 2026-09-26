@@ -26,6 +26,7 @@ from animedownloader_api.release_candidate_automation import (
 from animedownloader_api.release_candidates import (
     ReleaseCandidateStatus,
     ReleaseDiscoveryCandidate,
+    ReleaseDiscoveryQuery,
     ReleaseDiscoveryRun,
     ReleaseDiscoverySchedule,
 )
@@ -224,6 +225,75 @@ async def test_schedule_and_manual_run_are_explicit_and_queued() -> None:
     assert scheduler.enqueue_run.await_count == 1
     scheduler.enqueue_run.assert_awaited_once_with(run.id)
 
+
+
+@pytest.mark.anyio
+async def test_list_runs_returns_per_query_diagnostics() -> None:
+    anime = make_anime()
+    now = datetime(2026, 9, 27, tzinfo=UTC)
+    run = ReleaseDiscoveryRun(
+        id=uuid7(),
+        anime_id=anime.id,
+        scheduled_for=now,
+        status="completed",
+        query="ExampleSubs Frieren",
+        search_profile_version=4,
+        candidate_count=12,
+        warning_count=1,
+        error_message=None,
+        started_at=now,
+        completed_at=now,
+        created_at=now,
+    )
+    run.queries = [
+        ReleaseDiscoveryQuery(
+            id=uuid7(),
+            run_id=run.id,
+            position=1,
+            query="ExampleSubs Frieren",
+            status="completed",
+            result_count=75,
+            result_cap_reached=True,
+            error_message=None,
+            created_at=now,
+        ),
+        ReleaseDiscoveryQuery(
+            id=uuid7(),
+            run_id=run.id,
+            position=2,
+            query="ExampleSubs Frieren: Beyond Journey's End",
+            status="failed",
+            result_count=0,
+            result_cap_reached=False,
+            error_message="provider unavailable",
+            created_at=now,
+        ),
+    ]
+
+    service = MagicMock()
+    service.list_runs = AsyncMock(return_value=[run])
+
+    app = create_app()
+    app.dependency_overrides[get_release_discovery_candidate_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+    ) as client:
+        response = await client.get(
+            "/api/release-discovery/runs",
+            params={"anime_id": str(anime.id)},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload) == 1
+    assert payload[0]["queries"][0]["result_count"] == 75
+    assert payload[0]["queries"][0]["result_cap_reached"] is True
+    assert payload[0]["queries"][1]["status"] == "failed"
+    assert payload[0]["queries"][1]["error_message"] == "provider unavailable"
+    service.list_runs.assert_awaited_once_with(anime_id=anime.id, limit=20)
 
 
 @pytest.mark.anyio

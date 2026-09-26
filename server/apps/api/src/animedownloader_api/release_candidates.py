@@ -86,7 +86,7 @@ class ReleaseDiscoveryQuery(Base):
         server_default=func.now(),
     )
 
-    run: Mapped["ReleaseDiscoveryRun"] = relationship(back_populates="queries")
+    run: Mapped[ReleaseDiscoveryRun] = relationship(back_populates="queries")
 
 class ReleaseDiscoveryRunStatus(StrEnum):
     QUEUED = "queued"
@@ -134,7 +134,7 @@ class ReleaseDiscoveryRun(Base):
         DateTime(timezone=True),
         server_default=func.now(),
     )
-    queries: Mapped[list["ReleaseDiscoveryQuery"]] = relationship(
+    queries: Mapped[list[ReleaseDiscoveryQuery]] = relationship(
         back_populates="run",
         cascade="all, delete-orphan",
         lazy="selectin",

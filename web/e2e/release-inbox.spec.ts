@@ -205,10 +205,20 @@ test.beforeEach(async ({ page }) => {
               position: 1,
               query: "Candidate Inbox Anime",
               status: "completed",
-              result_count: 18,
-              result_cap_reached: false,
+              result_count: 75,
+              result_cap_reached: true,
               error_message: null,
               created_at: "2026-09-26T00:00:01Z",
+            },
+            {
+              id: "019a0000-0000-7000-8000-000000000024",
+              position: 2,
+              query: "Candidate Inbox Anime Alt",
+              status: "failed",
+              result_count: 0,
+              result_cap_reached: false,
+              error_message: "provider unavailable",
+              created_at: "2026-09-26T00:00:02Z",
             },
           ],
         },
@@ -261,13 +271,21 @@ test("shows recent discovery run history", async ({ page }) => {
   const runCard = runSection.locator("article").first();
   await expect(runCard).toBeVisible();
   await expect(runCard.getByText("completed", { exact: true })).toBeVisible();
+  const diagnostics = runCard.getByText(
+    "Query diagnostics · provider cap signal",
+    { exact: true },
+  );
+  await expect(diagnostics).toBeVisible();
+  await diagnostics.click();
   await expect(
-    runCard.getByText("Query diagnostics", { exact: true }),
+    runCard.getByText("75 results · completed · provider cap signal", {
+      exact: true,
+    }),
   ).toBeVisible();
-  await runCard.getByText("Query diagnostics", { exact: true }).click();
   await expect(
-    runCard.getByText("18 results · completed", { exact: true }),
+    runCard.getByText("0 results · failed", { exact: true }),
   ).toBeVisible();
+  await expect(runCard.getByText("provider unavailable", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "candidates" })).toContainText("1 candidates");
 });
 

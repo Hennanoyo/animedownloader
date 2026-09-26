@@ -499,6 +499,7 @@ jobs:
                   source_id: str,
                   episode_number: int,
                   title: str,
+                  scheduled_for: datetime,
               ) -> None:
                   connection = await asyncpg.connect(
                       "postgresql://animedownloader:animedownloader@db:5432/animedownloader"
@@ -515,7 +516,7 @@ jobs:
                           """,
                           run_id,
                           uuid.UUID(anime_id),
-                          accepted_published_at,
+                          scheduled_for,
                           "completed",
                           "Updated CI Anime",
                           1,
@@ -604,6 +605,7 @@ jobs:
                       "ci-discovery-3",
                       3,
                       "[CI] Updated CI Anime - 03 [1080p][HEVC]",
+                      accepted_published_at,
                   )
               )
 
@@ -630,6 +632,7 @@ jobs:
 
               replacement_run_id = uuid.uuid7()
               replacement_candidate_id = uuid.uuid7()
+              replacement_scheduled_for = datetime.now(timezone.utc)
               asyncio.run(
                   create_discovery_candidate(
                       replacement_run_id,
@@ -637,6 +640,7 @@ jobs:
                       "ci-discovery-2-replacement",
                       2,
                       "[CI] Updated CI Anime - 02 [1080p][HEVC]",
+                      replacement_scheduled_for,
                   )
               )
 

@@ -1,10 +1,12 @@
 from uuid import UUID
 
 from animedownloader_anime import Anime
+from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
+from animedownloader_api.release_discovery import ReleaseDiscoveryService
+from animedownloader_api.task_queue import RELEASE_DISCOVERY_TASK_NAME
 from animedownloader_config import Settings
-from animedownloader_nyaa import NyaaClient
-from animedownloader_releases import SearchField
 from animedownloader_database import Database, create_database
+from animedownloader_download
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
 from animedownloader_media import (
     FFmpegAttachmentProcessor,
@@ -87,8 +89,7 @@ async def run_release_discovery(run_id: str) -> None:
             search_title = anime.titles.get("romaji") or anime.title
             anime_id = anime.id
 
-        async with NyaaClient() as client:
-            async with database.session_factory() as session:
+        async with NyaaClient() as client, database.session_factory() as session:
                 discovery = ReleaseDiscoveryService(session, client)
                 result = await discovery.discover(
                     title=search_title,

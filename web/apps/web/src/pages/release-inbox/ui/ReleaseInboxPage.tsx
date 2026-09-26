@@ -124,21 +124,54 @@ export default function ReleaseInboxPage() {
           <p className={styles.stateInline}>Loading runs...</p>
         ) : runs.data?.length ? (
           <div className={styles.runList}>
-            {runs.data.slice(0, 8).map((run) => (
-              <article className={styles.runCard} key={run.id}>
-                <div>
-                  <strong>{animeTitles.get(run.anime_id) ?? "Unknown Anime"}</strong>
-                  <span>{formatDate(run.created_at)}</span>
-                </div>
-                <div className={styles.runStats}>
-                  <span data-status={run.status}>{run.status}</span>
-                  <span>{run.candidate_count} candidates</span>
-                  {run.warning_count > 0 ? (
-                    <span>{run.warning_count} warnings</span>
+            {runs.data.slice(0, 8).map((run) => {
+              const hasCapWarning = run.queries.some(
+                (query) => query.result_cap_reached,
+              );
+              return (
+                <article className={styles.runCard} key={run.id}>
+                  <div>
+                    <strong>
+                      {animeTitles.get(run.anime_id) ?? "Unknown Anime"}
+                    </strong>
+                    <span>{formatDate(run.created_at)}</span>
+                  </div>
+                  <div className={styles.runStats}>
+                    <span data-status={run.status}>{run.status}</span>
+                    <span>{run.queries.length} queries</span>
+                    <span>{run.candidate_count} candidates</span>
+                    {run.warning_count > 0 ? (
+                      <span>{run.warning_count} warnings</span>
+                    ) : null}
+                  </div>
+                  {run.queries.length > 0 ? (
+                    <details className={styles.queryDiagnostics}>
+                      <summary>
+                        {hasCapWarning
+                          ? "Query diagnostics · provider cap signal"
+                          : "Query diagnostics"}
+                      </summary>
+                      <div className={styles.queryList}>
+                        {run.queries.map((query) => (
+                          <div className={styles.queryItem} key={query.id}>
+                            <code>{query.query}</code>
+                            <span>
+                              {query.result_count} results · {query.status}
+                              {query.result_cap_reached
+                                ? " · provider cap signal"
+                                : ""}
+                            </span>
+                            {query.error_message ? (
+                              <p>{query.error_message}</p>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </details>
                   ) : null}
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         ) : (
           <p className={styles.stateInline}>No discovery runs yet.</p>

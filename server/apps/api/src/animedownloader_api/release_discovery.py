@@ -70,10 +70,10 @@ class ReleaseDiscoveryQueryResult:
 @dataclass(frozen=True, slots=True)
 class ReleaseDiscoveryResult:
     queries: tuple[str, ...]
-    query_results: tuple[ReleaseDiscoveryQueryResult, ...] = ()
     warnings: tuple[str, ...]
     search_profile_version: int | None
     items: tuple[ReleaseDiscoveryItem, ...]
+    query_results: tuple[ReleaseDiscoveryQueryResult, ...] = ()
 
     @property
     def query(self) -> str:

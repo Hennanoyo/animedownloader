@@ -10,7 +10,7 @@ import type {
 const episodeSchema = z.object({
   id: z.uuid(),
   anime_id: z.uuid(),
-  release_group_id: z.uuid().nullable(),
+  release_group_id: z.uuid().nullable().default(null),
   episode_number: z.number().int().positive(),
   title: z.string(),
   source: z.string(),

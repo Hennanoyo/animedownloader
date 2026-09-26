@@ -508,14 +508,17 @@ class ReleaseDiscoveryCandidateService:
             raise ValueError("search field order is required with enabled fields")
 
         plan_supplied = search_title is not None or search_field_order is not None
-        if plan_supplied and (
-            search_title is None
-            or search_title_source is None
-            or search_field_order is None
-            or search_enabled_fields is None
-        ):
-            raise ValueError("complete search plan is required")
-        if search_title is not None and not search_title.strip():
+        if plan_supplied:
+            if (
+                search_title is None
+                or search_title_source is None
+                or search_field_order is None
+                or search_enabled_fields is None
+            ):
+                raise ValueError("complete search plan is required")
+            if not search_title.strip():
+                raise ValueError("search title must not be empty")
+        elif search_title is not None and not search_title.strip():
             raise ValueError("search title must not be empty")
 
         async with self.session.begin():

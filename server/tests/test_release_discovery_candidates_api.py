@@ -29,8 +29,8 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidate,
     ReleaseDiscoveryQuery,
     ReleaseDiscoveryRun,
-    ReleaseDiscoverySchedule,
 )
+from animedownloader_api.release_discovery_config import ReleaseDiscoverySchedule
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 from animedownloader_releases import (
     EpisodeIngestionStatus,

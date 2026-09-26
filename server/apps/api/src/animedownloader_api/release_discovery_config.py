@@ -58,3 +58,11 @@ class ReleaseDiscoverySchedule(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+
+def has_saved_search_plan(schedule: ReleaseDiscoverySchedule) -> bool:
+    return bool(
+        schedule.search_title
+        and schedule.search_field_order
+        and schedule.search_enabled_fields
+    )

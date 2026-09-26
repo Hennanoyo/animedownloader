@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from animedownloader_anime import AnimeService, EpisodeNotFoundError
@@ -407,7 +407,10 @@ def _schedule_response(
         last_run_at=schedule.last_run_at,
         last_run_status=schedule.last_run_status,
         search_plan=search_plan,
-        automation_mode=schedule.automation_mode,
+        automation_mode=cast(
+            Literal["off", "accept", "download"],
+            schedule.automation_mode,
+        ),
         automation_min_ranking_score=schedule.automation_min_ranking_score,
         automation_require_plan_match=schedule.automation_require_plan_match,
     )

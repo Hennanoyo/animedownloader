@@ -4,12 +4,18 @@ from uuid import UUID, uuid7
 
 import httpx
 import pytest
+from animedownloader_releases import EpisodeIngestionStatus
 from animedownloader_anime import Anime, AnimeService
 from animedownloader_api.app import create_app
+from animedownloader_api.dependencies import get_release_discovery_candidate_acceptance_service
 from animedownloader_api.dependencies import (
     get_anime_service,
     get_release_discovery_candidate_service,
     get_release_discovery_scheduler,
+)
+from animedownloader_api.release_candidate_acceptance import (
+    ReleaseDiscoveryCandidateAcceptanceResult,
+    ReleaseDiscoveryCandidateAcceptanceService,
 )
 from animedownloader_api.release_candidates import (
     ReleaseCandidateStatus,
@@ -210,3 +216,117 @@ async def test_schedule_and_manual_run_are_explicit_and_queued() -> None:
     assert run_response.status_code == 202
     assert scheduler.enqueue_run.await_count == 1
     scheduler.enqueue_run.assert_awaited_once_with(run.id)
+
+
+
+@pytest.mark.anyio
+async def test_accept_candidate_creates_episode_and_marks_candidate_accepted() -> None:
+    anime = make_anime()
+    candidate = make_candidate(anime.id)
+    candidate.status = "accepted"
+    episode = anime.episodes[0] if anime.episodes else None
+    if episode is None:
+        from animedownloader_anime import Episode
+
+        episode = Episode(
+            id=uuid7(),
+            anime_id=anime.id,
+            episode_number=1,
+            title="Episode 1",
+            source="nyaa",
+            source_id=candidate.source_id,
+            source_title=candidate.source_title,
+            source_url=candidate.page_url,
+            torrent_url=candidate.torrent_url,
+            size=candidate.size,
+            seeders=candidate.seeders,
+            leechers=candidate.leechers,
+            downloads=candidate.downloads,
+            info_hash=candidate.info_hash,
+            download_status="not_started",
+            conversion_status="not_started",
+            created_at=datetime(2026, 9, 26, tzinfo=UTC),
+            updated_at=datetime(2026, 9, 26, tzinfo=UTC),
+        )
+
+    service = MagicMock(spec=ReleaseDiscoveryCandidateAcceptanceService)
+    service.accept = AsyncMock(
+        return_value=ReleaseDiscoveryCandidateAcceptanceResult(
+            status=EpisodeIngestionStatus.CREATED,
+            candidate=candidate,
+            episode=episode,
+            existing_episode=None,
+        ),
+    )
+
+    app = create_app()
+    app.dependency_overrides[get_release_discovery_candidate_acceptance_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.post(
+            f"/api/release-discovery/candidates/{candidate.id}/accept",
+            json={},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "created"
+    assert payload["candidate"]["status"] == "accepted"
+    assert payload["episode"]["id"] == str(episode.id)
+    service.accept.assert_awaited_once_with(candidate.id, replace_episode_id=None)
+
+
+@pytest.mark.anyio
+async def test_accept_candidate_forwards_explicit_replacement_target() -> None:
+    anime = make_anime()
+    candidate = make_candidate(anime.id)
+    candidate.status = "accepted"
+    from animedownloader_anime import Episode
+
+    episode = Episode(
+        id=uuid7(),
+        anime_id=anime.id,
+        episode_number=candidate.episode_number or 1,
+        title="Existing Episode",
+        source="nyaa",
+        source_id="old",
+        source_title="Old release",
+        source_url="https://nyaa.si/view/old",
+        torrent_url="https://nyaa.si/download/old.torrent",
+        size="1 GiB",
+        seeders=1,
+        leechers=1,
+        downloads=1,
+        info_hash="old-hash",
+        download_status="not_started",
+        conversion_status="not_started",
+        created_at=datetime(2026, 9, 26, tzinfo=UTC),
+        updated_at=datetime(2026, 9, 26, tzinfo=UTC),
+    )
+    service = MagicMock(spec=ReleaseDiscoveryCandidateAcceptanceService)
+    service.accept = AsyncMock(
+        return_value=ReleaseDiscoveryCandidateAcceptanceResult(
+            status=EpisodeIngestionStatus.REPLACED,
+            candidate=candidate,
+            episode=episode,
+            existing_episode=None,
+        ),
+    )
+
+    app = create_app()
+    app.dependency_overrides[get_release_discovery_candidate_acceptance_service] = lambda: service
+
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.post(
+            f"/api/release-discovery/candidates/{candidate.id}/accept",
+            json={"replace_episode_id": str(episode.id)},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "replaced"
+    service.accept.assert_awaited_once_with(
+        candidate.id,
+        replace_episode_id=episode.id,
+    )

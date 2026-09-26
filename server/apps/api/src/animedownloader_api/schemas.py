@@ -141,6 +141,7 @@ class ReleaseDiscoveryItemResponse(BaseModel):
 
 class ReleaseDiscoveryResponse(BaseModel):
     query: str
+    queries: list[str]
     warnings: list[str]
     search_profile_version: int | None
     items: list[ReleaseDiscoveryItemResponse]

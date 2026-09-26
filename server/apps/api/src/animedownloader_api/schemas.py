@@ -142,6 +142,7 @@ class ReleaseDiscoveryResponse(BaseModel):
 
 class EpisodeCreate(BaseModel):
     episode_number: int = Field(ge=1, le=9999)
+    release_group_id: UUID | None = None
     title: str = Field(min_length=1, max_length=300)
     source: str = Field(default="nyaa", min_length=1, max_length=32)
     source_id: str | None = Field(default=None, max_length=256)
@@ -160,6 +161,7 @@ class EpisodeCreate(BaseModel):
 class EpisodeUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    release_group_id: UUID | None = None
     episode_number: int | None = Field(default=None, ge=1, le=9999)
     title: str | None = Field(default=None, min_length=1, max_length=300)
     source: str | None = Field(default=None, min_length=1, max_length=32)
@@ -181,6 +183,7 @@ class EpisodeResponse(BaseModel):
 
     id: UUID
     anime_id: UUID
+    release_group_id: UUID | None
     episode_number: int
     title: str
     source: str
@@ -659,6 +662,11 @@ class EpisodeIngestionStatus(StrEnum):
     CREATED = "created"
     IDEMPOTENT = "idempotent"
     REPLACEMENT_CANDIDATE = "replacement_candidate"
+    REPLACED = "replaced"
+
+class EpisodeReleaseReplacementRequest(BaseModel):
+    release: ReleaseResponse
+    parsed: ParsedReleaseResponse
 
 
 class EpisodeIngestionRequest(BaseModel):

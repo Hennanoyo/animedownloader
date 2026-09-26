@@ -1,7 +1,7 @@
 from .commands import (
     AnimeCreateData,
-    AnimeUpdateData,
     AnimeReleasePreferenceData,
+    AnimeUpdateData,
     EpisodeCreateData,
     EpisodeUpdateData,
 )
@@ -15,9 +15,9 @@ __all__ = [
     "AnimeCreateData",
     "AnimeNotFoundError",
     "AnimeService",
-    "AnimeUpdateData",
     "AnimeReleasePreference",
     "AnimeReleasePreferenceData",
+    "AnimeUpdateData",
     "ConversionStatus",
     "DownloadStatus",
     "DuplicateEpisodeError",

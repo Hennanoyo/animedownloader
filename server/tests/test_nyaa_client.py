@@ -1,6 +1,6 @@
 import httpx
 import pytest
-from animedownloader_nyaa import NyaaClient, RSS_RESULT_LIMIT
+from animedownloader_nyaa import RSS_RESULT_LIMIT, NyaaClient
 
 
 def _feed(item_count: int) -> str:

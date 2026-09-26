@@ -335,6 +335,30 @@ Episode
 
 This keeps discovery safe and allows a user to inspect candidates before any torrent activity begins.
 
+## Anime release preferences and ranking
+
+An Anime may store optional release preferences for:
+
+- release group
+- resolution
+- video codec
+- source
+
+These preferences are advisory discovery metadata. They are not part of Episode ingestion and do not trigger downloads.
+
+When the target Anime is supplied to discovery, candidates receive a deterministic preference score:
+
+| Preference | Score |
+| --- | ---: |
+| release group | 100 |
+| resolution | 30 |
+| video codec | 20 |
+| source | 10 |
+
+Only configured fields contribute to the score. A candidate that does not match the target Anime is not promoted by preference scoring. When a preference exists, discovery sorts by preference score first, then actionable parse status, current seeders, and release title for deterministic tie-breaking.
+
+The API returns the score and explicit match reasons so the UI can explain ordering. Seeders are not treated as a preference and cannot outweigh an explicit preference match.
+
 ## Future evolution
 
 This design intentionally supports later automation without making it part of the current PR:

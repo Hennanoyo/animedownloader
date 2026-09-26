@@ -113,6 +113,7 @@ def _to_anime_create_data(payload: AnimeCreate) -> AnimeCreateData:
 
 def _to_episode_create_data(payload: EpisodeCreate) -> EpisodeCreateData:
     return EpisodeCreateData(
+        release_group_id=payload.release_group_id,
         episode_number=payload.episode_number,
         title=payload.title,
         source=payload.source,

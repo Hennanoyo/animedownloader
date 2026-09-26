@@ -199,6 +199,8 @@ class ReleaseDiscoveryCandidateResponse(BaseModel):
 
 
 class ReleaseDiscoveryQueryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     position: int
     query: str

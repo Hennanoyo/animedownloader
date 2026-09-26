@@ -177,6 +177,7 @@ class AnimeService:
     def _build_episode(anime: Anime, data: EpisodeCreateData) -> Episode:
         return Episode(
             anime=anime,
+            release_group_id=data.release_group_id,
             episode_number=data.episode_number,
             title=data.title.strip(),
             source=data.source,

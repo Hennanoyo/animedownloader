@@ -10,6 +10,7 @@ import {
 } from "react-aria-components";
 import { Link } from "@tanstack/react-router";
 import { useAnimes } from "../../../features/anime-create/model/useCreateAnime";
+import { useCreateEpisodeDownloadJob } from "../../../features/episode-download/model/useEpisodeDownload";
 import {
   type ReleaseCandidateStatus,
 } from "../../../entities/release/api/discoveryCandidates";
@@ -185,6 +186,8 @@ function CandidateCard({
   updateStatus,
 }: CandidateCardProps) {
   const accept = useAcceptReleaseDiscoveryCandidate();
+  const [acceptedEpisodeId, setAcceptedEpisodeId] = useState<string | null>(null);
+  const download = useCreateEpisodeDownloadJob(acceptedEpisodeId ?? "");
   const [replacementEpisode, setReplacementEpisode] =
     useState<ReleaseDiscoveryCandidateAcceptance["existing_episode"]>(null);
 
@@ -205,6 +208,10 @@ function CandidateCard({
     ) {
       setReplacementEpisode(result.existing_episode);
       return;
+    }
+
+    if (result.episode !== null) {
+      setAcceptedEpisodeId(result.episode.id);
     }
     setReplacementEpisode(null);
   }
@@ -300,6 +307,11 @@ function CandidateCard({
           Failed to accept candidate: {accept.error.message}
         </p>
       ) : null}
+      {download.isError ? (
+        <p className={styles.error} role="alert">
+          Failed to queue download: {download.error.message}
+        </p>
+      ) : null}
 
       <div className={styles.actions}>
         <a
@@ -328,6 +340,15 @@ function CandidateCard({
           </Button>
         ) : candidate.status === "accepted" ? (
           <span className={styles.stateInline}>Accepted</span>
+        ) : null}
+        {acceptedEpisodeId !== null ? (
+          <Button
+            className={styles.primaryButton}
+            onPress={() => void download.mutateAsync()}
+            isDisabled={download.isPending}
+          >
+            {download.isPending ? "Queueing download..." : "Download"}
+          </Button>
         ) : null}
         {candidate.status === "new" ? (
           <Button

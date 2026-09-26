@@ -8,6 +8,7 @@ from .media_packaging_jobs import router as media_packaging_jobs_router
 from .media_preparation_jobs import router as media_preparation_jobs_router
 from .media_processing_jobs import router as media_processing_jobs_router
 from .release_profiles import router as release_profiles_router
+from .media_sources import router as media_sources_router
 from .releases import router as releases_router
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "media_processing_jobs_router",
     "releases_router",
     "release_profiles_router",
+    "media_sources_router",
 ]

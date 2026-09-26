@@ -58,7 +58,7 @@ async def search_releases(
         query=normalized_query,
         items=[
             ReleaseResponse.model_validate(release)
-            for release in releases.items
+            for release in search_result.items
         ],
     )
 

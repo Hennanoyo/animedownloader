@@ -158,6 +158,25 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify([candidate()]),
     });
   });
+  await page.route("**/api/episodes/*/download-jobs", async (route) => {
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "019a0000-0000-7000-8000-000000000031",
+        episode_id: existingEpisode.id,
+        status: "pending",
+        downloaded_bytes: 0,
+        total_bytes: 100,
+        attempt_count: 1,
+        error_message: null,
+        started_at: null,
+        completed_at: null,
+        created_at: "2026-09-26T00:10:00Z",
+        updated_at: "2026-09-26T00:10:00Z",
+      }),
+    });
+  });
   await page.route("**/api/release-discovery/runs**", async (route) => {
     await route.fulfill({
       status: 200,
@@ -246,5 +265,13 @@ test("accepts a candidate and explicitly confirms an episode replacement", async
   await expect(card.getByText("accepted", { exact: true })).toBeVisible();
   await expect(
     card.getByRole("button", { name: "Accept" }),
+  ).toHaveCount(0);
+
+  await card.getByRole("button", { name: "Download" }).click();
+  await expect(
+    card.getByRole("button", { name: "Download" }),
+  ).toBeVisible();
+  await expect(
+    card.getByText("Failed to queue download:", { exact: false }),
   ).toHaveCount(0);
 });

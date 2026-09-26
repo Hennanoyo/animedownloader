@@ -191,6 +191,10 @@ class ReleaseDiscoveryCandidateResponse(BaseModel):
     first_seen_at: datetime
     last_seen_at: datetime
     reviewed_at: datetime | None
+    automation_status: str
+    automation_claimed_at: datetime | None
+    automation_completed_at: datetime | None
+    automation_error: str | None
 
 
 class ReleaseDiscoveryRunResponse(BaseModel):
@@ -798,8 +802,8 @@ class ReleaseAutomationPolicyResponse(BaseModel):
     enabled: bool
     min_ranking_score: int
     require_preference_match: bool
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None
+    updated_at: datetime | None
 
 
 class ReleaseAutomationCandidatePreviewResponse(BaseModel):

@@ -8,7 +8,6 @@ from typing import Final
 from .models import (
     Release,
     SearchField,
-    SearchField,
     SearchPlan,
     SearchPlanQuery,
     SearchProfileSpec,

@@ -1,7 +1,7 @@
 """persist per-query release discovery diagnostics
 
 Revision ID: 0024_discovery_query_diagnostics
-Revises: 0023_release_automation
+Revises: 0023_candidate_automation
 Create Date: 2026-09-27
 """
 

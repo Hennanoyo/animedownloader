@@ -121,6 +121,8 @@ async def accept_candidate(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ReleaseNotActionableError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     return ReleaseDiscoveryCandidateAcceptanceResponse(
         status=EpisodeIngestionStatus(result.status.value),

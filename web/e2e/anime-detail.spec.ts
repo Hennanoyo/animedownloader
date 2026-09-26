@@ -889,6 +889,7 @@ test("previews the persisted discovery search plan", async ({ page }) => {
   const plan = schedule.locator("details").filter({
     hasText: "Search plan",
   });
+  await plan.locator("summary").click();
   await expect(
     plan.getByText("ExampleSubs Browser Smoke Romaji 1080p HEVC", {
       exact: true,

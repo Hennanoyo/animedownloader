@@ -4,12 +4,11 @@ from uuid import UUID, uuid7
 
 import httpx
 import pytest
-from animedownloader_releases import EpisodeIngestionStatus
 from animedownloader_anime import Anime, AnimeService
 from animedownloader_api.app import create_app
-from animedownloader_api.dependencies import get_release_discovery_candidate_acceptance_service
 from animedownloader_api.dependencies import (
     get_anime_service,
+    get_release_discovery_candidate_acceptance_service,
     get_release_discovery_candidate_service,
     get_release_discovery_scheduler,
 )
@@ -24,6 +23,7 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoverySchedule,
 )
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
+from animedownloader_releases import EpisodeIngestionStatus
 
 
 def make_anime() -> Anime:

@@ -123,101 +123,98 @@ export default function ReleasePreferencesPanel({
           </Popover>
         </ComboBox>
 
-        <TextField className={styles.field}>
+        <ComboBox
+          className={styles.field}
+          items={RESOLUTION_OPTIONS}
+          selectedKey={resolution || null}
+          inputValue={resolution}
+          allowsCustomValue
+          onInputChange={setResolution}
+          onSelectionChange={(key) =>
+            setResolution(key === null ? "" : String(key))
+          }
+        >
           <Label>Resolution</Label>
-          <ComboBox
-            items={RESOLUTION_OPTIONS}
-            selectedKey={resolution || null}
-            inputValue={resolution}
-            allowsCustomValue
-            onInputChange={setResolution}
-            onSelectionChange={(key) =>
-              setResolution(key === null ? "" : String(key))
-            }
-          >
-            <div className={styles.control}>
-              <Input aria-label="Resolution" />
-              <Button aria-label="Show resolution options">▾</Button>
-            </div>
-            <Popover className={styles.popover}>
-              <ListBox>
-                {(item: string) => (
-                  <ListBoxItem
-                    id={item}
-                    textValue={item}
-                    className={styles.option}
-                  >
-                    {item}
-                  </ListBoxItem>
-                )}
-              </ListBox>
-            </Popover>
-          </ComboBox>
-        </TextField>
+          <div className={styles.control}>
+            <Input aria-label="Resolution" />
+            <Button aria-label="Show resolution options">▾</Button>
+          </div>
+          <Popover className={styles.popover}>
+            <ListBox>
+              {(item: string) => (
+                <ListBoxItem
+                  id={item}
+                  textValue={item}
+                  className={styles.option}
+                >
+                  {item}
+                </ListBoxItem>
+              )}
+            </ListBox>
+          </Popover>
+        </ComboBox>
 
-        <TextField className={styles.field}>
+        <ComboBox
+          className={styles.field}
+          items={VIDEO_CODEC_OPTIONS}
+          selectedKey={videoCodec || null}
+          inputValue={videoCodec}
+          allowsCustomValue
+          onInputChange={setVideoCodec}
+          onSelectionChange={(key) =>
+            setVideoCodec(key === null ? "" : String(key))
+          }
+        >
           <Label>Video codec</Label>
-          <ComboBox
-            items={VIDEO_CODEC_OPTIONS}
-            selectedKey={videoCodec || null}
-            inputValue={videoCodec}
-            allowsCustomValue
-            onInputChange={setVideoCodec}
-            onSelectionChange={(key) =>
-              setVideoCodec(key === null ? "" : String(key))
-            }
-          >
-            <div className={styles.control}>
-              <Input aria-label="Video codec" />
-              <Button aria-label="Show video codec options">▾</Button>
-            </div>
-            <Popover className={styles.popover}>
-              <ListBox>
-                {(item: string) => (
-                  <ListBoxItem
-                    id={item}
-                    textValue={item}
-                    className={styles.option}
-                  >
-                    {item}
-                  </ListBoxItem>
-                )}
-              </ListBox>
-            </Popover>
-          </ComboBox>
-        </TextField>
+          <div className={styles.control}>
+            <Input aria-label="Video codec" />
+            <Button aria-label="Show video codec options">▾</Button>
+          </div>
+          <Popover className={styles.popover}>
+            <ListBox>
+              {(item: string) => (
+                <ListBoxItem
+                  id={item}
+                  textValue={item}
+                  className={styles.option}
+                >
+                  {item}
+                </ListBoxItem>
+              )}
+            </ListBox>
+          </Popover>
+        </ComboBox>
 
-        <TextField className={styles.field}>
+        <ComboBox
+          className={styles.field}
+          items={SOURCE_OPTIONS}
+          selectedKey={source || null}
+          inputValue={source}
+          allowsCustomValue
+          onInputChange={setSource}
+          onSelectionChange={(key) =>
+            setSource(key === null ? "" : String(key))
+          }
+        >
           <Label>Source</Label>
-          <ComboBox
-            items={SOURCE_OPTIONS}
-            selectedKey={source || null}
-            inputValue={source}
-            allowsCustomValue
-            onInputChange={setSource}
-            onSelectionChange={(key) =>
-              setSource(key === null ? "" : String(key))
-            }
-          >
-            <div className={styles.control}>
-              <Input aria-label="Source" />
-              <Button aria-label="Show source options">▾</Button>
-            </div>
-            <Popover className={styles.popover}>
-              <ListBox>
-                {(item: string) => (
-                  <ListBoxItem
-                    id={item}
-                    textValue={item}
-                    className={styles.option}
-                  >
-                    {item}
-                  </ListBoxItem>
-                )}
-              </ListBox>
-            </Popover>
-          </ComboBox>
-        </TextField>
+          <div className={styles.control}>
+            <Input aria-label="Source" />
+            <Button aria-label="Show source options">▾</Button>
+          </div>
+          <Popover className={styles.popover}>
+            <ListBox>
+              {(item: string) => (
+                <ListBoxItem
+                  id={item}
+                  textValue={item}
+                  className={styles.option}
+                >
+                  {item}
+                </ListBoxItem>
+              )}
+            </ListBox>
+          </Popover>
+        </ComboBox>
       </div>
 
       {query.isError ? (

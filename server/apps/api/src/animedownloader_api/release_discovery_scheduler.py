@@ -5,14 +5,15 @@ from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+from animedownloader_database import Database
+from sqlalchemy import select
+
 from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidateService,
     ReleaseDiscoveryRun,
     ReleaseDiscoveryRunStatus,
     ReleaseDiscoverySchedule,
 )
-from animedownloader_database import Database
-from sqlalchemy import select
 
 from .task_queue import ReleaseDiscoveryTaskDispatcher
 

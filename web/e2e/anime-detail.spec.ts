@@ -5,6 +5,12 @@ const ANIME_ID = "019a0000-0000-7000-8000-000000000010";
 let pipelineRequests = 0;
 let pipelineResponse: AnimePipeline;
 let replacementMode = false;
+let releasePreference = {
+  release_group_id: null as string | null,
+  resolution: null as string | null,
+  video_codec: null as string | null,
+  source: null as string | null,
+};
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
 const INGESTED_EPISODE_ID = "019a0000-0000-7000-8000-000000000012";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
@@ -22,6 +28,12 @@ test.beforeEach(async ({ page }) => {
   pipelineResponse = structuredClone(pipeline);
   animeResponse = structuredClone(anime);
   replacementMode = false;
+  releasePreference = {
+    release_group_id: null,
+    resolution: null,
+    video_codec: null,
+    source: null,
+  };
   let mediaSourceProcessingStatus = "pending";
   await page.route(`**/api/animes/${ANIME_ID}`, async (route) => {
     await route.fulfill({
@@ -31,6 +43,40 @@ test.beforeEach(async ({ page }) => {
     });
   });
   pipelineRequests = 0;
+  await page.route(
+    `**/api/animes/${ANIME_ID}/release-preferences`,
+    async (route) => {
+      if (route.request().method() === "PATCH") {
+        const body = JSON.parse(route.request().postData() ?? "{}") as typeof releasePreference;
+        releasePreference = {
+          release_group_id: body.release_group_id ?? null,
+          resolution: body.resolution ?? null,
+          video_codec: body.video_codec ?? null,
+          source: body.source ?? null,
+        };
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ...releasePreference,
+            created_at: "2026-09-25T00:00:00Z",
+            updated_at: "2026-09-25T00:10:00Z",
+          }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ...releasePreference,
+          created_at: "2026-09-25T00:00:00Z",
+          updated_at: "2026-09-25T00:00:00Z",
+        }),
+      });
+    },
+  );
   await page.route(`**/api/animes/${ANIME_ID}/pipeline`, async (route) => {
     pipelineRequests += 1;
     await route.fulfill({
@@ -83,6 +129,15 @@ test.beforeEach(async ({ page }) => {
                 warnings: [],
                 failed_required_fields: [],
                 parser_profile_version: null,
+              },
+              ranking: {
+                score: 160,
+                reasons: [
+                  "Preferred release group",
+                  "Preferred resolution",
+                  "Preferred video codec",
+                  "Preferred source",
+                ],
               },
               match: {
                 status: "matched",
@@ -686,6 +741,35 @@ test("explicitly replaces an existing episode release before download", async ({
   ).toHaveCount(0);
 });
 
+test("saves anime release preferences and uses them to explain ranked releases", async ({ page }) => {
+  await page.goto("/animes/" + ANIME_ID);
+
+  const preferences = page.getByRole("region", {
+    name: "Release preferences",
+  });
+  await expect(
+    preferences.getByRole("heading", { name: "Preferred release shape" }),
+  ).toBeVisible();
+
+  await preferences.getByRole("combobox", { name: "Resolution" }).fill("1080p");
+  await preferences.getByRole("combobox", { name: "Video codec" }).fill("HEVC");
+  await preferences.getByRole("combobox", { name: "Source" }).fill("WEB");
+
+  await preferences.getByRole("button", { name: "Save preferences" }).click();
+  await expect(preferences.getByText("Saved", { exact: true })).toBeVisible();
+
+  const discovery = page.getByRole("region", { name: "Find releases" });
+  await discovery.getByRole("button", { name: "Discover releases" }).click();
+
+  const resultCard = discovery.locator("article").filter({
+    hasText: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
+  });
+  await expect(resultCard).toContainText("Preferred 160");
+  await expect(resultCard).toContainText(
+    "Preferred resolution · Preferred video codec · Preferred source",
+  );
+});
+ 
 test("discovers parsed releases from the anime detail page", async ({ page }) => {
   await page.goto("/animes/" + ANIME_ID);
 

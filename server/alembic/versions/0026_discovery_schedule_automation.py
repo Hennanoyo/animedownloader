@@ -1,6 +1,6 @@
 """store automation configuration with the discovery schedule
 
-Revision ID: 0026_discovery_schedule_automation
+Revision ID: 0026_discovery_automation
 Revises: 0025_discovery_configuration
 Create Date: 2026-09-27
 """
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "0026_discovery_schedule_automation"
+revision = "0026_discovery_automation"
 down_revision = "0025_discovery_configuration"
 branch_labels = None
 depends_on = None

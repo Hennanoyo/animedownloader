@@ -222,7 +222,7 @@ class ReleaseDiscoveryRunResponse(BaseModel):
     started_at: datetime | None
     completed_at: datetime | None
     created_at: datetime
-    queries: list[ReleaseDiscoveryQueryResponse] = Field(default_factory=list)
+    queries: list[ReleaseDiscoveryQueryResponse]
 
 
 class ReleaseDiscoveryScheduleResponse(BaseModel):

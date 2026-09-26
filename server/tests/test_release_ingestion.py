@@ -8,6 +8,7 @@ from animedownloader_api.release_ingestion import (
     EpisodeIngestionService,
     ReleaseDoesNotMatchAnimeError,
     ReleaseNotActionableError,
+    ReleaseReplacementConflictError,
 )
 from animedownloader_releases import EpisodeIngestionStatus, ParsedRelease, ParseStatus, Release
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -179,7 +180,7 @@ async def test_same_release_is_idempotent_and_preserves_user_state() -> None:
 async def test_different_release_same_episode_returns_replacement_candidate() -> None:
     anime = _anime()
     existing = _episode(anime.id)
-    session = FakeSession([anime, None, existing])
+    session = FakeSession([anime, None, None, existing])
     service = EpisodeIngestionService(cast(AsyncSession, session))
 
     result = await service.ingest(
@@ -329,7 +330,39 @@ async def test_replace_release_rejects_existing_download_history() -> None:
     session = FakeSession([existing, anime, uuid7()])
     service = EpisodeIngestionService(cast(AsyncSession, session))
 
-    from animedownloader_api.release_ingestion import ReleaseReplacementConflictError
+    with pytest.raises(ReleaseReplacementConflictError):
+        await service.replace(
+            episode_id=existing.id,
+            release=_release(release_id="release-9"),
+            parsed=_parsed(),
+        )
+
+
+@pytest.mark.anyio
+async def test_replace_release_rejects_media_processing_history() -> None:
+    anime = _anime()
+    existing = _episode(anime.id)
+    existing.download_status = "not_started"
+    existing.conversion_status = "not_started"
+    session = FakeSession([existing, anime, None, uuid7()])
+    service = EpisodeIngestionService(cast(AsyncSession, session))
+
+    with pytest.raises(ReleaseReplacementConflictError):
+        await service.replace(
+            episode_id=existing.id,
+            release=_release(release_id="release-9"),
+            parsed=_parsed(),
+        )
+
+
+@pytest.mark.anyio
+async def test_replace_release_rejects_media_assets() -> None:
+    anime = _anime()
+    existing = _episode(anime.id)
+    existing.download_status = "not_started"
+    existing.conversion_status = "not_started"
+    session = FakeSession([existing, anime, None, None, uuid7()])
+    service = EpisodeIngestionService(cast(AsyncSession, session))
 
     with pytest.raises(ReleaseReplacementConflictError):
         await service.replace(

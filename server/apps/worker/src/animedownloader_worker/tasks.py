@@ -86,6 +86,8 @@ async def run_release_discovery(run_id: str) -> None:
             search_title = anime.titles.get("romaji") or anime.title
             anime_id = anime.id
 
+        # Keep provider I/O and read-heavy discovery work isolated from the
+        # persistence transaction that records the normalized candidates.
         async with NyaaClient() as client, database.session_factory() as session:
             discovery = ReleaseDiscoveryService(session, client)
             result = await discovery.discover(
@@ -93,6 +95,8 @@ async def run_release_discovery(run_id: str) -> None:
                 anime_id=anime_id,
                 fields=(SearchField.TITLE,),
             )
+
+        async with database.session_factory() as session:
             candidate_service = ReleaseDiscoveryCandidateService(session)
             counts = await candidate_service.record_discovery(parsed_run_id, result)
             await candidate_service.complete_run(parsed_run_id, counts)

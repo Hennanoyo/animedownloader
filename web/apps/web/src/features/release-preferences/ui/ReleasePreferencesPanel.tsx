@@ -93,12 +93,10 @@ export default function ReleasePreferencesPanel({
             null
           }
           onSelectionChange={(key) => {
-            const name = key === null ? null : String(key);
+            if (key === null) return;
+            const name = String(key);
             setReleaseGroupId(
-              name === null
-                ? null
-                : (groups.data?.find((group) => group.name === name)?.id ??
-                    null),
+              groups.data?.find((group) => group.name === name)?.id ?? null,
             );
           }}
         >
@@ -129,9 +127,10 @@ export default function ReleasePreferencesPanel({
           inputValue={resolution}
           allowsCustomValue
           onInputChange={setResolution}
-          onSelectionChange={(key) =>
-            setResolution(key === null ? "" : String(key))
-          }
+          onSelectionChange={(key) => {
+            if (key === null) return;
+            setResolution(String(key));
+          }}
         >
           <Label>Resolution</Label>
           <div className={styles.control}>
@@ -160,9 +159,10 @@ export default function ReleasePreferencesPanel({
           inputValue={videoCodec}
           allowsCustomValue
           onInputChange={setVideoCodec}
-          onSelectionChange={(key) =>
-            setVideoCodec(key === null ? "" : String(key))
-          }
+          onSelectionChange={(key) => {
+            if (key === null) return;
+            setVideoCodec(String(key));
+          }}
         >
           <Label>Video codec</Label>
           <div className={styles.control}>
@@ -191,9 +191,10 @@ export default function ReleasePreferencesPanel({
           inputValue={source}
           allowsCustomValue
           onInputChange={setSource}
-          onSelectionChange={(key) =>
-            setSource(key === null ? "" : String(key))
-          }
+          onSelectionChange={(key) => {
+            if (key === null) return;
+            setSource(String(key));
+          }}
         >
           <Label>Source</Label>
           <div className={styles.control}>

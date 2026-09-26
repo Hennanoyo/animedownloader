@@ -14,6 +14,7 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidate,
     ReleaseDiscoveryCandidateService,
 )
+from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 from animedownloader_api.schemas import (
     ReleaseDiscoveryCandidateResponse,
     ReleaseDiscoveryCandidateUpdate,
@@ -22,7 +23,6 @@ from animedownloader_api.schemas import (
     ReleaseDiscoveryScheduleResponse,
     ReleaseDiscoveryScheduleUpdate,
 )
-from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 
 router = APIRouter(prefix="/api", tags=["release-discovery"])
 

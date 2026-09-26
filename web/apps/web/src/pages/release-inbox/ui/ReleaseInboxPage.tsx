@@ -11,7 +11,6 @@ import {
 import { Link } from "@tanstack/react-router";
 import { useAnimes } from "../../../features/anime-create/model/useCreateAnime";
 import {
-  releaseCandidateStatuses,
   type ReleaseCandidateStatus,
 } from "../../../entities/release/api/discoveryCandidates";
 import {
@@ -19,6 +18,7 @@ import {
   useReleaseDiscoveryRuns,
   useUpdateReleaseDiscoveryCandidate,
 } from "../../../features/release-discovery/model/useReleaseDiscoveryCandidates";
+import type { ReleaseDiscoveryCandidate } from "../../../entities/release/api/discoveryCandidates";
 import styles from "./ReleaseInboxPage.module.scss";
 
 const FILTERS: Array<{ value: "all" | ReleaseCandidateStatus; label: string }> = [
@@ -289,7 +289,7 @@ function formatDate(value: Date): string {
 }
 
 function formatCandidateMeta(
-  candidate: ReturnType<typeof useReleaseDiscoveryCandidates>["data"][number],
+  candidate: ReleaseDiscoveryCandidate,
 ): string {
   return [
     candidate.provider_source,

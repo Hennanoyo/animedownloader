@@ -9,7 +9,7 @@ from animedownloader_anime import (
     Episode,
     EpisodeCreateData,
 )
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from animedownloader_api.dependencies import get_anime_service
 from animedownloader_api.schemas import (

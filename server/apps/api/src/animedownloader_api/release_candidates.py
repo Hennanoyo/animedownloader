@@ -554,17 +554,30 @@ class ReleaseDiscoveryCandidateService:
                     )
 
             if plan_supplied:
-                schedule.search_title_source = search_title_source.strip() or "custom"
-                schedule.search_title = search_title.strip()
-                schedule.search_field_order = [str(item) for item in search_field_order]
-                schedule.search_enabled_fields = [str(item) for item in search_enabled_fields]
-                schedule.search_group = search_group.strip() if search_group else None
-                schedule.search_episode = search_episode
-                schedule.search_resolution = (
-                    search_resolution.strip() if search_resolution else None
-                )
-                schedule.search_codec = search_codec.strip() if search_codec else None
-                schedule.search_source = search_source.strip() if search_source else None
+                assert search_title is not None
+                assert search_title_source is not None
+                assert search_field_order is not None
+                assert search_enabled_fields is not None
+
+                plan_title = search_title.strip()
+                plan_title_source = search_title_source.strip() or "custom"
+                plan_field_order = [str(item) for item in search_field_order]
+                plan_enabled_fields = [str(item) for item in search_enabled_fields]
+                plan_group = search_group.strip() if search_group else None
+                plan_episode = search_episode
+                plan_resolution = search_resolution.strip() if search_resolution else None
+                plan_codec = search_codec.strip() if search_codec else None
+                plan_source = search_source.strip() if search_source else None
+
+                schedule.search_title_source = plan_title_source
+                schedule.search_title = plan_title
+                schedule.search_field_order = plan_field_order
+                schedule.search_enabled_fields = plan_enabled_fields
+                schedule.search_group = plan_group
+                schedule.search_episode = plan_episode
+                schedule.search_resolution = plan_resolution
+                schedule.search_codec = plan_codec
+                schedule.search_source = plan_source
 
                 # Keep the legacy preference row as derived ranking state so
                 # existing candidate ranking/automation remains compatible.
@@ -578,8 +591,8 @@ class ReleaseDiscoveryCandidateService:
                     self.session.add(preference)
 
                 preferred_group_id = None
-                if "group" in schedule.search_enabled_fields and schedule.search_group:
-                    group_slug = normalize_release_group_slug(schedule.search_group)
+                if "group" in plan_enabled_fields and plan_group:
+                    group_slug = normalize_release_group_slug(plan_group)
                     preferred_group_id = await self.session.scalar(
                         select(ReleaseGroup.id)
                         .where(
@@ -588,27 +601,27 @@ class ReleaseDiscoveryCandidateService:
                                 (ReleaseGroup.slug == group_slug)
                                 | (
                                     func.lower(ReleaseGroup.name)
-                                    == schedule.search_group.casefold()
+                                    == plan_group.casefold()
                                 )
                             ),
                         )
                         .limit(1),
                     )
 
-                enabled_fields = set(schedule.search_enabled_fields)
+                enabled_fields = set(plan_enabled_fields)
                 preference.release_group_id = (
                     preferred_group_id if "group" in enabled_fields else None
                 )
                 preference.resolution = (
-                    schedule.search_resolution
+                    plan_resolution
                     if "resolution" in enabled_fields
                     else None
                 )
                 preference.video_codec = (
-                    schedule.search_codec if "codec" in enabled_fields else None
+                    plan_codec if "codec" in enabled_fields else None
                 )
                 preference.source = (
-                    schedule.search_source if "source" in enabled_fields else None
+                    plan_source if "source" in enabled_fields else None
                 )
 
             if automation_mode is not None:

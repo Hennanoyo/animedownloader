@@ -1,9 +1,13 @@
 from uuid import UUID
 
 from animedownloader_anime import Anime
+from animedownloader_api.release_candidate_automation import ReleaseCandidateAutomationService
 from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
-from animedownloader_api.task_queue import RELEASE_DISCOVERY_TASK_NAME
+from animedownloader_api.task_queue import (
+    RELEASE_CANDIDATE_AUTOMATION_TASK_NAME,
+    RELEASE_DISCOVERY_TASK_NAME,
+)
 from animedownloader_config import Settings
 from animedownloader_database import Database, create_database
 from animedownloader_download import DOWNLOAD_TASK_NAME, DownloadJobService
@@ -100,6 +104,12 @@ async def run_release_discovery(run_id: str) -> None:
             candidate_service = ReleaseDiscoveryCandidateService(session)
             counts = await candidate_service.record_discovery(parsed_run_id, result)
             await candidate_service.complete_run(parsed_run_id, counts)
+            automation_enabled = await ReleaseCandidateAutomationService(
+                session,
+            ).is_enabled(anime_id)
+
+        if automation_enabled:
+            await run_release_candidate_automation.kiq(str(anime_id))
 
         print(
             f"[worker] release discovery completed: run_id={run_id} "
@@ -117,6 +127,40 @@ async def run_release_discovery(run_id: str) -> None:
             f"{type(exc).__name__}: {exc}",
             flush=True,
         )
+    finally:
+        await database.dispose()
+
+
+@broker.task(task_name=RELEASE_CANDIDATE_AUTOMATION_TASK_NAME)
+async def run_release_candidate_automation(anime_id: str) -> None:
+    parsed_anime_id = UUID(anime_id)
+    settings = Settings()
+    database = create_database(settings.database_url)
+
+    async def enqueue_download(job_id: UUID) -> None:
+        await download_episode.kiq(str(job_id))
+
+    try:
+        async with database.session_factory() as session:
+            candidate_ids = await ReleaseCandidateAutomationService(
+                session,
+            ).claim_candidates(parsed_anime_id)
+
+        for candidate_id in candidate_ids:
+            try:
+                async with database.session_factory() as session:
+                    await ReleaseCandidateAutomationService(
+                        session,
+                    ).execute_claimed(
+                        candidate_id,
+                        enqueue_download=enqueue_download,
+                    )
+            except Exception as exc:
+                print(
+                    "[worker] release candidate automation failed: "
+                    f"candidate_id={candidate_id} {type(exc).__name__}: {exc}",
+                    flush=True,
+                )
     finally:
         await database.dispose()
 

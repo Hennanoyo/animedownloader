@@ -4,6 +4,7 @@ import type { AnimePipeline } from "../apps/web/src/entities/anime/model/pipelin
 const ANIME_ID = "019a0000-0000-7000-8000-000000000010";
 let pipelineRequests = 0;
 let pipelineResponse: AnimePipeline;
+let replacementMode = false;
 const EPISODE_ID = "019a0000-0000-7000-8000-000000000011";
 const INGESTED_EPISODE_ID = "019a0000-0000-7000-8000-000000000012";
 const THUMBNAIL_URL = "https://e2e.invalid/anime/episode-one-sprite.jpg";
@@ -20,6 +21,7 @@ const transparentPng = Buffer.from(
 test.beforeEach(async ({ page }) => {
   pipelineResponse = structuredClone(pipeline);
   animeResponse = structuredClone(anime);
+  replacementMode = false;
   let mediaSourceProcessingStatus = "pending";
   await page.route(`**/api/animes/${ANIME_ID}`, async (route) => {
     await route.fulfill({
@@ -145,6 +147,19 @@ test.beforeEach(async ({ page }) => {
     expect(body.anime_id).toBe(ANIME_ID);
     expect(body.release?.id).toBe("e2e-release-1");
     expect(body.parsed?.episode_number).toBe(1);
+
+    if (replacementMode) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "replacement_candidate",
+          episode: null,
+          existing_episode: animeResponse.episodes[0],
+        }),
+      });
+      return;
+    }
 
     const episode = {
       ...anime.episodes[0],
@@ -610,6 +625,66 @@ test("keeps live download controls inside the download stage", async ({ page }) 
 
 });
 
+
+test("explicitly replaces an existing episode release before download", async ({ page }) => {
+  replacementMode = true;
+
+  await page.route(
+    "**/api/releases/episodes/" + EPISODE_ID + "/replace",
+    async (route) => {
+      const replacedEpisode = {
+        ...anime.episodes[0],
+        release_group_id: null,
+        source_id: "e2e-release-1",
+        source_title: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
+        source_url: "https://e2e.invalid/release/1",
+        torrent_url: "https://e2e.invalid/download/1.torrent",
+        download_status: "not_started" as const,
+        conversion_status: "not_started" as const,
+      };
+      animeResponse = {
+        ...animeResponse,
+        episodes: [replacedEpisode],
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "replaced",
+          episode: replacedEpisode,
+          existing_episode: null,
+        }),
+      });
+    },
+  );
+
+  await page.goto("/animes/" + ANIME_ID);
+
+  const discovery = page.getByRole("region", { name: "Find releases" });
+  await discovery.getByRole("button", { name: "Discover releases" }).click();
+
+  const resultCard = discovery.locator("article").filter({
+    hasText: "[ExampleSubs] Browser Smoke Anime - 01 [1080p][HEVC]",
+  });
+  await expect(
+    resultCard.getByRole("button", { name: "Add to this Anime" }),
+  ).toBeVisible();
+  await resultCard.getByRole("button", { name: "Add to this Anime" }).click();
+
+  await expect(resultCard).toContainText(
+    "Episode 1 already exists with another release.",
+  );
+  await expect(
+    resultCard.getByRole("button", { name: "Replace release" }),
+  ).toBeVisible();
+
+  await resultCard.getByRole("button", { name: "Replace release" }).click();
+
+  await expect(resultCard).toContainText("Episode 1 release was replaced.");
+  await expect(
+    resultCard.getByRole("button", { name: "Replace release" }),
+  ).toHaveCount(0);
+});
 
 test("discovers parsed releases from the anime detail page", async ({ page }) => {
   await page.goto("/animes/" + ANIME_ID);

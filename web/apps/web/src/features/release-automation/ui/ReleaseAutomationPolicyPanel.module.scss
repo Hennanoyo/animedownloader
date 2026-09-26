@@ -1,0 +1,308 @@
+.panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #26324a;
+  border-radius: 0.8rem;
+  background: #0f172a;
+}
+
+.header,
+.previewHeader {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.kicker,
+.subkicker {
+  margin: 0 0 0.35rem;
+  color: #60a5fa;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.subkicker {
+  margin-bottom: 0.2rem;
+  color: #64748b;
+}
+
+.header h2,
+.description,
+.previewHeader h3 {
+  margin: 0;
+}
+
+.header h2,
+.previewHeader h3 {
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.description {
+  max-width: 72ch;
+  margin-top: 0.35rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.saved {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #166534;
+  border-radius: 999px;
+  color: #bbf7d0;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(10rem, 0.6fr);
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+}
+
+.checkbox {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.6rem;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.checkbox[data-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.checkboxBox {
+  display: inline-grid;
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  place-items: center;
+  border: 1px solid #475569;
+  border-radius: 0.3rem;
+  background: #0b1222;
+}
+
+.checkbox[data-selected="true"] .checkboxBox {
+  border-color: #2563eb;
+  background: #1d4ed8;
+}
+
+.checkbox[data-selected="true"] .checkboxBox::after {
+  width: 0.35rem;
+  height: 0.6rem;
+  border-right: 2px solid #eff6ff;
+  border-bottom: 2px solid #eff6ff;
+  transform: rotate(45deg) translate(-1px, -1px);
+  content: "";
+}
+
+.checkboxTitle,
+.checkboxDescription {
+  display: block;
+}
+
+.checkboxTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.checkboxDescription {
+  margin-top: 0.25rem;
+  color: #64748b;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.field {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+}
+
+.field label {
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.field input {
+  min-height: 2.3rem;
+  padding: 0 0.6rem;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  background: #0b1222;
+  color: #f8fafc;
+}
+
+.field input:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 1px;
+}
+
+.help,
+.meta {
+  color: #64748b;
+  font-size: 0.68rem;
+}
+
+.notice {
+  margin: 0.8rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #854d0e;
+  border-radius: 0.5rem;
+  background: #1c1710;
+  color: #fde68a;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: 2.3rem;
+  padding: 0 0.8rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 1px solid #2563eb;
+  background: #1d4ed8;
+  color: #eff6ff;
+}
+
+.secondaryButton {
+  border: 1px solid #334155;
+  background: #111827;
+  color: #cbd5e1;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.preview {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid #26324a;
+}
+
+.previewList {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.previewItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 0.7rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid #26324a;
+  border-radius: 0.55rem;
+  background: #0b1222;
+}
+
+.previewMain {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.previewMain strong {
+  overflow: hidden;
+  color: #e5e7eb;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewMain span {
+  color: #64748b;
+  font-size: 0.66rem;
+}
+
+.eligible,
+.blocked {
+  align-self: start;
+  padding: 0.25rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+.eligible {
+  border: 1px solid #166534;
+  color: #bbf7d0;
+}
+
+.blocked {
+  border: 1px solid #7f1d1d;
+  color: #fecaca;
+}
+
+.previewItem p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.65rem;
+  line-height: 1.4;
+}
+
+.empty,
+.error {
+  margin: 0.7rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.72rem;
+}
+
+.empty {
+  border: 1px dashed #334155;
+  color: #64748b;
+}
+
+.error {
+  border: 1px solid #7f1d1d;
+  background: #2a1014;
+  color: #fecaca;
+}
+
+@media (max-width: 760px) {
+  .header,
+  .previewHeader {
+    flex-direction: column;
+  }
+
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    flex: 1;
+  }
+}

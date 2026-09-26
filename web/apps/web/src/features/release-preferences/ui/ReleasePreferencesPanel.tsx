@@ -71,7 +71,7 @@ export default function ReleasePreferencesPanel({
   return (
     <section
       className={styles.panel}
-      aria-labelledby="release-preferences-heading"
+      aria-label="Release preferences"
     >
       <div className={styles.header}>
         <div>

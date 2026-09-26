@@ -316,7 +316,7 @@ export default function ReleaseDiscoveryPanel({
         <p className={styles.kicker}>Release discovery</p>
         <h2 id="release-discovery-heading">Find releases</h2>
         <p className={styles.description}>
-          Runs exactly one Nyaa search per click. Reorder fields by dragging
+          Runs the configured search plan against Nyaa. Reorder fields by dragging
           them, or use the keyboard handle to move them before searching.
         </p>
       </div>
@@ -553,7 +553,7 @@ export default function ReleaseDiscoveryPanel({
         <DiscoveryResults
           animeId={animeId}
           items={query.data.items}
-          query={query.data.query}
+          queries={query.data.queries}
           warnings={query.data.warnings}
           profileVersion={query.data.search_profile_version}
         />
@@ -569,7 +569,7 @@ export default function ReleaseDiscoveryPanel({
 interface DiscoveryResultsProps {
   animeId: string;
   items: ReleaseDiscoveryItem[];
-  query: string;
+  queries: string[];
   warnings: string[];
   profileVersion: number | null;
 }
@@ -577,7 +577,7 @@ interface DiscoveryResultsProps {
 function DiscoveryResults({
   animeId,
   items,
-  query,
+  queries,
   warnings,
   profileVersion,
 }: DiscoveryResultsProps) {
@@ -624,8 +624,14 @@ function DiscoveryResults({
           </span>
         </div>
         <details className={styles.queries}>
-          <summary>Query</summary>
-          <code>{query}</code>
+          <summary>
+            {queries.length === 1 ? "Query" : String(queries.length) + " queries"}
+          </summary>
+          <div>
+            {queries.map((value) => (
+              <code key={value}>{value}</code>
+            ))}
+          </div>
         </details>
       </div>
 

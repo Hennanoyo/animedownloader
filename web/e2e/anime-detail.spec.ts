@@ -755,7 +755,11 @@ test("saves anime release preferences and uses them to explain ranked releases",
   await preferences.locator('input[aria-label="Video codec"]').fill("HEVC");
   await preferences.locator('input[aria-label="Source"]').fill("WEB");
 
-  await preferences.getByRole("button", { name: "Save preferences" }).click();
+  const savePreferences = preferences.getByRole("button", {
+    name: "Save preferences",
+  });
+  await expect(savePreferences).toBeEnabled();
+  await savePreferences.click();
   await expect(preferences.getByText("Saved", { exact: true })).toBeVisible();
 
   const discovery = page.getByRole("region", { name: "Find releases" });
@@ -784,16 +788,12 @@ test("discovers parsed releases from the anime detail page", async ({ page }) =>
   });
   await expect(titleInput).toHaveValue("Browser Smoke Romaji");
 
-  const titleOptionsButton = discovery.getByRole("button", {
-    name: /Show Title options/,
-  });
-  await titleOptionsButton.click();
-  const englishOption = page
-    .locator('[role="option"]')
-    .filter({ hasText: "Browser Smoke English" })
-    .last();
-  await expect(englishOption).toBeVisible();
-  await englishOption.click();
+  await titleInput.click();
+  await titleInput.press("ArrowDown");
+  await titleInput.press("ArrowDown");
+  await titleInput.press("ArrowDown");
+  await titleInput.press("ArrowDown");
+  await titleInput.press("Enter");
   await expect(titleInput).toHaveValue("Browser Smoke English");
 
   await titleInput.fill("Browser Smoke Custom");

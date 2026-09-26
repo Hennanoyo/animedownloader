@@ -9,10 +9,10 @@ from uuid import UUID
 from animedownloader_database import Base
 from animedownloader_releases import AnimeMatchResult
 from sqlalchemy import (
+    JSON,
     DateTime,
     ForeignKey,
     Integer,
-    JSON,
     String,
     UniqueConstraint,
     func,

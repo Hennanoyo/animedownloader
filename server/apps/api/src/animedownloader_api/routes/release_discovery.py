@@ -28,9 +28,9 @@ from animedownloader_api.release_ingestion import (
 )
 from animedownloader_api.schemas import (
     EpisodeResponse,
-    ReleaseDiscoveryCandidateResponse,
     ReleaseDiscoveryCandidateAcceptanceRequest,
     ReleaseDiscoveryCandidateAcceptanceResponse,
+    ReleaseDiscoveryCandidateResponse,
     ReleaseDiscoveryCandidateUpdate,
     ReleaseDiscoveryMatchCandidateResponse,
     ReleaseDiscoveryRunResponse,

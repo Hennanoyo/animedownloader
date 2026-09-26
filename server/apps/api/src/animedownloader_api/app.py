@@ -28,9 +28,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from animedownloader_api.job_progress import JobProgressHub
+from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 from animedownloader_api.task_queue import ReleaseDiscoveryTaskDispatcher
-from animedownloader_api.media_processing_queue import MediaProcessingTaskDispatcher
 from animedownloader_api.routes import (
     anime_pipeline_router,
     animes_router,
@@ -42,9 +42,9 @@ from animedownloader_api.routes import (
     media_preparation_jobs_router,
     media_processing_jobs_router,
     media_sources_router,
+    release_discovery_router,
     release_profiles_router,
     releases_router,
-    release_discovery_router,
 )
 from animedownloader_api.task_queue import (
     DownloadTaskDispatcher,

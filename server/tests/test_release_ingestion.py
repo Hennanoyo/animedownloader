@@ -324,6 +324,21 @@ async def test_replace_release_requires_no_download_history_and_preserves_episod
 
 
 @pytest.mark.anyio
+async def test_replace_release_rejects_episode_number_mismatch() -> None:
+    anime = _anime()
+    existing = _episode(anime.id)
+    session = FakeSession([existing, anime])
+    service = EpisodeIngestionService(cast(AsyncSession, session))
+
+    with pytest.raises(ReleaseReplacementConflictError):
+        await service.replace(
+            episode_id=existing.id,
+            release=_release(release_id="release-9"),
+            parsed=_parsed(episode_number=9),
+        )
+
+
+@pytest.mark.anyio
 async def test_replace_release_rejects_existing_download_history() -> None:
     anime = _anime()
     existing = _episode(anime.id, title="Keep this title")

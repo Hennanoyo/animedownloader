@@ -24,7 +24,7 @@ import type {
 } from "../../../entities/release/model/types";
 import { useReleaseGroups } from "../../../entities/release/model/useReleaseGroups";
 import { useReleaseDiscovery } from "../model/useReleaseDiscovery";
-import { useIngestRelease } from "../model/useIngestRelease";
+import { useIngestRelease, useReplaceRelease } from "../model/useIngestRelease";
 import styles from "./ReleaseDiscoveryPanel.module.scss";
 
 const schema = z.object({
@@ -581,12 +581,28 @@ function DiscoveryResults({
   profileVersion,
 }: DiscoveryResultsProps) {
   const ingest = useIngestRelease(animeId);
+  const replace = useReplaceRelease(animeId);
   const [ingestions, setIngestions] = useState<
     Record<string, EpisodeIngestionResponse>
   >({});
 
   async function handleIngest(item: ReleaseDiscoveryItem) {
     const result = await ingest.mutateAsync({
+      release: item.release,
+      parsed: item.parsed,
+    });
+    setIngestions((current) => ({
+      ...current,
+      [item.release.id]: result,
+    }));
+  }
+
+  async function handleReplace(
+    item: ReleaseDiscoveryItem,
+    episodeId: string,
+  ) {
+    const result = await replace.mutateAsync({
+      episodeId,
       release: item.release,
       parsed: item.parsed,
     });
@@ -718,14 +734,43 @@ function DiscoveryResults({
               </div>
 
               {ingestions[item.release.id] ? (
-                <p
+                <div
                   className={styles.ingestResult}
                   data-status={ingestions[item.release.id].status}
                 >
-                  {formatIngestionResult(
-                    ingestions[item.release.id],
-                  )}
-                </p>
+                  <p>{formatIngestionResult(ingestions[item.release.id])}</p>
+                  {ingestions[item.release.id].status ===
+                    "replacement_candidate" &&
+                  ingestions[item.release.id].existing_episode ? (
+                    <div className={styles.replacementActions}>
+                      <span>
+                        Existing release:{" "}
+                        {ingestions[item.release.id].existing_episode
+                          .source_title ?? "Unknown"}
+                      </span>
+                      <Button
+                        className={styles.replaceButton}
+                        onPress={() =>
+                          void handleReplace(
+                            item,
+                            ingestions[item.release.id]!.existing_episode!.id,
+                          )
+                        }
+                        isDisabled={
+                          replace.isPending ||
+                          item.parsed.status !== "parsed" ||
+                          item.parsed.episode_number === null
+                        }
+                      >
+                        {replace.isPending &&
+                        replace.variables?.episodeId ===
+                          ingestions[item.release.id].existing_episode.id
+                          ? "Replacing..."
+                          : "Replace release"}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
 
               <div className={styles.links}>

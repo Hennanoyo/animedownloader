@@ -29,6 +29,7 @@ from animedownloader_api.schemas import (
     ParsedReleaseResponse,
     ReleaseDiscoveryItemResponse,
     ReleaseDiscoveryResponse,
+    ReleaseRankingResponse,
     ReleaseResponse,
     ReleaseSearchResponse,
 )
@@ -70,6 +71,7 @@ async def discover_releases(
     title: Annotated[str, Query(min_length=1, max_length=200)],
     service: ReleaseDiscoveryServiceDependency,
     group: Annotated[str | None, Query(max_length=128)] = None,
+    anime_id: UUID | None = None,
     episode: Annotated[int | None, Query(ge=1, le=9999)] = None,
     resolution: Annotated[str | None, Query(max_length=32)] = None,
     codec: Annotated[str | None, Query(max_length=32)] = None,
@@ -81,6 +83,7 @@ async def discover_releases(
 
     result = await service.discover(
         title=normalized_title,
+        anime_id=anime_id,
         group=group.strip() if group else None,
         episode=episode,
         resolution=resolution.strip() if resolution else None,
@@ -96,6 +99,10 @@ async def discover_releases(
                 release=ReleaseResponse.model_validate(item.release),
                 parsed=ParsedReleaseResponse.from_parsed(item.parsed),
                 match=_match_response(item.match),
+                ranking=ReleaseRankingResponse(
+                    score=item.ranking.score,
+                    reasons=list(item.ranking.reasons),
+                ),
             )
             for item in result.items
         ],

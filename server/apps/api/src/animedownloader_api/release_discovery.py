@@ -146,7 +146,7 @@ class ReleaseDiscoveryService:
                         release=release,
                         parsed=parsed,
                         match=match,
-                        ranking=self._rank_release(
+                        ranking=self.rank_release(
                             parsed,
                             match,
                             preference,
@@ -210,10 +210,10 @@ class ReleaseDiscoveryService:
         return preference, group
 
     @staticmethod
-    def _rank_release(
+    def rank_release(
         parsed: ParsedRelease,
         match: AnimeMatchResult,
-        preference: tuple[AnimeReleasePreference, ReleaseGroup] | None,
+        preference: tuple[AnimeReleasePreference, ReleaseGroup | None] | None,
     ) -> ReleaseRanking:
         if preference is None:
             return ReleaseRanking(score=0)

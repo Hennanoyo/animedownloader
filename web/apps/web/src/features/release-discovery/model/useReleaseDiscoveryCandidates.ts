@@ -83,6 +83,12 @@ export function useAcceptReleaseDiscoveryCandidate() {
         ["release-discovery-candidate", data.candidate.id],
         data.candidate,
       );
+      void queryClient.invalidateQueries({
+        queryKey: ["animes", data.candidate.anime_id],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["anime-pipelines", data.candidate.anime_id],
+      });
     },
   });
 }

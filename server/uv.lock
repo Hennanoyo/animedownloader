@@ -341,6 +341,7 @@ name = "animedownloader-worker"
 version = "0.1.0"
 source = { editable = "apps/worker" }
 dependencies = [
+    { name = "animedownloader-api" },
     { name = "animedownloader-config" },
     { name = "animedownloader-download" },
     { name = "animedownloader-media" },
@@ -355,6 +356,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "animedownloader-api", editable = "apps/api" },
     { name = "animedownloader-config", editable = "libs/config" },
     { name = "animedownloader-download", editable = "domains/download" },
     { name = "animedownloader-media", editable = "libs/media" },

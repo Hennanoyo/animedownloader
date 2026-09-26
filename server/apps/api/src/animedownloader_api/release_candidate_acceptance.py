@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .release_candidates import ReleaseCandidateStatus, ReleaseDiscoveryCandidate
-from .release_ingestion import EpisodeIngestionResult, EpisodeIngestionService
+from .release_ingestion import EpisodeIngestionService
 
 
 class ReleaseCandidateNotAcceptableError(ValueError):

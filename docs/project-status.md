@@ -965,11 +965,11 @@ Safety boundary:
 
 - Discovery only collects and persists review candidates. It does not create or replace Episodes and does not create or start DownloadJobs.
 
-## Current Phase — Policy-Controlled Candidate Selection & Download Scheduling
+## Completed Phase — Policy-Controlled Candidate Selection & Download Scheduling
 
 ### PR #47 — Policy-Controlled Candidate Selection & Download Scheduling
 
-**Current development phase.**
+**Status: Merged** into `main` as commit `1867ee6378bc98a3dc512ac5c831d9fb2ade1289`.
 
 Goal: add opt-in automation on top of normalized discovery candidates without bypassing parsing, matching, provenance, Episode ingestion, replacement protection, or DownloadJob safeguards.
 
@@ -1023,8 +1023,89 @@ Out of scope:
 - player/media-pipeline changes
 - unrestricted heuristic selection without persisted decision reasons
 
+## Current Phase — Unified Discovery Search Planning
+
+The next development phase addresses provider result caps and overly broad title-only discovery by making manual and scheduled discovery share one bounded Search Plan.
+
+The phase begins with the existing capabilities:
+
+```
+Find releases
+   ↓
+search fields / Search Profile
+   ↓
+Nyaa query
+```
+
+and extends them toward:
+
+```
+Anime titles + Release Preferences + Release Search Profile
+                    ↓
+          Discovery Search Plan
+             ├─ Query 1
+             ├─ Query 2
+             └─ bounded Query N
+                    ↓
+         merge / deduplicate
+                    ↓
+           Parse → Match → Rank
+                    ↓
+             Candidate Inbox
+                    ↓
+          Automation Policy
+```
+
+Design goals:
+
+- reuse the existing `SearchField`, `SearchQueryContext`, `build_search_query()`, and `merge_releases()` primitives instead of creating a second search implementation
+- let scheduled discovery reuse the same plan-generation behavior as `Find releases`
+- use active Release Search Profiles as group-specific default field recipes
+- use Anime release preferences to narrow useful searches where a preference is safely expressible as a provider query term
+- allow alternate Anime title forms when they improve recall without generating a Cartesian product of every possible field combination
+- enforce a deterministic query budget per discovery run
+- avoid hidden progressive broadening/retry behavior in scheduled discovery
+- preserve raw provider payloads as ephemeral
+- record lightweight per-query run diagnostics when multi-query discovery is introduced
+
+Responsibility boundaries:
+
+```
+Search Profile
+  = provider query recipe
+
+Discovery Search Plan
+  = concrete bounded queries for one discovery action
+
+Parser Profile
+  = release-title interpretation
+
+Anime Release Preferences
+  = Anime-specific search constraints and ranking signals
+
+Automation Policy
+  = whether an already discovered candidate may create a DownloadJob
+```
+
+Planned implementation order:
+
+1. Extract a shared Search Plan builder around the existing query primitives.
+2. Make `Find releases`, `Discovery now`, and periodic discovery consume the same planning path while keeping manual overrides explicit.
+3. Add bounded multi-query execution and in-memory deduplication.
+4. Feed Anime alternate titles and persisted release preferences into deterministic plan generation.
+5. Persist lightweight per-query diagnostics without retaining raw Nyaa/RSS payloads.
+6. Add backend, frontend, browser, and integration coverage for query budgets, result merging, provider caps/warnings, and scheduled/manual parity.
+
+Out of scope for this phase:
+
+- new external release providers
+- unrestricted title-only automatic downloading
+- automatic progressive query broadening
+- changing Parser Profile semantics
+- automatic Episode replacement
+- player or media-pipeline changes
+
 ## Handoff Notes
 
-PR #45 and PR #46 are merged into `main`. The next work is the optional policy-controlled automation phase: automatically selecting eligible candidates and creating DownloadJobs only after the configured policy passes.
+PR #47 is merged into `main`. The next implementation work is the Unified Discovery Search Planning phase described above. Treat `docs/architecture/release-discovery.md` and this section as the design handoff for the next PR.
 
-For a new development session, use this document together with `AGENTS.md`, the relevant architecture and decision documents, the current repository state, and recent commits. Treat the repository state as authoritative and update this file whenever the development phase changes.

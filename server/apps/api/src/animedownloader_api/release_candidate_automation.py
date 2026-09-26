@@ -487,7 +487,11 @@ class ReleaseCandidateAutomationService:
         ):
             eligible = False
 
-        if policy.require_preference_match and configured_fields == 0:
+        if (
+            policy.enabled
+            and policy.require_preference_match
+            and configured_fields == 0
+        ):
             eligible = False
             reasons.append("No release preference is configured")
 

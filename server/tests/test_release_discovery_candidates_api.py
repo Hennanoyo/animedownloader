@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
-from uuid import uuid7
+from uuid import UUID, uuid7
 
 import httpx
 import pytest
@@ -36,7 +36,7 @@ def make_anime() -> Anime:
     )
 
 
-def make_candidate(anime_id) -> ReleaseDiscoveryCandidate:
+def make_candidate(anime_id: UUID) -> ReleaseDiscoveryCandidate:
     now = datetime(2026, 9, 26, tzinfo=UTC)
     return ReleaseDiscoveryCandidate(
         id=uuid7(),

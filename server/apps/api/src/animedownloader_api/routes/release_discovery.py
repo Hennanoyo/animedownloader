@@ -118,10 +118,8 @@ async def get_schedule(
 async def update_schedule(
     anime_id: UUID,
     payload: ReleaseDiscoveryScheduleUpdate,
-    anime_service: AnimeServiceDependency,
     service: CandidateServiceDependency,
 ) -> ReleaseDiscoveryScheduleResponse:
-    await anime_service.get_anime(anime_id)
     try:
         schedule = await service.update_schedule(
             anime_id,
@@ -140,11 +138,9 @@ async def update_schedule(
 )
 async def run_discovery_now(
     anime_id: UUID,
-    anime_service: AnimeServiceDependency,
     service: CandidateServiceDependency,
     scheduler: SchedulerDependency,
 ) -> ReleaseDiscoveryRunResponse:
-    await anime_service.get_anime(anime_id)
     run = await service.create_manual_run(anime_id)
 
     if run.status == "queued":

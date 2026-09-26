@@ -421,6 +421,21 @@
   color: #eff6ff;
   cursor: pointer;
 }
+.secondaryButton {
+  min-height: 2.4rem;
+  padding: 0 0.85rem;
+  border: 1px solid #334155;
+  border-radius: 0.55rem;
+  background: #111827;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 
 .searchButton:disabled {
   opacity: 0.6;

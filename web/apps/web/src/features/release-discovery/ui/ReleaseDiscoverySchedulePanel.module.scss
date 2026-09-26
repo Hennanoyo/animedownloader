@@ -276,3 +276,21 @@
     flex: 1;
   }
 }
+
+
+.activityRow {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.75rem;
+}
+
+.activityLink {
+  color: #93c5fd;
+  font-size: 0.7rem;
+  text-decoration: none;
+}
+
+.activityLink:hover,
+.activityLink:focus-visible {
+  text-decoration: underline;
+}

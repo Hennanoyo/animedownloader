@@ -57,11 +57,11 @@ export default function ReleaseInboxPage() {
       <header className={styles.header}>
         <div>
           <p className={styles.kicker}>Release discovery</p>
-          <h1>Candidate inbox</h1>
+          <h1>Discovery activity</h1>
           <p className={styles.description}>
-            Review normalized release candidates collected by scheduled or
-            manual discovery. Acceptance creates or updates an Episode, but
-            never starts a download automatically.
+            Review discovery runs, query diagnostics, and exceptions that were
+            not resolved by the active automation policy. Manual acceptance
+            creates or updates an Episode; downloads remain a separate action.
           </p>
         </div>
         <Link className={styles.secondaryLink} to="/animes">
@@ -181,7 +181,7 @@ export default function ReleaseInboxPage() {
       <section className={styles.candidates} aria-labelledby="candidates-heading">
         <div className={styles.sectionHeader}>
           <div>
-            <p className={styles.kicker}>Inbox</p>
+            <p className={styles.kicker}>Exceptions</p>
             <h2 id="candidates-heading">
               {candidateQuery.data?.length ?? 0} candidates
             </h2>

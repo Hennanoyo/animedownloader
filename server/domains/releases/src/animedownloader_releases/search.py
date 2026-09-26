@@ -71,6 +71,7 @@ def build_search_query(
         ),
         SearchField.RESOLUTION: _clean_value(context.resolution),
         SearchField.CODEC: _clean_value(context.codec),
+        SearchField.SOURCE: _clean_value(context.source),
     }
     rendered = " ".join(
         value for field in selected_fields if (value := values.get(field))

@@ -10,9 +10,7 @@ import {
 } from "../../../features/anime-detail/model/useAnimePipeline";
 import { useAnimePipelineRealtime } from "../../../features/anime-detail/model/useAnimePipelineRealtime";
 import { useDeleteAnime } from "../../../features/anime-edit/model/useEditAnime";
-import ReleasePreferencesPanel from "../../../features/release-preferences/ui/ReleasePreferencesPanel";
 import ReleaseDiscoverySchedulePanel from "../../../features/release-discovery/ui/ReleaseDiscoverySchedulePanel";
-import ReleaseAutomationPolicyPanel from "../../../features/release-automation/ui/ReleaseAutomationPolicyPanel";
 import ReleaseDiscoveryPanel, {
   type ReleaseDiscoveryTitleOption,
 } from "../../../features/release-discovery/ui/ReleaseDiscoveryPanel";
@@ -167,14 +165,12 @@ export default function AnimeDetailPage() {
 
       {!isEditing ? (
         <>
-          <ReleaseDiscoverySchedulePanel animeId={anime.id} />
-          <ReleasePreferencesPanel animeId={anime.id} />
-          <ReleaseAutomationPolicyPanel animeId={anime.id} />
           <ReleaseDiscoveryPanel
             animeId={anime.id}
             titleOptions={availableReleaseTitleOptions}
             defaultTitleSource={defaultReleaseTitleSource}
           />
+          <ReleaseDiscoverySchedulePanel animeId={anime.id} />
           <section
             className={styles.pipelineSummary}
           aria-labelledby="episodes-heading"

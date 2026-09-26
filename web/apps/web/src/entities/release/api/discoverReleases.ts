@@ -91,6 +91,7 @@ export async function discoverReleases(
   if (input.episode !== undefined) params.set("episode", String(input.episode));
   if (input.resolution) params.set("resolution", input.resolution);
   if (input.codec) params.set("codec", input.codec);
+  if (input.source) params.set("source", input.source);
 
   const payload = await getJson(
     "/api/releases/discover?" + params.toString(),

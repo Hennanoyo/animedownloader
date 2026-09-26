@@ -35,13 +35,6 @@ export default function App() {
           <Link
             className={styles.navLink}
             activeProps={{ className: styles.navLinkActive }}
-            to="/release-inbox"
-          >
-            Discovery inbox
-          </Link>
-          <Link
-            className={styles.navLink}
-            activeProps={{ className: styles.navLinkActive }}
             search={{ status: "all" }}
             to="/downloads"
           >

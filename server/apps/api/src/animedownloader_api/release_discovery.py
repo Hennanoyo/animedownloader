@@ -35,6 +35,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from .release_discovery_config import ReleaseDiscoverySchedule, has_saved_search_plan
 from .release_matching import AnimeMatcher
 
 
@@ -101,6 +102,7 @@ class ReleaseDiscoveryService:
         episode: int | None = None,
         resolution: str | None = None,
         codec: str | None = None,
+        source: str | None = None,
         fields: tuple[SearchField, ...] | None = None,
     ) -> ReleaseDiscoveryResult:
         context = SearchQueryContext(
@@ -109,6 +111,7 @@ class ReleaseDiscoveryService:
             episode=episode,
             resolution=resolution,
             codec=codec,
+            source=source,
         )
         search_profile = await self._load_search_profile(group)
         search_spec = self._to_search_profile_spec(search_profile) if search_profile else None
@@ -121,10 +124,21 @@ class ReleaseDiscoveryService:
         if not plan.queries:
             raise ValueError("at least one non-empty search field is required")
 
+        ranking_preference = None
+        if anime_id is not None:
+            ranking_preference = await self._build_manual_ranking_preference(
+                anime_id=anime_id,
+                group=group,
+                resolution=resolution,
+                codec=codec,
+                source=source,
+            )
+
         return await self.discover_plan(
             plan,
             anime_id=anime_id,
             search_profile_version=search_profile.version if search_profile else None,
+            ranking_preference=ranking_preference,
         )
 
     async def build_anime_search_plan(
@@ -139,16 +153,63 @@ class ReleaseDiscoveryService:
         if anime is None:
             raise ValueError(f"anime not found: {anime_id}")
 
+        schedule = await self._session.scalar(
+            select(ReleaseDiscoverySchedule).where(
+                ReleaseDiscoverySchedule.anime_id == anime_id,
+            ),
+        )
+        if (
+            isinstance(schedule, ReleaseDiscoverySchedule)
+            and has_saved_search_plan(schedule)
+        ):
+            try:
+                field_order = tuple(
+                    SearchField(value) for value in schedule.search_field_order or []
+                )
+                enabled_fields = tuple(
+                    SearchField(value)
+                    for value in schedule.search_enabled_fields or []
+                )
+            except ValueError as exc:
+                raise ValueError(f"saved search plan contains an unknown field: {exc}") from exc
+
+            enabled = set(enabled_fields)
+            fields = tuple(field for field in field_order if field in enabled)
+            if not fields:
+                raise ValueError(f"Anime has no enabled search fields: {anime_id}")
+
+            plan = build_search_plan(
+                (
+                    SearchQueryContext(
+                        group=schedule.search_group,
+                        title=schedule.search_title,
+                        episode=schedule.search_episode,
+                        resolution=schedule.search_resolution,
+                        codec=schedule.search_codec,
+                        source=schedule.search_source,
+                    ),
+                ),
+                fields=fields,
+                max_queries=1,
+            )
+            if not plan.queries:
+                raise ValueError(f"saved search plan has no usable query: {anime_id}")
+
+            search_profile = await self._load_search_profile(schedule.search_group)
+            return plan, search_profile.version if search_profile else None
+
         preference = await self._load_release_preference(anime_id)
         group = None
         resolution = None
         codec = None
+        source = None
         if preference is not None:
             settings, preferred_group = preference
             if preferred_group is not None and preferred_group.enabled:
                 group = preferred_group.name
             resolution = settings.resolution
             codec = settings.video_codec
+            source = settings.source
 
         titles: list[str] = []
         for key in ("romaji", "en", "jp", "ko"):
@@ -159,8 +220,12 @@ class ReleaseDiscoveryService:
             titles.append(anime.title.strip())
 
         search_profile = await self._load_search_profile(group)
-        search_spec = self._to_search_profile_spec(search_profile) if search_profile else None
-        narrowing_is_available = bool(group or resolution or codec)
+        search_spec = (
+            self._to_search_profile_spec(search_profile)
+            if search_profile
+            else None
+        )
+        narrowing_is_available = bool(group or resolution or codec or source)
 
         if not narrowing_is_available:
             titles = titles[:1]
@@ -171,6 +236,7 @@ class ReleaseDiscoveryService:
                 title=title,
                 resolution=resolution,
                 codec=codec,
+                source=source,
             )
             for title in titles
         )
@@ -183,13 +249,13 @@ class ReleaseDiscoveryService:
             raise ValueError(f"Anime has no usable search title: {anime_id}")
 
         return plan, search_profile.version if search_profile else None
-
     async def discover_plan(
         self,
         plan: SearchPlan,
         *,
         anime_id: UUID | None = None,
         search_profile_version: int | None = None,
+        ranking_preference: tuple[AnimeReleasePreference, ReleaseGroup | None] | None = None,
     ) -> ReleaseDiscoveryResult:
         if not plan.queries:
             raise ValueError("search plan must contain at least one query")
@@ -235,7 +301,11 @@ class ReleaseDiscoveryService:
 
         releases = merge_releases(release_batches)
 
-        preference = await self._load_release_preference(anime_id)
+        preference = (
+            ranking_preference
+            if ranking_preference is not None
+            else await self._load_release_preference(anime_id)
+        )
         parser_profiles = await self._load_parser_profiles()
         parser_map: dict[str, tuple[ReleaseParserProfile, ParserProfileSpec]] = {}
         for profile in parser_profiles:
@@ -310,6 +380,41 @@ class ReleaseDiscoveryService:
             warnings=tuple(warnings),
             search_profile_version=search_profile_version,
             items=tuple(items),
+        )
+
+    async def _build_manual_ranking_preference(
+        self,
+        *,
+        anime_id: UUID,
+        group: str | None,
+        resolution: str | None,
+        codec: str | None,
+        source: str | None,
+    ) -> tuple[AnimeReleasePreference, ReleaseGroup | None]:
+        preferred_group = None
+        if group:
+            group_slug = normalize_release_group_slug(group)
+            preferred_group = await self._session.scalar(
+                select(ReleaseGroup)
+                .where(
+                    ReleaseGroup.enabled.is_(True),
+                    (
+                        (ReleaseGroup.slug == group_slug)
+                        | (func.lower(ReleaseGroup.name) == group.casefold())
+                    ),
+                )
+                .limit(1),
+            )
+
+        return (
+            AnimeReleasePreference(
+                anime_id=anime_id,
+                release_group_id=preferred_group.id if preferred_group else None,
+                resolution=resolution,
+                video_codec=codec,
+                source=source,
+            ),
+            preferred_group,
         )
 
     async def _load_release_preference(

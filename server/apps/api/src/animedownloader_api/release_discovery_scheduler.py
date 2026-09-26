@@ -12,8 +12,8 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidateService,
     ReleaseDiscoveryRun,
     ReleaseDiscoveryRunStatus,
-    ReleaseDiscoverySchedule,
 )
+from animedownloader_api.release_discovery_config import ReleaseDiscoverySchedule
 
 from .task_queue import ReleaseDiscoveryTaskDispatcher
 

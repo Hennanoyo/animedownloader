@@ -74,6 +74,15 @@ def test_build_search_query_skips_empty_selected_fields() -> None:
     ) == "Frieren"
 
 
+def test_build_search_query_supports_source_field() -> None:
+    context = SearchQueryContext(title="Frieren", source="WEB-DL")
+
+    assert build_search_query(
+        context,
+        fields=(SearchField.TITLE, SearchField.SOURCE),
+    ) == "Frieren WEB-DL"
+
+
 def test_validate_search_profile_rejects_duplicate_fields() -> None:
     profile = SearchProfileSpec(
         release_group="ExampleSubs",

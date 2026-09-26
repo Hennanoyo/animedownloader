@@ -1,6 +1,6 @@
 from datetime import datetime, time
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from animedownloader_anime import ConversionStatus, DownloadStatus, Season, Weekday
@@ -242,6 +242,30 @@ class ReleaseDiscoverySearchPlanResponse(BaseModel):
     queries: list[ReleaseDiscoverySearchPlanQueryResponse]
 
 
+class ReleaseDiscoverySavedSearchPlanResponse(BaseModel):
+    title_source: str
+    title: str
+    field_order: list[str]
+    enabled_fields: list[str]
+    group: str | None
+    episode: int | None
+    resolution: str | None
+    codec: str | None
+    source: str | None
+
+
+class ReleaseDiscoverySavedSearchPlanUpdate(BaseModel):
+    title_source: str = Field(default="custom", max_length=16)
+    title: str = Field(min_length=1, max_length=200)
+    field_order: list[str]
+    enabled_fields: list[str]
+    group: str | None = Field(default=None, max_length=128)
+    episode: int | None = Field(default=None, ge=1, le=9999)
+    resolution: str | None = Field(default=None, max_length=32)
+    codec: str | None = Field(default=None, max_length=32)
+    source: str | None = Field(default=None, max_length=32)
+
+
 class ReleaseDiscoveryScheduleResponse(BaseModel):
     anime_id: UUID
     enabled: bool
@@ -249,11 +273,19 @@ class ReleaseDiscoveryScheduleResponse(BaseModel):
     next_run_at: datetime | None
     last_run_at: datetime | None
     last_run_status: str | None
+    search_plan: ReleaseDiscoverySavedSearchPlanResponse | None
+    automation_mode: Literal["off", "accept", "download"]
+    automation_min_ranking_score: int
+    automation_require_plan_match: bool
 
 
 class ReleaseDiscoveryScheduleUpdate(BaseModel):
-    enabled: bool = False
-    interval_minutes: int = Field(default=360, ge=15, le=1440)
+    enabled: bool | None = None
+    interval_minutes: int | None = Field(default=None, ge=15, le=1440)
+    search_plan: ReleaseDiscoverySavedSearchPlanUpdate | None = None
+    automation_mode: Literal["off", "accept", "download"] | None = None
+    automation_min_ranking_score: int | None = Field(default=None, ge=0, le=160)
+    automation_require_plan_match: bool | None = None
 
 
 class ReleaseDiscoveryCandidateUpdate(BaseModel):
@@ -820,7 +852,7 @@ class EpisodeIngestionResponse(BaseModel):
 
 
 class ReleaseAutomationPolicyUpdate(BaseModel):
-    enabled: bool = False
+    mode: Literal["off", "accept", "download"] = "off"
     min_ranking_score: int = Field(0, ge=0, le=160)
     require_preference_match: bool = True
 
@@ -830,6 +862,7 @@ class ReleaseAutomationPolicyResponse(BaseModel):
 
     anime_id: UUID
     enabled: bool
+    mode: Literal["off", "accept", "download"]
     min_ranking_score: int
     require_preference_match: bool
     created_at: datetime | None

@@ -133,6 +133,18 @@ const searchPlanSchema = z.object({
   queries: z.array(searchPlanQuerySchema).min(1),
 });
 
+const savedSearchPlanSchema = z.object({
+  title_source: z.string(),
+  title: z.string(),
+  field_order: z.array(z.string()),
+  enabled_fields: z.array(z.string()),
+  group: z.string().nullable(),
+  episode: z.number().int().positive().nullable(),
+  resolution: z.string().nullable(),
+  codec: z.string().nullable(),
+  source: z.string().nullable(),
+});
+
 const scheduleSchema = z.object({
   anime_id: z.uuid(),
   enabled: z.boolean(),
@@ -140,7 +152,21 @@ const scheduleSchema = z.object({
   next_run_at: z.coerce.date().nullable(),
   last_run_at: z.coerce.date().nullable(),
   last_run_status: z.string().nullable(),
+  search_plan: savedSearchPlanSchema.nullable(),
+  automation_mode: z.enum(["off", "accept", "download"]),
+  automation_min_ranking_score: z.number().int().min(0).max(160),
+  automation_require_plan_match: z.boolean(),
 });
+
+export type ReleaseDiscoverySavedSearchPlan = z.infer<typeof savedSearchPlanSchema>;
+export type ReleaseDiscoveryScheduleUpdate = {
+  enabled?: boolean;
+  interval_minutes?: number;
+  search_plan?: ReleaseDiscoverySavedSearchPlan;
+  automation_mode?: "off" | "accept" | "download";
+  automation_min_ranking_score?: number;
+  automation_require_plan_match?: boolean;
+};
 
 export type ReleaseDiscoveryCandidate = z.infer<typeof candidateSchema>;
 export type ReleaseDiscoveryCandidateAcceptance = z.infer<typeof acceptanceSchema>;
@@ -247,7 +273,7 @@ export async function getReleaseDiscoverySchedule(
 
 export async function updateReleaseDiscoverySchedule(
   animeId: string,
-  input: { enabled: boolean; interval_minutes: number },
+  input: ReleaseDiscoveryScheduleUpdate,
   signal?: AbortSignal,
 ): Promise<ReleaseDiscoverySchedule> {
   const payload = await patchJson(

@@ -9,6 +9,7 @@ from animedownloader_api.release_discovery import (
     ReleaseDiscoveryQueryResult,
     ReleaseDiscoveryService,
 )
+from animedownloader_api.release_discovery_config import ReleaseDiscoverySchedule
 from animedownloader_nyaa import NyaaError
 from animedownloader_releases import (
     AnimeMatchCandidate,
@@ -82,6 +83,52 @@ class FirstScalars:
 
     def first(self) -> object | None:
         return self.value
+
+
+@pytest.mark.anyio
+async def test_build_anime_search_plan_uses_saved_search_plan() -> None:
+    anime = Anime(
+        id=uuid7(),
+        title="Frieren",
+        titles={"romaji": "Sousou no Frieren"},
+    )
+    schedule = ReleaseDiscoverySchedule(
+        anime_id=anime.id,
+        search_title_source="romaji",
+        search_title="Sousou no Frieren",
+        search_field_order=["group", "title", "resolution", "codec", "source", "episode"],
+        search_enabled_fields=["title", "resolution", "codec", "source"],
+        search_group="ExampleSubs",
+        search_episode=None,
+        search_resolution="1080p",
+        search_codec="HEVC",
+        search_source="WEB-DL",
+        enabled=True,
+        interval_minutes=360,
+        automation_mode="off",
+        automation_min_ranking_score=0,
+        automation_require_plan_match=True,
+    )
+    session = MagicMock()
+    session.scalar = AsyncMock(side_effect=[anime, schedule])
+    session.scalars = AsyncMock(return_value=EmptyScalars())
+
+    service = ReleaseDiscoveryService(session, None)
+    plan, profile_version = await service.build_anime_search_plan(
+        anime.id,
+        max_queries=3,
+    )
+
+    assert profile_version is None
+    assert tuple(item.query for item in plan.queries) == (
+        "Sousou no Frieren 1080p HEVC WEB-DL",
+    )
+    assert plan.queries[0].fields == (
+        SearchField.TITLE,
+        SearchField.RESOLUTION,
+        SearchField.CODEC,
+        SearchField.SOURCE,
+    )
 
 
 @pytest.mark.anyio

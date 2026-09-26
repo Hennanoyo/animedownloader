@@ -74,22 +74,22 @@ See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 - A successful replacement updates release provenance/metadata only; it must not create or start a DownloadJob.
 - Unknown release groups remain unlinked until an operator creates/configures the corresponding ReleaseGroup.
 
-## Anime Release Preference & Ranking Rules
+## Anime Release Preferences & Ranking Rules
 
-- Anime release preferences are user-maintained hints for discovery ordering, not download commands.
-- Preference fields are optional; an unset field must not penalize or exclude a release.
-- Prefer an existing enabled ReleaseGroup identity when a group preference is selected; do not create groups from preference edits.
-- Candidate ranking must remain deterministic and explainable through explicit preference-match reasons.
+- The persisted Anime Release Preference record is a compatibility projection of the canonical Discovery Search Plan, not a separate user-facing configuration surface.
+- Search Plan group/resolution/video-codec/source values may be projected into the legacy preference record so existing ranking and older API clients remain compatible.
+- Ranking must remain deterministic and explainable through explicit match reasons.
+- A Search Plan field that is not configured must not penalize or exclude a release.
 - Ranking must not silently start downloads, replace Episodes, or mutate persistent Episode release provenance.
-- Current provider metadata such as seeders may only be used as a deterministic tie-breaker after preference scoring; it must not override explicit preference matches.
-- Automatic ranking is advisory in this phase. Periodic discovery, automatic selection, and automatic downloads remain separate future workflows.
+- Current provider metadata such as seeders may only be used as a deterministic tie-breaker after explicit ranking criteria; it must not override an explicit configured match.
+- The user-facing automation thresholds and mode belong to Discovery configuration and must be evaluated there.
 
 ## Release Discovery Candidate Inbox Rules
 
 - Raw Nyaa RSS/search payloads remain ephemeral. Persist only normalized discovery-candidate records needed for review, deduplication, and later acceptance.
 - A persisted candidate is not an Episode and is not authoritative release state. It may be updated with the latest observed provider metadata without creating or replacing an Episode.
 - Candidate identity is stable per Anime/provider/source ID so repeated discovery runs update an existing candidate instead of creating duplicates.
-- Persist ranking score and explicit ranking reasons from the discovery observation; changing Anime preferences must not silently rewrite unrelated historical records until a later discovery observes the release again.
+- Persist ranking score and explicit ranking reasons from the discovery observation; changing the saved Discovery Search Plan must not silently rewrite unrelated historical candidate records until a later discovery observes the release again.
 - Keep discovery-run history separate from DownloadJob, MediaProcessingJob, and Episode execution state.
 - Periodic scheduling is DB-driven and restart-safe. Use transactional row locking/claiming so multiple API instances do not enqueue the same due schedule concurrently.
 - Candidate collection must never create an Episode, replace an Episode, create a DownloadJob, or start a torrent automatically.
@@ -102,14 +102,15 @@ See `docs/architecture/media-pipeline.md` and `docs/decisions/`.
 - Discovery Search Plans are bounded and deterministic. Never introduce Cartesian-product query expansion or hidden progressive broadening/retry.
 - Persist per-query discovery diagnostics when a Search Plan executes multiple provider queries, but never persist raw Nyaa/RSS payloads merely for diagnostics.
 - Treat provider result-limit detection as a diagnostic signal rather than proof of truncation; expose the signal so operators can refine search plans.
-- Automatic candidate selection is opt-in per Anime and defaults to disabled.
-- Automatic selection may use only actionable, uniquely matched candidates and must re-evaluate the current policy/preferences immediately before Episode ingestion.
-- When automatic selection requires preference matching, at least one configured Anime release preference must match; no-preference automation must not silently broaden into unrestricted downloads.
-- Automatic selection must preserve deterministic ranking and expose decision reasons through a dry-run/preview path.
+- Automatic candidate handling is configured as part of the Anime Discovery configuration and defaults to off.
+- Automatic selection may use only actionable, uniquely matched candidates and must re-evaluate the current Discovery configuration immediately before Episode ingestion.
+- When Search Plan criteria matching is required, all configured criteria used as selection guards must match; automation must not silently broaden into unrestricted downloads.
+- Automatic selection must preserve deterministic ranking and expose decision reasons in Discovery results/activity; a dedicated dry-run panel is not required.
 - Candidate automation uses persistent claim state with transactional row locking and restart-safe stale-claim recovery.
 - Automatic acceptance may not perform Episode replacement. A replacement candidate remains blocked for automation and requires the existing explicit replacement workflow.
 - Automatic download creation must use the existing DownloadJobService, never create duplicate active jobs, and must not automatically retry failed/cancelled terminal history.
 - Candidate automation may enqueue an existing pending DownloadJob after a restart, but it must never start a paused download that the user has intentionally paused.
+- Search Plan editing, Discovery schedule, and candidate-automation mode are one user-facing Discovery workflow. Do not reintroduce separate Anime preference or automatic-download configuration panels unless a new architecture decision explicitly requires them.
 
 ## Storage Rules
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import {
   Button,
@@ -24,6 +24,10 @@ import type {
 } from "../../../entities/release/model/types";
 import { useReleaseGroups } from "../../../entities/release/model/useReleaseGroups";
 import { useReleaseDiscovery } from "../model/useReleaseDiscovery";
+import {
+  useReleaseDiscoverySchedule,
+  useUpdateReleaseDiscoverySchedule,
+} from "../model/useReleaseDiscoveryCandidates";
 import { useIngestRelease, useReplaceRelease } from "../model/useIngestRelease";
 import styles from "./ReleaseDiscoveryPanel.module.scss";
 
@@ -42,6 +46,7 @@ const schema = z.object({
   ),
   resolution: z.string().trim().max(32, "Resolution is too long."),
   codec: z.string().trim().max(32, "Codec is too long."),
+  source: z.string().trim().max(32, "Source is too long."),
 });
 
 const DEFAULT_FIELD_ORDER: SearchField[] = [
@@ -50,6 +55,7 @@ const DEFAULT_FIELD_ORDER: SearchField[] = [
   "episode",
   "resolution",
   "codec",
+  "source",
 ];
 
 const FIELD_LABELS: Record<SearchField, string> = {
@@ -58,6 +64,7 @@ const FIELD_LABELS: Record<SearchField, string> = {
   episode: "Episode",
   resolution: "Resolution",
   codec: "Codec",
+  source: "Source",
 };
 
 const EPISODE_OPTIONS = Array.from({ length: 24 }, (_, index) =>
@@ -65,6 +72,7 @@ const EPISODE_OPTIONS = Array.from({ length: 24 }, (_, index) =>
 );
 const RESOLUTION_OPTIONS = ["2160p", "1080p", "720p", "480p"];
 const CODEC_OPTIONS = ["HEVC", "AVC", "AV1", "VP9"];
+const SOURCE_OPTIONS = ["WEB", "WEB-DL", "WEBRip", "Blu-ray", "HDTV"];
 
 export type ReleaseDiscoveryTitleSource =
   | "romaji"
@@ -94,6 +102,8 @@ function getFieldValue(values: Values, field: SearchField): string {
       return values.resolution;
     case "codec":
       return values.codec;
+    case "source":
+      return values.source;
   }
 }
 
@@ -155,6 +165,8 @@ export default function ReleaseDiscoveryPanel({
 }) {
   const initialTitleOption = getTitleOption(titleOptions, defaultTitleSource);
   const releaseGroups = useReleaseGroups();
+  const configuration = useReleaseDiscoverySchedule(animeId);
+  const savePlan = useUpdateReleaseDiscoverySchedule(animeId);
   const [request, setRequest] = useState<ReleaseDiscoveryInput | null>(null);
   const [fieldOrder, setFieldOrder] =
     useState<SearchField[]>(DEFAULT_FIELD_ORDER);
@@ -165,7 +177,10 @@ export default function ReleaseDiscoveryPanel({
       episode: true,
       resolution: true,
       codec: true,
+      source: true,
     });
+  const [titleSource, setTitleSource] =
+    useState<ReleaseDiscoveryTitleSource>(defaultTitleSource);
   const [draggedField, setDraggedField] = useState<SearchField | null>(null);
   const [dropTarget, setDropTarget] = useState<{
     field: SearchField;
@@ -182,6 +197,7 @@ export default function ReleaseDiscoveryPanel({
       episode: "",
       resolution: "",
       codec: "",
+      source: "",
     },
     validators: { onSubmit: schema },
     onSubmit: ({ value }) => {
@@ -200,15 +216,72 @@ export default function ReleaseDiscoveryPanel({
           ? { resolution: value.resolution.trim() }
           : {}),
         ...(value.codec.trim() ? { codec: value.codec.trim() } : {}),
+        ...(value.source.trim() ? { source: value.source.trim() } : {}),
       });
     },
   });
+
+  useEffect(() => {
+    const plan = configuration.data?.search_plan;
+    if (!plan) return;
+
+    const order = [
+      ...plan.field_order,
+      ...DEFAULT_FIELD_ORDER.filter((field) => !plan.field_order.includes(field)),
+    ] as SearchField[];
+    const enabled = new Set(plan.enabled_fields);
+    setFieldOrder(order);
+    setEnabledFields(
+      Object.fromEntries(
+        order.map((field) => [field, enabled.has(field)]),
+      ) as Record<SearchField, boolean>,
+    );
+    setTitleSource(plan.title_source as ReleaseDiscoveryTitleSource);
+    form.setFieldValue("title", plan.title);
+    form.setFieldValue("group", plan.group ?? "");
+    form.setFieldValue(
+      "episode",
+      plan.episode === null ? "" : String(plan.episode),
+    );
+    form.setFieldValue("resolution", plan.resolution ?? "");
+    form.setFieldValue("codec", plan.codec ?? "");
+    form.setFieldValue("source", plan.source ?? "");
+  }, [configuration.data?.search_plan, form]);
 
   const query = useReleaseDiscovery(request);
   const activeFields = useMemo(
     () => fieldOrder.filter((field) => enabledFields[field]),
     [enabledFields, fieldOrder],
   );
+
+  async function saveSearchPlan() {
+    const parsed = schema.safeParse(form.state.values);
+    if (!parsed.success) {
+      await form.handleSubmit();
+      return;
+    }
+
+    const fields = fieldOrder.filter((field) => enabledFields[field]);
+    if (!buildQueryPreview(parsed.data, fields)) {
+      return;
+    }
+
+    await savePlan.mutateAsync({
+      search_plan: {
+        title_source: titleSource,
+        title: parsed.data.title.trim(),
+        field_order: fieldOrder,
+        enabled_fields: fields,
+        group: parsed.data.group.trim() || null,
+        episode: parsed.data.episode.trim()
+          ? Number(parsed.data.episode.trim())
+          : null,
+        resolution: parsed.data.resolution.trim() || null,
+        codec: parsed.data.codec.trim() || null,
+        source: parsed.data.source.trim() || null,
+      },
+    });
+  }
 
   function handleDragStart(
     event: React.DragEvent<HTMLButtonElement>,
@@ -425,7 +498,9 @@ export default function ReleaseDiscoveryPanel({
                               ? EPISODE_OPTIONS
                               : field === "resolution"
                                 ? RESOLUTION_OPTIONS
-                                : CODEC_OPTIONS;
+                                : field === "codec"
+                                  ? CODEC_OPTIONS
+                                  : SOURCE_OPTIONS;
 
                       return (
                         <ComboBox
@@ -436,6 +511,9 @@ export default function ReleaseDiscoveryPanel({
                           isInvalid={fieldState.state.meta.errors.length > 0}
                           onInputChange={(value) => {
                             fieldState.handleChange(value);
+                            if (field === "title") {
+                              setTitleSource("custom");
+                            }
                           }}
                           onSelectionChange={(key) => {
                             if (field !== "title" || key === null) return;
@@ -444,6 +522,7 @@ export default function ReleaseDiscoveryPanel({
                             );
                             if (option && option.value.trim().length > 0) {
                               form.setFieldValue("title", option.value);
+                              setTitleSource(option.key);
                             }
                           }}
                         >
@@ -525,6 +604,22 @@ export default function ReleaseDiscoveryPanel({
 
         <div className={styles.actions}>
           <Button
+            className={styles.secondaryButton}
+            type="button"
+            onPress={() => void saveSearchPlan()}
+            isDisabled={
+              form.state.isSubmitting ||
+              query.isFetching ||
+              savePlan.isPending
+            }
+          >
+            {savePlan.isPending
+              ? "Saving plan..."
+              : configuration.data?.search_plan
+                ? "Save Search Plan"
+                : "Create Search Plan"}
+          </Button>
+          <Button
             className={styles.searchButton}
             type="submit"
             isDisabled={form.state.isSubmitting || query.isFetching}
@@ -546,6 +641,12 @@ export default function ReleaseDiscoveryPanel({
       {query.isError ? (
         <p className={styles.error} role="alert">
           {getErrorMessage(query.error)}
+        </p>
+      ) : null}
+
+      {configuration.isError ? (
+        <p className={styles.error} role="alert">
+          Failed to load saved Search Plan: {configuration.error.message}
         </p>
       ) : null}
 

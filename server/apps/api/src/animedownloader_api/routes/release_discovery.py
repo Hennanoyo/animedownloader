@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from animedownloader_anime import AnimeService, EpisodeNotFoundError
@@ -28,6 +28,7 @@ from animedownloader_api.release_candidates import (
     ReleaseDiscoveryCandidateService,
 )
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
+from animedownloader_api.release_discovery_config import ReleaseDiscoverySchedule
 from animedownloader_api.release_discovery_scheduler import ReleaseDiscoveryScheduler
 from animedownloader_api.release_ingestion import (
     ReleaseDoesNotMatchAnimeError,
@@ -47,6 +48,7 @@ from animedownloader_api.schemas import (
     ReleaseDiscoveryCandidateUpdate,
     ReleaseDiscoveryMatchCandidateResponse,
     ReleaseDiscoveryRunResponse,
+    ReleaseDiscoverySavedSearchPlanResponse,
     ReleaseDiscoveryScheduleResponse,
     ReleaseDiscoveryScheduleUpdate,
     ReleaseDiscoverySearchPlanQueryResponse,
@@ -213,7 +215,7 @@ async def update_automation_policy(
     try:
         policy = await service.update_policy(
             anime_id,
-            enabled=payload.enabled,
+            mode=payload.mode,
             min_ranking_score=payload.min_ranking_score,
             require_preference_match=payload.require_preference_match,
         )
@@ -303,7 +305,7 @@ async def get_schedule(
 ) -> ReleaseDiscoveryScheduleResponse:
     await anime_service.get_anime(anime_id)
     schedule = await service.get_schedule(anime_id)
-    return ReleaseDiscoveryScheduleResponse.model_validate(schedule, from_attributes=True)
+    return _schedule_response(schedule)
 
 
 @router.patch(
@@ -315,15 +317,28 @@ async def update_schedule(
     payload: ReleaseDiscoveryScheduleUpdate,
     service: CandidateServiceDependency,
 ) -> ReleaseDiscoveryScheduleResponse:
+    plan = payload.search_plan
     try:
         schedule = await service.update_schedule(
             anime_id,
             enabled=payload.enabled,
             interval_minutes=payload.interval_minutes,
+            search_title_source=plan.title_source if plan else None,
+            search_title=plan.title if plan else None,
+            search_field_order=plan.field_order if plan else None,
+            search_enabled_fields=plan.enabled_fields if plan else None,
+            search_group=plan.group if plan else None,
+            search_episode=plan.episode if plan else None,
+            search_resolution=plan.resolution if plan else None,
+            search_codec=plan.codec if plan else None,
+            search_source=plan.source if plan else None,
+            automation_mode=payload.automation_mode,
+            automation_min_ranking_score=payload.automation_min_ranking_score,
+            automation_require_plan_match=payload.automation_require_plan_match,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return ReleaseDiscoveryScheduleResponse.model_validate(schedule, from_attributes=True)
+    return _schedule_response(schedule)
 
 
 @router.post(
@@ -336,6 +351,17 @@ async def run_discovery_now(
     service: CandidateServiceDependency,
     scheduler: SchedulerDependency,
 ) -> ReleaseDiscoveryRunResponse:
+    schedule = await service.get_schedule(anime_id)
+    if (
+        not schedule.search_title
+        or not schedule.search_field_order
+        or not schedule.search_enabled_fields
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="save a Search Plan in Find releases before running discovery",
+        )
+
     run = await service.create_manual_run(anime_id)
 
     if run.status == "queued":
@@ -352,6 +378,42 @@ async def run_discovery_now(
             ) from exc
 
     return ReleaseDiscoveryRunResponse.model_validate(run, from_attributes=True)
+
+
+def _schedule_response(
+    schedule: ReleaseDiscoverySchedule,
+) -> ReleaseDiscoveryScheduleResponse:
+    search_plan = None
+    title = schedule.search_title
+    field_order = schedule.search_field_order
+    enabled_fields = schedule.search_enabled_fields
+    if title and field_order and enabled_fields:
+        search_plan = ReleaseDiscoverySavedSearchPlanResponse(
+            title_source=schedule.search_title_source or "custom",
+            title=title,
+            field_order=list(field_order),
+            enabled_fields=list(enabled_fields),
+            group=schedule.search_group,
+            episode=schedule.search_episode,
+            resolution=schedule.search_resolution,
+            codec=schedule.search_codec,
+            source=schedule.search_source,
+        )
+    return ReleaseDiscoveryScheduleResponse(
+        anime_id=schedule.anime_id,
+        enabled=schedule.enabled,
+        interval_minutes=schedule.interval_minutes,
+        next_run_at=schedule.next_run_at,
+        last_run_at=schedule.last_run_at,
+        last_run_status=schedule.last_run_status,
+        search_plan=search_plan,
+        automation_mode=cast(
+            Literal["off", "accept", "download"],
+            schedule.automation_mode,
+        ),
+        automation_min_ranking_score=schedule.automation_min_ranking_score,
+        automation_require_plan_match=schedule.automation_require_plan_match,
+    )
 
 
 def _automation_preview_response(

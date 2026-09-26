@@ -5,6 +5,7 @@ import { getJson, patchJson, postJson } from "../../../shared/api/client";
 const policySchema = z.object({
   anime_id: z.uuid(),
   enabled: z.boolean(),
+  mode: z.enum(["off", "accept", "download"]),
   min_ranking_score: z.number().int().min(0).max(160),
   require_preference_match: z.boolean(),
   created_at: z.coerce.date().nullable(),
@@ -25,7 +26,7 @@ const runSchema = z.object({
 
 export type ReleaseAutomationPolicy = z.infer<typeof policySchema>;
 export type ReleaseAutomationPolicyInput = {
-  enabled: boolean;
+  mode: "off" | "accept" | "download";
   min_ranking_score: number;
   require_preference_match: boolean;
 };

@@ -78,6 +78,7 @@ async def discover_releases(
     episode: Annotated[int | None, Query(ge=1, le=9999)] = None,
     resolution: Annotated[str | None, Query(max_length=32)] = None,
     codec: Annotated[str | None, Query(max_length=32)] = None,
+    source: Annotated[str | None, Query(max_length=32)] = None,
     fields: Annotated[list[SearchField] | None, Query()] = None,
 ) -> ReleaseDiscoveryResponse:
     normalized_title = title.strip()
@@ -91,6 +92,7 @@ async def discover_releases(
         episode=episode,
         resolution=resolution.strip() if resolution else None,
         codec=codec.strip() if codec else None,
+        source=source.strip() if source else None,
         fields=tuple(fields) if fields else None,
     )
     return ReleaseDiscoveryResponse(

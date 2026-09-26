@@ -65,10 +65,9 @@ class AnimeMatcher:
                     self._relaxed_index[relaxed].append((anime, title))
 
     def match(self, parsed: ParsedRelease) -> AnimeMatchResult:
+        series_title = parsed.series_title
         normalized_series_title = (
-            canonicalize_match_title(parsed.series_title)
-            if parsed.series_title
-            else None
+            canonicalize_match_title(series_title) if series_title else None
         )
         if not normalized_series_title:
             return AnimeMatchResult(
@@ -80,7 +79,7 @@ class AnimeMatcher:
         matches = self._index.get(normalized_series_title)
         if not matches:
             matches = self._relaxed_index.get(
-                _canonicalize_relaxed_match_title(parsed.series_title),
+                _canonicalize_relaxed_match_title(series_title),
                 [],
             )
         for anime, matched_title in matches:

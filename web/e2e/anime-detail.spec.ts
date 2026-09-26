@@ -878,7 +878,7 @@ test("previews the persisted discovery search plan", async ({ page }) => {
   await page.goto("/animes/" + ANIME_ID);
 
   const schedule = page.getByRole("region", {
-    name: "Discovery schedule",
+    name: "Keep a candidate inbox updated",
   });
   await expect(
     schedule.getByText(/Search plan · 2 queries · Search profile v4/, {

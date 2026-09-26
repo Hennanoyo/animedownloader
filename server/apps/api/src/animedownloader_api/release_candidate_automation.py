@@ -313,6 +313,26 @@ class ReleaseCandidateAutomationService:
         if candidate.automation_status != ReleaseCandidateAutomationStatus.CLAIMED.value:
             return
 
+        policy = await self.session.scalar(
+            select(AnimeReleaseAutomationPolicy).where(
+                AnimeReleaseAutomationPolicy.anime_id == candidate.anime_id,
+            ),
+        )
+        if policy is None or not policy.enabled:
+            await self.block(candidate_id, "automatic download policy is no longer enabled")
+            return
+
+        preference, preferred_group = await self._get_preference(candidate.anime_id)
+        decision = self._evaluate(
+            candidate,
+            policy,
+            preference,
+            preferred_group,
+        )
+        if not decision.eligible:
+            await self.block(candidate_id, "candidate no longer satisfies the automatic download policy")
+            return
+
         try:
             acceptance = await ReleaseDiscoveryCandidateAcceptanceService(
                 self.session,

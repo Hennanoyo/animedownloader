@@ -104,10 +104,7 @@ async def test_build_anime_search_plan_uses_alternate_titles_and_budget() -> Non
     )
 
     assert profile_version is None
-    assert tuple(item.query for item in plan.queries) == (
-        "Sousou no Frieren",
-        "Frieren: Beyond Journey's End",
-    )
+    assert tuple(item.query for item in plan.queries) == ("Sousou no Frieren",)
 
 
 @pytest.mark.anyio

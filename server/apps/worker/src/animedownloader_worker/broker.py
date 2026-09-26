@@ -1,9 +1,9 @@
 from uuid import UUID
 
-from animedownloader_config import Settings
-from animedownloader_database import create_database
 from animedownloader_api.release_candidate_automation import ReleaseCandidateAutomationService
 from animedownloader_api.task_queue import RELEASE_CANDIDATE_AUTOMATION_TASK_NAME
+from animedownloader_config import Settings
+from animedownloader_database import create_database
 from animedownloader_media_processing import (
     MEDIA_PACKAGING_TASK_NAME,
     MEDIA_PREPARATION_TASK_NAME,

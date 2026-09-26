@@ -8,6 +8,7 @@ from animedownloader_api.dependencies import get_anime_service, get_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from animedownloader_api.release_candidates import (
     ReleaseCandidateStatus,
+    ReleaseDiscoveryCandidate,
     ReleaseDiscoveryCandidateService,
 )
 from animedownloader_api.schemas import (
@@ -155,7 +156,7 @@ async def run_discovery_now(
     return ReleaseDiscoveryRunResponse.model_validate(run, from_attributes=True)
 
 
-def _candidate_response(candidate: object) -> ReleaseDiscoveryCandidateResponse:
+def _candidate_response(candidate: ReleaseDiscoveryCandidate) -> ReleaseDiscoveryCandidateResponse:
     return ReleaseDiscoveryCandidateResponse(
         id=candidate.id,
         anime_id=candidate.anime_id,

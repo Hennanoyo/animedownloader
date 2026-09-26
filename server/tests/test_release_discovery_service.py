@@ -198,7 +198,7 @@ async def test_discovery_executes_each_plan_query_and_deduplicates_results() -> 
         def __init__(self) -> None:
             self.queries: list[str] = []
 
-        async def search(self, query: str) -> list[Release]:
+        async def search(self, query: str) -> ReleaseSearchResult:
             self.queries.append(query)
             if query == "ExampleSubs Frieren":
                 return ReleaseSearchResult(items=(first,))

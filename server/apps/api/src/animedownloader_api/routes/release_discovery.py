@@ -325,7 +325,7 @@ def _automation_preview_response(
         candidate=_candidate_response(preview.candidate),
         eligible=preview.eligible,
         reasons=list(preview.reasons),
-        automation_status=preview.candidate.automation_status,
+        automation_status=preview.candidate.automation_status or "idle",
     )
 
 

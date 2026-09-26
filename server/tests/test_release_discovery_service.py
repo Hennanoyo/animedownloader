@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid7
 
 import pytest
-from animedownloader_anime import AnimeReleasePreference
+from animedownloader_anime import Anime, AnimeReleasePreference
 from animedownloader_api.release_candidates import ReleaseDiscoveryCandidateService
 from animedownloader_api.release_discovery import ReleaseDiscoveryService
 from animedownloader_nyaa import NyaaError
@@ -80,7 +80,7 @@ class FirstScalars:
 
 @pytest.mark.anyio
 async def test_build_anime_search_plan_uses_alternate_titles_and_budget() -> None:
-    anime = __import__("animedownloader_anime").Anime(
+    anime = Anime(
         id=uuid7(),
         title="Frieren",
         titles={

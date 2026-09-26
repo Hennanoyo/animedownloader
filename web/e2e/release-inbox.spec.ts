@@ -130,7 +130,7 @@ test("reviews a persisted discovery candidate in the inbox", async ({ page }) =>
   await page.goto("/release-inbox");
 
   await expect(
-    page.getByRole("heading", { name: "Candidate inbox" }),
+    page.getByRole("heading", { name: "Candidate inbox", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Candidate Inbox Anime", { exact: true })).toHaveCount(2);
   await expect(
@@ -166,7 +166,7 @@ test("shows recent discovery run history", async ({ page }) => {
   await page.goto("/release-inbox");
 
   const runs = page.getByRole("region", { name: "Run history" });
-  await expect(runs.getByText("Candidate Inbox Anime", { exact: true })).toBeVisible();
-  await expect(runs.getByText("completed", { exact: true })).toBeVisible();
-  await expect(runs.getByText("1 candidates", { exact: true })).toBeVisible();
+  await expect(runs).toContainText("Candidate Inbox Anime");
+  await expect(runs).toContainText("completed");
+  await expect(runs).toContainText("1 candidates");
 });

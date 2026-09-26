@@ -98,11 +98,13 @@ class MediaSourceService:
         processing = await self._processing.get_job_by_download_job(download.id)
 
         selected_path = None
-        if processing is not None:
-            if processing.media_path is not None:
-                selected = resolve_selected_media_source(root, _relative_source_path(root, processing.media_path))
-                if selected is not None:
-                    selected_path = relative_media_source(root, selected)
+        if processing is not None and processing.media_path is not None:
+            selected = resolve_selected_media_source(
+                root,
+                _relative_source_path(root, processing.media_path),
+            )
+            if selected is not None:
+                selected_path = relative_media_source(root, selected)
 
         return EpisodeMediaSource(
             episode_id=episode_id,
